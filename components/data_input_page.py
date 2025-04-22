@@ -1,6 +1,8 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTableWidget,
                              QTableWidgetItem, QSplitter, QHeaderView, QTabWidget)
+from PyQt5.QtGui import QCursor
+
 import pandas as pd
 import os
 
@@ -26,14 +28,41 @@ class DataInputPage(QWidget):
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
         top_container_layout.setContentsMargins(10, 10, 10, 10)  # 여백 추가
-        top_container_layout.setSpacing(2)  # 제목과 입력 섹션 사이 간격
+        top_container_layout.setSpacing(10)  # 위젯 간 간격 설정
         top_container.setStyleSheet("border: solid 1px grey; background-color: #F9F9F9")
         top_container.setFixedHeight(120)  # 높이 고정
+
+        # 제목과 버튼을 포함할 상단 행 컨테이너
+        title_row = QFrame()
+        title_row_layout = QHBoxLayout(title_row)
+        title_row_layout.setContentsMargins(10, 0, 10, 0)  # 여백 제거
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
         title_label.setStyleSheet("font-weight: bold; font-size: 30px; color: #333333;")
         title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # 왼쪽 가운데 정렬
+
+        # Execute 버튼 생성
+        excute_button = QPushButton("Execute")
+        excute_button.setFixedWidth(200)
+        excute_button.setFixedHeight(40)
+        excute_button.setCursor(QCursor(Qt.PointingHandCursor))
+        excute_button.setStyleSheet("""
+        QPushButton {
+        background-color: #1428A0; color: white; font-weight: bold; padding: 5px 15px; border-radius: 5px; 
+        }
+        QPushButton:hover {
+                background-color: #004C99; /* 원래 색상보다 약간 어두운 색 */
+            }
+            QPushButton:pressed {
+                background-color: #003366; /* 클릭 시에는 더 어두운 색 */
+            }
+        """)
+
+
+        # 타이틀 행에 제목과 버튼 추가
+        title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
+        title_row_layout.addWidget(excute_button, 0, Qt.AlignRight)  # 오른쪽에 버튼 배치
 
         # 입력 섹션 생성
         input_section = QFrame()
@@ -53,13 +82,12 @@ class DataInputPage(QWidget):
         self.file_uploader = FileUploadComponent()
         self.file_uploader.file_selected.connect(self.on_file_selected)
 
-        # 왼쪽과 오른쪽 섹션을 input_layout에 추가
-        input_layout.addWidget(self.date_selector, 1)  # 왼쪽 정렬
-        input_layout.addStretch(1)  # 중간에 공간 추가하여 분리
-        input_layout.addWidget(self.file_uploader, 3)  # 오른쪽 정렬
+        # 입력 레이아웃에 위젯 추가
+        input_layout.addWidget(self.date_selector, 1)  # 왼쪽에 날짜 선택기
+        input_layout.addWidget(self.file_uploader, 3)  # 오른쪽에 파일 업로더
 
-        # 컨테이너에 제목과 입력 섹션 추가
-        top_container_layout.addWidget(title_label)
+        # 컨테이너에 제목 행과 입력 섹션 추가
+        top_container_layout.addWidget(title_row)
         top_container_layout.addWidget(input_section)
 
         # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
@@ -87,7 +115,7 @@ class DataInputPage(QWidget):
                 padding: 5px 10px;
             }
             QTabBar::tab:selected, QTabBar::tab:hover {
-                background: #1a56db;
+                background: #1428A0;
                 color: white;
             }
             QTabBar::tab:selected {
@@ -122,7 +150,7 @@ class DataInputPage(QWidget):
         # 스플리터에 패널 추가
         splitter.addWidget(left_panel)
         splitter.addWidget(right_panel)
-        splitter.setSizes([700, 300])  # 초기 크기 설정 (7:3 비율)
+        splitter.setSizes([500, 500])  # 초기 크기 설정 (7:3 비율)
 
         # 전체 레이아웃에 컨테이너와 스플리터 추가
         layout.addWidget(top_container)
@@ -218,4 +246,3 @@ class DataInputPage(QWidget):
             # 오류 발생 시 메시지 표시
             self.error_label.setText(f"데이터 로딩 오류: {str(e)}")
             self.error_label.setStyleSheet("color: red; font-size: 14px;")
-
