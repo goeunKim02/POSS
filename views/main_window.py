@@ -1,0 +1,99 @@
+from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from components.navbar import Navbar
+from components.data_input_page import DataInputPage
+from components.planning_page import PlanningPage
+from components.analysis_page import AnalysisPage
+from models.data_model import DataModel
+from PyQt5.QtCore import pyqtSignal,Qt
+from PyQt5.QtGui import QCursor
+
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Samsung Production Planning Optimization System")
+        self.resize(1920, 1080)
+
+        # 데이터 모델 초기화
+        self.data_model = DataModel()
+
+        # UI 초기화
+        self.init_ui()
+
+    def init_ui(self):
+        central_widget = QWidget()
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # 네비게이션 바 추가
+        self.navbar = Navbar()
+        self.navbar.help_clicked.connect(self.show_help)
+        self.navbar.settings_clicked.connect(self.show_settings)
+        main_layout.addWidget(self.navbar)
+
+        # 탭 위젯 생성
+        self.tab_widget = QTabWidget()
+        self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
+        self.tab_widget.setStyleSheet("""
+                QTabBar::tab:selected {
+                    background-color: #1a56db;  /* 선택된 탭의 배경색 (파랑색) */
+                    color: white;               /* 선택된 탭의 텍스트 색상 */
+                    font-weight: bold;
+                }
+                QTabBar::tab:!selected {
+                    background-color: #f0f0f0;  /* 선택되지 않은 탭의 배경색 */
+                }
+                QTabBar::tab {
+                    padding: 8px 16px;          /* 탭 내부 여백 */
+                    min-width: 120px;           /* 최소 탭 너비 */
+                    font-weight: bold;          /* 글꼴 굵기 */        
+                
+                }
+            """)
+
+        # 페이지 컴포넌트 생성 - main_window 전달
+        self.data_input_page = DataInputPage()
+        self.data_input_page.file_selected.connect(self.on_file_selected)
+
+        self.planning_page = PlanningPage(self)  # self 전달
+        # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
+
+        self.analysis_page = AnalysisPage(self)  # self 전달
+        # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
+
+        # 페이지를 탭에 추가
+        self.tab_widget.addTab(self.data_input_page, "Data Input")
+        self.tab_widget.addTab(self.planning_page, "생산계획")
+        self.tab_widget.addTab(self.analysis_page, "결과 분석")
+
+        main_layout.addWidget(self.tab_widget)
+        self.setCentralWidget(central_widget)
+
+    def navigate_to_page(self, index):
+        """특정 인덱스의 탭으로 이동"""
+        if 0 <= index < self.tab_widget.count():
+            self.tab_widget.setCurrentIndex(index)
+
+    def show_help(self):
+        # 도움말 창 표시 로직
+        print("도움말 표시")
+
+    def show_settings(self):
+        # 설정 창 표시 로직
+        print("설정 표시")
+
+    def on_file_selected(self, file_path):
+        # 파일 경로를 데이터 모델에 저장
+        self.data_model.set_file_path(file_path)
+        print(f"선택된 파일: {file_path}")
+
+    def run_optimization(self, parameters=None):
+        # 생산계획 최적화 실행 로직
+        print(f"생산계획 최적화 실행: {parameters}")
+        # self.data_model.process_data(parameters)
+
+    def export_results(self, file_path=None):
+        # 결과 내보내기 로직
+        print(f"결과를 다음 경로에 저장: {file_path}")
+        # self.data_model.export_results(file_path)
