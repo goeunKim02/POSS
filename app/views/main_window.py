@@ -1,19 +1,22 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
-from components.navbar import Navbar
-from components.data_input_page import DataInputPage
-from components.planning_page import PlanningPage
-from components.analysis_page import AnalysisPage
-from models.data_model import DataModel
-from PyQt5.QtCore import pyqtSignal,Qt
-from PyQt5.QtGui import QCursor
-
+from app.views.components import Navbar, DataInputPage, PlanningPage, AnalysisPage, ResultPage
+from app.views.models.data_model import DataModel
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor, QIcon
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Samsung Production Planning Optimization System")
-        self.resize(1920, 1080)
+        self.resize(1920, 980)
+
+        # Create a smaller icon
+        app_icon = QIcon('../resources/icon/samsung_icon1.png')
+        # Create a scaled version of the icon (adjust size as needed)
+        scaled_pixmap = app_icon.pixmap(16, 16)  # Small 16x16 icon
+        scaled_icon = QIcon(scaled_pixmap)
+        self.setWindowIcon(scaled_icon)
 
         # 데이터 모델 초기화
         self.data_model = DataModel()
@@ -37,7 +40,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.tab_widget.setStyleSheet("""
                 QTabBar::tab:selected {
-                    background-color: #1a56db;  /* 선택된 탭의 배경색 (파랑색) */
+                    background-color: #1428A0;  /* 선택된 탭의 배경색 (파랑색) */
                     color: white;               /* 선택된 탭의 텍스트 색상 */
                     font-weight: bold;
                 }
@@ -46,9 +49,9 @@ class MainWindow(QMainWindow):
                 }
                 QTabBar::tab {
                     padding: 8px 16px;          /* 탭 내부 여백 */
-                    min-width: 120px;           /* 최소 탭 너비 */
+                    min-width: 250px;           /* 최소 탭 너비 */
                     font-weight: bold;          /* 글꼴 굵기 */        
-                
+
                 }
             """)
 
@@ -59,13 +62,16 @@ class MainWindow(QMainWindow):
         self.planning_page = PlanningPage(self)  # self 전달
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
+        self.test_page = ResultPage(self)
+
         self.analysis_page = AnalysisPage(self)  # self 전달
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
         # 페이지를 탭에 추가
         self.tab_widget.addTab(self.data_input_page, "Data Input")
-        self.tab_widget.addTab(self.planning_page, "생산계획")
-        self.tab_widget.addTab(self.analysis_page, "결과 분석")
+        self.tab_widget.addTab(self.planning_page, "Linear Programming")
+        self.tab_widget.addTab(self.test_page, "Results View")
+        self.tab_widget.addTab(self.analysis_page, "Results Adjustment")
 
         main_layout.addWidget(self.tab_widget)
         self.setCentralWidget(central_widget)

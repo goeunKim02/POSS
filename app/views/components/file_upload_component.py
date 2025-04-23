@@ -47,7 +47,7 @@ class FileUploadComponent(QWidget):
         browse_btn.setCursor(QCursor(Qt.PointingHandCursor))
         browse_btn.setStyleSheet("""
             QPushButton {
-                background-color: #0066CC; 
+                background-color: #1428A0; 
                 color: white; 
                 height: 100px; 
                 border-radius: 5px;

@@ -5,6 +5,7 @@ from .navbar import Navbar
 from .data_input_page import DataInputPage
 from .planning_page import PlanningPage
 from .analysis_page import AnalysisPage
+from .results_view import ResultPage
 
 # __all__을 정의하여 from components import * 사용 시 가져올 항목 지정
-__all__ = ['Navbar', 'DataInputPage', 'PlanningPage', 'AnalysisPage']
+__all__ = ['Navbar', 'DataInputPage', 'PlanningPage', 'AnalysisPage','ResultPage']

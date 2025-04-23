@@ -16,7 +16,7 @@ class Navbar(QFrame):
     def init_ui(self):
         self.setStyleSheet("""
             QFrame {
-                background-color: #1a56db;
+                background-color: #1428A0;
                 min-height: 60px;
                 max-height: 60px;
             }
@@ -30,6 +30,7 @@ class Navbar(QFrame):
                 border: 1px solid white;
                 padding: 8px 16px;
                 background-color: transparent;
+                border-radius: 4px;
             }
             QPushButton:hover {
                 background-color: #1e429f;
@@ -41,6 +42,8 @@ class Navbar(QFrame):
 
         logo_label = QLabel("SAMSUNG Production Planning Optimization")
         logo_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        logo_font = logo_label.font()
+        logo_font.setBold(True)
 
         navbar_layout.addWidget(logo_label)
         navbar_layout.addStretch()
