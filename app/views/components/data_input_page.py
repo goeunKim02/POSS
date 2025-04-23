@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QTableWidget,
                              QTableWidgetItem, QSplitter, QHeaderView, QTabWidget)
-from PyQt5.QtGui import QCursor
+from PyQt5.QtGui import QCursor, QFont
 
 import pandas as pd
 import os
@@ -39,8 +39,13 @@ class DataInputPage(QWidget):
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
-        title_label.setStyleSheet("font-weight: bold; font-size: 30px; color: #333333;")
-        title_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)  # 왼쪽 가운데 정렬
+        title_font = QFont()
+        title_font.setFamily("Arial")
+        title_font.setPointSize(15)
+        title_font.setBold(True)
+        title_font.setWeight(99)
+        title_label.setFont(title_font)
+
 
         # Execute 버튼 생성
         excute_button = QPushButton("Execute")

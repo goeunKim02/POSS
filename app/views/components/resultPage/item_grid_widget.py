@@ -36,7 +36,7 @@ class ItemGridWidget(QWidget):
         if column_headers:
             for col, header in enumerate(column_headers):
                 label = QLabel(header)
-                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: blue;")
+                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0;")
                 label.setAlignment(Qt.AlignCenter)
                 self.grid_layout.addWidget(label, 0, col + 1)
 
@@ -47,7 +47,7 @@ class ItemGridWidget(QWidget):
             # 행 헤더 추가 (있는 경우)
             if row_headers and row < len(row_headers):
                 label = QLabel(row_headers[row])
-                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: red;")
+                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0;")
                 label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 self.grid_layout.addWidget(label, row + 1, 0)
 

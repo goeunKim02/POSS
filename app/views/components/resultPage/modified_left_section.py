@@ -66,27 +66,6 @@ class ModifiedLeftSection(QWidget):
         self.clear_button.clicked.connect(self.clear_table)
         control_layout.addWidget(self.clear_button)
 
-        # 그룹화 버튼 추가
-        self.group_button = QPushButton("Line/Time 그룹화")
-        self.group_button.setStyleSheet("""
-            QPushButton {
-                background-color: #28A745;
-                color: white;
-                font-weight: bold;
-                padding: 8px 15px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:pressed {
-                background-color: #1E7E34;
-            }
-        """)
-        self.group_button.setCursor(QCursor(Qt.PointingHandCursor))
-        self.group_button.clicked.connect(self.group_data)
-        control_layout.addWidget(self.group_button)
-
         # 나머지 공간 채우기
         control_layout.addStretch(1)
 
@@ -151,7 +130,7 @@ class ModifiedLeftSection(QWidget):
             rows = []
             for line in lines:
                 for shift in ["주간", "야간"]:
-                    rows.append(f"{line} ({shift})")
+                    rows.append(f"{line}_({shift})")
 
             # 그리드 설정
             self.grid_widget.setupGrid(
@@ -175,7 +154,7 @@ class ModifiedLeftSection(QWidget):
                     continue
 
                 day = self.days[day_idx]
-                row_key = f"{line} ({shift})"
+                row_key = f"{line}_({shift})"
 
                 # Item과 MFG 정보가 있으면 추출하여 저장
                 if 'Item' in row_data and pd.notna(row_data['Item']):
@@ -201,10 +180,6 @@ class ModifiedLeftSection(QWidget):
 
             # 데이터 변경 신호 발생
             self.data_changed.emit(self.grouped_data)
-
-            # 성공 메시지 (자동 그룹화 시 메시지 표시하지 않음)
-            if self.sender() == self.group_button:
-                QMessageBox.information(self, "그룹화 성공", "데이터를 Line과 Time으로 그룹화하여 개별 아이템으로 표시했습니다.")
 
         except Exception as e:
             # 에러 메시지 표시
