@@ -21,7 +21,7 @@ class ItemsContainer(QWidget):
         self.setMinimumHeight(self.base_height)
 
     def addItem(self, item_text):
-        item_label = DraggableItemLabel(item_text)
+        item_label = DraggableItemLabel(item_text, self)
         self.layout.addWidget(item_label)
         self.items.append(item_label)
         self.adjustHeight()
@@ -42,6 +42,15 @@ class ItemsContainer(QWidget):
         # 컨테이너 최소 높이 설정
         self.setMinimumHeight(new_height)
 
+    def removeItem(self, item):
+        """특정 아이템 삭제"""
+        if item in self.items:
+            self.layout.removeWidget(item)
+            self.items.remove(item)
+            item.deleteLater()
+            self.adjustHeight()
+            self.itemsChanged.emit()
+
     def clearItems(self):
         for item in self.items:
             self.layout.removeWidget(item)
@@ -55,19 +64,20 @@ class ItemsContainer(QWidget):
 
     def dropEvent(self, event):
         if event.mimeData().hasText():
-            # 새 아이템 추가
-            self.addItem(event.mimeData().text())
+            # 드래그된 아이템 텍스트 가져오기
+            item_text = event.mimeData().text()
 
-            # 소스 위젯 삭제 (옵션)
-            source_widget = event.source()
-            if isinstance(source_widget, DraggableItemLabel) and source_widget not in self.items:
-                parent_container = source_widget.parent()
-                source_widget.setParent(None)
-                source_widget.deleteLater()
+            # 새 아이템으로 추가
+            self.addItem(item_text)
 
-                if hasattr(parent_container, 'adjustHeight'):
-                    parent_container.adjustHeight()
+            # 원본 위젯을 찾아 삭제
+            source = event.source()
+            if isinstance(source, DraggableItemLabel):
+                # 원본 아이템이 어떤 컨테이너에 속해있는지 찾기
+                source_container = source.parent()
+                if isinstance(source_container, ItemsContainer):
+                    # 원본 컨테이너에서 아이템 삭제
+                    source_container.removeItem(source)
 
             event.acceptProposedAction()
             self.itemsChanged.emit()
-            self.adjustHeight()

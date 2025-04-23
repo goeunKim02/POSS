@@ -17,7 +17,7 @@ class DraggableItemLabel(QLabel):
         """)
         self.setAlignment(Qt.AlignCenter)
         self.setCursor(Qt.OpenHandCursor)
-        self.setAcceptDrops(True)
+        self.setAcceptDrops(False)  # 아이템 자체는 드롭 받지 않도록 변경
         self.drag_start_position = None
         self.setWordWrap(True)
         self.setMinimumHeight(25)
@@ -42,25 +42,5 @@ class DraggableItemLabel(QLabel):
         mime_data.setData("application/x-item-data", self.text().encode())
 
         drag.setMimeData(mime_data)
+        # MoveAction 사용 (드래그 후 원본 삭제됨을 의미)
         drag.exec_(Qt.MoveAction)
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasText():
-            event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        if event.mimeData().hasText():
-            # 드롭된 아이템의 텍스트 가져오기
-            source_text = event.mimeData().text()
-            # 현재 아이템의 텍스트 임시 저장
-            current_text = self.text()
-
-            # 텍스트 교환
-            self.setText(source_text)
-
-            # 소스 위젯 찾기 (소스가 같은 애플리케이션 내에 있는 경우)
-            source_widget = event.source()
-            if isinstance(source_widget, DraggableItemLabel):
-                source_widget.setText(current_text)
-
-            event.acceptProposedAction()
