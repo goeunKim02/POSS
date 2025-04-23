@@ -1,9 +1,7 @@
-import sys
-
-from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QDesktopWidget
-from components import Navbar, DataInputPage, PlanningPage, AnalysisPage, ResultPage
-from models.data_model import DataModel
-from PyQt5.QtCore import pyqtSignal, Qt, QSize
+from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from app.views.components import Navbar, DataInputPage, PlanningPage, AnalysisPage, ResultPage
+from app.views.models.data_model import DataModel
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor, QIcon
 
 
@@ -14,7 +12,7 @@ class MainWindow(QMainWindow):
         self.resize(1920, 980)
 
         # Create a smaller icon
-        app_icon = QIcon('icon/samsung_icon1.png')
+        app_icon = QIcon('../resources/icon/samsung_icon1.png')
         # Create a scaled version of the icon (adjust size as needed)
         scaled_pixmap = app_icon.pixmap(16, 16)  # Small 16x16 icon
         scaled_icon = QIcon(scaled_pixmap)

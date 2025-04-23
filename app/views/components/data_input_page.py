@@ -1,13 +1,13 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QTableWidget,
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QTableWidget,
                              QTableWidgetItem, QSplitter, QHeaderView, QTabWidget)
 from PyQt5.QtGui import QCursor
 
 import pandas as pd
 import os
 
-from components.date_range_selector import DateRangeSelector
-from components.file_upload_component import FileUploadComponent
+from app.views.components.date_range_selector import DateRangeSelector
+from app.views.components.file_upload_component import FileUploadComponent
 
 
 class DataInputPage(QWidget):
