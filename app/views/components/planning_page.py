@@ -1,3 +1,4 @@
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -9,14 +10,26 @@ class PlanningPage(QWidget):
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
-        self.setup_ui()
+        self.init_ui()
 
-    def setup_ui(self):
+    def init_ui(self):
         # 레이아웃 설정
-        layout = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        title_layout = QHBoxLayout()
+        title_label = QLabel("After Linear Programming")
+        title_font = QFont()
+        title_font.setFamily("Arial")
+        title_font.setPointSize(15)
+        title_font.setBold(True)
+        title_font.setWeight(99)
+        title_label.setFont(title_font)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        main_layout.addLayout(title_layout)
+
 
         # 스페이서 추가
-        layout.addStretch()
+        main_layout.addStretch()
 
 
     def on_optimization_click(self):

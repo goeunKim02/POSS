@@ -1,7 +1,6 @@
 from PyQt5.QtWidgets import QFrame, QLabel, QPushButton, QHBoxLayout, QSizePolicy
 from PyQt5.QtCore import pyqtSignal,Qt
-from PyQt5.QtGui import QCursor
-
+from PyQt5.QtGui import QCursor, QFont
 
 
 class Navbar(QFrame):
@@ -42,8 +41,13 @@ class Navbar(QFrame):
 
         logo_label = QLabel("SAMSUNG Production Planning Optimization")
         logo_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        logo_font = logo_label.font()
+        logo_font = QFont()
+        logo_font.setFamily("Arial")
+        logo_font.setPointSize(15)
         logo_font.setBold(True)
+        logo_font.setWeight(99)
+        logo_label.setFont(logo_font)
+
 
         navbar_layout.addWidget(logo_label)
         navbar_layout.addStretch()
