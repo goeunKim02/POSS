@@ -1,13 +1,14 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QTableWidget,
-                             QTableWidgetItem, QSplitter, QHeaderView, QTabWidget)
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
+                             QSplitter, QHeaderView, QTabWidget)
 from PyQt5.QtGui import QCursor, QFont
 
-import pandas as pd
 import os
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
+from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
+from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 
 
 class DataInputPage(QWidget):
@@ -16,7 +17,6 @@ class DataInputPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.file_tabs = {}  # 파일 경로를 키로, 해당 탭 인덱스를 값으로 저장
         self.init_ui()
 
     def init_ui(self):
@@ -46,7 +46,6 @@ class DataInputPage(QWidget):
         title_font.setWeight(99)
         title_label.setFont(title_font)
 
-
         # Execute 버튼 생성
         excute_button = QPushButton("Execute")
         excute_button.setFixedWidth(200)
@@ -63,7 +62,6 @@ class DataInputPage(QWidget):
                 background-color: #003366; /* 클릭 시에는 더 어두운 색 */
             }
         """)
-
 
         # 타이틀 행에 제목과 버튼 추가
         title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
@@ -86,6 +84,7 @@ class DataInputPage(QWidget):
         # 오른쪽 섹션: 파일 업로드 컴포넌트 사용
         self.file_uploader = FileUploadComponent()
         self.file_uploader.file_selected.connect(self.on_file_selected)
+        self.file_uploader.file_removed.connect(self.on_file_removed)  # 파일 삭제 시그널 연결
 
         # 입력 레이아웃에 위젯 추가
         input_layout.addWidget(self.date_selector, 1)  # 왼쪽에 날짜 선택기
@@ -98,45 +97,21 @@ class DataInputPage(QWidget):
         # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
         splitter = QSplitter(Qt.Horizontal)
 
-        # 왼쪽 영역 - 탭 위젯으로 여러 파일 데이터 표시
+        # 왼쪽 영역 - 파일 탭 컴포넌트와 시트 선택기로 구성
         left_panel = QFrame()
         left_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc;")
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 탭 위젯 생성
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet("""
-            QTabWidget::pane { 
-                border: 1px solid #cccccc; 
-                background: white; 
-            }
-            QTabBar::tab {
-                background: #f0f0f0;
-                border: 1px solid #cccccc;
-                border-bottom-color: #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                padding: 5px 10px;
-            }
-            QTabBar::tab:selected, QTabBar::tab:hover {
-                background: #1428A0;
-                color: white;
-            }
-            QTabBar::tab:selected {
-                border-bottom-color: white;
-            }
-        """)
+        # 파일 탭 컴포넌트 추가
+        self.file_tab_component = FileTabComponent()
+        self.file_tab_component.tab_changed.connect(self.on_tab_changed)
+        left_layout.addWidget(self.file_tab_component)
 
-        # 기본 탭 추가
-        default_tab = QWidget()
-        default_layout = QVBoxLayout(default_tab)
-        default_label = QLabel("파일을 업로드하면 여기에 데이터가 표시됩니다.")
-        default_label.setAlignment(Qt.AlignCenter)
-        default_layout.addWidget(default_label)
-
-        # 왼쪽 패널에 탭 위젯 추가
-        left_layout.addWidget(self.tab_widget)
+        # 시트 선택 컴포넌트 추가
+        self.sheet_selector = SheetSelectorComponent()
+        self.sheet_selector.sheet_changed.connect(self.on_sheet_changed)
+        left_layout.addWidget(self.sheet_selector)
 
         # 오른쪽 영역 - 오류 메시지 표시
         right_panel = QFrame()
@@ -166,88 +141,75 @@ class DataInputPage(QWidget):
         self.date_range_selected.emit(start_date, end_date)
 
     def on_file_selected(self, file_path):
-        """파일이 선택되면 시그널 발생"""
+        """파일이 선택되면 시그널 발생 및 탭에 추가"""
         self.file_selected.emit(file_path)
 
-        # 파일이 선택되면 새 탭에 데이터 표시
-        self.add_file_tab(file_path)
+        # 파일 탭 컴포넌트에 파일 추가
+        success, message = self.file_tab_component.add_file_tab(file_path)
+
+        # 메시지 표시
+        self.update_status_message(success, message)
+
+        # 엑셀 파일이면 시트 선택기 업데이트
+        current_file = self.file_tab_component.get_current_file_path()
+        if current_file and self.file_tab_component.is_excel_file(current_file):
+            sheets = self.file_tab_component.get_excel_sheets(current_file)
+            self.sheet_selector.set_sheets(sheets)
+        else:
+            self.sheet_selector.setVisible(False)
+
+    def on_file_removed(self, file_path):
+        """파일이 삭제되면 해당 탭도 제거"""
+        # 파일 탭 컴포넌트에서 해당 탭 제거
+        success, message = self.file_tab_component.remove_file_tab(file_path)
+
+        # 메시지 표시
+        self.update_status_message(success, message)
+
+        # 현재 선택된 파일 확인 및 시트 선택기 업데이트
+        current_file = self.file_tab_component.get_current_file_path()
+        if current_file and self.file_tab_component.is_excel_file(current_file):
+            sheets = self.file_tab_component.get_excel_sheets(current_file)
+            self.sheet_selector.set_sheets(sheets)
+        else:
+            self.sheet_selector.setVisible(False)
+
+        # 탭이 하나도 없으면 기본 메시지 표시
+        if not self.file_tab_component.has_tabs():
+            self.error_label.setText("파일을 업로드하세요")
+            self.error_label.setStyleSheet("color: blue; font-size: 14px;")
+
+    def on_tab_changed(self, file_path):
+        """탭이 변경되면 호출되는 함수"""
+        # 엑셀 파일이면 시트 선택기 표시
+        if self.file_tab_component.is_excel_file(file_path):
+            sheets = self.file_tab_component.get_excel_sheets(file_path)
+            self.sheet_selector.set_sheets(sheets)
+        else:
+            self.sheet_selector.setVisible(False)
+
+    def on_sheet_changed(self, sheet_name):
+        """시트가 변경되면 호출되는 함수"""
+        # 현재 파일에 해당 시트 로드
+        current_file = self.file_tab_component.get_current_file_path()
+        if not current_file:
+            return
+
+        # 시트 로드
+        success, message = self.file_tab_component.load_sheet(current_file, sheet_name)
+
+        # 메시지 표시
+        self.update_status_message(success, message)
+
+    def update_status_message(self, success, message):
+        """상태 메시지 업데이트"""
+        if success:
+            self.error_label.setText(message)
+            self.error_label.setStyleSheet("color: green; font-size: 14px;")
+        else:
+            self.error_label.setText(message)
+            self.error_label.setStyleSheet("color: red; font-size: 14px;")
 
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""
         return self.file_uploader.get_file_paths()
-
-    def add_file_tab(self, file_path):
-        """새 탭을 생성하고 파일 데이터를 표시"""
-        try:
-            if not file_path or not os.path.exists(file_path):
-                self.error_label.setText("파일을 찾을 수 없습니다")
-                self.error_label.setStyleSheet("color: red; font-size: 14px;")
-                return
-
-            # 이미 탭이 있는지 확인
-            if file_path in self.file_tabs:
-                # 이미 있는 탭으로 이동
-                self.tab_widget.setCurrentIndex(self.file_tabs[file_path])
-                self.error_label.setText("이미 로드된 파일입니다")
-                self.error_label.setStyleSheet("color: blue; font-size: 14px;")
-                return
-
-            file_ext = os.path.splitext(file_path)[1].lower()
-            file_name = os.path.basename(file_path)
-
-            # 파일 확장자에 따라 다른 방식으로 데이터 로드
-            if file_ext == '.csv':
-                # CSV 파일 로드
-                df = pd.read_csv(file_path, encoding='utf-8')
-            elif file_ext in ['.xls', '.xlsx']:
-                # 엑셀 파일 로드
-                df = pd.read_excel(file_path)
-            else:
-                self.error_label.setText("지원하지 않는 파일 형식입니다")
-                self.error_label.setStyleSheet("color: red; font-size: 14px;")
-                return
-
-            # 새 탭 생성
-            new_tab = QWidget()
-            new_tab_layout = QVBoxLayout(new_tab)
-            new_tab_layout.setContentsMargins(0, 0, 0, 0)
-
-            # 데이터 테이블 생성
-            data_table = QTableWidget()
-            data_table.setStyleSheet("QTableWidget { border: none; }")
-            data_table.setAlternatingRowColors(True)
-            data_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-            data_table.horizontalHeader().setStretchLastSection(True)
-
-            # 테이블 설정
-            data_table.setRowCount(len(df))
-            data_table.setColumnCount(len(df.columns))
-            data_table.setHorizontalHeaderLabels(df.columns)
-
-            # 데이터 채우기
-            for row in range(len(df)):
-                for col in range(len(df.columns)):
-                    item = QTableWidgetItem(str(df.iloc[row, col]))
-                    data_table.setItem(row, col, item)
-
-            # 테이블 열 너비 자동 조정
-            data_table.resizeColumnsToContents()
-
-            # 탭에 테이블 추가
-            new_tab_layout.addWidget(data_table)
-
-            # 탭 추가
-            tab_index = self.tab_widget.addTab(new_tab, file_name)
-            self.tab_widget.setCurrentIndex(tab_index)  # 새 탭으로 전환
-
-            # 탭 정보 저장
-            self.file_tabs[file_path] = tab_index
-
-            # 성공 메시지 표시
-            self.error_label.setText(f"'{file_name}' 파일이 성공적으로 로드되었습니다")
-            self.error_label.setStyleSheet("color: green; font-size: 14px;")
-
-        except Exception as e:
-            # 오류 발생 시 메시지 표시
-            self.error_label.setText(f"데이터 로딩 오류: {str(e)}")
-            self.error_label.setStyleSheet("color: red; font-size: 14px;")
