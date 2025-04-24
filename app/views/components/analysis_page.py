@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont
-from ..components.resultPage.modified_left_section import ModifiedLeftSection
+from ..components.result_components.modified_left_section import ModifiedLeftSection
 
 
 class AnalysisPage(QWidget):

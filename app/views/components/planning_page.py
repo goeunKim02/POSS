@@ -16,7 +16,7 @@ class PlanningPage(QWidget):
         # 레이아웃 설정
         main_layout = QVBoxLayout(self)
         title_layout = QHBoxLayout()
-        title_label = QLabel("After Linear Programming")
+        title_label = QLabel("Pre-Assigned Result")
         title_font = QFont()
         title_font.setFamily("Arial")
         title_font.setPointSize(15)

@@ -6,8 +6,8 @@ from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
 import os
 
-from app.views.components.date_range_selector import DateRangeSelector
-from app.views.components.file_upload_component import FileUploadComponent
+from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
+from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 
 
 class DataInputPage(QWidget):
