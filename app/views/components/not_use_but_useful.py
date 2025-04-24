@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayo
 from PyQt5.QtCore import Qt
 
 
-class ResultPage(QWidget):
+class TestPage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_ui()

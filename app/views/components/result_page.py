@@ -4,7 +4,7 @@ from PyQt5.QtGui import QCursor, QFont
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 
 
-class AnalysisPage(QWidget):
+class ResultPage(QWidget):
     # 시그널 추가
     export_requested = pyqtSignal(str)
 
@@ -33,7 +33,7 @@ class AnalysisPage(QWidget):
         # QFont를 사용하여 더 두껍게 설정
         font = QFont()
         font.setFamily("Arial")
-        font.setPointSize(20)
+        font.setPointSize(15)
         font.setBold(True)
         font.setWeight(99)
         title_label.setFont(font)

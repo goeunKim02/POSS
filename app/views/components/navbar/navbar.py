@@ -16,17 +16,15 @@ class Navbar(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: #1428A0;
-                min-height: 60px;
-                max-height: 60px;
+                min-height: 65px;
+                max-height: 65px;
             }
             QLabel {
                 color: white;
-                font-size: 30px;
-                font-weight: bold;
             }
             QPushButton {
                 color: white;
-                border: 1px solid white;
+                border: 3px solid white;
                 padding: 8px 16px;
                 background-color: transparent;
                 border-radius: 4px;
@@ -43,9 +41,9 @@ class Navbar(QFrame):
         logo_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         logo_font = QFont()
         logo_font.setFamily("Arial")
-        logo_font.setPointSize(15)
+        logo_font.setPointSize(13)
         logo_font.setBold(True)
-        logo_font.setWeight(99)
+        logo_font.setWeight(90)
         logo_label.setFont(logo_font)
 
 
@@ -54,8 +52,20 @@ class Navbar(QFrame):
 
         settings_btn = QPushButton("Settings")
         settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        settings_font = QFont()
+        settings_font.setFamily("Arial")
+        settings_font.setPointSize(9)
+        settings_font.setBold(True)
+        settings_btn.setFont(settings_font)
+
+
         help_btn = QPushButton("Help")
         help_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        help_font = QFont()
+        help_font.setFamily("Arial")
+        help_font.setPointSize(9)
+        help_font.setBold(True)
+        help_btn.setFont(help_font)
 
         # 시그널 연결
         help_btn.clicked.connect(self.help_clicked.emit)
