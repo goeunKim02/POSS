@@ -157,8 +157,8 @@ class ModifiedLeftSection(QWidget):
                 row_key = f"{line}_({shift})"
 
                 # Item과 MFG 정보가 있으면 추출하여 저장
-                if 'Item' in row_data and pd.notna(row_data['Item']):
-                    item_info = str(row_data['Item'])
+                if 'Item' in row_data and pd.notna(row_data['Demand']):
+                    item_info = str(row_data['Demand'])
 
                     # MFG 정보가 있으면 수량 정보로 추가
                     if 'MFG' in row_data and pd.notna(row_data['MFG']):
