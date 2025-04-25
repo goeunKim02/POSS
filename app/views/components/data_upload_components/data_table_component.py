@@ -15,8 +15,12 @@ class DataTableComponent:
         data_table = QTableWidget()
         data_table.setStyleSheet("QTableWidget { border: none; }")
         data_table.setAlternatingRowColors(True)
-        data_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        data_table.horizontalHeader().setStretchLastSection(True)
+
+        # 모든 열이 동일한 너비를 가지도록 Stretch 모드 설정
+        data_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        # 마지막 열을 늘리는 설정 비활성화
+        data_table.horizontalHeader().setStretchLastSection(False)
 
         # 테이블 설정
         data_table.setRowCount(len(df))
@@ -37,9 +41,6 @@ class DataTableComponent:
                     display_value = str(value)
                 item = QTableWidgetItem(display_value)
                 data_table.setItem(row, col, item)
-
-        # 테이블 열 너비 자동 조정
-        data_table.resizeColumnsToContents()
 
         return data_table
 

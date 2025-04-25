@@ -55,17 +55,25 @@ class ItemGridWidget(QWidget):
             for col in range(columns):
                 container = ItemsContainer()
                 container.setMinimumHeight(200)
-                container.setMinimumWidth(300)
+                container.setMinimumWidth(230)
                 container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
                 self.grid_layout.addWidget(container, row + 1, col + 1)
                 row_containers.append(container)
 
             self.containers.append(row_containers)
 
-    def addItemAt(self, row, col, item_text):
-        """특정 위치에 아이템 추가"""
+    def addItemAt(self, row, col, item_text, item_data=None):
+        """
+        특정 위치에 아이템 추가
+
+        매개변수:
+        - row: 행 인덱스
+        - col: 열 인덱스
+        - item_text: 표시할 텍스트
+        - item_data: 아이템 관련 데이터 (툴팁에 표시할 전체 정보)
+        """
         if 0 <= row < len(self.containers) and 0 <= col < len(self.containers[row]):
-            return self.containers[row][col].addItem(item_text)
+            return self.containers[row][col].addItem(item_text, -1, item_data)
         return None
 
     def clearAllItems(self):

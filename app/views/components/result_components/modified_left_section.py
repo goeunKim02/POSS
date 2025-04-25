@@ -156,11 +156,11 @@ class ModifiedLeftSection(QWidget):
                 day = self.days[day_idx]
                 row_key = f"{line}_({shift})"
 
-                # Item과 MFG 정보가 있으면 추출하여 저장
+                # Item 정보가 있으면 추출하여 저장
                 if 'Item' in row_data and pd.notna(row_data['Item']):
                     item_info = str(row_data['Item'])
 
-                    # MFG 정보가 있으면 수량 정보로 추가
+                    # MFG 정보가 있으면 수량 정보로 추가 (표시 텍스트에만)
                     if 'MFG' in row_data and pd.notna(row_data['MFG']):
                         item_info += f" ({row_data['MFG']}개)"
 
@@ -168,7 +168,11 @@ class ModifiedLeftSection(QWidget):
                         # 그리드에 아이템 추가
                         row_idx = rows.index(row_key)
                         col_idx = self.days.index(day)
-                        self.grid_widget.addItemAt(row_idx, col_idx, item_info)
+
+                        # 전체 행 데이터를 아이템 데이터로 전달
+                        # pandas Series를 딕셔너리로 변환하여 전달
+                        item_full_data = row_data.to_dict()
+                        self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
 
