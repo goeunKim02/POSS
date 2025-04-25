@@ -30,6 +30,7 @@ class FileTabComponent(QWidget):
             QTabWidget::pane { 
                 border: 1px solid #cccccc; 
                 background: white; 
+                border-radius: 20px;
             }
             QTabBar::tab {
                 background: #f0f0f0;

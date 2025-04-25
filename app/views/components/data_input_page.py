@@ -23,20 +23,27 @@ class DataInputPage(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)  # 전체 여백 제거
-        layout.setSpacing(0)  # 위젯 간 간격 제거
+        layout.setSpacing(10)  # 위젯 간 간격 설정
+
+        # 전체 컨테이너 생성
+        main_container = QFrame()
+        main_container.setStyleSheet("border:none; border-radius: 5px;")
+        main_container_layout = QVBoxLayout(main_container)
+        main_container_layout.setContentsMargins(0, 0, 0, 0)
+        main_container_layout.setSpacing(15)  # 내부 위젯 간격
 
         # 제목과 입력 섹션을 포함할 컨테이너 생성
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
-        top_container_layout.setContentsMargins(10, 10, 10, 10)  # 여백 추가
+        top_container_layout.setContentsMargins(10, 10, 10, 10)
         top_container_layout.setSpacing(10)  # 위젯 간 간격 설정
-        top_container.setStyleSheet("border: solid 1px grey; background-color: #F9F9F9")
+        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
         top_container.setFixedHeight(120)  # 높이 고정
 
         # 제목과 버튼을 포함할 상단 행 컨테이너
         title_row = QFrame()
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(10, 0, 10, 0)  # 여백 제거
+        title_row_layout.setContentsMargins(10, 0, 10, 0)  # 여백 설정
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
@@ -47,31 +54,14 @@ class DataInputPage(QWidget):
         title_font.setWeight(99)
         title_label.setFont(title_font)
 
-        # Execute 버튼 생성
-        excute_button = QPushButton("Execute")
-        excute_button.setFixedWidth(200)
-        excute_button.setFixedHeight(40)
-        excute_button.setCursor(QCursor(Qt.PointingHandCursor))
-        excute_button.setStyleSheet("""
-        QPushButton {
-        background-color: #1428A0; color: white; font-weight: bold; padding: 5px 15px; border-radius: 5px; 
-        }
-        QPushButton:hover {
-                background-color: #004C99; /* 원래 색상보다 약간 어두운 색 */
-            }
-            QPushButton:pressed {
-                background-color: #003366; /* 클릭 시에는 더 어두운 색 */
-            }
-        """)
 
-        # 타이틀 행에 제목과 버튼 추가
         title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
-        title_row_layout.addWidget(excute_button, 0, Qt.AlignRight)  # 오른쪽에 버튼 배치
+
 
         # 입력 섹션 생성
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
-        input_section.setStyleSheet("background-color: white;")
+        input_section.setStyleSheet("background-color: white; border-radius: 5px;")
         input_section.setFixedHeight(50)
 
         # 입력 섹션의 레이아웃 설정
@@ -95,14 +85,22 @@ class DataInputPage(QWidget):
         top_container_layout.addWidget(title_row)
         top_container_layout.addWidget(input_section)
 
+        # 하단 영역을 위한 컨테이너 생성
+        bottom_container = QFrame()
+        bottom_container.setStyleSheet("background-color: #f5f5f5; border-radius: 5px;")
+        bottom_container_layout = QVBoxLayout(bottom_container)
+        bottom_container_layout.setContentsMargins(10, 10, 10, 10)
+
         # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
         main_splitter = QSplitter(Qt.Horizontal)
+        main_splitter.setStyleSheet("background-color: transparent;")  # 배경색 투명으로 변경
+        main_splitter.setContentsMargins(0, 0, 0, 0)  # 여백 제거
 
         # 왼쪽 영역 - 파일 탭 컴포넌트와 시트 선택기로 구성
         left_panel = QFrame()
-        left_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc;")
+        left_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
         left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(5, 5, 5, 5)
+        left_layout.setContentsMargins(0, 0, 0, 0)
 
         # 파일 탭 컴포넌트 추가
         self.file_tab_component = FileTabComponent()
@@ -116,16 +114,17 @@ class DataInputPage(QWidget):
 
         # 오른쪽 영역 - 수직 스플리터로 위아래 분할
         right_panel = QFrame()
-        right_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc;")
+        right_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거하여 스플리터가 전체 공간 사용
 
         # 오른쪽 패널 내부에 수직 스플리터 생성
         right_splitter = QSplitter(Qt.Vertical)
+        right_splitter.setStyleSheet("background-color: transparent;")  # 배경색 투명으로 변경
 
         # 오른쪽 상단 패널
         right_top_panel = QFrame()
-        right_top_panel.setStyleSheet("background-color: white;")
+        right_top_panel.setStyleSheet("background-color: white; border-radius: 5px;")
         right_top_layout = QVBoxLayout(right_top_panel)
         right_top_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -135,9 +134,9 @@ class DataInputPage(QWidget):
 
         # 오른쪽 하단 패널 - ErrorStatusComponent 추가
         right_bottom_panel = QFrame()
-        right_bottom_panel.setStyleSheet("background-color: white;")
+        right_bottom_panel.setStyleSheet("background-color: white; border-radius: 5px;")
         right_bottom_layout = QVBoxLayout(right_bottom_panel)
-        right_bottom_layout.setContentsMargins(0, 0, 0, 0)
+        right_bottom_layout.setContentsMargins(5, 5, 5, 5)
 
         # ErrorStatusComponent 생성 및 추가
         self.error_status_component = ErrorStatusComponent()
@@ -147,7 +146,7 @@ class DataInputPage(QWidget):
         # 오른쪽 수직 스플리터에 상/하단 패널 추가
         right_splitter.addWidget(right_top_panel)
         right_splitter.addWidget(right_bottom_panel)
-        right_splitter.setSizes([500, 500])  # 초기 크기 비율 설정 (상단 70%, 하단 30%)
+        right_splitter.setSizes([500, 500])  # 초기 크기 비율 설정
 
         # 오른쪽 패널 레이아웃에 수직 스플리터 추가
         right_layout.addWidget(right_splitter)
@@ -155,12 +154,17 @@ class DataInputPage(QWidget):
         # 메인 스플리터에 왼쪽 패널과 오른쪽 패널 추가
         main_splitter.addWidget(left_panel)
         main_splitter.addWidget(right_panel)
-        main_splitter.setSizes([700, 300])  # 초기 크기 설정 (1:1 비율)
+        main_splitter.setSizes([700, 300])  # 초기 크기 설정
 
-        # 전체 레이아웃에 컨테이너와 스플리터 추가
-        layout.addWidget(top_container)
-        layout.addWidget(main_splitter, 1)  # 스플리터가 나머지 공간을 채우도록 stretch factor 1 설정
+        # 하단 컨테이너에 스플리터 추가
+        bottom_container_layout.addWidget(main_splitter)
 
+        # 메인 컨테이너에 상단 컨테이너와 하단 컨테이너 추가
+        main_container_layout.addWidget(top_container)
+        main_container_layout.addWidget(bottom_container, 1)  # 스플리터가 나머지 공간을 채우도록 stretch factor 1 설정
+
+        # 전체 레이아웃에 메인 컨테이너 추가
+        layout.addWidget(main_container)
     def on_date_range_changed(self, start_date, end_date):
         """날짜 범위가 변경되면 시그널 발생"""
         self.date_range_selected.emit(start_date, end_date)
