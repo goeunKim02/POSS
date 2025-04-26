@@ -1,4 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QComboBox, QFrame
 
 
@@ -25,13 +26,17 @@ class SheetSelectorComponent(QWidget):
 
         # 레이블 생성
         sheet_label = QLabel("시트 선택:")
+        sheet_label_font = QFont()
+        sheet_label_font.setFamily("Arial")
+        sheet_label.setFont(sheet_label_font)
+        sheet_label.setStyleSheet("border:none")
 
         # 콤보박스 생성
         self.sheet_combo = QComboBox()
         self.sheet_combo.setStyleSheet("""
             QComboBox {
                 border: 1px solid #cccccc;
-                border-radius: 3px;
+                border-radius: 10px;
                 padding: 3px 5px;
                 min-width: 150px;
             }

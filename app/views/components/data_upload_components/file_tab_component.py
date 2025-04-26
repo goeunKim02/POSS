@@ -43,8 +43,7 @@ class FileTabComponent(QWidget):
                 background: #f0f0f0;
                 border: 1px solid #cccccc;
                 border-bottom-color: #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
+                border-radius: 10px;
                 padding: 5px 12px;
                 margin-right: 2px;  /* 탭 간 간격 줄임 */
                 min-width:300px;    /* 최소 너비 증가 */
