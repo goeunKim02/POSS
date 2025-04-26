@@ -51,7 +51,7 @@ class MainWindow(QMainWindow):
                  
                 }
                 QTabBar::tab:!selected {
-                    background-color: #F0F0F0;  
+                    background-color: #E4E3E3;  
                     font-family: Arial, sans-serif;
                     font-weight: bold;
                 }

@@ -23,14 +23,14 @@ class DataInputPage(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)  # 전체 여백 제거
-        layout.setSpacing(10)  # 위젯 간 간격 설정
+        layout.setSpacing(0)  # 위젯 간 간격 설정
 
         # 전체 컨테이너 생성
         main_container = QFrame()
         main_container.setStyleSheet("border:none; border-radius: 5px;")
         main_container_layout = QVBoxLayout(main_container)
         main_container_layout.setContentsMargins(0, 0, 0, 0)
-        main_container_layout.setSpacing(15)  # 내부 위젯 간격
+        main_container_layout.setSpacing(0)  # 내부 위젯 간격
 
         # 제목과 입력 섹션을 포함할 컨테이너 생성
         top_container = QFrame()
@@ -38,12 +38,12 @@ class DataInputPage(QWidget):
         top_container_layout.setContentsMargins(10, 10, 10, 10)
         top_container_layout.setSpacing(10)  # 위젯 간 간격 설정
         top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
-        top_container.setFixedHeight(120)  # 높이 고정
+        top_container.setFixedHeight(150)  # 높이 고정
 
         # 제목과 버튼을 포함할 상단 행 컨테이너
         title_row = QFrame()
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(10, 0, 10, 0)  # 여백 설정
+        title_row_layout.setContentsMargins(0, 0, 0, 0)  # 여백 설정
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
@@ -61,8 +61,8 @@ class DataInputPage(QWidget):
         # 입력 섹션 생성
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
-        input_section.setStyleSheet("background-color: white; border-radius: 5px;")
-        input_section.setFixedHeight(50)
+        input_section.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
+        input_section.setFixedHeight(70)
 
         # 입력 섹션의 레이아웃 설정
         input_layout = QHBoxLayout(input_section)
@@ -87,9 +87,10 @@ class DataInputPage(QWidget):
 
         # 하단 영역을 위한 컨테이너 생성
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: #f5f5f5; border-radius: 5px;")
+        bottom_container.setStyleSheet("background-color: #f5f5f5; border-radius: 10px;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
+
 
         # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
         main_splitter = QSplitter(Qt.Horizontal)
@@ -114,19 +115,19 @@ class DataInputPage(QWidget):
 
         # 오른쪽 영역 - 수직 스플리터로 위아래 분할
         right_panel = QFrame()
-        right_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
+        right_panel.setStyleSheet("background-color: white; border-radius: 10px;")
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거하여 스플리터가 전체 공간 사용
 
         # 오른쪽 패널 내부에 수직 스플리터 생성
         right_splitter = QSplitter(Qt.Vertical)
-        right_splitter.setStyleSheet("background-color: transparent;")  # 배경색 투명으로 변경
+        right_splitter.setStyleSheet("background-color: #F5F5F5;")  # 배경색 투명으로 변경
 
         # 오른쪽 상단 패널
         right_top_panel = QFrame()
-        right_top_panel.setStyleSheet("background-color: white; border-radius: 5px;")
+        right_top_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc ; border-radius: 10px;")
         right_top_layout = QVBoxLayout(right_top_panel)
-        right_top_layout.setContentsMargins(5, 5, 5, 5)
+        right_top_layout.setContentsMargins(0, 0, 0, 0)
 
         self.parameter_component = ParameterComponent()
         right_top_layout.addWidget(self.parameter_component)
@@ -134,9 +135,9 @@ class DataInputPage(QWidget):
 
         # 오른쪽 하단 패널 - ErrorStatusComponent 추가
         right_bottom_panel = QFrame()
-        right_bottom_panel.setStyleSheet("background-color: white; border-radius: 5px;")
+        right_bottom_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 10px;")
         right_bottom_layout = QVBoxLayout(right_bottom_panel)
-        right_bottom_layout.setContentsMargins(5, 5, 5, 5)
+        right_bottom_layout.setContentsMargins(0, 0, 0, 0)
 
         # ErrorStatusComponent 생성 및 추가
         self.error_status_component = ErrorStatusComponent()

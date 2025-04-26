@@ -26,6 +26,13 @@ class FileTabComponent(QWidget):
 
         # 탭 위젯 생성
         self.tab_widget = QTabWidget()
+
+        # 탭의 크기를 내용에 맞게 조정
+        self.tab_widget.tabBar().setExpanding(False)  # 탭 크기가 내용에 맞게 조정됨
+        self.tab_widget.tabBar().setElideMode(Qt.ElideNone)  # 텍스트가 잘리지 않도록 설정
+        self.tab_widget.tabBar().setUsesScrollButtons(True)  # 탭이 많아지면 스크롤 버튼 표시
+
+        # 탭 간격 조정 (탭 사이의 간격을 줄임)
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane { 
                 border: 1px solid #cccccc; 
@@ -38,7 +45,10 @@ class FileTabComponent(QWidget):
                 border-bottom-color: #cccccc;
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
-                padding: 5px 10px;
+                padding: 5px 12px;
+                margin-right: 2px;  /* 탭 간 간격 줄임 */
+                min-width:300px;    /* 최소 너비 증가 */
+
             }
             QTabBar::tab:selected, QTabBar::tab:hover {
                 background: #1428A0;

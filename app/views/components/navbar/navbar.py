@@ -43,7 +43,7 @@ class Navbar(QFrame):
         logo_font.setFamily("Arial")
         logo_font.setPointSize(13)
         logo_font.setBold(True)
-        logo_font.setWeight(90)
+        logo_font.setWeight(80)
         logo_label.setFont(logo_font)
 
 
