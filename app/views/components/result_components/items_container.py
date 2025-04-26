@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen
 from .draggable_item_label import DraggableItemLabel
+from .item_edit_dialog import ItemEditDialog
 import json
 
 
@@ -9,6 +10,8 @@ class ItemsContainer(QWidget):
     """아이템들을 담는 컨테이너 위젯"""
 
     itemsChanged = pyqtSignal()
+    itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
+    itemDataChanged = pyqtSignal(object, dict)  # (아이템, 새 데이터) 시그널 추가
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -17,6 +20,7 @@ class ItemsContainer(QWidget):
         self.layout.setSpacing(2)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
+        self.selected_item = None  # 현재 선택된 아이템
 
         self.base_height = 100
         self.item_height = 30  # 각 아이템의 예상 높이
@@ -33,6 +37,12 @@ class ItemsContainer(QWidget):
         """
         item_label = DraggableItemLabel(item_text, self, item_data)
 
+        # 아이템 선택 이벤트 연결
+        item_label.itemSelected.connect(self.on_item_selected)
+
+        # 아이템 더블클릭 이벤트 연결
+        item_label.itemDoubleClicked.connect(self.on_item_double_clicked)
+
         if index == -1 or index >= len(self.items):
             # 맨 뒤에 추가
             self.layout.addWidget(item_label)
@@ -44,6 +54,47 @@ class ItemsContainer(QWidget):
 
         self.adjustHeight()
         return item_label
+
+    def on_item_selected(self, selected_item):
+        """아이템이 선택되었을 때 처리"""
+        # 이전에 선택된 아이템이 있고, 현재 선택된 아이템과 다르다면 선택 해제
+        if self.selected_item and self.selected_item != selected_item:
+            self.selected_item.set_selected(False)
+
+        # 새로 선택된 아이템 저장
+        self.selected_item = selected_item
+
+        # 선택 이벤트 발생 (상위 위젯에서 다른 컨테이너의 선택 해제 등을 처리할 수 있도록)
+        self.itemSelected.emit(selected_item, self)
+
+    def on_item_double_clicked(self, item):
+        """아이템이 더블클릭되었을 때 처리"""
+        if not item or not hasattr(item, 'item_data'):
+            return
+
+        # 수정 다이얼로그 생성
+        dialog = ItemEditDialog(item.item_data, self)
+
+        # 데이터 변경 이벤트 연결
+        dialog.itemDataChanged.connect(lambda new_data: self.update_item_data(item, new_data))
+
+        # 다이얼로그 실행
+        dialog.exec_()
+
+    def update_item_data(self, item, new_data):
+        """아이템 데이터 업데이트"""
+        if item and item in self.items and new_data:
+            # 아이템 데이터 업데이트
+            if item.update_item_data(new_data):
+                # 데이터 변경 시그널 발생
+                self.itemDataChanged.emit(item, new_data)
+                self.itemsChanged.emit()
+
+    def clear_selection(self):
+        """모든 아이템 선택 해제"""
+        if self.selected_item:
+            self.selected_item.set_selected(False)
+            self.selected_item = None
 
     def adjustHeight(self):
         """아이템 개수에 따라 컨테이너 높이 자동 조정"""
@@ -63,6 +114,10 @@ class ItemsContainer(QWidget):
     def removeItem(self, item):
         """특정 아이템 삭제"""
         if item in self.items:
+            # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
+            if item == self.selected_item:
+                self.selected_item = None
+
             self.layout.removeWidget(item)
             self.items.remove(item)
             item.deleteLater()
@@ -70,6 +125,9 @@ class ItemsContainer(QWidget):
             self.itemsChanged.emit()
 
     def clearItems(self):
+        """모든 아이템 삭제"""
+        self.selected_item = None  # 선택 상태 초기화
+
         for item in self.items:
             self.layout.removeWidget(item)
             item.deleteLater()
@@ -172,8 +230,16 @@ class ItemsContainer(QWidget):
                     if item_data is None and hasattr(source, 'item_data'):
                         item_data = source.item_data
 
+                    # 선택 상태 확인
+                    was_selected = getattr(source, 'is_selected', False)
+
                     # 새 위치에 아이템 추가 (전체 데이터 포함)
-                    self.addItem(item_text, drop_index, item_data)
+                    new_item = self.addItem(item_text, drop_index, item_data)
+
+                    # 이전 아이템이 선택되어 있었으면 새 아이템도 선택 상태로 설정
+                    if was_selected:
+                        new_item.set_selected(True)
+                        self.on_item_selected(new_item)
 
                     # 원본 컨테이너에서 아이템 삭제
                     source_container.removeItem(source)
