@@ -149,6 +149,9 @@ class DraggableItemLabel(QLabel):
             json_data = json.dumps(serializable_data)
             mime_data.setData("application/x-item-full-data", json_data.encode())
 
+            # 디버깅을 위한 출력
+            print(f"직렬화된 데이터: {json_data}")
+
         # 기본 아이템 식별자도 함께 저장 (이전 버전과의 호환성 유지)
         mime_data.setData("application/x-item-data", self.text().encode())
 
@@ -206,7 +209,11 @@ class DraggableItemLabel(QLabel):
     def update_item_data(self, new_data):
         """아이템 데이터 업데이트"""
         if new_data:
-            self.item_data = new_data
+            # 데이터 직접 할당 (데이터 참조 복사)
+            self.item_data = new_data.copy() if new_data else None
+
+            # 텍스트와 툴팁 업데이트
             self.update_text_from_data()
+            self.setToolTip(self._create_tooltip_text())
             return True
         return False

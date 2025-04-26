@@ -11,7 +11,7 @@ class ItemsContainer(QWidget):
 
     itemsChanged = pyqtSignal()
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
-    itemDataChanged = pyqtSignal(object, dict)  # (아이템, 새 데이터) 시그널 추가
+    itemDataChanged = pyqtSignal(object, dict, dict)  # (아이템, 새 데이터, 변경 필드 정보) 시그널 추가
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,6 +29,15 @@ class ItemsContainer(QWidget):
         # 드롭 인디케이터 관련 변수
         self.drop_indicator_position = -1
         self.show_drop_indicator = False
+
+    def find_parent_grid_widget(self):
+        """현재 컨테이너의 부모 ItemGridWidget을 찾습니다."""
+        parent = self.parent()
+        while parent:
+            if hasattr(parent, 'containers') and isinstance(parent.containers, list):
+                return parent
+            parent = parent.parent()
+        return None
 
     def addItem(self, item_text, index=-1, item_data=None):
         """
@@ -75,19 +84,20 @@ class ItemsContainer(QWidget):
         # 수정 다이얼로그 생성
         dialog = ItemEditDialog(item.item_data, self)
 
-        # 데이터 변경 이벤트 연결
-        dialog.itemDataChanged.connect(lambda new_data: self.update_item_data(item, new_data))
+        # 데이터 변경 이벤트 연결 (변경된 필드 정보 포함)
+        dialog.itemDataChanged.connect(lambda new_data, changed_fields:
+                                       self.update_item_data(item, new_data, changed_fields))
 
         # 다이얼로그 실행
         dialog.exec_()
 
-    def update_item_data(self, item, new_data):
+    def update_item_data(self, item, new_data, changed_fields=None):
         """아이템 데이터 업데이트"""
         if item and item in self.items and new_data:
             # 아이템 데이터 업데이트
             if item.update_item_data(new_data):
-                # 데이터 변경 시그널 발생
-                self.itemDataChanged.emit(item, new_data)
+                # 데이터 변경 시그널 발생 (변경 필드 정보 포함)
+                self.itemDataChanged.emit(item, new_data, changed_fields)
                 self.itemsChanged.emit()
 
     def clear_selection(self):
@@ -184,6 +194,7 @@ class ItemsContainer(QWidget):
                     data_bytes = event.mimeData().data("application/x-item-full-data")
                     json_str = data_bytes.data().decode()
                     item_data = json.loads(json_str)
+                    print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
                 except Exception as e:
                     print(f"아이템 데이터 파싱 오류: {e}")
 
@@ -226,26 +237,74 @@ class ItemsContainer(QWidget):
 
                 elif isinstance(source_container, ItemsContainer):
                     # 다른 컨테이너에서 이동하는 경우
+                    # 부모 위젯 찾기 (ItemGridWidget)
+                    grid_widget = self.find_parent_grid_widget()
+
+                    # 현재 컨테이너의 위치 구하기
+                    target_row, target_col = -1, -1
+                    if grid_widget:
+                        for row_idx, row in enumerate(grid_widget.containers):
+                            if self in row:
+                                target_row = row_idx
+                                target_col = row.index(self)
+                                break
+
                     # 아이템 데이터가 없으면 소스 아이템에서 가져오기
                     if item_data is None and hasattr(source, 'item_data'):
-                        item_data = source.item_data
+                        if source.item_data is not None:
+                            item_data = source.item_data.copy()
+
+                    # Time 값 업데이트 (드래그로 이동 시 위치에 맞게 자동 업데이트)
+                    if item_data and 'Time' in item_data and target_row >= 0 and target_col >= 0:
+                        # 현재 위치에 맞는 새로운
+                        from .item_position_manager import ItemPositionManager
+
+                        # 각 열(Col)은 요일을 나타내고, 각 행(Row)은 라인과 교대를 나타냄
+                        # 예: target_col=0 -> 월요일, target_col=1 -> 화요일, ...
+                        day_idx = target_col
+
+                        # 행에서 교대 정보 추출 (홀수:주간, 짝수:야간)
+                        is_day_shift = False
+                        if grid_widget and grid_widget.row_headers and target_row < len(grid_widget.row_headers):
+                            row_key = grid_widget.row_headers[target_row]
+                            is_day_shift = "주간" in row_key
+
+                        # 새 Time 값 계산: day_idx*2 + 1(주간) 또는 day_idx*2 + 2(야간)
+                        new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+
+                        # Time 값 업데이트
+                        item_data['Time'] = str(new_time)
+                        print(f"드래그 위치 변경으로 인한 Time 값 업데이트: {new_time}")
 
                     # 선택 상태 확인
                     was_selected = getattr(source, 'is_selected', False)
 
-                    # 새 위치에 아이템 추가 (전체 데이터 포함)
+                    # 새 위치에 아이템 추가 (업데이트된 데이터 포함)
                     new_item = self.addItem(item_text, drop_index, item_data)
+
+                    # 새 아이템의 텍스트 업데이트
+                    if new_item and hasattr(new_item, 'update_text_from_data'):
+                        new_item.update_text_from_data()
 
                     # 이전 아이템이 선택되어 있었으면 새 아이템도 선택 상태로 설정
                     if was_selected:
                         new_item.set_selected(True)
                         self.on_item_selected(new_item)
 
+                    # 데이터 변경 시그널 발생
+                    if new_item and item_data and hasattr(source, 'item_data'):
+                        changed_fields = {
+                            'Time': {'from': source.item_data.get('Time', ''), 'to': item_data.get('Time', '')}}
+                        self.itemDataChanged.emit(new_item, item_data, changed_fields)
+
                     # 원본 컨테이너에서 아이템 삭제
                     source_container.removeItem(source)
             else:
                 # 새 아이템 생성 (원본이 없는 경우)
-                self.addItem(item_text, drop_index, item_data)
+                new_item = self.addItem(item_text, drop_index, item_data)
+                # 새 아이템의 텍스트 업데이트
+                if new_item and hasattr(new_item, 'update_text_from_data'):
+                    new_item.update_text_from_data()
 
             # 드롭 완료 후 인디케이터 숨기기
             self.show_drop_indicator = False

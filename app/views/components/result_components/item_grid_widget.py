@@ -9,8 +9,8 @@ class ItemGridWidget(QWidget):
     # 아이템 선택 시그널 추가
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너)
 
-    # 아이템 데이터 변경 시그널 추가
-    itemDataChanged = pyqtSignal(object, dict)  # (아이템, 새 데이터)
+    # 아이템 데이터 변경 시그널 추가 (변경된 필드 정보 포함)
+    itemDataChanged = pyqtSignal(object, dict, dict)  # (아이템, 새 데이터, 변경 필드 정보)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,6 +32,10 @@ class ItemGridWidget(QWidget):
         self.current_selected_container = None
         self.current_selected_item = None
 
+        # 행 헤더와 열 헤더 저장 (드래그 앤 드롭 시 위치 계산에 필요)
+        self.row_headers = []
+        self.column_headers = []
+
     def setupGrid(self, rows, columns, row_headers=None, column_headers=None):
         """그리드 초기화"""
         # 기존 위젯 정리
@@ -41,6 +45,10 @@ class ItemGridWidget(QWidget):
                 widget.setParent(None)
 
         self.containers = []
+
+        # 헤더 정보 저장
+        self.row_headers = row_headers if row_headers else []
+        self.column_headers = column_headers if column_headers else []
 
         # 선택 상태 초기화
         self.current_selected_container = None
@@ -75,7 +83,7 @@ class ItemGridWidget(QWidget):
                 # 아이템 선택 이벤트 연결
                 container.itemSelected.connect(self.on_item_selected)
 
-                # 아이템 데이터 변경 이벤트 연결
+                # 아이템 데이터 변경 이벤트 연결 (변경된 필드 정보 포함)
                 container.itemDataChanged.connect(self.on_item_data_changed)
 
                 self.grid_layout.addWidget(container, row + 1, col + 1)
@@ -96,10 +104,10 @@ class ItemGridWidget(QWidget):
         # 상위 위젯에 아이템 선택 이벤트 전달
         self.itemSelected.emit(selected_item, container)
 
-    def on_item_data_changed(self, item, new_data):
+    def on_item_data_changed(self, item, new_data, changed_fields=None):
         """아이템 데이터가 변경되었을 때 호출되는 핸들러"""
-        # 상위 위젯에 데이터 변경 이벤트 전달
-        self.itemDataChanged.emit(item, new_data)
+        # 상위 위젯에 데이터 변경 이벤트 전달 (변경된 필드 정보 포함)
+        self.itemDataChanged.emit(item, new_data, changed_fields)
 
     def addItemAt(self, row, col, item_text, item_data=None):
         """

@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton,
-                             QFileDialog, QMessageBox, QLabel, QFrame)
+                             QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 import pandas as pd
 from .item_grid_widget import ItemGridWidget
+from .item_position_manager import ItemPositionManager
 
 
 class ModifiedLeftSection(QWidget):
@@ -17,8 +18,10 @@ class ModifiedLeftSection(QWidget):
         self.grouped_data = None
         self.days = ['월', '화', '수', '목', '금', '토', '일']
         self.time_periods = ['주간', '야간']
-        self.selected_item_info = None  # 선택된 아이템 정보 표시용
         self.init_ui()
+
+        # 아이템 이동을 위한 정보 저장
+        self.row_headers = []
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -80,83 +83,99 @@ class ModifiedLeftSection(QWidget):
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
         main_layout.addWidget(self.grid_widget)
 
-        # 구분선 추가
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
-        line.setStyleSheet("background-color: #D0D0D0;")
-        main_layout.addWidget(line)
-
-        # 선택된 아이템 정보 표시 레이아웃
-        self.info_layout = QVBoxLayout()
-
-        # 선택된 아이템 정보 레이블
-        self.selection_label = QLabel("선택된 아이템 정보:")
-        self.selection_label.setStyleSheet("""
-            font-weight: bold;
-            color: #333333;
-            padding: 5px;
-        """)
-        self.info_layout.addWidget(self.selection_label)
-
-        # 아이템 정보 레이블
-        self.item_info_label = QLabel("아직 선택된 아이템이 없습니다.")
-        self.item_info_label.setStyleSheet("""
-            background-color: #F5F5F5;
-            border: 1px solid #E0E0E0;
-            border-radius: 4px;
-            padding: 10px;
-        """)
-        self.item_info_label.setWordWrap(True)
-        self.item_info_label.setMinimumHeight(60)
-        self.info_layout.addWidget(self.item_info_label)
-
-        # 사용 팁 레이블
-        tip_label = QLabel("팁: 아이템을 더블클릭하면 정보를 수정할 수 있습니다.")
-        tip_label.setStyleSheet("""
-            color: #666666;
-            font-style: italic;
-            padding: 5px;
-        """)
-        self.info_layout.addWidget(tip_label)
-
-        main_layout.addLayout(self.info_layout)
-
     def on_grid_item_selected(self, selected_item, container):
         """그리드에서 아이템이 선택되면 호출되는 함수"""
-        if selected_item and hasattr(selected_item, 'item_data'):
-            item_data = selected_item.item_data
-
-            # 선택된 아이템 정보 업데이트
-            if item_data:
-                info_text = f"<b>{selected_item.text()}</b><br><br>"
-
-                # 주요 정보만 표시 (예: Line, Time, Item, MFG)
-                important_keys = ['Line', 'Time', 'Item', 'MFG', 'Day']
-                for key in important_keys:
-                    if key in item_data and pd.notna(item_data[key]):
-                        info_text += f"<b>{key}:</b> {item_data[key]}<br>"
-
-                self.item_info_label.setText(info_text)
-            else:
-                self.item_info_label.setText(f"<b>{selected_item.text()}</b>")
-        else:
-            self.item_info_label.setText("아직 선택된 아이템이 없습니다.")
-
-        # 상위 위젯에 이벤트 전달
+        # 선택 이벤트만 전달하고 정보 표시 관련 코드는 제거
         self.item_selected.emit(selected_item, container)
 
-    def on_item_data_changed(self, item, new_data):
+    def on_item_data_changed(self, item, new_data, changed_fields=None):
         """아이템 데이터가 변경되면 호출되는 함수"""
-        # 현재 선택된 아이템이면 정보 표시 업데이트
-        if item == self.grid_widget.current_selected_item:
-            self.on_grid_item_selected(item, self.grid_widget.current_selected_container)
+        if not item or not new_data or not hasattr(item, 'item_data'):
+            print("아이템 또는 데이터가 없음")
+            return
 
-        # 데이터도 업데이트 필요하면 여기서 처리
-        if self.data is not None and isinstance(self.data, pd.DataFrame):
-            # 데이터프레임에서 해당 아이템 찾기
-            # 새 데이터를 원본 데이터프레임에 반영하는 로직 추가 가능
-            pass
+        print(f"데이터 변경: {item.item_data}")
+        print(f"새 데이터: {new_data}")
+
+        if changed_fields:
+            print(f"변경된 필드: {changed_fields}")
+
+        # Time 값 변경 체크 - 요일 위치 변경 필요
+        if changed_fields and 'Time' in changed_fields:
+            time_change = changed_fields['Time']
+            old_time = time_change['from']
+            new_time = time_change['to']
+
+            print(f"Time 값 변경 감지: {old_time} -> {new_time}")
+
+            # 기존 container에서 아이템 제거 준비
+            old_container = item.parent() if hasattr(item, 'parent') else None
+
+            if not isinstance(old_container, QWidget):
+                print("유효한 컨테이너가 아님")
+                return
+
+            # 변경된 Time에 따른 새 위치 계산
+            line = new_data.get('Line')
+
+            if not line or not new_time:
+                print("Line 또는 Time 정보 없음")
+                return
+
+            # 새 위치 계산
+            old_day_idx, old_shift = ItemPositionManager.get_day_and_shift(old_time)
+            new_day_idx, new_shift = ItemPositionManager.get_day_and_shift(new_time)
+
+            print(f"이전 위치: 요일 인덱스 {old_day_idx}, 교대 {old_shift}")
+            print(f"새 위치: 요일 인덱스 {new_day_idx}, 교대 {new_shift}")
+
+            # 새 행/열 인덱스 계산
+            old_row_key = ItemPositionManager.get_row_key(line, old_shift)
+            new_row_key = ItemPositionManager.get_row_key(line, new_shift)
+
+            print(f"이전 행 키: {old_row_key}, 새 행 키: {new_row_key}")
+            print(f"현재 row_headers: {self.row_headers}")
+
+            old_row_idx = ItemPositionManager.find_row_index(old_row_key, self.row_headers)
+            new_row_idx = ItemPositionManager.find_row_index(new_row_key, self.row_headers)
+
+            old_col_idx = ItemPositionManager.get_col_from_day_idx(old_day_idx, self.days)
+            new_col_idx = ItemPositionManager.get_col_from_day_idx(new_day_idx, self.days)
+
+            print(f"이전 위치: 행 {old_row_idx}, 열 {old_col_idx}")
+            print(f"새 위치: 행 {new_row_idx}, 열 {new_col_idx}")
+
+            # 유효한 인덱스인 경우 아이템 이동
+            if old_row_idx >= 0 and old_col_idx >= 0 and new_row_idx >= 0 and new_col_idx >= 0:
+                print("아이템 이동 시도")
+
+                # 이전 위치에서 아이템 제거
+                if old_container:
+                    print(f"컨테이너에서 아이템 제거 시도: {old_container}")
+                    old_container.removeItem(item)
+
+                # 새 위치에 아이템 추가
+                item_text = ""
+                if 'Item' in new_data:
+                    item_text = str(new_data['Item'])
+                    if 'MFG' in new_data and new_data['MFG']:
+                        item_text += f" ({new_data['MFG']}개)"
+
+                print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
+
+                # 새 위치에 아이템 추가
+                new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data)
+
+                if new_item:
+                    print("새 아이템 생성 성공")
+                    # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
+                    self.item_data_changed.emit(new_item, new_data)
+                    return  # 이후 코드는 실행하지 않음
+                else:
+                    print("새 아이템 생성 실패")
+            else:
+                print(
+                    f"유효하지 않은 인덱스: old_row_idx={old_row_idx}, old_col_idx={old_col_idx}, new_row_idx={new_row_idx}, new_col_idx={new_col_idx}")
 
         # 상위 위젯에 이벤트 전달
         self.item_data_changed.emit(item, new_data)
@@ -218,16 +237,16 @@ class ModifiedLeftSection(QWidget):
                     shifts[time] = "야간"
 
             # 행 헤더 생성
-            rows = []
+            self.row_headers = []
             for line in lines:
                 for shift in ["주간", "야간"]:
-                    rows.append(f"{line}_({shift})")
+                    self.row_headers.append(f"{line}_({shift})")
 
             # 그리드 설정
             self.grid_widget.setupGrid(
-                rows=len(rows),
+                rows=len(self.row_headers),
                 columns=len(self.days),
-                row_headers=rows,
+                row_headers=self.row_headers,
                 column_headers=self.days
             )
 
@@ -257,7 +276,7 @@ class ModifiedLeftSection(QWidget):
 
                     try:
                         # 그리드에 아이템 추가
-                        row_idx = rows.index(row_key)
+                        row_idx = self.row_headers.index(row_key)
                         col_idx = self.days.index(day)
 
                         # 전체 행 데이터를 아이템 데이터로 전달
@@ -296,9 +315,7 @@ class ModifiedLeftSection(QWidget):
             self.grid_widget.clearAllItems()
             self.data = None
             self.grouped_data = None
-
-            # 선택 정보 초기화
-            self.item_info_label.setText("아직 선택된 아이템이 없습니다.")
+            self.row_headers = []
 
             # 빈 데이터프레임 신호 발생
             self.data_changed.emit(pd.DataFrame())

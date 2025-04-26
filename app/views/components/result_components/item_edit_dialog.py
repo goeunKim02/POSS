@@ -1,16 +1,16 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
                              QPushButton, QDialogButtonBox, QLabel, QSpinBox,
-                             QComboBox, QHBoxLayout, QMessageBox)
+                             QComboBox, QHBoxLayout, QMessageBox, QWidget)
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIntValidator
 import pandas as pd
 
 
 class ItemEditDialog(QDialog):
     """아이템 정보 수정 다이얼로그"""
 
-    # 아이템 정보가 수정되었을 때 발생하는 시그널
-    itemDataChanged = pyqtSignal(dict)
+    # 아이템 정보가 수정되었을 때 발생하는 시그널 (변경된 데이터, 필드별 변경 정보)
+    itemDataChanged = pyqtSignal(dict, dict)
 
     def __init__(self, item_data=None, parent=None):
         super().__init__(parent)
@@ -28,10 +28,10 @@ class ItemEditDialog(QDialog):
         main_layout = QVBoxLayout(self)
 
         # 제목 레이블
-        title_label = QLabel("아이템 정보 수정")
+        title_label = QLabel("Edit Status")
         title_label.setFont(QFont("Arial", 12, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet("color: #1428A0; margin-bottom: 10px;")
+        title_label.setStyleSheet("color: #1428A0; margin-bottom: 10px; border:none; ")
         main_layout.addWidget(title_label)
 
         # 폼 레이아웃 (입력 필드 컨테이너)
@@ -41,7 +41,7 @@ class ItemEditDialog(QDialog):
         form_layout.setFormAlignment(Qt.AlignLeft)
 
         # 중요 필드를 먼저 정의 (Line, Time, Item, MFG)
-        self.important_fields = ['Line', 'Time', 'Item', 'MFG', 'Day']
+        self.important_fields = ['Line', 'Time', 'Item', 'MFG']
         self.field_widgets = {}
 
         # 중요 필드부터 생성
@@ -59,6 +59,13 @@ class ItemEditDialog(QDialog):
 
         # 버튼 박스
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.setStyleSheet(
+            """
+            QDialogButtonBox {
+            background-color: #1428A0; padding: 4px;
+            }
+            """
+        )
         button_box.accepted.connect(self.accept_changes)
         button_box.rejected.connect(self.reject)
 
@@ -95,22 +102,36 @@ class ItemEditDialog(QDialog):
             if value_str.isdigit():
                 widget.setValue(int(value_str))
 
-        # MFG 필드인 경우 (수량, 스핀박스)
+        # MFG 필드인 경우 (직접 입력과 스핀박스 모두 제공)
         elif field == 'MFG':
-            widget = QSpinBox()
-            widget.setMinimum(0)
-            widget.setMaximum(9999)
-            widget.setSingleStep(1)
-            if value_str and value_str.replace(',', '').isdigit():
-                widget.setValue(int(value_str.replace(',', '')))
+            # 컨테이너 위젯 생성
+            container = QWidget()
+            hbox = QHBoxLayout(container)
+            hbox.setContentsMargins(0, 0, 0, 0)
 
-        # Day 필드인 경우 (콤보박스)
-        elif field == 'Day':
-            widget = QComboBox()
-            days = ['월', '화', '수', '목', '금', '토', '일']
-            widget.addItems(days)
-            if value_str in days:
-                widget.setCurrentText(value_str)
+            # 직접 입력 필드 생성
+            line_edit = QLineEdit(value_str)
+            line_edit.setPlaceholderText("직접 입력")
+            # 숫자만 입력 가능하도록 설정
+            validator = QIntValidator(0, 9999999)
+            line_edit.setValidator(validator)
+
+            # 스타일 설정
+            line_edit.setStyleSheet("""
+                QLineEdit {
+                    padding: 4px;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                }
+            """)
+
+            hbox.addWidget(line_edit)
+
+            # 위젯 저장 및 폼에 추가
+            self.field_widgets[field] = line_edit
+            layout.addRow(f"{field}:", container)
+
+            return line_edit
 
         # 기본 텍스트 필드
         else:
@@ -137,18 +158,21 @@ class ItemEditDialog(QDialog):
                 elif isinstance(widget, QComboBox):
                     updated_data[field] = widget.currentText()
 
-            # 변경 사항이 있는지 확인
+            # 변경 사항이 있는지 확인하고 변경된 필드 정보 수집
             changes_made = False
+            changed_fields = {}
+
             for field, value in updated_data.items():
                 original = str(self.original_data.get(field, ''))
                 if value != original:
                     changes_made = True
-                    break
+                    # 변경된 필드 정보 저장 (원래 값과 새 값)
+                    changed_fields[field] = {'from': original, 'to': value}
 
             if changes_made:
-                # 변경 사항이 있으면 시그널 발생
+                # 변경 사항이 있으면 시그널 발생 (변경된 필드 정보 포함)
                 self.item_data.update(updated_data)
-                self.itemDataChanged.emit(self.item_data)
+                self.itemDataChanged.emit(self.item_data, changed_fields)
 
             # 다이얼로그 닫기
             self.accept()
