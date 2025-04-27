@@ -4,9 +4,8 @@ from app.views.components import Navbar, DataInputPage, PlanningPage, AnalysisPa
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor, QIcon
+from PyQt5.QtGui import QCursor, QIcon, QFont
 import os
-
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -29,6 +28,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         central_widget = QWidget()
+        central_widget.setStyleSheet("background-color: #F5F5F5; border:none;")
         main_layout = QVBoxLayout(central_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -42,21 +42,36 @@ class MainWindow(QMainWindow):
         self.tab_widget = QTabWidget()
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.tab_widget.setStyleSheet("""
+                QTabWidget::pane {
+                    border: none;  /* 상단 탭과 연결을 위해 상단 테두리 제거 */
+                }
                 QTabBar::tab:selected {
-                    background-color: #1428A0;  /* 선택된 탭의 배경색 (파랑색) */
-                    color: white;               /* 선택된 탭의 텍스트 색상 */
+                    background-color: #F5F5F5;  /* 선택된 탭의 배경색 (파랑색) */
+                    color: black;               /* 선택된 탭의 텍스트 색상 */
+                    font-family: Arial, sans-serif;
                     font-weight: bold;
+                 
                 }
                 QTabBar::tab:!selected {
-                    background-color: #f0f0f0;  /* 선택되지 않은 탭의 배경색 */
+                    background-color: #E4E3E3;  
+                    font-family: Arial, sans-serif;
+                    font-weight: bold;
                 }
                 QTabBar::tab {
                     padding: 8px 16px;          /* 탭 내부 여백 */
                     min-width: 250px;           /* 최소 탭 너비 */
-                    font-weight: bold;          /* 글꼴 굵기 */        
-
+                    margin-left: 7px;
+                    border-top-left-radius: 10px;
+                    border-top-right-radius: 10px;
+                    font-family: Arial, sans-serif;
+                    font-weight: bold;
+                    border: 1px solid #cccccc;
+                    border-bottom: none;
                 }
+                QTabBar::tab::first { margin-left: 10px;}
             """)
+
+
 
         # 페이지 컴포넌트 생성 - main_window 전달
         self.data_input_page = DataInputPage()
@@ -65,16 +80,13 @@ class MainWindow(QMainWindow):
         self.planning_page = PlanningPage(self)  # self 전달
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
-        self.test_page = ResultPage(self)
-
-        self.analysis_page = AnalysisPage(self)  # self 전달
+        self.result_page = ResultPage(self)  # self 전달
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
         # 페이지를 탭에 추가
         self.tab_widget.addTab(self.data_input_page, "Data Input")
-        self.tab_widget.addTab(self.planning_page, "Linear Programming")
-        self.tab_widget.addTab(self.test_page, "Results View")
-        self.tab_widget.addTab(self.analysis_page, "Results Adjustment")
+        self.tab_widget.addTab(self.planning_page, "Pre-Assigned Result")
+        self.tab_widget.addTab(self.result_page, "Results")
 
         main_layout.addWidget(self.tab_widget)
         self.setCentralWidget(central_widget)
