@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont
 from ..components.result_components.modified_left_section import ModifiedLeftSection
@@ -98,44 +98,46 @@ class ResultPage(QWidget):
         # 타이틀 프레임을 메인 레이아웃에 추가
         result_layout.addWidget(title_frame)
 
-        # 메인 콘텐츠 레이아웃
-        result_container = QHBoxLayout()
-        result_container.setContentsMargins(25, 25, 25, 25)
-        result_container.setSpacing(20)
+        # QSplitter 생성
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.setHandleWidth(10)  # 스플리터 핸들 너비 설정
+        splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
+        splitter.setContentsMargins(10,10,10,10)
 
-        # 왼쪽 조정 결과 컨테이너
-        adjust_frame = QFrame()
-        adjust_frame.setFrameShape(QFrame.StyledPanel)
-        adjust_frame.setStyleSheet("background-color: white; border-radius: 5px; border: 2px solid #D9D9D9;")
+        # 왼쪽 컨테이너
+        left_frame = QFrame()
+        left_frame.setFrameShape(QFrame.StyledPanel)
+        left_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
 
-        adjust_result_container = QVBoxLayout(adjust_frame)
-        adjust_result_container.setContentsMargins(10, 10, 10, 10)
+        left_layout = QVBoxLayout(left_frame)
+        left_layout.setContentsMargins(10, 10, 10, 10)
 
         # 드래그 가능한 테이블 위젯 추가
         self.left_section = ModifiedLeftSection()
-        adjust_result_container.addWidget(self.left_section)
+        left_layout.addWidget(self.left_section)
 
-        # 데이터 변경 시그널 연결 (필요한 경우)
-        self.left_section.data_changed.connect(self.on_data_changed)
+        # 오른쪽 컨테이너 (현재는 비어있음)
+        right_frame = QFrame()
+        right_frame.setFrameShape(QFrame.StyledPanel)
+        right_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
 
-        # 오른쪽 통계 결과 컨테이너
-        statis_frame = QFrame()
-        statis_frame.setFrameShape(QFrame.StyledPanel)
-        statis_frame.setStyleSheet("background-color: white; border-radius: 5px; border: 2px solid #D9D9D9;")
+        right_layout = QVBoxLayout(right_frame)
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
-        statis_result_container = QVBoxLayout(statis_frame)
-        statis_result_container.setContentsMargins(10, 10, 10, 10)
+        # 임시 레이블 (필요한 경우 추후 제거 가능)
+        temp_label = QLabel("우측 패널")
+        temp_label.setAlignment(Qt.AlignCenter)
+        right_layout.addWidget(temp_label)
 
-        # 통계 정보 표시를 위한 레이블 추가
-        self.stats_label = QLabel("통계 정보가 여기에 표시됩니다.")
-        self.stats_label.setAlignment(Qt.AlignCenter)
-        statis_result_container.addWidget(self.stats_label)
+        # 스플리터에 프레임 추가
+        splitter.addWidget(left_frame)
+        splitter.addWidget(right_frame)
 
-        # 프레임을 주 레이아웃에 추가
-        result_container.addWidget(adjust_frame, 7)
-        result_container.addWidget(statis_frame, 3)
+        # 초기 크기 비율 설정 (7:3)
+        splitter.setSizes([720, 280])
 
-        result_layout.addLayout(result_container)
+        # 스플리터를 메인 레이아웃에 추가
+        result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
     def export_results(self):
         """결과를 CSV 파일로 내보내기"""
@@ -147,7 +149,7 @@ class ResultPage(QWidget):
             if file_path:
                 # 데이터가 있는지 확인
                 if hasattr(self, 'left_section') and hasattr(self.left_section,
-                                                            'data') and self.left_section.data is not None:
+                                                             'data') and self.left_section.data is not None:
                     try:
                         # 데이터를 CSV로 저장
                         self.left_section.data.to_csv(file_path, index=False)
@@ -161,62 +163,3 @@ class ResultPage(QWidget):
                 self.export_requested.emit(file_path)
         except Exception as e:
             print(f"Export 과정에서 오류 발생: {str(e)}")
-
-    def on_data_changed(self, data):
-        """테이블 데이터가 변경되었을 때 호출되는 메서드"""
-        # 통계 정보 업데이트
-        try:
-            # 기본 통계 계산 (pandas DataFrame 가정)
-            if data is not None and not data.empty:
-                numeric_data = data.select_dtypes(include=['number'])
-                if not numeric_data.empty:
-                    stats_text = "<h3>기본 통계 정보</h3>"
-                    stats_text += "<table border='1' cellpadding='5'>"
-
-                    # 열 이름 헤더
-                    stats_text += "<tr><th>통계량</th>"
-                    for col in numeric_data.columns:
-                        stats_text += f"<th>{col}</th>"
-                    stats_text += "</tr>"
-
-                    # 평균
-                    stats_text += "<tr><td>평균</td>"
-                    for col in numeric_data.columns:
-                        stats_text += f"<td>{numeric_data[col].mean():.2f}</td>"
-                    stats_text += "</tr>"
-
-                    # 중앙값
-                    stats_text += "<tr><td>중앙값</td>"
-                    for col in numeric_data.columns:
-                        stats_text += f"<td>{numeric_data[col].median():.2f}</td>"
-                    stats_text += "</tr>"
-
-                    # 최대값
-                    stats_text += "<tr><td>최대값</td>"
-                    for col in numeric_data.columns:
-                        stats_text += f"<td>{numeric_data[col].max():.2f}</td>"
-                    stats_text += "</tr>"
-
-                    # 최소값
-                    stats_text += "<tr><td>최소값</td>"
-                    for col in numeric_data.columns:
-                        stats_text += f"<td>{numeric_data[col].min():.2f}</td>"
-                    stats_text += "</tr>"
-
-                    # 표준편차
-                    stats_text += "<tr><td>표준편차</td>"
-                    for col in numeric_data.columns:
-                        stats_text += f"<td>{numeric_data[col].std():.2f}</td>"
-                    stats_text += "</tr>"
-
-                    stats_text += "</table>"
-
-                    self.stats_label.setText(stats_text)
-                    self.stats_label.setTextFormat(Qt.RichText)
-                else:
-                    self.stats_label.setText("수치형 데이터가 없습니다.")
-            else:
-                self.stats_label.setText("데이터가 없습니다.")
-        except Exception as e:
-            self.stats_label.setText(f"통계 계산 오류: {str(e)}")
-            print(f"통계 계산 오류: {e}")

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
                              QPushButton, QDialogButtonBox, QLabel, QSpinBox,
                              QComboBox, QHBoxLayout, QMessageBox, QWidget)
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont, QIntValidator
+from PyQt5.QtGui import QFont, QIntValidator,QCursor
 import pandas as pd
 
 
@@ -16,29 +16,74 @@ class ItemEditDialog(QDialog):
         super().__init__(parent)
         self.item_data = item_data or {}
         self.original_data = self.item_data.copy() if item_data else {}
+        # 다이얼로그 스타일시트에 margin 관련 속성 추가
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+                border: 1px solid #d0d0d0;
+                margin: 0px;
+                padding: 0px;
+            }
+        """)
         self.init_ui()
 
     def init_ui(self):
         """UI 초기화"""
         self.setWindowTitle("아이템 정보 수정")
-        self.setMinimumWidth(600)
+        self.setMinimumWidth(900)
         self.setMinimumHeight(300)
 
-        # 메인 레이아웃
+        # 메인 레이아웃에 마진 명시적으로 설정 (이 부분이 중요)
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # 마진 제거
+        main_layout.setSpacing(0)
 
         # 제목 레이블
         title_label = QLabel("Edit Status")
-        title_label.setFont(QFont("Arial", 12, QFont.Bold))
+        title_label.setFont(QFont("Arial", 14, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet("color: #1428A0; margin-bottom: 10px; border:none; ")
+        title_label.setStyleSheet("""
+            background-color: #1428A0;
+            color:white; 
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+        """)
         main_layout.addWidget(title_label)
 
         # 폼 레이아웃 (입력 필드 컨테이너)
-        form_layout = QFormLayout()
+        form_container = QWidget()
+        form_container.setStyleSheet("""
+    
+            QWidget {
+                background-color: white;
+                border-radius: 6px;
+                border: 1px solid #d0d0d0;
+                font-family: Arial;
+            }
+            QLabel {
+                font-weight: bold;
+                color: #333333;
+                padding-right: 10px;
+                border:none;
+            }
+            QLineEdit, QComboBox, QSpinBox {
+                padding: 8px;
+                border: 1px solid #cccccc;
+                border-radius: 4px;
+                min-height: 25px;
+            }
+            QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
+                border: 2px solid #1428A0;
+            }
+        """)
+
+        form_layout = QFormLayout(form_container)
         form_layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         form_layout.setLabelAlignment(Qt.AlignRight)
         form_layout.setFormAlignment(Qt.AlignLeft)
+        form_layout.setContentsMargins(20, 20, 20, 20)  # 여백 추가
+        form_layout.setSpacing(12)  # 필드 간 간격
 
         # 중요 필드를 먼저 정의 (Line, Time, Item, MFG)
         self.important_fields = ['Line', 'Time', 'Item', 'MFG']
@@ -55,21 +100,58 @@ class ItemEditDialog(QDialog):
             if field not in self.important_fields:
                 self._create_field_widget(field, form_layout)
 
-        main_layout.addLayout(form_layout)
+        main_layout.addWidget(form_container)
 
-        # 버튼 박스
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        button_box.setStyleSheet(
-            """
-            QDialogButtonBox {
-            background-color: #1428A0; padding: 4px;
+        button_box.setCursor(QCursor(Qt.PointingHandCursor))
+
+        # 버튼 폰트와 스타일 설정
+        button_font = QFont("Arial", 8, QFont.Bold)
+        button_style = """
+            QPushButton {
+                background-color: #1428A0;
+                color: white;
+                font-weight: bold;
+                border-radius: 4px;
+                min-width: 100px;
+                min-height: 35px;
+                padding: 5px 15px;
             }
-            """
-        )
+            QPushButton:hover {
+                background-color: #004C99;
+            }
+            QPushButton:pressed {
+                background-color: #003366;
+            }
+        """
+
+        # 버튼 박스의 각 버튼에 폰트와 스타일 적용
+        for button in button_box.buttons():
+            button.setFont(button_font)  # 폰트 직접 설정
+            button.setCursor(QCursor(Qt.PointingHandCursor))  # 각 버튼에 커서 설정
+            button.setStyleSheet(button_style)
+
         button_box.accepted.connect(self.accept_changes)
         button_box.rejected.connect(self.reject)
 
-        main_layout.addWidget(button_box)
+        # 버튼 컨테이너 생성 및 스타일 적용
+        button_container = QWidget()
+        button_container.setStyleSheet("""
+            QWidget {
+                background-color: white;
+                border-radius: 4px;
+                padding: 5px;
+                margin: 0px;
+            }
+        """)
+
+        button_layout = QHBoxLayout(button_container)
+        button_layout.addStretch(1)
+        button_layout.addWidget(button_box)
+        button_layout.addStretch(1)
+        button_layout.setContentsMargins(10, 10, 10, 10)
+
+        main_layout.addWidget(button_container)
 
     def _create_field_widget(self, field, layout):
         """필드에 맞는 위젯 생성"""
@@ -115,15 +197,6 @@ class ItemEditDialog(QDialog):
             # 숫자만 입력 가능하도록 설정
             validator = QIntValidator(0, 9999999)
             line_edit.setValidator(validator)
-
-            # 스타일 설정
-            line_edit.setStyleSheet("""
-                QLineEdit {
-                    padding: 4px;
-                    border: 1px solid #ccc;
-                    border-radius: 3px;
-                }
-            """)
 
             hbox.addWidget(line_edit)
 

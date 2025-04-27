@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
-from PyQt5.QtGui import QPainter, QColor, QPen
+from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
 from .item_edit_dialog import ItemEditDialog
 import json
@@ -45,6 +45,7 @@ class ItemsContainer(QWidget):
         item_data: 아이템에 대한 추가 정보 (pandas Series 또는 딕셔너리)
         """
         item_label = DraggableItemLabel(item_text, self, item_data)
+        item_label.setFont(QFont('Arial', 8, QFont.Normal))
 
         # 아이템 선택 이벤트 연결
         item_label.itemSelected.connect(self.on_item_selected)
@@ -83,6 +84,10 @@ class ItemsContainer(QWidget):
 
         # 수정 다이얼로그 생성
         dialog = ItemEditDialog(item.item_data, self)
+
+        # 기존의 setContentsMargins(0,0,0,0) 호출은 제거하고
+        # 필요시 다이얼로그 위치 조정을 추가할 수 있음
+        # dialog.move(QCursor.pos())  # 마우스 커서 위치에 표시하려면 이렇게 할 수 있음
 
         # 데이터 변경 이벤트 연결 (변경된 필드 정보 포함)
         dialog.itemDataChanged.connect(lambda new_data, changed_fields:
