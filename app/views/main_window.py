@@ -1,8 +1,11 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from app.models.input.capa import process_data
 from app.views.components import Navbar, DataInputPage, PlanningPage, AnalysisPage, ResultPage
 from app.views.models.data_model import DataModel
+from app.models.common.fileStore import FilePaths
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor, QIcon
+import os
 
 
 class MainWindow(QMainWindow):
@@ -92,7 +95,28 @@ class MainWindow(QMainWindow):
     def on_file_selected(self, file_path):
         # 파일 경로를 데이터 모델에 저장
         self.data_model.set_file_path(file_path)
-        print(f"선택된 파일: {file_path}")
+
+        # filePath 경로 중앙 관리를 위한 저장
+        file_name = os.path.basename(file_path)
+
+        if "demand" in file_name :
+            FilePaths.set("demand_excel_file", file_path)
+        elif "dynamic" in file_name:
+            FilePaths.set("dynamic_excel_file", file_path)
+        elif "master" in file_name:
+            FilePaths.set("master_excel_file", file_path)
+        else:
+            FilePaths.set("etc_excel_file", file_path)
+
+        processed_data = process_data()
+        
+        if processed_data :
+            from app.core.input.capaValidator import validate_distribution_ratios
+            validation_results = validate_distribution_ratios(processed_data)
+            print(validation_results)
+            # self.display_validation_results(validation_results)
+        else :
+            print("데이터 처리에 실패했습니다")
 
     def run_optimization(self, parameters=None):
         # 생산계획 최적화 실행 로직
