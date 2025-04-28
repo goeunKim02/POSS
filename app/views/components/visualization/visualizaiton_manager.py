@@ -22,7 +22,7 @@ class VisualizationManager:
         Matplotlib axes with the plot
         """
 
-        if ax in None:
+        if ax is None:
             fig, ax = plt.subplots(figsize=(8,5))
 
         # Convert data to frame needed for plotting
@@ -50,7 +50,7 @@ class VisualizationManager:
                 for bar in bars:
                     height = bar.get_height()
                     ax.text(bar.get_x() + bar.get_width()/2., height,
-                            f'{heigth:.1f}' if isinstance(height, float) else f'{height}',
+                            f'{height:.1f}' if isinstance(height, float) else f'{height}',
                             ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 9))
                     
         elif chart_type == 'line':
@@ -131,9 +131,13 @@ class VisualizationManager:
             raise ValueError(f"Unspported chart type: {chart_type}")
         
         # Add labels and title
-        ax.set_title(title, fontsize=kwargs.get('title_fontsize', 14))
-        ax.set_xlabel(xlabel, fontsize=kwargs.get('label_fontsize', 12))
-        ax.set_ylabel(ylabel, fontsize=kwargs.get('label_fontsize', 12))
+        ax.set_title(title, fontsize=kwargs.get('title_fontsize', 20))
+        ax.set_xlabel(xlabel, fontsize=kwargs.get('label_fontsize', 18))
+        ax.set_ylabel(ylabel, fontsize=kwargs.get('label_fontsize', 18))
+
+        # 여기에 tick label 폰트 크기 설정 코드 추가
+        tick_fontsize = kwargs.get('tick_fontsize', 16)  
+        ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
 
         # Add grid if requested
         if kwargs.get('show_grid', True):
@@ -265,7 +269,7 @@ class VisualizationManager:
                     height = bar.get_height()
                     ax.text(bar.get_x() + bar.get_width()/2., height,
                             f'{height:.1f}' if isinstance(height, float) else f'{height}',
-                            ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 9))
+                            ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 14))
 
         # Add labels and title
         metric_title = metric.capitalize()

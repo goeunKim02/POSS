@@ -86,6 +86,7 @@ def analyze_utilization(file_path, qty_file_path):
         else:
             print(f"{day}: No capacity availble")
 
+    return utilization_rate
 
 if __name__ == "__main__":
     file_path = "app/analysis/output/ssafy_result_0408.xlsx"
