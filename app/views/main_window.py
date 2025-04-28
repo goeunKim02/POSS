@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
 from app.models.input.capa import process_data
-from app.views.components import Navbar, DataInputPage, PlanningPage, AnalysisPage, ResultPage
+from app.views.components import Navbar, DataInputPage, PlanningPage,ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
 from PyQt5.QtCore import Qt
@@ -83,13 +83,10 @@ class MainWindow(QMainWindow):
         self.result_page = ResultPage(self)  # self 전달
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
-        self.analysis_page = AnalysisPage(self) 
-
         # 페이지를 탭에 추가
         self.tab_widget.addTab(self.data_input_page, "Data Input")
         self.tab_widget.addTab(self.planning_page, "Pre-Assigned Result")
         self.tab_widget.addTab(self.result_page, "Results")
-        self.tab_widget.addTab(self.analysis_page, "Analysis")
 
         main_layout.addWidget(self.tab_widget)
         self.setCentralWidget(central_widget)

@@ -27,7 +27,7 @@ class Navbar(QFrame):
                 border: 3px solid white;
                 padding: 8px 16px;
                 background-color: transparent;
-                border-radius: 4px;
+                border-radius: 10px;
             }
             QPushButton:hover {
                 background-color: #1e429f;
