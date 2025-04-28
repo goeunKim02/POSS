@@ -29,6 +29,9 @@ class ItemEditDialog(QDialog):
         # 부모 위젯 찾기 시도 (유효한 Line 값들을 가져오기 위함)
         self.available_lines = self.get_available_lines()
 
+        # 수정 불가능한 필드 추가
+        self.readonly_fields = ['MFG', 'SOP']
+
         self.init_ui()
 
     def get_available_lines(self):
@@ -112,6 +115,11 @@ class ItemEditDialog(QDialog):
             QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
                 border: 2px solid #1428A0;
             }
+            QLineEdit[readOnly="true"] {
+                background-color: #f0f0f0;
+                color: #777777;
+                border: 1px solid #dddddd;
+            }
         """)
 
         form_layout = QFormLayout(form_container)
@@ -122,7 +130,7 @@ class ItemEditDialog(QDialog):
         form_layout.setSpacing(12)  # 필드 간 간격
 
         # 중요 필드를 먼저 정의 (Line, Time, Item, MFG)
-        self.important_fields = ['Line', 'Time', 'Item', 'MFG']
+        self.important_fields = ['Line', 'Time', 'Item', 'Qty', 'MFG', 'SOP']
         self.field_widgets = {}
 
         # 중요 필드부터 생성
@@ -222,27 +230,16 @@ class ItemEditDialog(QDialog):
             if value_str.isdigit():
                 widget.setValue(int(value_str))
 
-        # MFG 필드인 경우 (직접 입력과 스핀박스 모두 제공)
-        elif field == 'MFG':
-            # 컨테이너 위젯 생성
-            container = QWidget()
-            hbox = QHBoxLayout(container)
-            hbox.setContentsMargins(0, 0, 0, 0)
-
-            # 직접 입력 필드 생성
-            line_edit = QLineEdit(value_str)
-            line_edit.setPlaceholderText("직접 입력")
-            # 숫자만 입력 가능하도록 설정
-            validator = QIntValidator(0, 9999999)
-            line_edit.setValidator(validator)
-
-            hbox.addWidget(line_edit)
-
-            # 위젯 저장 및 폼에 추가
-            self.field_widgets[field] = line_edit
-            layout.addRow(f"{field}:", container)
-
-            return line_edit
+        # MFG 또는 SOP 필드인 경우 (읽기 전용 텍스트 필드)
+        elif field in self.readonly_fields:
+            widget = QLineEdit(value_str)
+            widget.setReadOnly(True)
+            # 읽기 전용임을 시각적으로 표시
+            widget.setStyleSheet("""
+                background-color: #f0f0f0;
+                color: #777777;
+                border: 1px solid #dddddd;
+            """)
 
         # 기본 텍스트 필드
         else:
@@ -261,6 +258,11 @@ class ItemEditDialog(QDialog):
             updated_data = {}
 
             for field, widget in self.field_widgets.items():
+                # 읽기 전용 필드는 수정하지 않음
+                if field in self.readonly_fields:
+                    updated_data[field] = self.original_data.get(field, '')
+                    continue
+
                 # 위젯 타입에 따라 값 가져오기
                 if isinstance(widget, QLineEdit):
                     updated_data[field] = widget.text()
@@ -274,6 +276,10 @@ class ItemEditDialog(QDialog):
             changed_fields = {}
 
             for field, value in updated_data.items():
+                # 읽기 전용 필드는 검사하지 않음
+                if field in self.readonly_fields:
+                    continue
+
                 original = str(self.original_data.get(field, ''))
                 if value != original:
                     changes_made = True
