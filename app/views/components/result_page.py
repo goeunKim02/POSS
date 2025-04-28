@@ -292,10 +292,12 @@ class ResultPage(QWidget):
                     xlabel='Day of week',
                     ylabel='Utilization Rate(%)',
                     ax=canvas.axes,
+                    ylim=(0, 100),
                     threshold_values=[60, 80],
                     threshold_colors=['#4CAF50', '#FFC107', '#F44336'],
-                    value_fontsize=16
+                    value_fontsize=14
                 )
+
             else:
                 canvas.axes.text(0.5, 0.5, 'No utilization data available', ha='center', va='center', fontsize=18)
 

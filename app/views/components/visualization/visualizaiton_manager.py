@@ -158,31 +158,6 @@ class VisualizationManager:
 
         return ax
     
-
-    # 가동률
-    @staticmethod
-    def create_utilization_chart(data, by='day', ax=None, **kwargs):
-        """
-        Create utilization rate chart by day or line
-
-        Args:
-            data: Dictionary with days/lines as keys and utilization rates as values
-            by: 'day' or 'line'
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        title = f"Utilization Rate by {'Day' if by == 'day' else 'Production Line'}"
-        xlabel = 'Day' if by == 'day' else 'Production Line'
-        return VisualizationManager.create_chart(
-            data, 
-            chart_type='bar', 
-            title=title, 
-            xlabel=xlabel, 
-            ylabel='Utilization Rate (%)',
-            ax=ax,
-            ylim=(0, 100),
-            **kwargs
-        )
    
     @staticmethod
     def create_production_chart(data, by='day', chart_type='bar', ax=None, **kwargs):
