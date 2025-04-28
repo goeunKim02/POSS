@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
                              QPushButton, QDialogButtonBox, QLabel, QSpinBox,
                              QComboBox, QHBoxLayout, QMessageBox, QWidget)
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont, QIntValidator,QCursor
+from PyQt5.QtGui import QFont, QIntValidator, QCursor
 import pandas as pd
 
 
@@ -25,7 +25,43 @@ class ItemEditDialog(QDialog):
                 padding: 0px;
             }
         """)
+
+        # 부모 위젯 찾기 시도 (유효한 Line 값들을 가져오기 위함)
+        self.available_lines = self.get_available_lines()
+
         self.init_ui()
+
+    def get_available_lines(self):
+        """그리드 위젯에서 사용 가능한 Line 값들을 가져옵니다."""
+        try:
+            # 부모 위젯 계층을 탐색하여 ModifiedLeftSection 또는 row_headers를 가진 위젯 찾기
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'row_headers') and parent.row_headers:
+                    # row_headers에서 Line 값 추출
+                    lines = set()
+                    for header in parent.row_headers:
+                        if '_(' in header:  # Line_(교대) 형식 확인
+                            line = header.split('_(')[0]
+                            lines.add(line)
+                    return sorted(list(lines))
+
+                if hasattr(parent, 'grid_widget') and hasattr(parent.grid_widget, 'row_headers'):
+                    # grid_widget을 통해 row_headers 접근
+                    lines = set()
+                    for header in parent.grid_widget.row_headers:
+                        if '_(' in header:
+                            line = header.split('_(')[0]
+                            lines.add(line)
+                    return sorted(list(lines))
+
+                parent = parent.parent()
+
+            # 기본값 제공
+            return [f"Line {i}" for i in range(1, 6)]
+        except Exception as e:
+            print(f"사용 가능한 Line 가져오기 오류: {e}")
+            return [f"Line {i}" for i in range(1, 6)]
 
     def init_ui(self):
         """UI 초기화"""
@@ -54,7 +90,7 @@ class ItemEditDialog(QDialog):
         # 폼 레이아웃 (입력 필드 컨테이너)
         form_container = QWidget()
         form_container.setStyleSheet("""
-    
+
             QWidget {
                 background-color: white;
                 border-radius: 6px;
@@ -106,13 +142,13 @@ class ItemEditDialog(QDialog):
         button_box.setCursor(QCursor(Qt.PointingHandCursor))
 
         # 버튼 폰트와 스타일 설정
-        button_font = QFont("Arial", 8, QFont.Bold)
+        button_font = QFont("Arial", 10, QFont.Bold)
         button_style = """
             QPushButton {
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
-                border-radius: 4px;
+                border-radius: 10px;
                 min-width: 100px;
                 min-height: 35px;
                 padding: 5px 15px;
@@ -164,9 +200,11 @@ class ItemEditDialog(QDialog):
         # Line 필드인 경우 (콤보박스)
         if field == 'Line':
             widget = QComboBox()
-            # 기본값 추가 (1~5 라인 예시)
-            for i in range(1, 6):
-                widget.addItem(f"Line {i}")
+
+            # 사용 가능한 Line 값 추가
+            for line in self.available_lines:
+                widget.addItem(str(line))
+
             # 현재 값 설정
             if value_str:
                 index = widget.findText(value_str)

@@ -259,27 +259,34 @@ class ItemsContainer(QWidget):
                         if source.item_data is not None:
                             item_data = source.item_data.copy()
 
-                    # Time 값 업데이트 (드래그로 이동 시 위치에 맞게 자동 업데이트)
-                    if item_data and 'Time' in item_data and target_row >= 0 and target_col >= 0:
-                        # 현재 위치에 맞는 새로운
+                    # 새 위치에 대한 데이터 업데이트
+                    if item_data and target_row >= 0 and target_col >= 0:
+                        # Import ItemPositionManager
                         from .item_position_manager import ItemPositionManager
 
-                        # 각 열(Col)은 요일을 나타내고, 각 행(Row)은 라인과 교대를 나타냄
-                        # 예: target_col=0 -> 월요일, target_col=1 -> 화요일, ...
-                        day_idx = target_col
-
-                        # 행에서 교대 정보 추출 (홀수:주간, 짝수:야간)
-                        is_day_shift = False
+                        # 현재 행의 라인과 교대 정보 추출
                         if grid_widget and grid_widget.row_headers and target_row < len(grid_widget.row_headers):
                             row_key = grid_widget.row_headers[target_row]
-                            is_day_shift = "주간" in row_key
 
-                        # 새 Time 값 계산: day_idx*2 + 1(주간) 또는 day_idx*2 + 2(야간)
-                        new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+                            # 라인 정보 추출 (Line_() 형식에서 Line 부분)
+                            if '_(' in row_key:
+                                line_part = row_key.split('_(')[0]
+                                shift_part = row_key.split('_(')[1].rstrip(')')
 
-                        # Time 값 업데이트
-                        item_data['Time'] = str(new_time)
-                        print(f"드래그 위치 변경으로 인한 Time 값 업데이트: {new_time}")
+                                # Line 값 업데이트
+                                item_data['Line'] = line_part
+
+                                # Time 값 계산 및 업데이트
+                                day_idx = target_col  # 열 인덱스는 요일 인덱스와 대응
+
+                                # 교대 정보에 따라 Time 값 결정 (주간: 홀수, 야간: 짝수)
+                                is_day_shift = shift_part == "주간"
+                                new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+
+                                # Time 값 업데이트
+                                item_data['Time'] = str(new_time)
+
+                                print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
 
                     # 선택 상태 확인
                     was_selected = getattr(source, 'is_selected', False)
@@ -298,8 +305,26 @@ class ItemsContainer(QWidget):
 
                     # 데이터 변경 시그널 발생
                     if new_item and item_data and hasattr(source, 'item_data'):
-                        changed_fields = {
-                            'Time': {'from': source.item_data.get('Time', ''), 'to': item_data.get('Time', '')}}
+                        # 변경된 필드 정보 생성
+                        changed_fields = {}
+
+                        # Line 값이 변경되었는지 확인
+                        if 'Line' in source.item_data and 'Line' in item_data:
+                            if source.item_data.get('Line', '') != item_data.get('Line', ''):
+                                changed_fields['Line'] = {
+                                    'from': source.item_data.get('Line', ''),
+                                    'to': item_data.get('Line', '')
+                                }
+
+                        # Time 값이 변경되었는지 확인
+                        if 'Time' in source.item_data and 'Time' in item_data:
+                            if source.item_data.get('Time', '') != item_data.get('Time', ''):
+                                changed_fields['Time'] = {
+                                    'from': source.item_data.get('Time', ''),
+                                    'to': item_data.get('Time', '')
+                                }
+
+                        # 변경 사항 알림
                         self.itemDataChanged.emit(new_item, item_data, changed_fields)
 
                     # 원본 컨테이너에서 아이템 삭제
