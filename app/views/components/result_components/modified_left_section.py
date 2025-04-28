@@ -178,8 +178,8 @@ class ModifiedLeftSection(QWidget):
                 item_text = ""
                 if 'Item' in new_data:
                     item_text = str(new_data['Item'])
-                    if 'MFG' in new_data and pd.notna(new_data['MFG']):
-                        item_text += f" ({new_data['MFG']}개)"
+                    if 'Qty' in new_data and pd.notna(new_data['Qty']):
+                        item_text += f" ({new_data['Qty']}개)"
 
                 print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
 
@@ -291,8 +291,8 @@ class ModifiedLeftSection(QWidget):
                     item_info = str(row_data['Item'])
 
                     # MFG 정보가 있으면 수량 정보로 추가 (표시 텍스트에만)
-                    if 'MFG' in row_data and pd.notna(row_data['MFG']):
-                        item_info += f" ({row_data['MFG']}개)"
+                    if 'Qty' in row_data and pd.notna(row_data['Qty']):
+                        item_info += f" ({row_data['Qty']}개)"
 
                     try:
                         # 그리드에 아이템 추가
