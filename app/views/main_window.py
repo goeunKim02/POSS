@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
 from app.models.input.capa import process_data
-from app.views.components import Navbar, DataInputPage, PlanningPage, AnalysisPage, ResultPage
+from app.views.components import Navbar, DataInputPage, PlanningPage,ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
 from PyQt5.QtCore import Qt
