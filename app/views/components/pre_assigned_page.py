@@ -90,7 +90,6 @@ class PlanningPage(QWidget):
         self._df = pd.DataFrame()
         self.default_column_widths = {0: 120, 2: 240, 3: 240}
         self.init_ui()
-        self.load_default_excel()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
