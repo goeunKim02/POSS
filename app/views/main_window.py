@@ -141,7 +141,16 @@ class MainWindow(QMainWindow):
                 print(f"프로젝트 그룹 분석 중 오류 발생: {e}")
                 import traceback
                 print(traceback.format_exc())
-        else:
+
+            try :
+                from app.core.input.materialAnalyzer import MaterialAnalyzer
+                shortage_results = MaterialAnalyzer.analyze_material_shortage()
+
+                if shortage_results :
+                    self.data_model.material_shortage_results = shortage_results
+            except Exception as e :
+                print(f'자재 부족 분석 중 오류 발생 : {e}')
+        else :
             print("데이터 처리에 실패했습니다")
 
     def on_date_range_selected(self, start_date, end_date):
