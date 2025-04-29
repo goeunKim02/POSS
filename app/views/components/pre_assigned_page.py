@@ -7,11 +7,10 @@ from PyQt5.QtWidgets import (
     QCheckBox, QFileDialog, QMessageBox, QHeaderView, QStyle
 )
 from PyQt5.QtCore import (
-    Qt, pyqtSignal, QAbstractTableModel,
+    Qt, pyqtSignal, QAbstractTableModel, QStandardPaths,
     QModelIndex, QVariant, QSortFilterProxyModel, QPoint
 )
 
-# 스타일 모듈 import (상대경로)
 from .pre_assigned_components.style import (
     PRIMARY_BUTTON_STYLE,
     SECONDARY_BUTTON_STYLE
@@ -88,7 +87,7 @@ class PlanningPage(QWidget):
         super().__init__()
         self.main_window = main_window
         self._df = pd.DataFrame()
-        self.default_column_widths = {0: 120, 2: 240, 3: 240}
+        self.default_column_widths = {2: 240, 3: 240}
         self.init_ui()
 
     def init_ui(self):
@@ -170,8 +169,39 @@ class PlanningPage(QWidget):
             self.proxy_model.sort(logicalIndex, Qt.DescendingOrder)
 
     def on_export_click(self):
-        pass
+        options = QFileDialog.Options()
+        desktop_dir = QStandardPaths.writableLocation(
+            QStandardPaths.DesktopLocation
+        )
+        default_path = os.path.join(desktop_dir, "preassign_result.xlsx")
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save as Excel",
+            default_path,
+            "Excel Files (*.xlsx);;All Files (*)",
+            options=options
+        )
+        if not file_path:
+            return
+        
+        if not file_path.lower().endswith('.xlsx'):
+            file_path += '.xlsx'
 
+        try:
+            # DataFrame을 엑셀로 저장
+            self._df.to_excel(file_path, index=False)
+            QMessageBox.information(
+                self,
+                "Export Success",
+                f"파일이 다음 경로로 저장되었습니다:\n{file_path}"
+            )
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Export Failed",
+                f"엑셀 파일 저장 중 오류가 발생했습니다:\n{e}"
+            )
+            
     def on_reset_click(self):
         # 데이터 초기화
         self._df = pd.DataFrame()
