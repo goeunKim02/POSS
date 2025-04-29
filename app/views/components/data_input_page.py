@@ -11,6 +11,7 @@ from app.views.components.data_upload_components.sheet_selector_component import
 from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
 
+
 class DataInputPage(QWidget):
     file_selected = pyqtSignal(str)
     date_range_selected = pyqtSignal(QDate, QDate)
@@ -42,7 +43,7 @@ class DataInputPage(QWidget):
         # 제목과 버튼을 포함할 상단 행 컨테이너
         title_row = QFrame()
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, 0, 0)  # 여백 설정
+        title_row_layout.setContentsMargins(0, 0, 16, 0)  # 여백 설정
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
@@ -54,6 +55,37 @@ class DataInputPage(QWidget):
         title_label.setFont(title_font)
 
         title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
+
+        # Run 버튼 생성 (수정된 부분)
+        run_btn = QPushButton("Run")
+        run_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        run_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1428A0; 
+                color: white; 
+                border: none;
+                border-radius: 10px;
+                padding: 5px 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0069d9;
+            }
+            QPushButton:pressed {
+                background-color: #0062cc;
+            }
+        """)
+        run_btn.setFixedWidth(150)
+        run_btn.setFixedHeight(50)
+
+        # 폰트 설정 (문자열이 아닌 QFont 객체 사용)
+        run_font = QFont("Arial", 9)
+        run_font.setBold(True)
+        run_btn.setFont(run_font)
+
+        run_btn.clicked.connect(self.run_pre_assign)
+
+        title_row_layout.addWidget(run_btn)
 
         # 입력 섹션 생성
         input_section = QFrame()
@@ -206,3 +238,6 @@ class DataInputPage(QWidget):
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""
         return self.file_uploader.get_file_paths()
+
+    def run_pre_assign(self):
+        return print("run_pre_assign")
