@@ -38,15 +38,15 @@ class FileTabComponent(QWidget):
         # 탭 간격 조정 (탭 사이의 간격을 줄임)
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane { 
-                border: none; 
-                background: transparent; ; 
+                border: 3px solid #cccccc; 
+                background: white;  
                 border-radius: 20px;
             }
             QTabBar::tab {
                 background: #f0f0f0;
                 border: 1px solid #cccccc;
-                border-bottom-color: #cccccc;
-                border-radius: 10px;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
                 padding: 5px 12px;
                 margin-right: 2px;  /* 탭 간 간격 줄임 */
                 min-width:300px;    /* 최소 너비 증가 */

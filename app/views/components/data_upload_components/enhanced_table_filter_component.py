@@ -261,7 +261,7 @@ class EnhancedTableFilterComponent(QWidget):
 
         # 버튼 영역
         button_frame = QFrame()
-        button_frame.setStyleSheet("background-color: white; border: none;")
+        button_frame.setStyleSheet("background-color: transparent; border: none;")
         button_layout = QHBoxLayout(button_frame)
 
         # 필터 리셋 버튼

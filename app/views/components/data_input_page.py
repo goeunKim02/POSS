@@ -130,7 +130,7 @@ class DataInputPage(QWidget):
 
         # 왼쪽 영역 - 파일 탭 컴포넌트와 시트 선택기로 구성
         left_panel = QFrame()
-        left_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
+        left_panel.setStyleSheet("background-color: transparent; border:none; border-radius: 10px;")
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
 

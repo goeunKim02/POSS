@@ -9,6 +9,7 @@ class DataTableComponent:
         # 데이터프레임으로 테이블 위젯 생성
         # 컨테이너 위젯 생성
         container = QWidget()
+        container.setStyleSheet("border-radius: 10px; background-color: #f0f0f0;")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -26,7 +27,7 @@ class DataTableComponent:
 
         # 필터 컴포넌트가 없는 경우 기존 방식으로 테이블 위젯 생성 (이전 코드와 호환성 유지)
         data_table = QTableWidget()
-        data_table.setStyleSheet("QTableWidget { border: none; }")
+        data_table.setStyleSheet("QTableWidget { border: none; background-color: white; border-radius: 10px; }")
         data_table.setAlternatingRowColors(True)
 
         # 모든 열이 동일한 너비를 가지도록 Stretch 모드 설정

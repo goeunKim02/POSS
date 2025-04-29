@@ -25,7 +25,7 @@ class SheetSelectorComponent(QWidget):
         frame_layout.setContentsMargins(5, 5, 5, 5)
 
         # 레이블 생성
-        sheet_label = QLabel("시트 선택:")
+        sheet_label = QLabel("Select Sheet:")
         sheet_label_font = QFont()
         sheet_label_font.setFamily("Arial")
         sheet_label.setFont(sheet_label_font)
@@ -39,12 +39,22 @@ class SheetSelectorComponent(QWidget):
                 border-radius: 10px;
                 padding: 3px 5px;
                 min-width: 150px;
+                background-color: white;
             }
             QComboBox::drop-down {
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
                 width: 20px;
                 border-left: 1px solid #cccccc;
+                border-radius: 10px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: white;
+                border: 1px solid #cccccc;
+                border-radius: 10px;
+                selection-background-color: #1428A0;
+                selection-color: white;
+                padding: 3px;
             }
         """)
         self.sheet_combo.currentTextChanged.connect(self.on_sheet_changed)
