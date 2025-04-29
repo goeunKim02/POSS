@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
                              QPushButton, QDialogButtonBox, QLabel, QSpinBox,
                              QComboBox, QHBoxLayout, QMessageBox, QWidget)
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont, QIntValidator,QCursor
+from PyQt5.QtGui import QFont, QIntValidator, QCursor
 import pandas as pd
 
 
@@ -25,7 +25,46 @@ class ItemEditDialog(QDialog):
                 padding: 0px;
             }
         """)
+
+        # 부모 위젯 찾기 시도 (유효한 Line 값들을 가져오기 위함)
+        self.available_lines = self.get_available_lines()
+
+        # 수정 불가능한 필드 추가
+        self.readonly_fields = ['MFG', 'SOP']
+
         self.init_ui()
+
+    def get_available_lines(self):
+        """그리드 위젯에서 사용 가능한 Line 값들을 가져옵니다."""
+        try:
+            # 부모 위젯 계층을 탐색하여 ModifiedLeftSection 또는 row_headers를 가진 위젯 찾기
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'row_headers') and parent.row_headers:
+                    # row_headers에서 Line 값 추출
+                    lines = set()
+                    for header in parent.row_headers:
+                        if '_(' in header:  # Line_(교대) 형식 확인
+                            line = header.split('_(')[0]
+                            lines.add(line)
+                    return sorted(list(lines))
+
+                if hasattr(parent, 'grid_widget') and hasattr(parent.grid_widget, 'row_headers'):
+                    # grid_widget을 통해 row_headers 접근
+                    lines = set()
+                    for header in parent.grid_widget.row_headers:
+                        if '_(' in header:
+                            line = header.split('_(')[0]
+                            lines.add(line)
+                    return sorted(list(lines))
+
+                parent = parent.parent()
+
+            # 기본값 제공
+            return [f"Line {i}" for i in range(1, 6)]
+        except Exception as e:
+            print(f"사용 가능한 Line 가져오기 오류: {e}")
+            return [f"Line {i}" for i in range(1, 6)]
 
     def init_ui(self):
         """UI 초기화"""
@@ -54,7 +93,7 @@ class ItemEditDialog(QDialog):
         # 폼 레이아웃 (입력 필드 컨테이너)
         form_container = QWidget()
         form_container.setStyleSheet("""
-    
+
             QWidget {
                 background-color: white;
                 border-radius: 6px;
@@ -76,6 +115,11 @@ class ItemEditDialog(QDialog):
             QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
                 border: 2px solid #1428A0;
             }
+            QLineEdit[readOnly="true"] {
+                background-color: #f0f0f0;
+                color: #777777;
+                border: 1px solid #dddddd;
+            }
         """)
 
         form_layout = QFormLayout(form_container)
@@ -86,7 +130,7 @@ class ItemEditDialog(QDialog):
         form_layout.setSpacing(12)  # 필드 간 간격
 
         # 중요 필드를 먼저 정의 (Line, Time, Item, MFG)
-        self.important_fields = ['Line', 'Time', 'Item', 'MFG']
+        self.important_fields = ['Line', 'Time', 'Item', 'Qty', 'MFG', 'SOP']
         self.field_widgets = {}
 
         # 중요 필드부터 생성
@@ -106,13 +150,13 @@ class ItemEditDialog(QDialog):
         button_box.setCursor(QCursor(Qt.PointingHandCursor))
 
         # 버튼 폰트와 스타일 설정
-        button_font = QFont("Arial", 8, QFont.Bold)
+        button_font = QFont("Arial", 10, QFont.Bold)
         button_style = """
             QPushButton {
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
-                border-radius: 4px;
+                border-radius: 10px;
                 min-width: 100px;
                 min-height: 35px;
                 padding: 5px 15px;
@@ -164,9 +208,11 @@ class ItemEditDialog(QDialog):
         # Line 필드인 경우 (콤보박스)
         if field == 'Line':
             widget = QComboBox()
-            # 기본값 추가 (1~5 라인 예시)
-            for i in range(1, 6):
-                widget.addItem(f"Line {i}")
+
+            # 사용 가능한 Line 값 추가
+            for line in self.available_lines:
+                widget.addItem(str(line))
+
             # 현재 값 설정
             if value_str:
                 index = widget.findText(value_str)
@@ -184,27 +230,16 @@ class ItemEditDialog(QDialog):
             if value_str.isdigit():
                 widget.setValue(int(value_str))
 
-        # MFG 필드인 경우 (직접 입력과 스핀박스 모두 제공)
-        elif field == 'MFG':
-            # 컨테이너 위젯 생성
-            container = QWidget()
-            hbox = QHBoxLayout(container)
-            hbox.setContentsMargins(0, 0, 0, 0)
-
-            # 직접 입력 필드 생성
-            line_edit = QLineEdit(value_str)
-            line_edit.setPlaceholderText("직접 입력")
-            # 숫자만 입력 가능하도록 설정
-            validator = QIntValidator(0, 9999999)
-            line_edit.setValidator(validator)
-
-            hbox.addWidget(line_edit)
-
-            # 위젯 저장 및 폼에 추가
-            self.field_widgets[field] = line_edit
-            layout.addRow(f"{field}:", container)
-
-            return line_edit
+        # MFG 또는 SOP 필드인 경우 (읽기 전용 텍스트 필드)
+        elif field in self.readonly_fields:
+            widget = QLineEdit(value_str)
+            widget.setReadOnly(True)
+            # 읽기 전용임을 시각적으로 표시
+            widget.setStyleSheet("""
+                background-color: #f0f0f0;
+                color: #777777;
+                border: 1px solid #dddddd;
+            """)
 
         # 기본 텍스트 필드
         else:
@@ -223,6 +258,11 @@ class ItemEditDialog(QDialog):
             updated_data = {}
 
             for field, widget in self.field_widgets.items():
+                # 읽기 전용 필드는 수정하지 않음
+                if field in self.readonly_fields:
+                    updated_data[field] = self.original_data.get(field, '')
+                    continue
+
                 # 위젯 타입에 따라 값 가져오기
                 if isinstance(widget, QLineEdit):
                     updated_data[field] = widget.text()
@@ -236,6 +276,10 @@ class ItemEditDialog(QDialog):
             changed_fields = {}
 
             for field, value in updated_data.items():
+                # 읽기 전용 필드는 검사하지 않음
+                if field in self.readonly_fields:
+                    continue
+
                 original = str(self.original_data.get(field, ''))
                 if value != original:
                     changes_made = True
