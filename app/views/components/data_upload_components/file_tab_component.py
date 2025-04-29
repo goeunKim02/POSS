@@ -4,6 +4,7 @@ import pandas as pd
 import os
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
+from app.views.components.data_upload_components.table_filter_component import TableFilterComponent  # 새로 추가
 
 
 class FileTabComponent(QWidget):
@@ -89,9 +90,18 @@ class FileTabComponent(QWidget):
                 # CSV 파일 로드
                 try:
                     df = DataTableComponent.load_data_from_file(file_path)
+
+                    # 필터 컴포넌트 생성
+                    filter_component = TableFilterComponent()
+                    new_tab_layout.addWidget(filter_component)
+
                     # 데이터 테이블 생성 및 추가
-                    data_table = DataTableComponent.create_table_from_dataframe(df)
-                    new_tab_layout.addWidget(data_table)
+                    data_container = DataTableComponent.create_table_from_dataframe(df)
+                    new_tab_layout.addWidget(data_container)
+
+                    # 필터와 테이블 연결
+                    filter_component.set_table(data_container._data_table)
+
                 except Exception as e:
                     return False, f"CSV 파일 로딩 오류: {str(e)}"
 
@@ -107,9 +117,18 @@ class FileTabComponent(QWidget):
                     # 첫 번째 시트 데이터 로드
                     if sheet_names:
                         df = DataTableComponent.load_data_from_file(file_path, sheet_name=sheet_names[0])
+
+                        # 필터 컴포넌트 생성
+                        filter_component = TableFilterComponent()
+                        new_tab_layout.addWidget(filter_component)
+
                         # 데이터 테이블 생성 및 추가
-                        data_table = DataTableComponent.create_table_from_dataframe(df)
-                        new_tab_layout.addWidget(data_table)
+                        data_container = DataTableComponent.create_table_from_dataframe(df)
+                        new_tab_layout.addWidget(data_container)
+
+                        # 필터와 테이블 연결
+                        filter_component.set_table(data_container._data_table)
+
                     else:
                         # 시트가 없는 경우
                         error_label = QLabel("엑셀 파일에 시트가 없습니다")
@@ -133,6 +152,21 @@ class FileTabComponent(QWidget):
         except Exception as e:
             # 오류 발생 시
             return False, f"데이터 로딩 오류: {str(e)}"
+
+    def on_tab_changed(self, index):
+        """탭이 변경되면 호출되는 함수"""
+        # 현재 탭에 해당하는 파일 경로 찾기
+        file_path = None
+        for path, tab_idx in self.file_tabs.items():
+            if tab_idx == index:
+                file_path = path
+                break
+
+        self.current_file_path = file_path
+
+        # 시그널 발생 (파일 경로 전달)
+        if file_path:
+            self.tab_changed.emit(file_path)
 
     def remove_file_tab(self, file_path):
         """파일 탭 제거"""
@@ -178,21 +212,6 @@ class FileTabComponent(QWidget):
         file_name = os.path.basename(file_path)
         return True, f"'{file_name}' 파일이 제거되었습니다"
 
-    def on_tab_changed(self, index):
-        """탭이 변경되면 호출되는 함수"""
-        # 현재 탭에 해당하는 파일 경로 찾기
-        file_path = None
-        for path, tab_idx in self.file_tabs.items():
-            if tab_idx == index:
-                file_path = path
-                break
-
-        self.current_file_path = file_path
-
-        # 시그널 발생 (파일 경로 전달)
-        if file_path:
-            self.tab_changed.emit(file_path)
-
     def load_sheet(self, file_path, sheet_name):
         """특정 파일의 특정 시트 로드"""
         if file_path not in self.file_tabs:
@@ -210,9 +229,16 @@ class FileTabComponent(QWidget):
             for i in reversed(range(current_tab.layout().count())):
                 current_tab.layout().itemAt(i).widget().setParent(None)
 
+            # 필터 컴포넌트 생성
+            filter_component = TableFilterComponent()
+            current_tab.layout().addWidget(filter_component)
+
             # 데이터 테이블 생성 및 추가
-            data_table = DataTableComponent.create_table_from_dataframe(df)
-            current_tab.layout().addWidget(data_table)
+            data_container = DataTableComponent.create_table_from_dataframe(df)
+            current_tab.layout().addWidget(data_container)
+
+            # 필터와 테이블 연결
+            filter_component.set_table(data_container._data_table)
 
             return True, f"시트 '{sheet_name}'이(가) 로드되었습니다"
 
