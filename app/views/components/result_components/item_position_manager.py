@@ -34,3 +34,41 @@ class ItemPositionManager:
             return row_headers.index(row_key)
         except ValueError:
             return -1
+
+    @staticmethod
+    def get_shift_index(shift, shifts=None):
+        """교대 정보로 교대 인덱스 반환"""
+        if shifts is None:
+            shifts = ["주간", "야간"]
+        try:
+            return shifts.index(shift)
+        except ValueError:
+            return -1
+
+    @staticmethod
+    def get_row_index_in_merged_grid(line, shift, lines, shifts=None):
+        """
+        셀 병합된 그리드에서 라인과 교대 정보로 행 인덱스 계산
+
+        매개변수:
+        - line: 라인명
+        - shift: 교대 정보 ("주간" 또는 "야간")
+        - lines: 정렬된 라인 목록
+        - shifts: 정렬된 교대 목록 (기본값: ["주간", "야간"])
+
+        반환값:
+        - 행 인덱스 (실제 그리드에서의 행 번호)
+        """
+        if shifts is None:
+            shifts = ["주간", "야간"]
+
+        try:
+            line_idx = lines.index(line)
+            shift_idx = ItemPositionManager.get_shift_index(shift, shifts)
+
+            if line_idx >= 0 and shift_idx >= 0:
+                # 각 라인마다 교대 수만큼 행이 있음
+                return line_idx * len(shifts) + shift_idx
+            return -1
+        except ValueError:
+            return -1

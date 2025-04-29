@@ -38,6 +38,7 @@ class ParameterComponent(QWidget):
 
         # 레이아웃을 메인 레이아웃에 추가 (addWidget이 아닌 addLayout 사용)
         main_layout.addWidget(title_frame)
+        main_layout.addStretch(1)
 
 
 
