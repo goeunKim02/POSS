@@ -4,10 +4,10 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QComboBox, QFrame
 
 
 class SheetSelectorComponent(QWidget):
-    """
-    엑셀 시트 선택 컴포넌트
-    엑셀 파일의 시트를 선택할 수 있는 드롭다운 UI 제공
-    """
+
+    # 엑셀 시트 선택 컴포넌트
+    #엑셀 파일의 시트를 선택할 수 있는 드롭다운 UI 제공
+
     sheet_changed = pyqtSignal(str)  # 시트가 변경되었을 때 발생하는 시그널 (선택된 시트명 전달)
 
     def __init__(self, parent=None):

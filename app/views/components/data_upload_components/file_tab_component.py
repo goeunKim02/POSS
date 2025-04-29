@@ -4,13 +4,15 @@ import pandas as pd
 import os
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
-from app.views.components.data_upload_components.table_filter_component import TableFilterComponent
+# 기존 필터 컴포넌트 대신 새로운 필터 컴포넌트 임포트
+from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
 
 
 class FileTabComponent(QWidget):
 
     # 파일 탭 컴포넌트
     # 여러 파일을 탭 형태로 관리하고 표시하는 기능 제공
+
 
     tab_changed = pyqtSignal(str)  # 탭이 변경되었을 때 발생하는 시그널 (선택된 파일 경로 전달)
 
@@ -48,7 +50,6 @@ class FileTabComponent(QWidget):
                 padding: 5px 12px;
                 margin-right: 2px;  /* 탭 간 간격 줄임 */
                 min-width:300px;    /* 최소 너비 증가 */
-
             }
             QTabBar::tab:selected, QTabBar::tab:hover {
                 background: #1428A0;
@@ -91,16 +92,12 @@ class FileTabComponent(QWidget):
                 try:
                     df = DataTableComponent.load_data_from_file(file_path)
 
-                    # 필터 컴포넌트 생성
-                    filter_component = TableFilterComponent()
-                    new_tab_layout.addWidget(filter_component)
+                    # 필터 컴포넌트 생성 (새로운 컴포넌트 사용)
+                    filter_component = EnhancedTableFilterComponent()
 
-                    # 데이터 테이블 생성 및 추가
-                    data_container = DataTableComponent.create_table_from_dataframe(df)
+                    # 데이터 테이블 생성 및 추가 (필터 컴포넌트를 전달)
+                    data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
                     new_tab_layout.addWidget(data_container)
-
-                    # 필터와 테이블 연결
-                    filter_component.set_table(data_container._data_table)
 
                 except Exception as e:
                     return False, f"CSV 파일 로딩 오류: {str(e)}"
@@ -118,16 +115,12 @@ class FileTabComponent(QWidget):
                     if sheet_names:
                         df = DataTableComponent.load_data_from_file(file_path, sheet_name=sheet_names[0])
 
-                        # 필터 컴포넌트 생성
-                        filter_component = TableFilterComponent()
-                        new_tab_layout.addWidget(filter_component)
+                        # 필터 컴포넌트 생성 (새로운 컴포넌트 사용)
+                        filter_component = EnhancedTableFilterComponent()
 
-                        # 데이터 테이블 생성 및 추가
-                        data_container = DataTableComponent.create_table_from_dataframe(df)
+                        # 데이터 테이블 생성 및 추가 (필터 컴포넌트를 전달)
+                        data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
                         new_tab_layout.addWidget(data_container)
-
-                        # 필터와 테이블 연결
-                        filter_component.set_table(data_container._data_table)
 
                     else:
                         # 시트가 없는 경우
@@ -229,16 +222,12 @@ class FileTabComponent(QWidget):
             for i in reversed(range(current_tab.layout().count())):
                 current_tab.layout().itemAt(i).widget().setParent(None)
 
-            # 필터 컴포넌트 생성
-            filter_component = TableFilterComponent()
-            current_tab.layout().addWidget(filter_component)
+            # 필터 컴포넌트 생성 (새로운 컴포넌트 사용)
+            filter_component = EnhancedTableFilterComponent()
 
-            # 데이터 테이블 생성 및 추가
-            data_container = DataTableComponent.create_table_from_dataframe(df)
+            # 데이터 테이블 생성 및 추가 (필터 컴포넌트를 전달)
+            data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
             current_tab.layout().addWidget(data_container)
-
-            # 필터와 테이블 연결
-            filter_component.set_table(data_container._data_table)
 
             return True, f"시트 '{sheet_name}'이(가) 로드되었습니다"
 

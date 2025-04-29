@@ -1,22 +1,30 @@
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QWidget, QVBoxLayout, QTableView
+from PyQt5.QtCore import Qt
 import pandas as pd
 
 
 class DataTableComponent:
-    """
-    데이터 테이블 컴포넌트
-    데이터프레임을 QTableWidget으로 변환하여 표시하는 기능을 제공합니다.
-    """
-
     @staticmethod
-    def create_table_from_dataframe(df):
-        """데이터프레임으로 테이블 위젯 생성"""
-        # 컨테이너 위젯 생성 (테이블 및 필터를 포함할 수 있음)
+    def create_table_from_dataframe(df, filter_component=None):
+        # 데이터프레임으로 테이블 위젯 생성
+        # 컨테이너 위젯 생성
         container = QWidget()
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # 데이터 테이블 생성
+        # 필터 컴포넌트가 제공된 경우, 데이터 설정
+        if filter_component:
+            filter_component.set_data(df)
+            # 필터 위젯 추가
+            layout.addWidget(filter_component)
+            # 테이블 뷰는 이미 필터 컴포넌트 내부에 있으므로 별도로 추가할 필요가 없음
+            # 컨테이너에 필터 컴포넌트 참조 저장
+            container._filter_component = filter_component
+            # 필터링된 데이터에 접근하기 위한 메서드
+            container.get_filtered_data = lambda: filter_component.get_filtered_data()
+            return container
+
+        # 필터 컴포넌트가 없는 경우 기존 방식으로 테이블 위젯 생성 (이전 코드와 호환성 유지)
         data_table = QTableWidget()
         data_table.setStyleSheet("QTableWidget { border: none; }")
         data_table.setAlternatingRowColors(True)
@@ -50,8 +58,11 @@ class DataTableComponent:
         # 레이아웃에 테이블 추가
         layout.addWidget(data_table)
 
-        # 컨테이너에 테이블 참조 저장 (필터 컴포넌트가 접근할 수 있도록)
+        # 컨테이너에 테이블 참조 저장
         container._data_table = data_table
+
+        # 필터링된 데이터에 접근하기 위한 메서드 (필터가 없는 경우 원본 반환)
+        container.get_filtered_data = lambda: df.copy()
 
         return container
 
