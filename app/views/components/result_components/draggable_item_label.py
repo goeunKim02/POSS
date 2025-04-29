@@ -198,8 +198,8 @@ class DraggableItemLabel(QLabel):
             item_info = str(self.item_data['Item'])
 
             # MFG 정보가 있으면 수량 정보로 추가
-            if 'MFG' in self.item_data and pd.notna(self.item_data['MFG']):
-                item_info += f" ({self.item_data['MFG']}개)"
+            if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']):
+                item_info += f" ({self.item_data['Qty']}개)"
 
             self.setText(item_info)
 

@@ -31,6 +31,7 @@ class DateRangeSelector(QWidget):
         self.start_date_edit = QDateEdit()
         self.start_date_edit.setDate(QDate.currentDate())
         self.start_date_edit.setCalendarPopup(True)
+        self.start_date_edit.setStyleSheet("border: 2px solid #cccccc; border-radius: 5px;")
 
         # 커스텀 캘린더 위젯 적용
         start_calendar = CustomCalendarWidget()
@@ -49,6 +50,7 @@ class DateRangeSelector(QWidget):
         self.end_date_edit = QDateEdit()
         self.end_date_edit.setDate(QDate.currentDate().addDays(7))
         self.end_date_edit.setCalendarPopup(True)
+        self.end_date_edit.setStyleSheet("border: 2px solid #cccccc; border-radius: 5px;")
 
         # 커스텀 캘린더 위젯 적용
         end_calendar = CustomCalendarWidget()

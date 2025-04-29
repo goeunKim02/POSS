@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpacerItem, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
@@ -30,6 +30,10 @@ class ItemsContainer(QWidget):
         self.drop_indicator_position = -1
         self.show_drop_indicator = False
 
+        # 늘어나는 공간을 위한 스페이서 추가
+        self.spacer = QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.layout.addSpacerItem(self.spacer)
+
     def find_parent_grid_widget(self):
         """현재 컨테이너의 부모 ItemGridWidget을 찾습니다."""
         parent = self.parent()
@@ -44,6 +48,9 @@ class ItemsContainer(QWidget):
         아이템을 추가합니다. index가 -1이면 맨 뒤에 추가, 그 외에는 해당 인덱스에 삽입
         item_data: 아이템에 대한 추가 정보 (pandas Series 또는 딕셔너리)
         """
+        # 스페이서 제거
+        self.layout.removeItem(self.spacer)
+
         item_label = DraggableItemLabel(item_text, self, item_data)
         item_label.setFont(QFont('Arial', 8, QFont.Normal))
 
@@ -62,7 +69,9 @@ class ItemsContainer(QWidget):
             self.layout.insertWidget(index, item_label)
             self.items.insert(index, item_label)
 
-        self.adjustHeight()
+        # 스페이서 다시 추가 (항상 맨 아래에 위치하도록)
+        self.layout.addSpacerItem(self.spacer)
+
         return item_label
 
     def on_item_selected(self, selected_item):
@@ -84,10 +93,6 @@ class ItemsContainer(QWidget):
 
         # 수정 다이얼로그 생성
         dialog = ItemEditDialog(item.item_data, self)
-
-        # 기존의 setContentsMargins(0,0,0,0) 호출은 제거하고
-        # 필요시 다이얼로그 위치 조정을 추가할 수 있음
-        # dialog.move(QCursor.pos())  # 마우스 커서 위치에 표시하려면 이렇게 할 수 있음
 
         # 데이터 변경 이벤트 연결 (변경된 필드 정보 포함)
         dialog.itemDataChanged.connect(lambda new_data, changed_fields:
@@ -111,21 +116,6 @@ class ItemsContainer(QWidget):
             self.selected_item.set_selected(False)
             self.selected_item = None
 
-    def adjustHeight(self):
-        """아이템 개수에 따라 컨테이너 높이 자동 조정"""
-        if not self.items:
-            # 아이템이 없으면 기본 높이 설정
-            self.setMinimumHeight(self.base_height)
-            return
-
-        # 아이템 개수에 따라 높이 계산 (여유 공간 포함)
-        items_height = len(self.items) * self.item_height
-        padding = 10  # 여유 공간
-        new_height = max(self.base_height, items_height + padding)
-
-        # 컨테이너 최소 높이 설정
-        self.setMinimumHeight(new_height)
-
     def removeItem(self, item):
         """특정 아이템 삭제"""
         if item in self.items:
@@ -136,18 +126,22 @@ class ItemsContainer(QWidget):
             self.layout.removeWidget(item)
             self.items.remove(item)
             item.deleteLater()
-            self.adjustHeight()
             self.itemsChanged.emit()
 
     def clearItems(self):
         """모든 아이템 삭제"""
         self.selected_item = None  # 선택 상태 초기화
 
+        # 스페이서 제거 (임시)
+        self.layout.removeItem(self.spacer)
+
         for item in self.items:
             self.layout.removeWidget(item)
             item.deleteLater()
         self.items.clear()
-        self.setMinimumHeight(self.base_height)
+
+        # 스페이서 다시 추가
+        self.layout.addSpacerItem(self.spacer)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
@@ -232,6 +226,9 @@ class ItemsContainer(QWidget):
                         self.update()
                         return
 
+                    # 스페이서 제거 (임시)
+                    self.layout.removeItem(self.spacer)
+
                     # 원본 아이템 제거 (삭제하지 않고 UI에서만 제거)
                     self.layout.removeWidget(source)
                     self.items.remove(source)
@@ -239,6 +236,9 @@ class ItemsContainer(QWidget):
                     # 새 위치에 아이템 다시 삽입
                     self.layout.insertWidget(drop_index, source)
                     self.items.insert(drop_index, source)
+
+                    # 스페이서 다시 추가
+                    self.layout.addSpacerItem(self.spacer)
 
                 elif isinstance(source_container, ItemsContainer):
                     # 다른 컨테이너에서 이동하는 경우
@@ -259,27 +259,34 @@ class ItemsContainer(QWidget):
                         if source.item_data is not None:
                             item_data = source.item_data.copy()
 
-                    # Time 값 업데이트 (드래그로 이동 시 위치에 맞게 자동 업데이트)
-                    if item_data and 'Time' in item_data and target_row >= 0 and target_col >= 0:
-                        # 현재 위치에 맞는 새로운
+                    # 새 위치에 대한 데이터 업데이트
+                    if item_data and target_row >= 0 and target_col >= 0:
+                        # Import ItemPositionManager
                         from .item_position_manager import ItemPositionManager
 
-                        # 각 열(Col)은 요일을 나타내고, 각 행(Row)은 라인과 교대를 나타냄
-                        # 예: target_col=0 -> 월요일, target_col=1 -> 화요일, ...
-                        day_idx = target_col
-
-                        # 행에서 교대 정보 추출 (홀수:주간, 짝수:야간)
-                        is_day_shift = False
+                        # 현재 행의 라인과 교대 정보 추출
                         if grid_widget and grid_widget.row_headers and target_row < len(grid_widget.row_headers):
                             row_key = grid_widget.row_headers[target_row]
-                            is_day_shift = "주간" in row_key
 
-                        # 새 Time 값 계산: day_idx*2 + 1(주간) 또는 day_idx*2 + 2(야간)
-                        new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+                            # 라인 정보 추출 (Line_() 형식에서 Line 부분)
+                            if '_(' in row_key:
+                                line_part = row_key.split('_(')[0]
+                                shift_part = row_key.split('_(')[1].rstrip(')')
 
-                        # Time 값 업데이트
-                        item_data['Time'] = str(new_time)
-                        print(f"드래그 위치 변경으로 인한 Time 값 업데이트: {new_time}")
+                                # Line 값 업데이트
+                                item_data['Line'] = line_part
+
+                                # Time 값 계산 및 업데이트
+                                day_idx = target_col  # 열 인덱스는 요일 인덱스와 대응
+
+                                # 교대 정보에 따라 Time 값 결정 (주간: 홀수, 야간: 짝수)
+                                is_day_shift = shift_part == "주간"
+                                new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+
+                                # Time 값 업데이트
+                                item_data['Time'] = str(new_time)
+
+                                print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
 
                     # 선택 상태 확인
                     was_selected = getattr(source, 'is_selected', False)
@@ -298,8 +305,26 @@ class ItemsContainer(QWidget):
 
                     # 데이터 변경 시그널 발생
                     if new_item and item_data and hasattr(source, 'item_data'):
-                        changed_fields = {
-                            'Time': {'from': source.item_data.get('Time', ''), 'to': item_data.get('Time', '')}}
+                        # 변경된 필드 정보 생성
+                        changed_fields = {}
+
+                        # Line 값이 변경되었는지 확인
+                        if 'Line' in source.item_data and 'Line' in item_data:
+                            if source.item_data.get('Line', '') != item_data.get('Line', ''):
+                                changed_fields['Line'] = {
+                                    'from': source.item_data.get('Line', ''),
+                                    'to': item_data.get('Line', '')
+                                }
+
+                        # Time 값이 변경되었는지 확인
+                        if 'Time' in source.item_data and 'Time' in item_data:
+                            if source.item_data.get('Time', '') != item_data.get('Time', ''):
+                                changed_fields['Time'] = {
+                                    'from': source.item_data.get('Time', ''),
+                                    'to': item_data.get('Time', '')
+                                }
+
+                        # 변경 사항 알림
                         self.itemDataChanged.emit(new_item, item_data, changed_fields)
 
                     # 원본 컨테이너에서 아이템 삭제

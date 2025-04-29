@@ -100,14 +100,27 @@ class ModifiedLeftSection(QWidget):
         if changed_fields:
             print(f"변경된 필드: {changed_fields}")
 
-        # Time 값 변경 체크 - 요일 위치 변경 필요
-        if changed_fields and 'Time' in changed_fields:
-            time_change = changed_fields['Time']
-            old_time = time_change['from']
-            new_time = time_change['to']
+        # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
+        position_change_needed = False
+        if changed_fields:
+            # Time 변경 확인
+            if 'Time' in changed_fields:
+                position_change_needed = True
+                time_change = changed_fields['Time']
+                old_time = time_change['from']
+                new_time = time_change['to']
+                print(f"Time 값 변경 감지: {old_time} -> {new_time}")
 
-            print(f"Time 값 변경 감지: {old_time} -> {new_time}")
+            # Line 변경 확인
+            if 'Line' in changed_fields:
+                position_change_needed = True
+                line_change = changed_fields['Line']
+                old_line = line_change['from']
+                new_line = line_change['to']
+                print(f"Line 값 변경 감지: {old_line} -> {new_line}")
 
+        # 위치 변경이 필요한 경우
+        if position_change_needed:
             # 기존 container에서 아이템 제거 준비
             old_container = item.parent() if hasattr(item, 'parent') else None
 
@@ -115,14 +128,21 @@ class ModifiedLeftSection(QWidget):
                 print("유효한 컨테이너가 아님")
                 return
 
-            # 변경된 Time에 따른 새 위치 계산
+            # 변경된 Line과 Time에 따른 새 위치 계산
             line = new_data.get('Line')
+            new_time = new_data.get('Time')
 
             if not line or not new_time:
                 print("Line 또는 Time 정보 없음")
                 return
 
+            # 새 위치 계산을 위한 정보 가져오기
+            old_time = old_time if 'Time' in changed_fields else new_time
+            old_line = old_line if 'Line' in changed_fields else line
+
             # 새 위치 계산
+            from .item_position_manager import ItemPositionManager
+
             old_day_idx, old_shift = ItemPositionManager.get_day_and_shift(old_time)
             new_day_idx, new_shift = ItemPositionManager.get_day_and_shift(new_time)
 
@@ -130,7 +150,7 @@ class ModifiedLeftSection(QWidget):
             print(f"새 위치: 요일 인덱스 {new_day_idx}, 교대 {new_shift}")
 
             # 새 행/열 인덱스 계산
-            old_row_key = ItemPositionManager.get_row_key(line, old_shift)
+            old_row_key = ItemPositionManager.get_row_key(old_line, old_shift)
             new_row_key = ItemPositionManager.get_row_key(line, new_shift)
 
             print(f"이전 행 키: {old_row_key}, 새 행 키: {new_row_key}")
@@ -158,8 +178,8 @@ class ModifiedLeftSection(QWidget):
                 item_text = ""
                 if 'Item' in new_data:
                     item_text = str(new_data['Item'])
-                    if 'MFG' in new_data and new_data['MFG']:
-                        item_text += f" ({new_data['MFG']}개)"
+                    if 'Qty' in new_data and pd.notna(new_data['Qty']):
+                        item_text += f" ({new_data['Qty']}개)"
 
                 print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
 
@@ -271,8 +291,8 @@ class ModifiedLeftSection(QWidget):
                     item_info = str(row_data['Item'])
 
                     # MFG 정보가 있으면 수량 정보로 추가 (표시 텍스트에만)
-                    if 'MFG' in row_data and pd.notna(row_data['MFG']):
-                        item_info += f" ({row_data['MFG']}개)"
+                    if 'Qty' in row_data and pd.notna(row_data['Qty']):
+                        item_info += f" ({row_data['Qty']}개)"
 
                     try:
                         # 그리드에 아이템 추가
