@@ -10,11 +10,13 @@ from app.views.components.data_upload_components.file_upload_component import Fi
 from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
 from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
-
+# from app.core.optimization import Optimization
 
 class DataInputPage(QWidget):
+    # 시그널 정의
     file_selected = pyqtSignal(str)
     date_range_selected = pyqtSignal(QDate, QDate)
+    run_button_clicked = pyqtSignal()  # Run 버튼 클릭 시그널 추가
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,7 +85,8 @@ class DataInputPage(QWidget):
         run_font.setBold(True)
         run_btn.setFont(run_font)
 
-        run_btn.clicked.connect(self.run_pre_assign)
+        # 버튼 클릭 시그널을 mainwindow로 전달
+        run_btn.clicked.connect(self.on_run_clicked)
 
         title_row_layout.addWidget(run_btn)
 
@@ -168,10 +171,12 @@ class DataInputPage(QWidget):
 
     def on_date_range_changed(self, start_date, end_date):
         """날짜 범위가 변경되면 시그널 발생"""
+        print(f"날짜 범위 변경: {start_date.toString('yyyy-MM-dd')} ~ {end_date.toString('yyyy-MM-dd')}")
         self.date_range_selected.emit(start_date, end_date)
 
     def on_file_selected(self, file_path):
         """파일이 선택되면 시그널 발생 및 탭에 추가"""
+        print(f"파일 선택됨: {file_path}")
         self.file_selected.emit(file_path)
 
         # 파일 탭 컴포넌트에 파일 추가
@@ -187,6 +192,12 @@ class DataInputPage(QWidget):
             self.sheet_selector.set_sheets(sheets)
         else:
             self.sheet_selector.setVisible(False)
+
+    def on_run_clicked(self):
+        """Run 버튼 클릭 시 호출되는 함수"""
+        print("Run 버튼 클릭됨")
+        # MainWindow로 시그널 전달
+        self.run_button_clicked.emit()
 
     def on_file_removed(self, file_path):
         """파일이 삭제되면 해당 탭도 제거"""
@@ -233,11 +244,11 @@ class DataInputPage(QWidget):
     def update_status_message(self, success, message):
         """상태 메시지 업데이트"""
         # ErrorStatusComponent를 사용하지 않으므로 기능 비활성화
-        pass
+        if success:
+            print(f"성공: {message}")
+        else:
+            print(f"오류: {message}")
 
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""
         return self.file_uploader.get_file_paths()
-
-    def run_pre_assign(self):
-        return print("run_pre_assign")

@@ -1,10 +1,10 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.models.input.capa import process_data
-from app.views.components import Navbar, DataInputPage, PlanningPage,ResultPage
+from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QCursor, QIcon, QFont
 import pandas as pd
 import os
@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
                     color: black;               /* 선택된 탭의 텍스트 색상 */
                     font-family: Arial, sans-serif;
                     font-weight: bold;
-                 
+
                 }
                 QTabBar::tab:!selected {
                     background-color: #E4E3E3;  
@@ -74,11 +74,12 @@ class MainWindow(QMainWindow):
                 QTabBar::tab::first { margin-left: 10px;}
             """)
 
-
-
         # 페이지 컴포넌트 생성 - main_window 전달
         self.data_input_page = DataInputPage()
         self.data_input_page.file_selected.connect(self.on_file_selected)
+        # 새로운 시그널 연결 추가
+        self.data_input_page.date_range_selected.connect(self.on_date_range_selected)
+        self.data_input_page.run_button_clicked.connect(self.on_run_button_clicked)
 
         self.planning_page = PlanningPage(self)  # self 전달
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
@@ -114,7 +115,7 @@ class MainWindow(QMainWindow):
         # filePath 경로 중앙 관리를 위한 저장
         file_name = os.path.basename(file_path)
 
-        if "demand" in file_name :
+        if "demand" in file_name:
             FilePaths.set("demand_excel_file", file_path)
         elif "dynamic" in file_name:
             FilePaths.set("dynamic_excel_file", file_path)
@@ -124,8 +125,8 @@ class MainWindow(QMainWindow):
             FilePaths.set("etc_excel_file", file_path)
 
         processed_data = process_data()
-        
-        if processed_data :
+
+        if processed_data:
             from app.core.input.capaValidator import validate_distribution_ratios
             validation_results = validate_distribution_ratios(processed_data)
             print(validation_results)
@@ -140,8 +141,40 @@ class MainWindow(QMainWindow):
                 print(f"프로젝트 그룹 분석 중 오류 발생: {e}")
                 import traceback
                 print(traceback.format_exc())
-        else :
+        else:
             print("데이터 처리에 실패했습니다")
+
+    def on_date_range_selected(self, start_date, end_date):
+        """날짜 범위가 선택되면 처리"""
+        print(f"선택된 날짜 범위: {start_date.toString('yyyy-MM-dd')} ~ {end_date.toString('yyyy-MM-dd')}")
+
+        # 데이터 모델에 날짜 범위 저장
+        self.data_model.set_date_range(start_date, end_date)
+
+        # FilePaths에 날짜 정보 저장 (필요한 경우)
+        # start_date_str = start_date.toString('yyyy-MM-dd')
+        # end_date_str = end_date.toString('yyyy-MM-dd')
+        # FilePaths.set("start_date", start_date_str)
+        # FilePaths.set("end_date", end_date_str)
+
+    def on_run_button_clicked(self):
+        """Run 버튼이 클릭되면 처리"""
+        print("메인 윈도우에서 Run 버튼 처리")
+
+        # 필요한 모든 데이터가 준비되었는지 확인
+        demand_file = FilePaths.get("demand_excel_file")
+        dynamic_file = FilePaths.get("dynamic_excel_file")
+        master_file = FilePaths.get("master_excel_file")
+
+        if not all([demand_file, dynamic_file, master_file]):
+            print("필요한 모든 파일이 업로드되지 않았습니다.")
+            return
+
+        # 최적화 실행
+        self.run_optimization()
+
+        # 결과 페이지로 이동
+        self.navigate_to_page(1)  # Planning 페이지로 이동
 
     def run_optimization(self, parameters=None):
         # 생산계획 최적화 실행 로직
