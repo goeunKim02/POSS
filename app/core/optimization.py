@@ -83,21 +83,17 @@ class Optimization:
         # 목적함수: 총 생산량 최대화 (추후 지표 8가지를 최적화 하는 목적함수로 수정 예정)
         model += pulp.lpSum([x[(m, l, s)] for m in items for (l, s) in line_shifts])
 
-        # 제약조건 1: 각 라인/시프트 조합의 최대 생산량 제한
-        for (l, s) in line_shifts:
-            model += pulp.lpSum([x[(m, l, s)] for m in items]) <= capacity[(l, s)]
-
-        # 제약조건 2: 모델별 총 수요량 충족
+        # 제약조건 1: 모델별 수요량 보다 적게 생산. demand 시트와 관련됨.
         for m in items:
             model += pulp.lpSum([x[(m, l, s)] for (l, s) in line_shifts]) <= demand[m]
 
-        # 제약조건 3: 라인/시프트에서 생산 가능한 모델만 허용
+        # 제약조건 2: 라인/시프트에서 생산 가능한 모델만 허용. line_available 시트와 관련됨.
         for (l, s) in line_shifts:
             for m in items:
                 if m not in allowed_items.get((l, s), []):
                     model += x[(m, l, s)] == 0
-        
-        # 제약조건 4: 제조동별 물량 비중 상한/하한
+
+        # 제약조건 3: 제조동별 물량 비중 상한/하한. capa_portion 시트와 관련됨.
         for (ids,row) in self.df_capa_portion.iterrows():
             model += (
                row['upper_limit'] * pulp.lpSum([x[(m, l, s)] for (m, l, s) in x]) >=
@@ -107,6 +103,33 @@ class Optimization:
                 pulp.lpSum([x[(m, l, s)] for (m, l, s) in x if l.startswith(row['name'])]) >=
                 row['lower_limit'] * pulp.lpSum([x[(m, l, s)] for (m, l, s) in x])
             )
+
+        # 제약조건 4: 각 라인/시프트 조합의 최대 생산량 제한. capa_qty 시트와 관련됨.
+        for (l, s) in line_shifts:
+            model += pulp.lpSum([x[(m, l, s)] for m in items]) <= capacity[(l, s)]
+        
+        # 제약조건 5: 각 제조동별 가동가능한 최대 라인 수. capa_qty 시트와 관련됨. Max_line
+        y = pulp.LpVariable.dicts("line_shift_active", line_shifts, cat="Binary")
+        BIG_M = 1_000_000  # 충분히 큰 값
+        for (l, s) in line_shifts:
+            total_produced = pulp.lpSum(x[(m, l, s)] for m in items)
+            model += total_produced <= BIG_M * y[(l, s)]
+            model += total_produced >= 1 * y[(l, s)]  # 혹은 그냥 y[(l, s)]로도 
+            
+        # 예: 동별 시프트당 최대 라인 수
+        blocks = list(set(l[0] for l in self.line))
+
+        # 각 동 b, 시프트 s 에 대해
+        for b in blocks:
+            for shift in self.time:
+                series = self.df_capa_qty.loc[self.df_capa_qty['Line'] == f"Max_line_{b}", shift]
+                model += pulp.lpSum(
+                    y[(l, s)] for (l, s) in line_shifts if l.startswith(b) and s == shift
+                ) <= series.iloc[0] if not series.empty else 100
+        # 제약조건 6: 각 제조동별 최대 생산 수량. capa_qty 시트와 관련됨. Max_qty
+
+
+        
 
         # 최적화
         model.solve()
@@ -198,15 +221,36 @@ class Optimization:
                     model += x[(m, l, s)] == 0
 
         # 제약조건 4: 제조동별 물량 비중 상한/하한 (임시로 빼둠)
-        # for (ids,row) in self.df_capa_portion.iterrows():
-        #     model += (
-        #        row['upper_limit'] * pulp.lpSum([x[(m, l, s)] for (m, l, s) in x]) >=
-        #        pulp.lpSum([x[(m, l, s)] for (m, l, s) in x if l.startswith(row['name'])])
-        #     )
-        #     model += (
-        #         pulp.lpSum([x[(m, l, s)] for (m, l, s) in x if l.startswith(row['name'])]) >=
-        #         row['lower_limit'] * pulp.lpSum([x[(m, l, s)] for (m, l, s) in x])
-        #     )
+        
+        # 제약조건 5: 각 제조동별 가동가능한 최대 라인 수. capa_qty 시트와 관련됨. Max_line
+        y = pulp.LpVariable.dicts("line_shift_active", line_shifts, cat="Binary")
+        BIG_M = 1_000_000  # 충분히 큰 값
+
+        for (l, s) in line_shifts:
+            total_produced = pulp.lpSum(x[(m, l, s)] for m in items)
+            
+            model += total_produced <= BIG_M * y[(l, s)]
+            model += total_produced >= 1 * y[(l, s)]  # 혹은 그냥 y[(l, s)]로도 가능
+        # 예: 동별 시프트당 최대 라인 수
+        max_lines_per_block_shift = {
+            'A': 2,
+            'B': 2,
+            'C': 1,
+            'D': 1,
+        }
+
+        # 각 동 b, 시프트 s 에 대해
+        for b in ['A', 'B', 'C', 'D']:
+            for s in set(s for (_, s) in line_shifts):
+                model += pulp.lpSum(
+                    y[(l, s_)] for (l, s_) in line_shifts if l.startswith(b) and s_ == s
+                ) <= max_lines_per_block_shift[b]
+
+
+        
+        # 제약조건 6: 각 제조동별 최대 생산 수량. capa_qty 시트와 관련됨. Max_qty
+
+        # 제약조건 7: 사전할당 알고리즘에서 모든 아이템은 무조건 할당되어야함. 모두 할당되는 경우가 없다면 사전할당이 애초에 불가능.
 
         # 최적화
         model.solve()
