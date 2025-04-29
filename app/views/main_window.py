@@ -10,7 +10,6 @@ from app.core.optimization import Optimization
 import pandas as pd
 import os
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -173,12 +172,13 @@ class MainWindow(QMainWindow):
 
         # 최적화 실행
         optimization = Optimization()
-        optimization.pre_assign()
+        df = optimization.pre_assign()
+
+        # PlanningPage에 결과 전달
+        self.planning_page.display_preassign_result(df)
 
         # 결과 페이지로 이동
-        self.navigate_to_page(1)  # Planning 페이지로 이동
-
-
+        self.navigate_to_page(1)
 
     def export_results(self, file_path=None):
         # 결과 내보내기 로직
