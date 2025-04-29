@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-# Basic visualization module that can be imported in different parts of the application
+# Basic visualization module
 class VisualizationManager:
     @staticmethod
     def create_chart(data, chart_type='bar', title='Chart', xlabel='X', ylabel='Y', ax=None, **kwargs):
@@ -25,7 +25,7 @@ class VisualizationManager:
         if ax is None:
             fig, ax = plt.subplots(figsize=(8,5))
 
-        # Convert data to frame needed for plotting
+        # 시각화에 필요한 형식으로 데이터 변환
         if isinstance(data, dict):
             x_data = list(data.keys())
             y_data = list(data.values())
@@ -40,12 +40,12 @@ class VisualizationManager:
             raise ValueError("Data must be a dictionary or DataFrame")
         
 
-        # Create appropriate chart based on type
+        # 유형에 따라 차트 생성
         if chart_type == 'bar':
             bars = ax.bar(x_data, y_data, color=kwargs.get('color', 'steelblue'), 
                           alpha=kwargs.get('alpha', 0.8), width=kwargs.get('width', 0.7))
             
-            # Add value Labels if requested
+            # 필요시 값 레이블 추가
             if kwargs.get('show_value', True):
                 for bar in bars:
                     height = bar.get_height()
@@ -54,13 +54,13 @@ class VisualizationManager:
                             ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 9))
                     
         elif chart_type == 'line':
-            lines = ax.plot(x_data, y_data, marker=kwargs.get('marker', 'o'), 
-                    linestyle=kwargs.get('linestyle', '-'),
-                    linewidth=kwargs.get('linewidth', 2),
-                    color=kwargs.get('color', 'steelblue'),
-                    markersize=kwargs.get('markersize', 5))
+            ax.plot(x_data, y_data, marker=kwargs.get('marker', 'o'), 
+                linestyle=kwargs.get('linestyle', '-'),
+                linewidth=kwargs.get('linewidth', 2),
+                color=kwargs.get('color', 'steelblue'),
+                markersize=kwargs.get('markersize', 5))
                 
-            # Add value labels if requested
+            # 필요시 값 레이블 추가
             if kwargs.get('show_values', True):
                 for i, value in enumerate(y_data):
                     ax.text(i, value, f'{value:.1f}' if isinstance(value, float) else f'{value}',
@@ -74,9 +74,9 @@ class VisualizationManager:
                 startangle=kwargs.get('startangle', 90),
                 colors=kwargs.get('colors', None)
             )
-            ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as circle
+            ax.axis('equal')  # 원형 차트가 원으로 그려지도록 동일한 비율 설정
 
-            # Customize text properties
+            # 텍스트 속성 사용자 정의
             if autotexts and kwargs.get('show_pct', True):
                 for autotext in autotexts:
                     autotext.set_fontsize(kwargs.get('pct_fontsize', 9))
@@ -86,20 +86,20 @@ class VisualizationManager:
             if isinstance(data, pd.DataFrame):
                 im = ax.imshow(data.values, cmap=kwargs.get('cmap', 'viridis'))
 
-                # Show all ticks and label theme
+                # 모든 눈금 표시 및 레이블 지정
                 ax.set_xticks(np.arange(len(data.columns)))
                 ax.set_yticks(np.arange(len(data.index)))
                 ax.set_xticklabels(data.columns)
                 ax.set_yticklabels(data.index)
 
-                # Rotata the tick labels and set alignmet
+                # 눈금 레이블 회전 및 정렬 설정
                 plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
-                # Add colorbar
+                # 색상 막대 추가
                 if kwargs.get('show_colorbar', True):
                     plt.colorbar(im, ax=ax)
 
-                # Add text annotations if requested
+                # 필요시 텍스트 주석 추가
                 if kwargs.get('show_values', True):
                     for i in range(len(data.index)):
                         for j in range(len(data.columns)):
@@ -112,25 +112,25 @@ class VisualizationManager:
                 raise ValueError("Data must be a DataFrame for heatmap visualization")
             
         elif chart_type == 'scatter':
-            scatter = ax.scatter(x_data, y_data, 
-                                 c=kwargs.get('color', 'steelblue'), 
-                                 s=kwargs.get('size', 50), 
-                                 alpha=kwargs.get('alpha', 0.7), 
-                                 marker=kwargs.get('marker', 'o'))
+            ax.scatter(x_data, y_data, 
+                        c=kwargs.get('color', 'steelblue'), 
+                        s=kwargs.get('size', 50), 
+                        alpha=kwargs.get('alpha', 0.7), 
+                        marker=kwargs.get('marker', 'o'))
             
-            # Add best fit line if requested
+            # 필요시 추세선 추가
             if kwargs.get('show_trendline', False) and len(x_data) > 1:
                 try:
-                    z = np.ployfit(x_data, y_data, 1)
-                    p = np.ploy1d(z)
+                    z = np.polyfit(x_data, y_data, 1)
+                    p = np.poly1d(z)
                     ax.plot(x_data, p(x_data), '--', color=kwargs.get('trendline_color', 'red'))
                 except:
-                    pass # Skip trendline if there's an error (e.g., non-numeric data)
+                    pass # 오류 발생 시 추세선 생략 (예: 비수치 데이터)
             
         else:
             raise ValueError(f"Unspported chart type: {chart_type}")
         
-        # Add labels and title
+        # 레이블 및 제목 추가
         ax.set_title(title, fontsize=kwargs.get('title_fontsize', 20))
         ax.set_xlabel(xlabel, fontsize=kwargs.get('label_fontsize', 18))
         ax.set_ylabel(ylabel, fontsize=kwargs.get('label_fontsize', 18))
@@ -139,191 +139,22 @@ class VisualizationManager:
         tick_fontsize = kwargs.get('tick_fontsize', 16)  
         ax.tick_params(axis='both', which='major', labelsize=tick_fontsize)
 
-        # Add grid if requested
+        # 필요시 그리드 추가
         if kwargs.get('show_grid', True):
             ax.grid(alpha=kwargs.get('grid_alpha', 0.3), linestyle=kwargs.get('grid_style', '--'))
 
-        # Rotate x labels if requested or if they seem long
+        # 필요한 경우 X축 레이블 회전 (레이블이 길거나 요청된 경우)
         if kwargs.get('rotate_xlabels', False) or (len(x_data) > 0 and any(len(str(x)) > 5 for x in x_data)):
             plt.setp(ax.get_xticklabels(), rotation=kwargs.get('xlabels_rotation', 45), 
                 ha=kwargs.get('xlabels_ha', 'right'))
         
-        # Customize y-axis limits if provided
+        # Y축 범위 사용자 정의 (제공된 경우)
         if 'ylim' in kwargs:
             ax.set_ylim(kwargs['ylim'])
 
-        # Set figure tight layout
+        # 그림 레이아웃 조정
         if ax.figure:
             ax.figure.tight_layout()
 
         return ax
     
-   
-    @staticmethod
-    def create_production_chart(data, by='day', chart_type='bar', ax=None, **kwargs):
-        """
-        Create production chart by day or line
-
-        Args:
-            data: Dictionary with days/lines as keys and production quantities as values
-            by: 'day' or 'line'
-            chart_type: 'bar' or 'line'
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        title = f"Production by {'Day' if by == 'day' else 'Production Line'}"
-        xlabel = 'Day' if by == 'day' else 'Production Line'
-        return VisualizationManager.create_chart(
-            data, 
-            chart_type=chart_type, 
-            title=title, 
-            xlabel=xlabel, 
-            ylabel='Production (units)',
-            ax=ax,
-            **kwargs
-        )
-   
-    @staticmethod
-    def create_defect_rate_chart(data, by='product', ax=None, **kwargs):
-        """
-        Create defect rate chart by product or line
-
-        Args:
-            data: Dictionary with products/lines as keys and defect rates as values
-            by: 'product' or 'line'
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        title = f"Defect Rate by {'Product' if by == 'product' else 'Production Line'}"
-        xlabel = 'Product' if by == 'product' else 'Production Line'
-        return VisualizationManager.create_chart(
-            data, 
-            chart_type='bar', 
-            title=title, 
-            xlabel=xlabel, 
-            ylabel='Defect Rate (%)',
-            ax=ax,
-            **kwargs
-        )
-   
-    @staticmethod
-    def create_shift_comparison_chart(data, metric='production', ax=None, **kwargs):
-        """
-        Create shift comparison chart (day vs night shift)
-
-        Args:
-            data: Dictionary with format {'Day Shift': {day1: value1, day2: value2...}, 
-                                        'Night Shift': {day1: value1, day2: value2...}}
-            metric: What's being compared ('production', 'efficiency', etc.)
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        if ax is None:
-            fig, ax = plt.subplots(figsize=(10, 6))
-
-        # Extract data
-        days = list(data['Day Shift'].keys())
-        day_values = list(data['Day Shift'].values())
-        night_values = list(data['Night Shift'].values())
-
-        # Set width of bars
-        barWidth = 0.35
-
-        # Set position of bars on X axis
-        r1 = np.arange(len(days))
-        r2 = [x + barWidth for x in r1]
-
-        # Create bars
-        bars1 = ax.bar(r1, day_values, width=barWidth, label='Day Shift', color='skyblue')
-        bars2 = ax.bar(r2, night_values, width=barWidth, label='Night Shift', color='navy')
-
-        # Add values on bars
-        if kwargs.get('show_values', True):
-            for bars in [bars1, bars2]:
-                for bar in bars:
-                    height = bar.get_height()
-                    ax.text(bar.get_x() + bar.get_width()/2., height,
-                            f'{height:.1f}' if isinstance(height, float) else f'{height}',
-                            ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 14))
-
-        # Add labels and title
-        metric_title = metric.capitalize()
-        ax.set_title(f'Day vs Night Shift {metric_title} Comparison', fontsize=kwargs.get('title_fontsize', 14))
-        ax.set_xlabel('Day of Week', fontsize=kwargs.get('label_fontsize', 12))
-        ax.set_ylabel(metric_title, fontsize=kwargs.get('label_fontsize', 12))
-
-        # Add xticks on the middle of the group bars
-        ax.set_xticks([r + barWidth/2 for r in range(len(days))])
-        ax.set_xticklabels(days)
-
-        # Create legend
-        ax.legend()
-
-        # Add grid
-        if kwargs.get('show_grid', True):
-            ax.grid(alpha=kwargs.get('grid_alpha', 0.3), linestyle=kwargs.get('grid_style', '--'), axis='y')
-
-        # Set figure tight layout
-        if ax.figure:
-            ax.figure.tight_layout()
-            
-        return ax
-   
-    @staticmethod
-    def create_time_series_chart(data, metric='production', ax=None, **kwargs):
-        """
-        Create time series chart
-        
-        Args:
-            data: Dictionary with dates as keys and values for the metric
-            metric: What's being tracked over time
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        return VisualizationManager.create_chart(
-            data, 
-            chart_type='line', 
-            title=f'{metric.capitalize()} Over Time', 
-            xlabel='Date', 
-            ylabel=metric.capitalize(),
-            ax=ax,
-            marker=kwargs.get('marker', 'o'),
-            **kwargs
-        )
-   
-    @staticmethod
-    def create_product_distribution_chart(data, ax=None, **kwargs):
-        """
-        Create product distribution pie chart
-        
-        Args:
-            data: Dictionary with products as keys and production quantities as values
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        return VisualizationManager.create_chart(
-            data, 
-            chart_type='pie', 
-            title='Product Distribution', 
-            ax=ax,
-            **kwargs
-        )
-   
-    @staticmethod
-    def create_heatmap_chart(data, title='Heatmap', ax=None, **kwargs):
-        """
-        Create heatmap chart
-        
-        Args:
-            data: DataFrame with data for heatmap
-            title: Chart title
-            ax: Matplotlib axes to plot on (optional)
-            **kwargs: Additional parameters for chart customization
-        """
-        return VisualizationManager.create_chart(
-            data, 
-            chart_type='heatmap', 
-            title=title, 
-            ax=ax,
-            **kwargs
-        )
