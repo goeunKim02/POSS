@@ -1,11 +1,14 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.models.input.capa import process_data
 from app.views.components import Navbar, DataInputPage, PlanningPage,ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor, QIcon, QFont
+import pandas as pd
 import os
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -127,6 +130,16 @@ class MainWindow(QMainWindow):
             validation_results = validate_distribution_ratios(processed_data)
             print(validation_results)
             # self.display_validation_results(validation_results)
+
+            try:
+                analyzer = PjtGroupAnalyzer(processed_data)
+                results = analyzer.analyze()
+                self.data_model.analysis_results = results
+
+            except Exception as e:
+                print(f"프로젝트 그룹 분석 중 오류 발생: {e}")
+                import traceback
+                print(traceback.format_exc())
         else :
             print("데이터 처리에 실패했습니다")
 
