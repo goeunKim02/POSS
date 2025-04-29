@@ -236,7 +236,6 @@ class Optimization:
             print(f"{row['name']}라인 생산량: {int(line_production)}개, {row['name']}라인 비중: {line_ratio:.2f}%")
 
         df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
-        df_result.to_excel('pre_assign_result.xlsx',index = False)
         return df_result
 
 if __name__ == "__main__":
