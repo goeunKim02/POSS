@@ -1,154 +1,205 @@
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QSizePolicy, QFrame
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QCursor
+import os
+import pandas as pd
+from PyQt5.QtGui import QFont, QCursor, QPainter
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QPushButton,
+    QHBoxLayout, QTableView, QMenu, QWidgetAction,
+    QCheckBox, QFileDialog, QMessageBox, QHeaderView, QStyle
+)
+from PyQt5.QtCore import (
+    Qt, pyqtSignal, QAbstractTableModel,
+    QModelIndex, QVariant, QSortFilterProxyModel, QPoint
+)
 
+# 스타일 모듈 import (상대경로)
+from .pre_assigned_components.style import (
+    PRIMARY_BUTTON_STYLE,
+    SECONDARY_BUTTON_STYLE
+)
+
+class PandasModel(QAbstractTableModel):
+    def __init__(self, df: pd.DataFrame, parent=None):
+        super().__init__(parent)
+        self._df = df
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self._df.index)
+
+    def columnCount(self, parent=QModelIndex()):
+        return len(self._df.columns)
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid() or role != Qt.DisplayRole:
+            return QVariant()
+        return str(self._df.iat[index.row(), index.column()])
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self._df.columns[section]
+        if orientation == Qt.Vertical and role == Qt.DisplayRole:
+            return str(self._df.index[section])
+        return QVariant()
+
+class FilterHeader(QHeaderView):
+    def __init__(self, orientation, parent=None):
+        super().__init__(orientation, parent)
+        self.setSectionsClickable(True)
+
+    def paintSection(self, painter, rect, logicalIndex):
+        super().paintSection(painter, rect, logicalIndex)
+
+class MultiFilterProxy(QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # 컬럼 인덱스 -> 선택된 값 리스트
+        self.filters = {}
+
+    def filterAcceptsRow(self, sourceRow, sourceParent):
+        if not self.filters:
+            return True
+        model = self.sourceModel()
+        for col, vals in self.filters.items():
+            if not vals:
+                continue
+            cell = model.data(model.index(sourceRow, col), Qt.DisplayRole)
+            if cell not in vals:
+                return False
+        return True
+
+    def sort(self, column, order=Qt.AscendingOrder):
+        super().sort(column, order)
+
+def create_button(text, style="primary", parent=None):
+    btn = QPushButton(text, parent)
+    font = QFont("Arial", 9)
+    font.setBold(True)
+    btn.setFont(font)
+    btn.setCursor(QCursor(Qt.PointingHandCursor))
+    btn.setFixedSize(150, 50)
+    btn.setStyleSheet(
+        PRIMARY_BUTTON_STYLE if style == "primary" else SECONDARY_BUTTON_STYLE
+    )
+    return btn
 
 class PlanningPage(QWidget):
-    # 시그널 추가
     optimization_requested = pyqtSignal(dict)
 
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
+        self._df = pd.DataFrame()
+        self.default_column_widths = {0: 120, 2: 240, 3: 240}
         self.init_ui()
+        self.load_default_excel()
 
     def init_ui(self):
-        # 레이아웃 설정
-        main_layout = QVBoxLayout(self)
-        title_layout = QHBoxLayout()
-        title_label = QLabel("Pre-Assigned Result")
-        title_font = QFont()
-        title_font.setFamily("Arial")
-        title_font.setPointSize(15)
-        title_font.setBold(True)
-        title_font.setWeight(99)
-        title_label.setFont(title_font)
-        title_layout.addWidget(title_label)
-        title_layout.addStretch()
-        main_layout.addLayout(title_layout)
+        layout = QVBoxLayout(self)
+        # 상단 제목 및 버튼
+        title_hbox = QHBoxLayout()
+        lbl = QLabel("Pre-Assigned Result")
+        font_title = QFont("Arial", 15)
+        font_title.setBold(True)
+        lbl.setFont(font_title)
+        title_hbox.addWidget(lbl)
+        title_hbox.addStretch()
+        btn_export = create_button("Export Excel", "primary", self)
+        btn_export.clicked.connect(self.on_export_click)
+        btn_reset = create_button("Reset", "secondary", self)
+        btn_reset.clicked.connect(self.on_reset_click)
+        title_hbox.addWidget(btn_export)
+        title_hbox.addWidget(btn_reset)
+        layout.addLayout(title_hbox)
 
-        button_layout = QHBoxLayout()
-        button_layout.setContentsMargins(0, 0, 0, 0)
-        button_layout.setSpacing(10)  # 버튼 사이 간격 확대
-        button_layout.addStretch()
+        # 테이블 뷰 + 필터 프록시
+        self.table_view = QTableView(self)
+        self.table_view.setAlternatingRowColors(True)
+        # 사용자 정의 헤더 설정
+        header = FilterHeader(Qt.Horizontal, self.table_view)
+        self.table_view.setHorizontalHeader(header)
+        header.setStretchLastSection(True)
+        self.table_view.verticalHeader().setVisible(False)
 
-        # Export 버튼 설정
-        export_button = QPushButton("Export")
-        export_font = QFont()
-        export_font.setFamily("Arial")
-        export_font.setPointSize(9)
-        export_font.setBold(True)
-        export_button.setFont(export_font)
+        self.proxy_model = MultiFilterProxy(self)
+        self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
+        self.table_view.setModel(self.proxy_model)
+        header.sectionClicked.connect(self.on_header_clicked)
+        layout.addWidget(self.table_view, 1)
 
-        export_button.setCursor(QCursor(Qt.PointingHandCursor))
-        export_button.setFixedSize(150, 50)  # 버튼 크기 설정
+    def load_default_excel(self):
+        path = os.path.join(os.path.dirname(__file__), 'pre_assign_result.xlsx')
+        df = pd.read_excel(path).astype(str) if os.path.exists(path) else pd.DataFrame()
+        self._df = df
+        model = PandasModel(self._df, self)
+        self.proxy_model.filters.clear()
+        self.proxy_model.setSourceModel(model)
+        for col, width in self.default_column_widths.items():
+            if 0 <= col < model.columnCount():
+                self.table_view.setColumnWidth(col, width)
 
-        export_button.setStyleSheet("""
-                QPushButton {
-                background-color: #1428A0; 
-                color: white;
-                padding: 8px 10px; 
-                border-radius: 5px; 
-                }
-                QPushButton:hover {
-                        background-color: #004C99;
-                    }
-                    QPushButton:pressed {
-                        background-color: #003366;
-                    }
-                """)
+    def _update_filter(self, col, value, checked):
+        current = set(self.proxy_model.filters.get(col, []))
+        if checked:
+            current.add(value)
+        else:
+            current.discard(value)
+        self.proxy_model.filters[col] = list(current)
+        self.proxy_model.invalidateFilter()
 
-        # Run 버튼 설정
-        run_button = QPushButton("Run")
-        run_button.setCursor(QCursor(Qt.PointingHandCursor))
-        run_button.setFixedSize(150, 50)
-        run_font = QFont()
-        run_font.setFamily("Arial")
-        run_font.setPointSize(9)
-        run_font.setBold(True)
-        run_button.setFont(run_font)
+    def on_header_clicked(self, logicalIndex):
+        col_name = self._df.columns[logicalIndex]
+        raw = self._df[col_name].dropna().tolist()
+        try:
+            nums = sorted({float(v) for v in raw})
+            vals = [str(int(n)) if n.is_integer() else str(n) for n in nums]
+        except ValueError:
+            vals = sorted(set(raw), key=lambda x: str(x))
 
-        run_button.setStyleSheet("""
-                QPushButton {
-                background-color: #1428A0; 
-                color: white; 
-                padding: 8px 10px; 
-                border-radius: 5px; 
-                }
-                QPushButton:hover {
-                        background-color: #004C99;
-                    }
-                    QPushButton:pressed {
-                        background-color: #003366;
-                    }
-                """)
+        menu = QMenu(self)
+        header = self.table_view.horizontalHeader()
+        width = header.sectionSize(logicalIndex)
+        menu.setFixedWidth(width)
 
-        # Reset 버튼 설정
-        reset_button = QPushButton("Reset")
-        reset_button.setCursor(QCursor(Qt.PointingHandCursor))
-        reset_button.setFixedSize(150, 50)
-        reset_font = QFont()
-        reset_font.setFamily("Arial")
-        reset_font.setPointSize(9)
-        reset_font.setBold(True)
-        reset_button.setFont(reset_font)
+        # 체크박스 추가
+        current = set(self.proxy_model.filters.get(logicalIndex, []))
+        for v in vals:
+            act = QWidgetAction(menu)
+            cb = QCheckBox(v, menu)
+            cb.setChecked(v in current)
+            cb.toggled.connect(lambda checked, val=v, col=logicalIndex: self._update_filter(col, val, checked))
+            act.setDefaultWidget(cb)
+            menu.addAction(act)
 
+        menu.addSeparator()
+        asc = menu.addAction("Ascending")
+        desc = menu.addAction("Descending")
 
-        reset_button.setStyleSheet("""
-                QPushButton {
-                background-color: #ACACAC; 
-                color: white; 
-                padding: 8px 10px; 
-                border-radius: 5px; 
-                }
-                QPushButton:hover {
-                        background-color: #C0C0C0;
-                    }
-                    QPushButton:pressed {
-                        background-color: #848282;
-                    }
-                """)
-
-        # 버튼 연결
-        export_button.clicked.connect(self.on_export_click)
-        run_button.clicked.connect(self.on_optimization_click)
-        reset_button.clicked.connect(self.on_reset_click)
-
-        button_layout.addWidget(export_button)
-        button_layout.addWidget(run_button)
-        button_layout.addWidget(reset_button)
-        title_layout.addLayout(button_layout)
-
-        content_layout = QVBoxLayout()
-        content_layout.setContentsMargins(0, 0, 0, 0)
-        content_layout.setSpacing(10)
-
-        content_frame = QFrame()
-        content_frame.setFrameShape(QFrame.StyledPanel)
-        content_frame.setFrameShadow(QFrame.Raised)
-        content_frame.setMinimumSize(200,200)
-        content_frame.setStyleSheet("""
-        QFrame { background-color: white;
-         border: 2px solid grey;}
-        """)
-        content_layout.addWidget(content_frame,1)
-
-        main_layout.addLayout(content_layout,1)
-        # 스페이서 추가
-        main_layout.addStretch()
-
-    def on_optimization_click(self):
-        # 최적화 실행 시 시그널 발생 (필요한 매개변수 전달)
-        parameters = {}  # 필요한 매개변수 딕셔너리
-        self.optimization_requested.emit(parameters)
-        # 또는 직접 메인 윈도우 메서드 호출
-        self.main_window.run_optimization()
+        pos = header.mapToGlobal(QPoint(header.sectionViewportPosition(logicalIndex), header.height()))
+        sel = menu.exec(pos)
+        if sel == asc:
+            self.proxy_model.sort(logicalIndex, Qt.AscendingOrder)
+        elif sel == desc:
+            self.proxy_model.sort(logicalIndex, Qt.DescendingOrder)
 
     def on_export_click(self):
-        # Export 버튼 클릭 시 수행할 작업
         pass
 
     def on_reset_click(self):
-        # Reset 버튼 클릭 시 수행할 작업
-        pass
+        # 데이터 초기화
+        self._df = pd.DataFrame()
+        model = PandasModel(self._df, self)
+        self.proxy_model.filters.clear()
+        self.proxy_model.setSourceModel(model)
+
+    def on_optimization_click(self):
+        self.optimization_requested.emit({})
+        self.main_window.run_optimization()
+
+    def display_preassign_result(self, df: pd.DataFrame):
+        # 테이블에 결과 표시
+        self._df = df.astype(str)
+        model = PandasModel(self._df, self)
+        self.proxy_model.filters.clear()
+        self.proxy_model.setSourceModel(model)
+        for col, width in self.default_column_widths.items():
+            if 0 <= col < model.columnCount():
+                self.table_view.setColumnWidth(col, width)
