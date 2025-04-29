@@ -6,6 +6,7 @@ from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
 from PyQt5.QtCore import Qt, QDate
 from PyQt5.QtGui import QCursor, QIcon, QFont
+from app.core.optimization import Optimization
 import pandas as pd
 import os
 
@@ -171,15 +172,13 @@ class MainWindow(QMainWindow):
             return
 
         # 최적화 실행
-        self.run_optimization()
+        optimization = Optimization()
+        optimization.pre_assign()
 
         # 결과 페이지로 이동
         self.navigate_to_page(1)  # Planning 페이지로 이동
 
-    def run_optimization(self, parameters=None):
-        # 생산계획 최적화 실행 로직
-        print(f"생산계획 최적화 실행: {parameters}")
-        # self.data_model.process_data(parameters)
+
 
     def export_results(self, file_path=None):
         # 결과 내보내기 로직
