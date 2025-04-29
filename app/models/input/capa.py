@@ -54,10 +54,11 @@ def preprocess_data(df_demand, df_line_available, df_capa_qty, df_capa_portion):
         'demand_items': [],
         'project_to_buildings': {},
         'line_capacities': {},
-        'building_constraints': {}
+        'building_constraints': {},
+        'line_available_df': df_line_available,
+        'capa_qty_df': df_capa_qty
     }
 
-    # 제조동 목록
     buildings = []
 
     if not df_capa_portion.empty:
