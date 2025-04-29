@@ -125,16 +125,6 @@ class PlanningPage(QWidget):
         header.sectionClicked.connect(self.on_header_clicked)
         layout.addWidget(self.table_view, 1)
 
-    def load_default_excel(self):
-        path = os.path.join(os.path.dirname(__file__), 'pre_assign_result.xlsx')
-        df = pd.read_excel(path).astype(str) if os.path.exists(path) else pd.DataFrame()
-        self._df = df
-        model = PandasModel(self._df, self)
-        self.proxy_model.filters.clear()
-        self.proxy_model.setSourceModel(model)
-        for col, width in self.default_column_widths.items():
-            if 0 <= col < model.columnCount():
-                self.table_view.setColumnWidth(col, width)
 
     def _update_filter(self, col, value, checked):
         current = set(self.proxy_model.filters.get(col, []))
