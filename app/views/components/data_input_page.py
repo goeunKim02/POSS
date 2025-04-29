@@ -9,12 +9,14 @@ from app.views.components.data_upload_components.date_range_selector import Date
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
 from app.views.components.data_upload_components.file_tab_component import FileTabComponent
-from app.views.components.data_upload_components.error_status_component import ErrorStatusComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
+# from app.core.optimization import Optimization
 
 class DataInputPage(QWidget):
+    # 시그널 정의
     file_selected = pyqtSignal(str)
     date_range_selected = pyqtSignal(QDate, QDate)
+    run_button_clicked = pyqtSignal()  # Run 버튼 클릭 시그널 추가
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,7 +45,7 @@ class DataInputPage(QWidget):
         # 제목과 버튼을 포함할 상단 행 컨테이너
         title_row = QFrame()
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, 0, 0)  # 여백 설정
+        title_row_layout.setContentsMargins(0, 0, 16, 0)  # 여백 설정
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
@@ -54,9 +56,39 @@ class DataInputPage(QWidget):
         title_font.setWeight(99)
         title_label.setFont(title_font)
 
-
         title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
 
+        # Run 버튼 생성 (수정된 부분)
+        run_btn = QPushButton("Run")
+        run_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        run_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1428A0; 
+                color: white; 
+                border: none;
+                border-radius: 10px;
+                padding: 5px 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0069d9;
+            }
+            QPushButton:pressed {
+                background-color: #0062cc;
+            }
+        """)
+        run_btn.setFixedWidth(150)
+        run_btn.setFixedHeight(50)
+
+        # 폰트 설정 (문자열이 아닌 QFont 객체 사용)
+        run_font = QFont("Arial", 9)
+        run_font.setBold(True)
+        run_btn.setFont(run_font)
+
+        # 버튼 클릭 시그널을 mainwindow로 전달
+        run_btn.clicked.connect(self.on_run_clicked)
+
+        title_row_layout.addWidget(run_btn)
 
         # 입력 섹션 생성
         input_section = QFrame()
@@ -91,7 +123,6 @@ class DataInputPage(QWidget):
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
-
         # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
         main_splitter = QSplitter(Qt.Horizontal)
         main_splitter.setStyleSheet("background-color: transparent;")  # 배경색 투명으로 변경
@@ -113,44 +144,15 @@ class DataInputPage(QWidget):
         self.sheet_selector.sheet_changed.connect(self.on_sheet_changed)
         left_layout.addWidget(self.sheet_selector)
 
-        # 오른쪽 영역 - 수직 스플리터로 위아래 분할
+        # 오른쪽 영역 - ParameterComponent만 추가 (스플리터 제거)
         right_panel = QFrame()
-        right_panel.setStyleSheet("background-color: white; border-radius: 10px;")
+        right_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 10px;")
         right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거하여 스플리터가 전체 공간 사용
+        right_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
 
-        # 오른쪽 패널 내부에 수직 스플리터 생성
-        right_splitter = QSplitter(Qt.Vertical)
-        right_splitter.setStyleSheet("background-color: #F5F5F5;")  # 배경색 투명으로 변경
-
-        # 오른쪽 상단 패널
-        right_top_panel = QFrame()
-        right_top_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc ; border-radius: 10px;")
-        right_top_layout = QVBoxLayout(right_top_panel)
-        right_top_layout.setContentsMargins(0, 0, 0, 0)
-
+        # ParameterComponent만 추가
         self.parameter_component = ParameterComponent()
-        right_top_layout.addWidget(self.parameter_component)
-        right_top_layout.addStretch()
-
-        # 오른쪽 하단 패널 - ErrorStatusComponent 추가
-        right_bottom_panel = QFrame()
-        right_bottom_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 10px;")
-        right_bottom_layout = QVBoxLayout(right_bottom_panel)
-        right_bottom_layout.setContentsMargins(0, 0, 0, 0)
-
-        # ErrorStatusComponent 생성 및 추가
-        self.error_status_component = ErrorStatusComponent()
-        right_bottom_layout.addWidget(self.error_status_component)
-        right_bottom_layout.addStretch()
-
-        # 오른쪽 수직 스플리터에 상/하단 패널 추가
-        right_splitter.addWidget(right_top_panel)
-        right_splitter.addWidget(right_bottom_panel)
-        right_splitter.setSizes([500, 500])  # 초기 크기 비율 설정
-
-        # 오른쪽 패널 레이아웃에 수직 스플리터 추가
-        right_layout.addWidget(right_splitter)
+        right_layout.addWidget(self.parameter_component)
 
         # 메인 스플리터에 왼쪽 패널과 오른쪽 패널 추가
         main_splitter.addWidget(left_panel)
@@ -166,12 +168,15 @@ class DataInputPage(QWidget):
 
         # 전체 레이아웃에 메인 컨테이너 추가
         layout.addWidget(main_container)
+
     def on_date_range_changed(self, start_date, end_date):
         """날짜 범위가 변경되면 시그널 발생"""
+        print(f"날짜 범위 변경: {start_date.toString('yyyy-MM-dd')} ~ {end_date.toString('yyyy-MM-dd')}")
         self.date_range_selected.emit(start_date, end_date)
 
     def on_file_selected(self, file_path):
         """파일이 선택되면 시그널 발생 및 탭에 추가"""
+        print(f"파일 선택됨: {file_path}")
         self.file_selected.emit(file_path)
 
         # 파일 탭 컴포넌트에 파일 추가
@@ -187,6 +192,12 @@ class DataInputPage(QWidget):
             self.sheet_selector.set_sheets(sheets)
         else:
             self.sheet_selector.setVisible(False)
+
+    def on_run_clicked(self):
+        """Run 버튼 클릭 시 호출되는 함수"""
+        print("Run 버튼 클릭됨")
+        # MainWindow로 시그널 전달
+        self.run_button_clicked.emit()
 
     def on_file_removed(self, file_path):
         """파일이 삭제되면 해당 탭도 제거"""
@@ -204,9 +215,9 @@ class DataInputPage(QWidget):
         else:
             self.sheet_selector.setVisible(False)
 
-        # 탭이 하나도 없으면 기본 메시지 표시
+        # 탭이 하나도 없으면 기본 메시지 표시 (ErrorStatusComponent 대신 다른 방식으로 처리 필요)
         if not self.file_tab_component.has_tabs():
-            self.error_status_component.set_message("파일을 업로드하세요", "info")
+            pass  # ErrorStatusComponent를 사용하지 않으므로 대체 로직 필요
 
     def on_tab_changed(self, file_path):
         """탭이 변경되면 호출되는 함수"""
@@ -232,10 +243,11 @@ class DataInputPage(QWidget):
 
     def update_status_message(self, success, message):
         """상태 메시지 업데이트"""
-        # if success:
-        #     self.error_status_component.set_message(message, "success")
-        # else:
-        #     self.error_status_component.set_message(message, "error")
+        # ErrorStatusComponent를 사용하지 않으므로 기능 비활성화
+        if success:
+            print(f"성공: {message}")
+        else:
+            print(f"오류: {message}")
 
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""

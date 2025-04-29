@@ -237,7 +237,7 @@ class ModifiedLeftSection(QWidget):
         self.data_changed.emit(self.data)
 
     def group_data(self):
-        """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시"""
+        """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시 (라인별 셀 병합 형태로)"""
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
             QMessageBox.warning(self, "그룹화 불가",
                                 "데이터가 없거나 'Line' 또는 'Time' 컬럼이 없습니다.\n필요한 컬럼이 포함된 데이터를 로드해주세요.")
@@ -248,6 +248,10 @@ class ModifiedLeftSection(QWidget):
             lines = sorted(self.data['Line'].unique())
             times = sorted(self.data['Time'].unique())
 
+            # 여기서는 원래 Line 값을 유지하고, 표시만 바뀌도록 처리
+            # 내부적으로는 원래 라인명(예: "1", "A" 등)을 사용하되,
+            # 화면에는 "ㅣ-01" 형식으로 표시됨
+
             # 교대 시간 구분
             shifts = {}
             for time in times:
@@ -256,18 +260,24 @@ class ModifiedLeftSection(QWidget):
                 else:  # 짝수
                     shifts[time] = "야간"
 
-            # 행 헤더 생성
+            # 라인별 교대 정보 구성
+            line_shifts = {}
+            for line in lines:
+                line_shifts[line] = ["주간", "야간"]  # 모든 라인에 주간/야간 교대 추가
+
+            # 행 헤더 생성 (내부 데이터 관리용)
             self.row_headers = []
             for line in lines:
                 for shift in ["주간", "야간"]:
                     self.row_headers.append(f"{line}_({shift})")
 
-            # 그리드 설정
+            # 수정된 그리드 설정 (라인별 셀 병합 형태)
             self.grid_widget.setupGrid(
                 rows=len(self.row_headers),
                 columns=len(self.days),
                 row_headers=self.row_headers,
-                column_headers=self.days
+                column_headers=self.days,
+                line_shifts=line_shifts  # 새로운 라인별 교대 정보 전달
             )
 
             # 각 요일과 라인/교대 별로 데이터 수집 및 그룹화

@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
+from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QWidget, QVBoxLayout
 import pandas as pd
 
 
@@ -11,6 +11,11 @@ class DataTableComponent:
     @staticmethod
     def create_table_from_dataframe(df):
         """데이터프레임으로 테이블 위젯 생성"""
+        # 컨테이너 위젯 생성 (테이블 및 필터를 포함할 수 있음)
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+
         # 데이터 테이블 생성
         data_table = QTableWidget()
         data_table.setStyleSheet("QTableWidget { border: none; }")
@@ -42,7 +47,13 @@ class DataTableComponent:
                 item = QTableWidgetItem(display_value)
                 data_table.setItem(row, col, item)
 
-        return data_table
+        # 레이아웃에 테이블 추가
+        layout.addWidget(data_table)
+
+        # 컨테이너에 테이블 참조 저장 (필터 컴포넌트가 접근할 수 있도록)
+        container._data_table = data_table
+
+        return container
 
     @staticmethod
     def load_data_from_file(file_path, sheet_name=None):
