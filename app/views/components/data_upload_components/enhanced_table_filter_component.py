@@ -64,9 +64,18 @@ class PandasModel(QAbstractTableModel):
         return len(self._df.columns)
 
     def data(self, index, role=Qt.DisplayRole):
-        if not index.isValid() or role != Qt.DisplayRole:
+        if not index.isValid():
             return QVariant()
-        return str(self._df.iat[index.row(), index.column()])
+
+        value = self._df.iat[index.row(), index.column()]
+
+        if role == Qt.DisplayRole or role == Qt.EditRole:
+            # None이나 NaN 값 처리
+            if pd.isna(value):
+                return ""
+            return str(value)
+
+        return QVariant()
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -74,6 +83,44 @@ class PandasModel(QAbstractTableModel):
         if orientation == Qt.Vertical and role == Qt.DisplayRole:
             return str(self._df.index[section])
         return QVariant()
+
+    def setData(self, index, value, role=Qt.EditRole):
+        if not index.isValid() or role != Qt.EditRole:
+            return False
+
+        try:
+            # 빈 문자열이 입력되면 원래 값 유지
+            if value == "":
+                return False
+
+            row, col = index.row(), index.column()
+            original_value = self._df.iat[row, col]
+            column_dtype = self._df[self._df.columns[col]].dtype
+
+            # 데이터 타입에 따른 적절한 변환
+            try:
+                if pd.api.types.is_integer_dtype(column_dtype):
+                    converted_value = int(value)
+                elif pd.api.types.is_float_dtype(column_dtype):
+                    converted_value = float(value)
+                else:
+                    converted_value = str(value)
+            except ValueError:
+                # 변환 실패시 문자열로 처리
+                converted_value = str(value)
+
+            # 데이터프레임 업데이트 - 명시적 형변환
+            self._df.loc[self._df.index[row], self._df.columns[col]] = converted_value
+            self.dataChanged.emit(index, index)
+            return True
+        except Exception as e:
+            print("데이터 수정 오류:", e)
+            return False
+
+    def flags(self, index):
+        if not index.isValid():
+            return Qt.ItemIsEnabled
+        return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
 
 
 class CustomMenu(QMenu):
@@ -192,6 +239,8 @@ class EnhancedTableFilterComponent(QWidget):
         # 테이블 뷰 생성
         self.table_view = QTableView()
         self.table_view.setAlternatingRowColors(True)
+        # 테이블 수정가능하게 하는것
+        self.table_view.setEditTriggers(QTableView.DoubleClicked | QTableView.EditKeyPressed)
 
         # 사용자 정의 헤더 설정
         header = FilterHeader(Qt.Horizontal, self.table_view)
