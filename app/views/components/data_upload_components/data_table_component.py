@@ -16,6 +16,52 @@ class DataTableComponent:
         # 필터 컴포넌트가 제공된 경우, 데이터 설정
         if filter_component:
             filter_component.set_data(df)
+
+            # 테이블 뷰 스타일 설정 (필터 컴포넌트에 있는 테이블 뷰)
+            filter_component.table_view.setStyleSheet("""
+                QTableView {
+                    border: none;
+                    background-color: white;
+                    border-radius: 10px;
+                }
+                QScrollBar:vertical {
+                    border: none;
+                    width: 10px;
+                    margin: 0px;
+                }
+                QScrollBar::handle:vertical {
+                    background: #cccccc;
+                    min-height: 20px;
+                    border-radius: 5px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    border: none;
+                    background: none;
+                    height: 0px;
+                }
+                QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    background: none;
+                }
+                QScrollBar:horizontal {
+                    border: none;
+                    height: 10px;
+                    margin: 0px;
+                }
+                QScrollBar::handle:horizontal {
+                    background: #cccccc;
+                    min-width: 20px;
+                    border-radius: 5px;
+                }
+                QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                    border: none;
+                    background: none;
+                    width: 0px;
+                }
+                QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                    background: none;
+                }
+            """)
+
             # 필터 위젯 추가
             layout.addWidget(filter_component)
             # 테이블 뷰는 이미 필터 컴포넌트 내부에 있으므로 별도로 추가할 필요가 없음
@@ -27,7 +73,49 @@ class DataTableComponent:
 
         # 필터 컴포넌트가 없는 경우 기존 방식으로 테이블 위젯 생성 (이전 코드와 호환성 유지)
         data_table = QTableWidget()
-        data_table.setStyleSheet("QTableWidget { border: none; background-color: white; border-radius: 10px; }")
+        data_table.setStyleSheet("""
+            QTableWidget { 
+                border: none; 
+                background-color: white; 
+                border-radius: 10px; 
+            }
+            QScrollBar:vertical {
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cccccc;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #cccccc;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """)
         data_table.setAlternatingRowColors(True)
 
         # 모든 열이 동일한 너비를 가지도록 Stretch 모드 설정
