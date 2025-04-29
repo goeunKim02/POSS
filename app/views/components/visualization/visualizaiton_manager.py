@@ -125,7 +125,7 @@ class VisualizationManager:
                     p = np.poly1d(z)
                     ax.plot(x_data, p(x_data), '--', color=kwargs.get('trendline_color', 'red'))
                 except:
-                    pass # 오류 발생 시 추세선 생략 (예: 비수치 데이터)
+                    pass # 오류 발생 시 추세선 생략 
             
         else:
             raise ValueError(f"Unspported chart type: {chart_type}")
