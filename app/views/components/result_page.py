@@ -5,6 +5,7 @@ from ..components.result_components.modified_left_section import ModifiedLeftSec
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualizaiton_manager import VisualizationManager
 from app.analysis.output.daily_capa_utilization import analyze_utilization
+from app.models.common.fileStore import FilePaths
 
 class ResultPage(QWidget):
     # 시그널 추가
@@ -271,8 +272,8 @@ class ResultPage(QWidget):
         elif viz_type == "Utilization":
             if self.utilization_data is None:
                 try:
-                    result_file = "app/analysis/output/ssafy_result_0408.xlsx"
-                    master_file = "app/analysis/output/ssafy_master_0408.xlsx"
+                    result_file = FilePaths.get("output_file")
+                    master_file = FilePaths.get("master_excel_file")
 
                     self.utilization_data = analyze_utilization(result_file, master_file)
 
