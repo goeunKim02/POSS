@@ -62,6 +62,7 @@ class FileExplorerSidebar(QWidget):
                 background-color: white;
                 border:none;
                 margin-left: 10px;
+                outline: none;
             }
             QTreeWidget::item {
                 padding: 4px;
