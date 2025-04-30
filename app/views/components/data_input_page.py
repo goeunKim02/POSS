@@ -130,7 +130,7 @@ class DataInputPage(QWidget):
 
         # 하단 영역을 위한 컨테이너 생성
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: #f5f5f5; border-radius: 10px;")
+        bottom_container.setStyleSheet("background-color: white; border-radius: 10px; border:none;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -145,28 +145,26 @@ class DataInputPage(QWidget):
 
         # 오른쪽 콘텐츠 영역 (선택된 파일/시트 내용)
         right_area = QFrame()
-        right_area.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
+        right_area.setStyleSheet("background-color: white; border-radius: 10px; ")
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
-
-        # 콘텐츠 제목 표시 영역
-        self.content_title = QLabel("No file selected")
-        self.content_title.setFont(QFont("Arial", 10, QFont.Bold))
-        self.content_title.setStyleSheet("padding: 5px; background-color: #F5F5F5; border-radius: 5px;")
-        self.content_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         # 시트 탭 영역 - IDE 스타일로 변경
         self.sheet_tabs = QTabWidget()
         self.sheet_tabs.setStyleSheet("""
+            QTabBar {
+            background-color: red;
+            border:none;
+            }
             QTabWidget::pane { 
                 border: none;
-                background: white;
+                background-color: transparent;
             }
             QTabBar::tab {
                 background: #f0f0f0;
                 border: 1px solid #cccccc;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
                 padding: 6px 10px;
                 margin-right: 2px;
             }
@@ -183,11 +181,12 @@ class DataInputPage(QWidget):
         self.sheet_tabs.tabCloseRequested.connect(self.on_tab_close_requested)  # 탭 닫기 이벤트 연결
 
         # 초기 상태 - 빈 탭 표시
+
         empty_widget = QWidget()
         empty_layout = QVBoxLayout(empty_widget)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
         empty_msg.setAlignment(Qt.AlignCenter)
-        empty_msg.setStyleSheet("color: #888; font-size: 14px;")
+        empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")
         empty_layout.addWidget(empty_msg)
 
         # 콘텐츠 영역에 시트 탭 추가
@@ -202,7 +201,6 @@ class DataInputPage(QWidget):
         parameter_layout.addWidget(self.parameter_component)
 
         # 오른쪽 영역 레이아웃에 위젯 추가
-        right_layout.addWidget(self.content_title)
         right_layout.addWidget(self.sheet_tabs, 3)  # 시트 탭이 콘텐츠 영역을 대체
         right_layout.addWidget(parameter_container, 1)  # 파라미터 영역
 
@@ -293,7 +291,6 @@ class DataInputPage(QWidget):
         if self.current_file == file_path:
             self.current_file = None
             self.current_sheet = None
-            self.content_title.setText("No file selected")
 
         self.update_status_message(True, f"파일 '{os.path.basename(file_path)}'이(가) 제거되었습니다")
 
@@ -319,7 +316,6 @@ class DataInputPage(QWidget):
         # 시트 이름 결정
         if sheet_name and file_info['sheets'] and sheet_name in file_info['sheets']:
             self.current_sheet = sheet_name
-            self.content_title.setText(f"File: {os.path.basename(file_path)} - Sheet: {sheet_name}")
         else:
             # 시트를 명시적으로 선택하지 않은 경우 (파일만 선택)
             if file_info.get('sheets'):
@@ -328,8 +324,6 @@ class DataInputPage(QWidget):
             else:
                 # CSV 파일인 경우
                 self.current_sheet = None
-
-            self.content_title.setText(f"File: {os.path.basename(file_path)}")
 
         # 해당 탭이 이미 열려 있는지 확인
         tab_key = (file_path, self.current_sheet)
@@ -397,7 +391,6 @@ class DataInputPage(QWidget):
         if index == 0 and self.sheet_tabs.tabText(0) == "Start Page":
             self.current_file = None
             self.current_sheet = None
-            self.content_title.setText("No file selected")
             return
 
         # 현재 선택된 탭에 해당하는 파일과 시트 찾기
@@ -407,12 +400,6 @@ class DataInputPage(QWidget):
                 found = True
                 self.current_file = file_path
                 self.current_sheet = sheet_name
-
-                # 제목 업데이트
-                if sheet_name:
-                    self.content_title.setText(f"File: {os.path.basename(file_path)} - Sheet: {sheet_name}")
-                else:
-                    self.content_title.setText(f"File: {os.path.basename(file_path)}")
 
                 # 파일 정보 업데이트
                 if file_path in self.loaded_files:
