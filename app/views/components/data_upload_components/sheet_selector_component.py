@@ -21,7 +21,12 @@ class SheetSelectorComponent(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.frame)
 
-        frame_layout = QHBoxLayout(self.frame)
+        sheet_frame = QFrame()
+        sheet_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 10px; padding: 5px 10px; margin-top: 8px;")
+
+        layout.addWidget(sheet_frame)
+
+        frame_layout = QHBoxLayout(sheet_frame)
         frame_layout.setContentsMargins(5, 5, 5, 5)
 
         # 레이블 생성

@@ -1,6 +1,6 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
-                             QSplitter, QHeaderView, QTabWidget)
+                             QSplitter, QHeaderView, QTabWidget, QStackedWidget)
 from PyQt5.QtGui import QCursor, QFont
 
 import os
@@ -10,6 +10,11 @@ from app.views.components.data_upload_components.file_upload_component import Fi
 from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
 from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
+from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
+from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
+from app.views.components.data_upload_components.data_table_component import DataTableComponent
+
+
 # from app.core.optimization import Optimization
 
 class DataInputPage(QWidget):
@@ -20,6 +25,9 @@ class DataInputPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.loaded_files = {}  # 로드된 파일과 해당 데이터프레임을 저장
+        self.current_file = None
+        self.current_sheet = None
         self.init_ui()
 
     def init_ui(self):
@@ -123,48 +131,90 @@ class DataInputPage(QWidget):
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
-        # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
+        # IDE 스타일 레이아웃을 위한 메인 스플리터
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setStyleSheet("background-color: transparent;")  # 배경색 투명으로 변경
-        main_splitter.setContentsMargins(0, 0, 0, 0)  # 여백 제거
+        main_splitter.setStyleSheet("background-color: transparent;")
+        main_splitter.setContentsMargins(0, 0, 0, 0)
 
-        # 왼쪽 영역 - 파일 탭 컴포넌트와 시트 선택기로 구성
-        left_panel = QFrame()
-        left_panel.setStyleSheet("background-color: transparent; border:none; border-radius: 10px;")
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        # 왼쪽 사이드바 (파일 탐색기)
+        self.file_explorer = FileExplorerSidebar()
+        self.file_explorer.file_or_sheet_selected.connect(self.on_file_or_sheet_selected)
 
-        # 파일 탭 컴포넌트 추가
-        self.file_tab_component = FileTabComponent()
-        self.file_tab_component.tab_changed.connect(self.on_tab_changed)
-        left_layout.addWidget(self.file_tab_component)
+        # 오른쪽 콘텐츠 영역 (선택된 파일/시트 내용)
+        right_area = QFrame()
+        right_area.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
+        right_layout = QVBoxLayout(right_area)
+        right_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 시트 선택 컴포넌트 추가
-        self.sheet_selector = SheetSelectorComponent()
-        self.sheet_selector.sheet_changed.connect(self.on_sheet_changed)
-        left_layout.addWidget(self.sheet_selector)
+        # 콘텐츠 제목 표시 영역
+        self.content_title = QLabel("No file selected")
+        self.content_title.setFont(QFont("Arial", 10, QFont.Bold))
+        self.content_title.setStyleSheet("padding: 5px; background-color: #F5F5F5; border-radius: 5px;")
+        self.content_title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        # 오른쪽 영역 - ParameterComponent만 추가 (스플리터 제거)
-        right_panel = QFrame()
-        right_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 10px;")
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
+        # 시트 탭 영역
+        self.sheet_tabs = QTabWidget()
+        self.sheet_tabs.setStyleSheet("""
+            QTabWidget::pane { 
+                border: none;
+                background: white;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 6px 10px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected, QTabBar::tab:hover {
+                background: #1428A0;
+                color: white;
+            }
+        """)
+        self.sheet_tabs.setTabPosition(QTabWidget.North)
+        self.sheet_tabs.setDocumentMode(True)  # 더 깔끔한 탭 모드
+        self.sheet_tabs.setTabsClosable(False)  # 닫기 버튼 없음
+        self.sheet_tabs.setMovable(True)  # 탭 이동 가능
+        self.sheet_tabs.currentChanged.connect(self.on_sheet_tab_changed)
 
-        # ParameterComponent만 추가
+        # 콘텐츠 영역 (스택 위젯으로 다양한 콘텐츠를 전환할 수 있게 함)
+        self.content_stack = QStackedWidget()
+        self.content_stack.setStyleSheet("background-color: white; border: none;")
+
+        # 초기 상태 화면
+        empty_widget = QWidget()
+        empty_layout = QVBoxLayout(empty_widget)
+        empty_msg = QLabel("Select a file or sheet from the sidebar")
+        empty_msg.setAlignment(Qt.AlignCenter)
+        empty_msg.setStyleSheet("color: #888; font-size: 14px;")
+        empty_layout.addWidget(empty_msg)
+        self.content_stack.addWidget(empty_widget)
+
+        # 파라미터 영역
+        parameter_container = QFrame()
+        parameter_layout = QVBoxLayout(parameter_container)
+        parameter_layout.setContentsMargins(0, 0, 0, 0)
+
         self.parameter_component = ParameterComponent()
-        right_layout.addWidget(self.parameter_component)
+        parameter_layout.addWidget(self.parameter_component)
 
-        # 메인 스플리터에 왼쪽 패널과 오른쪽 패널 추가
-        main_splitter.addWidget(left_panel)
-        main_splitter.addWidget(right_panel)
-        main_splitter.setSizes([700, 300])  # 초기 크기 설정
+        # 오른쪽 영역 하단에 파라미터 영역 추가
+        right_layout.addWidget(self.content_title)
+        right_layout.addWidget(self.sheet_tabs, 3)  # 시트 탭이 콘텐츠 영역을 대체
+        right_layout.addWidget(parameter_container, 1)  # 파라미터 영역
+
+        # 메인 스플리터에 왼쪽 사이드바와 오른쪽 영역 추가
+        main_splitter.addWidget(self.file_explorer)
+        main_splitter.addWidget(right_area)
+        main_splitter.setSizes([200, 800])  # 초기 크기 설정
 
         # 하단 컨테이너에 스플리터 추가
         bottom_container_layout.addWidget(main_splitter)
 
         # 메인 컨테이너에 상단 컨테이너와 하단 컨테이너 추가
         main_container_layout.addWidget(top_container)
-        main_container_layout.addWidget(bottom_container, 1)  # 스플리터가 나머지 공간을 채우도록 stretch factor 1 설정
+        main_container_layout.addWidget(bottom_container, 1)
 
         # 전체 레이아웃에 메인 컨테이너 추가
         layout.addWidget(main_container)
@@ -175,23 +225,42 @@ class DataInputPage(QWidget):
         self.date_range_selected.emit(start_date, end_date)
 
     def on_file_selected(self, file_path):
-        """파일이 선택되면 시그널 발생 및 탭에 추가"""
+        """파일이 선택되면 시그널 발생 및 사이드바에 추가"""
         print(f"파일 선택됨: {file_path}")
         self.file_selected.emit(file_path)
 
-        # 파일 탭 컴포넌트에 파일 추가
-        success, message = self.file_tab_component.add_file_tab(file_path)
+        # 파일 확장자 확인
+        file_ext = os.path.splitext(file_path)[1].lower()
 
-        # 메시지 표시
-        self.update_status_message(success, message)
+        try:
+            # 엑셀 파일인 경우 시트 목록 가져오기
+            sheet_names = None
+            if file_ext in ['.xls', '.xlsx']:
+                import pandas as pd
+                excel = pd.ExcelFile(file_path)
+                sheet_names = excel.sheet_names
 
-        # 엑셀 파일이면 시트 선택기 업데이트
-        current_file = self.file_tab_component.get_current_file_path()
-        if current_file and self.file_tab_component.is_excel_file(current_file):
-            sheets = self.file_tab_component.get_excel_sheets(current_file)
-            self.sheet_selector.set_sheets(sheets)
-        else:
-            self.sheet_selector.setVisible(False)
+                # 첫 번째 시트 로드
+                if sheet_names:
+                    df = DataTableComponent.load_data_from_file(file_path, sheet_name=sheet_names[0])
+                    self.loaded_files[file_path] = {'df': df, 'sheets': sheet_names, 'current_sheet': sheet_names[0]}
+
+            # CSV 파일인 경우
+            elif file_ext == '.csv':
+                df = DataTableComponent.load_data_from_file(file_path)
+                self.loaded_files[file_path] = {'df': df, 'sheets': None, 'current_sheet': None}
+
+            # 파일 탐색기에 파일 추가
+            self.file_explorer.add_file(file_path, sheet_names)
+
+            # 첫 번째 파일인 경우 자동 선택
+            if len(self.loaded_files) == 1:
+                self.file_explorer.select_first_item()
+
+            self.update_status_message(True, f"파일 '{os.path.basename(file_path)}'이(가) 로드되었습니다")
+
+        except Exception as e:
+            self.update_status_message(False, f"파일 로드 오류: {str(e)}")
 
     def on_run_clicked(self):
         """Run 버튼 클릭 시 호출되는 함수"""
@@ -200,50 +269,156 @@ class DataInputPage(QWidget):
         self.run_button_clicked.emit()
 
     def on_file_removed(self, file_path):
-        """파일이 삭제되면 해당 탭도 제거"""
-        # 파일 탭 컴포넌트에서 해당 탭 제거
-        success, message = self.file_tab_component.remove_file_tab(file_path)
+        """파일이 삭제되면 사이드바에서도 제거"""
+        # 사이드바에서 파일 제거
+        self.file_explorer.remove_file(file_path)
 
-        # 메시지 표시
-        self.update_status_message(success, message)
+        # 로드된 파일 목록에서 제거
+        if file_path in self.loaded_files:
+            del self.loaded_files[file_path]
 
-        # 현재 선택된 파일 확인 및 시트 선택기 업데이트
-        current_file = self.file_tab_component.get_current_file_path()
-        if current_file and self.file_tab_component.is_excel_file(current_file):
-            sheets = self.file_tab_component.get_excel_sheets(current_file)
-            self.sheet_selector.set_sheets(sheets)
-        else:
-            self.sheet_selector.setVisible(False)
+        # 현재 표시 중인 파일이 제거된 경우, 화면 초기화
+        if self.current_file == file_path:
+            self.current_file = None
+            self.current_sheet = None
+            self.content_title.setText("No file selected")
+            self.content_stack.setCurrentIndex(0)  # 빈 화면으로 전환
 
-        # 탭이 하나도 없으면 기본 메시지 표시 (ErrorStatusComponent 대신 다른 방식으로 처리 필요)
-        if not self.file_tab_component.has_tabs():
-            pass  # ErrorStatusComponent를 사용하지 않으므로 대체 로직 필요
+        self.update_status_message(True, f"파일 '{os.path.basename(file_path)}'이(가) 제거되었습니다")
 
-    def on_tab_changed(self, file_path):
-        """탭이 변경되면 호출되는 함수"""
-        # 엑셀 파일이면 시트 선택기 표시
-        if self.file_tab_component.is_excel_file(file_path):
-            sheets = self.file_tab_component.get_excel_sheets(file_path)
-            self.sheet_selector.set_sheets(sheets)
-        else:
-            self.sheet_selector.setVisible(False)
+    def on_file_or_sheet_selected(self, file_path, sheet_name):
+        """파일 탐색기에서 파일이나 시트가 선택되면 호출"""
+        print(f"선택됨: {file_path}, 시트: {sheet_name}")
 
-    def on_sheet_changed(self, sheet_name):
-        """시트가 변경되면 호출되는 함수"""
-        # 현재 파일에 해당 시트 로드
-        current_file = self.file_tab_component.get_current_file_path()
-        if not current_file:
+        # 파일이 로드되지 않은 경우
+        if file_path not in self.loaded_files:
+            self.update_status_message(False, "선택한 파일이 로드되지 않았습니다")
             return
 
-        # 시트 로드
-        success, message = self.file_tab_component.load_sheet(current_file, sheet_name)
+        self.current_file = file_path
+        file_info = self.loaded_files[file_path]
 
-        # 메시지 표시
-        self.update_status_message(success, message)
+        # 시트 이름이 지정된 경우
+        if sheet_name and file_info['sheets'] and sheet_name in file_info['sheets']:
+            # 시트가 변경된 경우에만 새로 로드
+            if file_info.get('current_sheet') != sheet_name:
+                try:
+                    df = DataTableComponent.load_data_from_file(file_path, sheet_name=sheet_name)
+                    file_info['df'] = df
+                    file_info['current_sheet'] = sheet_name
+                except Exception as e:
+                    self.update_status_message(False, f"시트 로드 오류: {str(e)}")
+                    return
+
+            self.current_sheet = sheet_name
+            self.content_title.setText(f"File: {os.path.basename(file_path)}")
+        else:
+            # 파일만 선택된 경우 (첫 번째 시트나 현재 시트 사용)
+            self.current_sheet = file_info.get('current_sheet')
+            if self.current_sheet:
+                self.content_title.setText(f"File: {os.path.basename(file_path)}")
+            else:
+                self.content_title.setText(f"File: {os.path.basename(file_path)}")
+
+        # 시트 탭 업데이트
+        self._update_sheet_tabs(file_path, file_info)
+
+        # 데이터 표시
+        self._display_data(file_info['df'])
+
+    def _update_sheet_tabs(self, file_path, file_info):
+        """시트 탭 업데이트"""
+        # 기존 탭 모두 제거
+        self.sheet_tabs.clear()
+
+        # 엑셀 파일이고 시트가 있는 경우에만 탭 추가
+        if file_info.get('sheets'):
+            for sheet_name in file_info['sheets']:
+                # 콘텐츠 위젯 생성
+                content_widget = QWidget()
+                content_layout = QVBoxLayout(content_widget)
+                content_layout.setContentsMargins(0, 0, 0, 0)
+
+                # 시트의 데이터가 이미 로드되어 있으면 재사용, 아니면 새로 로드
+                if file_info.get('current_sheet') == sheet_name and 'df' in file_info:
+                    df = file_info['df']
+                else:
+                    try:
+                        df = DataTableComponent.load_data_from_file(file_path, sheet_name=sheet_name)
+                    except Exception as e:
+                        print(f"시트 로드 오류: {str(e)}")
+                        continue
+
+                # 필터 컴포넌트 생성
+                filter_component = EnhancedTableFilterComponent()
+
+                # 데이터 테이블 생성
+                data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
+                content_layout.addWidget(data_container)
+
+                # 탭에 추가
+                self.sheet_tabs.addTab(content_widget, sheet_name)
+
+            # 현재 선택된 시트가 있으면 해당 탭 선택
+            if self.current_sheet:
+                for i in range(self.sheet_tabs.count()):
+                    if self.sheet_tabs.tabText(i) == self.current_sheet:
+                        self.sheet_tabs.setCurrentIndex(i)
+                        break
+        else:
+            # CSV 파일이거나 시트가 없는 경우, 단일 탭으로 표시
+            content_widget = QWidget()
+            content_layout = QVBoxLayout(content_widget)
+            content_layout.setContentsMargins(0, 0, 0, 0)
+
+            # 필터 컴포넌트 생성
+            filter_component = EnhancedTableFilterComponent()
+
+            # 데이터 테이블 생성
+            data_container = DataTableComponent.create_table_from_dataframe(file_info['df'], filter_component)
+            content_layout.addWidget(data_container)
+
+            # 탭에 추가 (파일명을 탭 제목으로 사용)
+            tab_name = os.path.basename(file_path)
+            self.sheet_tabs.addTab(content_widget, tab_name)
+
+    def on_sheet_tab_changed(self, index):
+        """시트 탭이 변경되면 호출"""
+        if index < 0 or not self.current_file:
+            return
+
+        # 현재 파일 정보 가져오기
+        file_info = self.loaded_files.get(self.current_file)
+        if not file_info:
+            return
+
+        # 시트 이름 가져오기
+        sheet_name = self.sheet_tabs.tabText(index)
+
+        # 현재 시트 업데이트
+        if file_info.get('sheets') and sheet_name in file_info['sheets']:
+            file_info['current_sheet'] = sheet_name
+            self.current_sheet = sheet_name
+
+            # 필요하면 트리에서도 해당 시트 선택
+            # (선택 사항 - 트리와 탭 간의 동기화)
+
+    def _display_data(self, df):
+        """데이터프레임을 테이블로 표시 (이제 시트 탭을 통해 표시하므로 직접 호출되지 않음)"""
+        # 기존 콘텐츠 스택에서 인덱스 1 이상의 위젯 모두 제거 (초기 화면은 유지)
+        while self.content_stack.count() > 1:
+            widget = self.content_stack.widget(1)
+            self.content_stack.removeWidget(widget)
+            if widget:
+                widget.deleteLater()
+
+        # 내용 없는 화면 표시 (이제 실제 표시는 시트 탭에서 처리)
+        empty_widget = QWidget()
+        self.content_stack.addWidget(empty_widget)
+        self.content_stack.setCurrentWidget(empty_widget)
 
     def update_status_message(self, success, message):
         """상태 메시지 업데이트"""
-        # ErrorStatusComponent를 사용하지 않으므로 기능 비활성화
         if success:
             print(f"성공: {message}")
         else:
