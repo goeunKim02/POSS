@@ -17,11 +17,11 @@ class MainWindow(QMainWindow):
         self.resize(1920, 980)
 
         # Create a smaller icon
-        app_icon = QIcon('../resources/icon/samsung_icon1.png')
-        # Create a scaled version of the icon (adjust size as needed)
-        scaled_pixmap = app_icon.pixmap(16, 16)  # Small 16x16 icon
-        scaled_icon = QIcon(scaled_pixmap)
-        self.setWindowIcon(scaled_icon)
+        # app_icon = QIcon('../resources/icon/samsung_icon1.png')
+        # # Create a scaled version of the icon (adjust size as needed)
+        # scaled_pixmap = app_icon.pixmap(16, 16)  # Small 16x16 icon
+        # scaled_icon = QIcon(scaled_pixmap)
+        # self.setWindowIcon(scaled_icon)
 
         # 데이터 모델 초기화
         self.data_model = DataModel()
