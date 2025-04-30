@@ -202,3 +202,38 @@ class FileExplorerSidebar(QWidget):
         """모든 아이템 제거"""
         self.tree.clear()
         self.files_data.clear()
+
+    def select_file_or_sheet(self, file_path, sheet_name=None):
+        """특정 파일과 시트를 선택 상태로 만듦"""
+        # 먼저 해당 파일 찾기
+        file_item = None
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            if item.data(0, Qt.UserRole) == file_path:
+                file_item = item
+                break
+
+        if not file_item:
+            return False  # 파일이 없는 경우
+
+        # 파일 아이템 확장
+        file_item.setExpanded(True)
+
+        # 시트명이 지정된 경우, 해당 시트 찾기
+        if sheet_name and sheet_name in self.files_data.get(file_path, []):
+            # 해당 시트 아이템 찾기
+            sheet_item = None
+            for i in range(file_item.childCount()):
+                child = file_item.child(i)
+                if child.data(0, Qt.UserRole + 1) == sheet_name:
+                    sheet_item = child
+                    break
+
+            if sheet_item:
+                # 시트 아이템 선택
+                self.tree.setCurrentItem(sheet_item)
+                return True
+
+        # 시트가 없거나 찾지 못한 경우, 파일 자체 선택
+        self.tree.setCurrentItem(file_item)
+        return True
