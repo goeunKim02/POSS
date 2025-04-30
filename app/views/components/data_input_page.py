@@ -7,8 +7,8 @@ import os
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
-from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
-from app.views.components.data_upload_components.file_tab_component import FileTabComponent
+# from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
+# from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
 from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
@@ -153,8 +153,11 @@ class DataInputPage(QWidget):
         self.sheet_tabs = QTabWidget()
         self.sheet_tabs.setStyleSheet("""
             QTabBar {
-            background-color: red;
+            background-color: transparent;
             border:none;
+            }
+            QTabWidget::tab-bar {
+            border-top:none;
             }
             QTabWidget::pane { 
                 border: none;
