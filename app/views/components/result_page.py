@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont
+import pandas as pd
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualizaiton_manager import VisualizationManager
 from app.analysis.output.daily_capa_utilization import analyze_utilization
 from app.models.common.fileStore import FilePaths
+from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
 
 class ResultPage(QWidget):
     # 시그널 추가
@@ -15,7 +17,10 @@ class ResultPage(QWidget):
         super().__init__()
         self.main_window = main_window
         self.utilization_data = None 
+        self.result_data = None # 결과 데이터 저장 변수
         self.init_ui()
+
+        self.connect_signals()
 
     def init_ui(self):
         # 레이아웃 설정
@@ -121,7 +126,7 @@ class ResultPage(QWidget):
         self.left_section = ModifiedLeftSection()
         left_layout.addWidget(self.left_section)
 
-        # 오른쪽 컨테이너 (현재는 비어있음)
+        # 오른쪽 컨테이너 
         right_frame = QFrame()
         right_frame.setFrameShape(QFrame.StyledPanel)
         right_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
@@ -174,12 +179,19 @@ class ResultPage(QWidget):
             page = QWidget()
             page_layout = QVBoxLayout(page)
             
-            # 페이지에 적절한 시각화 추가
-            canvas = MplCanvas(width=6, height=4, dpi=100)
-            page_layout.addWidget(canvas)
-            
-            # 초기 시각화 생성
-            self.create_initial_visualization(canvas, btn_text)
+            # tab 유형 별 처리 
+            if btn_text == 'Plan':
+                # 계획 유지율 위젯 생성
+                self.plan_maintenance_widget = PlanMaintenanceWidget()
+                page_layout.addWidget(self.plan_maintenance_widget)
+
+            else: # 다른 탭은 시각화 그대로 유지
+                # 페이지에 적절한 시각화 추가
+                canvas = MplCanvas(width=6, height=4, dpi=100)
+                page_layout.addWidget(canvas)
+                
+                # 초기 시각화 생성
+                self.create_initial_visualization(canvas, btn_text)
             
             # 스택 위젯에 페이지 추가
             self.viz_stack.addWidget(page)
@@ -197,6 +209,59 @@ class ResultPage(QWidget):
 
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
+
+    def connect_signals(self):
+        """이벤트 시그널 연결"""
+        # 왼쪽 섹션의 데이터 변경 이벤트 연결
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
+            self.left_section.data_changed.connect(self.on_data_changed)
+        
+        # 아이템 변경 이벤트 연결 (필요한 경우)
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
+            self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
+
+    def on_data_changed(self, df): 
+        """데이터가 변경되었을 때 호출되는 함수"""
+        # 결과 데이터 저장
+        self.result_data = df
+        
+        # Plan 탭의 계획 유지율 위젯 업데이트
+        if hasattr(self, 'plan_maintenance_widget') and df is not None and not df.empty:
+            self.plan_maintenance_widget.set_data(df)
+            print("계획 유지율 위젯 데이터 업데이트 완료")
+
+    def on_item_data_changed(self, item, new_data):
+        """아이템 데이터가 변경되었을 때 호출되는 함수"""
+        # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
+        if 'Qty' in new_data and pd.notna(new_data['Qty']):
+            line = new_data.get('Line')
+            time = new_data.get('Time')
+            item = new_data.get('Item')
+            new_qty = new_data.get('Qty')
+            demand = new_data.get('Demand', None)  # 선택적 필드
+
+            # 값 변환 및 검증
+            try:
+                time = int(time) if time is not None else None
+                new_qty = int(float(new_qty)) if new_qty is not None else None
+            except (ValueError, TypeError):
+                print(f"시간 또는 수량 변환 오류: time={time}, qty={qty}")
+                return
+
+            if line is not None and time is not None and item is not None and new_qty is not None:
+                    # 계획 유지율 위젯 업데이트
+                    if hasattr(self, 'plan_maintenance_widget'):
+                        # 수량 직접 업데이트
+                        print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
+                        self.plan_maintenance_widget.update_quantity(line, time, item, new_qty, demand)
+                        
+                        # Plan 탭으로 전환 (선택 사항)
+                        plan_index = [i for i, btn in enumerate(self.viz_buttons) if btn.text() == "Plan"]
+                        if plan_index:
+                            self.switch_viz_page(plan_index[0])
+        
+
 
     def export_results(self):
         """결과를 CSV 파일로 내보내기"""

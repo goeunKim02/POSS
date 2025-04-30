@@ -54,21 +54,14 @@ class PlanMaintenanceRate:
         else:
             print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
             return False
-
-        # 물량 업데이트
-        if mask.any():
-            # 수량 업데이트
-            self.current_plan.loc[mask, 'Qty'] = new_qty
-            return True
-        else:
-            return False
         
-    # item별 유지율 계산 및 테이블 생성
+    
     def calculate_items_maintenance_rate(self):
+        """ item별 유지율 계산 및 테이블 생성 """
         if self.original_plan is None or self.current_plan is None:
             return pd.DataFrame(), 0.0
         
-        # 원본 계획 집집계
+        # 원본 계획 집계
         orig_grouped = self.original_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
 
         # 수정한 계획 집계 
@@ -126,8 +119,9 @@ class PlanMaintenanceRate:
 
         return result_df, maintenance_rate
 
-    # rmc별 유지율 계산 
+    
     def calculate_rmc_maintenance_rate(self):
+        """ rmc별 유지율 계산 """
         if self.original_plan is None or self.current_plan is None:
             return pd.DataFrame(), 0.0
         
@@ -189,20 +183,23 @@ class PlanMaintenanceRate:
 
         return result_df, maintenance_rate
     
-    # 현재 데이터 반환
+    
     def get_current_plan(self):
+        """ 현재 데이터 반환 """
         return self.current_plan.copy() if self.current_plan is not None else None
     
-    # 원본 복원
+    
     def reset_to_original(self):
+        """ 원본 복원 """
         if self.original_plan is not None:
             self.current_plan = self.original_plan.copy()
             return True
         
         return False
     
-    # 수량 변경된 항목 확인
+    
     def get_changed_items(self):
+        """ 수량 변경된 항목 확인 """
         if self.original_plan is None or self.current_plan is None:
             return pd.DataFrame()
         
