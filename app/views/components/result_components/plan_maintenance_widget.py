@@ -155,8 +155,8 @@ class PlanMaintenanceWidget(QWidget):
         rmc_layout.addWidget(self.rmc_tree)
         
         # 탭 추가
-        self.tab_widget.addTab(self.item_tab, "Item")
-        self.tab_widget.addTab(self.rmc_tab, "RMC")
+        self.tab_widget.addTab(self.item_tab, "Item별 유지율")
+        self.tab_widget.addTab(self.rmc_tab, "RMC별 유지율")
         
         main_layout.addWidget(self.tab_widget)
         
