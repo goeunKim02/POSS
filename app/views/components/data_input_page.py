@@ -368,6 +368,10 @@ class DataInputPage(QWidget):
             self.current_file = None
             self.current_sheet = None
 
+        # 모든 탭이 닫혔는지 확인하고 Start Page 추가
+        if self.tab_bar.count() == 0:
+            self._create_start_page()
+
         self.update_status_message(True, f"파일 '{os.path.basename(file_path)}'이(가) 제거되었습니다")
 
     def on_file_or_sheet_selected(self, file_path, sheet_name):
