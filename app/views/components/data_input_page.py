@@ -387,6 +387,11 @@ class DataInputPage(QWidget):
             # 이미 열려 있는 탭으로 전환
             self.tab_bar.setCurrentIndex(self.open_tabs[tab_key])
         else:
+            # Start Page 탭이 있고 이것이 첫 번째 컨텐츠 탭인지 확인
+            if self.tab_bar.count() == 1 and self.tab_bar.tabText(0) == "Start Page":
+                # Start Page 제거
+                self._remove_start_page()
+
             # 새 탭 생성
             self._create_new_tab(file_path, self.current_sheet)
 
@@ -437,7 +442,7 @@ class DataInputPage(QWidget):
 
     def on_tab_close_requested(self, index):
         """탭 닫기 요청 처리"""
-        # 시작 페이지는 닫을 수 없음
+        # 시작 페이지는 닫을 수 없음 (이제 이 조건은 거의 사용되지 않음)
         if index == 0 and self.tab_bar.tabText(0) == "Start Page":
             return
 
@@ -450,6 +455,11 @@ class DataInputPage(QWidget):
 
         if tab_key_to_close:
             self.close_tab(tab_key_to_close[0], tab_key_to_close[1])
+
+            # 모든 탭이 닫혔는지 확인
+            if self.tab_bar.count() == 0:
+                # Start Page 다시 추가
+                self._create_start_page()
 
     def close_tab(self, file_path, sheet_name):
         """특정 파일과 시트에 해당하는 탭 닫기"""
@@ -485,3 +495,35 @@ class DataInputPage(QWidget):
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""
         return self.file_uploader.get_file_paths()
+
+    def _create_start_page(self):
+        """Start Page 생성 및 추가"""
+        # Start Page 위젯 생성
+        empty_widget = QWidget()
+        empty_layout = QVBoxLayout(empty_widget)
+        empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
+        empty_msg.setAlignment(Qt.AlignCenter)
+        empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")
+        empty_layout.addWidget(empty_msg)
+
+        # 위젯 추가
+        self.stacked_widget.insertWidget(0, empty_widget)
+        self.tab_bar.insertTab(0, "Start Page")
+        self.tab_bar.setCurrentIndex(0)
+
+    def _remove_start_page(self):
+        """Start Page 탭 제거"""
+        if self.tab_bar.count() > 0 and self.tab_bar.tabText(0) == "Start Page":
+            # Start Page 위젯 제거
+            start_widget = self.stacked_widget.widget(0)
+            self.stacked_widget.removeWidget(start_widget)
+            start_widget.deleteLater()
+
+            # 탭 제거
+            self.tab_bar.removeTab(0)
+
+            # open_tabs의 인덱스 조정 (모든 탭 인덱스를 1씩 감소)
+            updated_open_tabs = {}
+            for key, idx in self.open_tabs.items():
+                updated_open_tabs[key] = idx - 1
+            self.open_tabs = updated_open_tabs
