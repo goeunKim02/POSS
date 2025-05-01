@@ -130,7 +130,7 @@ class DataInputPage(QWidget):
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
-        # IDE 스타일 레이아웃을 위한 메인 스플리터
+        # IDE 스타일 레이아웃을 위한 메인 스플리터 (수평 분할)
         main_splitter = QSplitter(Qt.Horizontal)
         main_splitter.setHandleWidth(10)  # 스플리터 핸들 너비 설정
         main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
@@ -147,7 +147,17 @@ class DataInputPage(QWidget):
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
 
-        # QTabWidget 대신 더 직접적인 구현
+        # 오른쪽 영역에 수직 스플리터 추가 (탭 영역과 파라미터 영역 분리)
+        vertical_splitter = QSplitter(Qt.Vertical)
+        vertical_splitter.setHandleWidth(10)
+        vertical_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #F5F5F5;
+                height: 10px;
+            }
+        """)
+
+        # 탭 영역 컨테이너
         tab_container = QWidget()
         tab_layout = QVBoxLayout(tab_container)
         tab_layout.setContentsMargins(0, 0, 0, 0)
@@ -207,15 +217,22 @@ class DataInputPage(QWidget):
 
         # 파라미터 영역
         parameter_container = QFrame()
+        parameter_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
         parameter_layout = QVBoxLayout(parameter_container)
-        parameter_layout.setContentsMargins(0, 0, 0, 0)
+        parameter_layout.setContentsMargins(10, 10, 10, 10)
 
         self.parameter_component = ParameterComponent()
         parameter_layout.addWidget(self.parameter_component)
 
-        # 오른쪽 영역 레이아웃에 위젯 추가
-        right_layout.addWidget(tab_container, 3)  # 탭 컨테이너가 시트 탭을 대체
-        right_layout.addWidget(parameter_container, 1)  # 파라미터 영역
+        # 수직 스플리터에 탭 컨테이너와 파라미터 컨테이너 추가
+        vertical_splitter.addWidget(tab_container)
+        vertical_splitter.addWidget(parameter_container)
+
+        # 스플리터 사이즈 설정 (70%:30% 비율로 초기화)
+        vertical_splitter.setSizes([700, 300])
+
+        # 오른쪽 영역 레이아웃에 수직 스플리터 추가
+        right_layout.addWidget(vertical_splitter)
 
         # 메인 스플리터에 왼쪽 사이드바와 오른쪽 영역 추가
         main_splitter.addWidget(self.file_explorer)
