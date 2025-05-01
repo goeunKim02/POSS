@@ -189,6 +189,9 @@ class DataInputPage(QWidget):
             }
         """)
 
+        # 탭 이동 감지를 위한 시그널 연결 추가 - 이 부분이 init_ui() 안에 있어야 합니다
+        self.tab_bar.tabMoved.connect(self.on_tab_moved)
+
         # 콘텐츠 영역
         self.stacked_widget = QStackedWidget()
         self.stacked_widget.setStyleSheet("border: 2px solid #cccccc; background-color: white;")
@@ -543,4 +546,43 @@ class DataInputPage(QWidget):
             updated_open_tabs = {}
             for key, idx in self.open_tabs.items():
                 updated_open_tabs[key] = idx - 1
+            self.open_tabs = updated_open_tabs
+
+    def on_tab_moved(self, from_index, to_index):
+        """탭이 이동되면 open_tabs 딕셔너리와 스택 위젯 업데이트"""
+        # 이동된 탭에 해당하는 키 찾기
+        moved_key = None
+        for key, idx in self.open_tabs.items():
+            if idx == from_index:
+                moved_key = key
+                break
+
+        if moved_key:
+            # 스택 위젯에서 이동할 위젯 꺼내기
+            moved_widget = self.stacked_widget.widget(from_index)
+            self.stacked_widget.removeWidget(moved_widget)
+
+            # 새 위치에 위젯 삽입
+            self.stacked_widget.insertWidget(to_index, moved_widget)
+
+            # 이동된 탭의 인덱스 업데이트
+            self.open_tabs[moved_key] = to_index
+
+            # 다른 탭들의 인덱스도 필요에 따라 업데이트
+            updated_open_tabs = {}
+            for key, idx in list(self.open_tabs.items()):
+                if key != moved_key:  # 이동한 탭 제외
+                    if from_index < to_index:  # 오른쪽으로 이동한 경우
+                        if idx > from_index and idx <= to_index:
+                            updated_open_tabs[key] = idx - 1
+                        else:
+                            updated_open_tabs[key] = idx
+                    else:  # 왼쪽으로 이동한 경우
+                        if idx < from_index and idx >= to_index:
+                            updated_open_tabs[key] = idx + 1
+                        else:
+                            updated_open_tabs[key] = idx
+                else:
+                    updated_open_tabs[key] = to_index
+
             self.open_tabs = updated_open_tabs
