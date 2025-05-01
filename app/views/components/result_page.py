@@ -228,8 +228,46 @@ class ResultPage(QWidget):
         
         # Plan 탭의 계획 유지율 위젯 업데이트
         if hasattr(self, 'plan_maintenance_widget') and df is not None and not df.empty:
-            self.plan_maintenance_widget.set_data(df)
-            print("계획 유지율 위젯 데이터 업데이트 완료")
+            # 첫 번째 계획이 아님을 설정 (유지율 계산 활성화)
+            self.plan_maintenance_widget.plan_analyzer.set_first_plan(False)
+            
+            # 왼쪽 패널 데이터를 '현재 계획'으로 설정 (이 부분이 누락되었습니다)
+            self.plan_maintenance_widget.plan_analyzer.set_current_plan(df)
+            
+            # 이전 계획이 이미 설정되어 있는 경우에만 유지율 계산
+            if hasattr(self.plan_maintenance_widget.plan_analyzer, 'original_plan') and self.plan_maintenance_widget.plan_analyzer.original_plan is not None:
+                print("이전 계획이 있음, 유지율 계산 시작")
+                
+                # item별 유지율 계산
+                item_df, item_rate = self.plan_maintenance_widget.plan_analyzer.calculate_items_maintenance_rate()
+                self.plan_maintenance_widget.item_maintenance_rate = item_rate if item_rate is not None else 0.0
+                
+                # RMC별 유지율 계산
+                rmc_df, rmc_rate = self.plan_maintenance_widget.plan_analyzer.calculate_rmc_maintenance_rate()
+                self.plan_maintenance_widget.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
+                
+                # 트리 위젯 업데이트
+                self.plan_maintenance_widget.item_tree.clear()
+                self.plan_maintenance_widget.rmc_tree.clear()
+                
+                if item_df is not None and not item_df.empty:
+                    self.plan_maintenance_widget.setup_item_tree(item_df)
+                    print(f"Item별 유지율: {self.plan_maintenance_widget.item_maintenance_rate:.2f}%")
+                else:
+                    print("Item별 유지율 데이터가 없습니다.")
+                
+                if rmc_df is not None and not rmc_df.empty:
+                    self.plan_maintenance_widget.setup_rmc_tree(rmc_df)
+                    print(f"RMC별 유지율: {self.plan_maintenance_widget.rmc_maintenance_rate:.2f}%")
+                else:
+                    print("RMC별 유지율 데이터가 없습니다.")
+                
+                # 선택된 탭에 따라 유지율 레이블 업데이트
+                self.plan_maintenance_widget.update_rate_label(self.plan_maintenance_widget.tab_widget.currentIndex())
+                
+                print("계획 유지율 위젯 데이터 업데이트 완료")
+            else:
+                print("이전 계획이 없습니다. 이전 계획(엑셀 파일)을 먼저 로드해주세요.")
 
     def on_item_data_changed(self, item, new_data):
         """아이템 데이터가 변경되었을 때 호출되는 함수"""

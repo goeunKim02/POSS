@@ -327,7 +327,7 @@ class PlanMaintenanceRate:
         # 변경된 항목 필터링
         changed = merged[merged['Qty_orig'] != merged['Qty_curr']]
         return changed
-
+        
     
 if __name__ == "__main__":
     try:
