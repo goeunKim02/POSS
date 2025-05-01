@@ -126,7 +126,7 @@ class DataInputPage(QWidget):
 
         # 하단 영역을 위한 컨테이너 생성
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: white; border-radius: 10px; border:none;")
+        bottom_container.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border:none;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -143,7 +143,7 @@ class DataInputPage(QWidget):
         # 오른쪽 콘텐츠 영역 (선택된 파일/시트 내용)
         right_area = QFrame()
         right_area.setFrameShape(QFrame.NoFrame)  # 프레임 모양 제거
-        right_area.setStyleSheet("background-color: white; border-radius: 10px; border: none;")
+        right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border: none;")
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -191,7 +191,7 @@ class DataInputPage(QWidget):
 
         # 콘텐츠 영역
         self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("border: none; background-color: transparent;")
+        self.stacked_widget.setStyleSheet("border: 2px solid #cccccc; background-color: white;")
 
         # 초기 "Start Page" 추가
         empty_widget = QWidget()
