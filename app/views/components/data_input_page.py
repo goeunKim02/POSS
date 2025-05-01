@@ -1,21 +1,17 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
-                             QSplitter, QHeaderView, QTabWidget, QStackedWidget)
+                             QSplitter, QHeaderView, QTabWidget, QStackedWidget, QTabBar)
 from PyQt5.QtGui import QCursor, QFont
 
 import os
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
-# from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
-# from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
 from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
 
-
-# from app.core.optimization import Optimization
 
 class DataInputPage(QWidget):
     # 시그널 정의
@@ -69,7 +65,7 @@ class DataInputPage(QWidget):
 
         title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
 
-        # Run 버튼 생성 (수정된 부분)
+        # Run 버튼 생성
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
         run_btn.setStyleSheet("""
@@ -91,7 +87,7 @@ class DataInputPage(QWidget):
         run_btn.setFixedWidth(150)
         run_btn.setFixedHeight(50)
 
-        # 폰트 설정 (문자열이 아닌 QFont 객체 사용)
+        # 폰트 설정
         run_font = QFont("Arial", 9)
         run_font.setBold(True)
         run_btn.setFont(run_font)
@@ -136,7 +132,8 @@ class DataInputPage(QWidget):
 
         # IDE 스타일 레이아웃을 위한 메인 스플리터
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setStyleSheet("background-color: transparent;")
+        main_splitter.setHandleWidth(10)  # 스플리터 핸들 너비 설정
+        main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_splitter.setContentsMargins(0, 0, 0, 0)
 
         # 왼쪽 사이드바 (파일 탐색기)
@@ -145,23 +142,27 @@ class DataInputPage(QWidget):
 
         # 오른쪽 콘텐츠 영역 (선택된 파일/시트 내용)
         right_area = QFrame()
-        right_area.setStyleSheet("background-color: white; border-radius: 10px; ")
+        right_area.setFrameShape(QFrame.NoFrame)  # 프레임 모양 제거
+        right_area.setStyleSheet("background-color: white; border-radius: 10px; border: none;")
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 시트 탭 영역 - IDE 스타일로 변경
-        self.sheet_tabs = QTabWidget()
-        self.sheet_tabs.setStyleSheet("""
+        # QTabWidget 대신 더 직접적인 구현
+        tab_container = QWidget()
+        tab_layout = QVBoxLayout(tab_container)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.setSpacing(0)
+
+        # 탭 바
+        self.tab_bar = QTabBar()
+        self.tab_bar.setDocumentMode(True)
+        self.tab_bar.setMovable(True)
+        self.tab_bar.setExpanding(False)
+        self.tab_bar.setDrawBase(False)  # 기본 라인 제거
+        self.tab_bar.setStyleSheet("""
             QTabBar {
-            background-color: transparent;
-            border:none;
-            }
-            QTabWidget::tab-bar {
-            border-top:none;
-            }
-            QTabWidget::pane { 
-                border: none;
                 background-color: transparent;
+                border: none;
             }
             QTabBar::tab {
                 background: #f0f0f0;
@@ -170,21 +171,19 @@ class DataInputPage(QWidget):
                 border-top-right-radius: 10px;
                 padding: 6px 10px;
                 margin-right: 2px;
+                margin-bottom: 0px;
             }
             QTabBar::tab:selected, QTabBar::tab:hover {
                 background: #1428A0;
                 color: white;
             }
         """)
-        self.sheet_tabs.setTabPosition(QTabWidget.North)
-        self.sheet_tabs.setDocumentMode(True)  # 더 깔끔한 탭 모드
-        self.sheet_tabs.setTabsClosable(True)  # 닫기 버튼 추가 (IDE 스타일)
-        self.sheet_tabs.setMovable(True)  # 탭 이동 가능
-        self.sheet_tabs.currentChanged.connect(self.on_sheet_tab_changed)
-        self.sheet_tabs.tabCloseRequested.connect(self.on_tab_close_requested)  # 탭 닫기 이벤트 연결
 
-        # 초기 상태 - 빈 탭 표시
+        # 콘텐츠 영역
+        self.stacked_widget = QStackedWidget()
+        self.stacked_widget.setStyleSheet("border: none; background-color: transparent;")
 
+        # 초기 "Start Page" 추가
         empty_widget = QWidget()
         empty_layout = QVBoxLayout(empty_widget)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
@@ -192,8 +191,19 @@ class DataInputPage(QWidget):
         empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")
         empty_layout.addWidget(empty_msg)
 
-        # 콘텐츠 영역에 시트 탭 추가
-        self.sheet_tabs.addTab(empty_widget, "Start Page")
+        self.stacked_widget.addWidget(empty_widget)
+        self.tab_bar.addTab("Start Page")
+
+        # 탭 변경시 스택 위젯도 변경
+        self.tab_bar.currentChanged.connect(self.on_tab_changed)
+
+        # 탭 닫기 버튼 설정
+        self.tab_bar.setTabsClosable(True)
+        self.tab_bar.tabCloseRequested.connect(self.on_tab_close_requested)
+
+        # 레이아웃에 추가
+        tab_layout.addWidget(self.tab_bar)
+        tab_layout.addWidget(self.stacked_widget)
 
         # 파라미터 영역
         parameter_container = QFrame()
@@ -204,7 +214,7 @@ class DataInputPage(QWidget):
         parameter_layout.addWidget(self.parameter_component)
 
         # 오른쪽 영역 레이아웃에 위젯 추가
-        right_layout.addWidget(self.sheet_tabs, 3)  # 시트 탭이 콘텐츠 영역을 대체
+        right_layout.addWidget(tab_container, 3)  # 탭 컨테이너가 시트 탭을 대체
         right_layout.addWidget(parameter_container, 1)  # 파라미터 영역
 
         # 메인 스플리터에 왼쪽 사이드바와 오른쪽 영역 추가
@@ -221,6 +231,49 @@ class DataInputPage(QWidget):
 
         # 전체 레이아웃에 메인 컨테이너 추가
         layout.addWidget(main_container)
+
+    def on_tab_changed(self, index):
+        """탭이 변경되면 스택 위젯 및 관련 정보 업데이트"""
+        # 스택 위젯 업데이트
+        self.stacked_widget.setCurrentIndex(index)
+
+        # 사이드바에서 업데이트 중이면 무시 (무한 루프 방지)
+        if self.updating_from_sidebar:
+            return
+
+        if index < 0 or index >= self.tab_bar.count():
+            return
+
+        # 시작 페이지인 경우 (인덱스 0)
+        if index == 0 and self.tab_bar.tabText(0) == "Start Page":
+            self.current_file = None
+            self.current_sheet = None
+            return
+
+        # 현재 선택된 탭에 해당하는 파일과 시트 찾기
+        found = False
+        for (file_path, sheet_name), idx in self.open_tabs.items():
+            if idx == index:
+                found = True
+                self.current_file = file_path
+                self.current_sheet = sheet_name
+
+                # 파일 정보 업데이트
+                if file_path in self.loaded_files:
+                    file_info = self.loaded_files[file_path]
+                    if sheet_name:
+                        file_info['current_sheet'] = sheet_name
+
+                # 사이드바에서도 동일 항목 선택 처리
+                self.updating_from_tab = True
+                self.file_explorer.select_file_or_sheet(file_path, sheet_name)
+                self.updating_from_tab = False
+
+                break
+
+        if not found:
+            self.current_file = None
+            self.current_sheet = None
 
     def on_date_range_changed(self, start_date, end_date):
         """날짜 범위가 변경되면 시그널 발생"""
@@ -332,7 +385,7 @@ class DataInputPage(QWidget):
         tab_key = (file_path, self.current_sheet)
         if tab_key in self.open_tabs:
             # 이미 열려 있는 탭으로 전환
-            self.sheet_tabs.setCurrentIndex(self.open_tabs[tab_key])
+            self.tab_bar.setCurrentIndex(self.open_tabs[tab_key])
         else:
             # 새 탭 생성
             self._create_new_tab(file_path, self.current_sheet)
@@ -368,12 +421,13 @@ class DataInputPage(QWidget):
             data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
             tab_layout.addWidget(data_container)
 
-            # 새 탭 추가
-            tab_index = self.sheet_tabs.addTab(tab_widget, tab_title)
+            # 새 탭과 스택 위젯 항목 추가
+            tab_index = self.tab_bar.addTab(tab_title)
+            self.stacked_widget.addWidget(tab_widget)
 
             # 탭 상태 저장 및 선택
             self.open_tabs[(file_path, sheet_name)] = tab_index
-            self.sheet_tabs.setCurrentIndex(tab_index)
+            self.tab_bar.setCurrentIndex(tab_index)
 
             return tab_index
 
@@ -381,50 +435,10 @@ class DataInputPage(QWidget):
             self.update_status_message(False, f"탭 생성 오류: {str(e)}")
             return -1
 
-    def on_sheet_tab_changed(self, index):
-        """탭이 변경되면 관련 파일과 시트 정보 업데이트"""
-        # 사이드바에서 업데이트 중이면 무시 (무한 루프 방지)
-        if self.updating_from_sidebar:
-            return
-
-        if index < 0 or index >= self.sheet_tabs.count():
-            return
-
-        # 시작 페이지인 경우 (인덱스 0)
-        if index == 0 and self.sheet_tabs.tabText(0) == "Start Page":
-            self.current_file = None
-            self.current_sheet = None
-            return
-
-        # 현재 선택된 탭에 해당하는 파일과 시트 찾기
-        found = False
-        for (file_path, sheet_name), idx in self.open_tabs.items():
-            if idx == index:
-                found = True
-                self.current_file = file_path
-                self.current_sheet = sheet_name
-
-                # 파일 정보 업데이트
-                if file_path in self.loaded_files:
-                    file_info = self.loaded_files[file_path]
-                    if sheet_name:
-                        file_info['current_sheet'] = sheet_name
-
-                # 사이드바에서도 동일 항목 선택 처리
-                self.updating_from_tab = True
-                self.file_explorer.select_file_or_sheet(file_path, sheet_name)
-                self.updating_from_tab = False
-
-                break
-
-        if not found:
-            self.current_file = None
-            self.current_sheet = None
-
     def on_tab_close_requested(self, index):
         """탭 닫기 요청 처리"""
         # 시작 페이지는 닫을 수 없음
-        if index == 0 and self.sheet_tabs.tabText(0) == "Start Page":
+        if index == 0 and self.tab_bar.tabText(0) == "Start Page":
             return
 
         # 닫을 탭에 해당하는 키 찾기
@@ -443,8 +457,13 @@ class DataInputPage(QWidget):
         if tab_key in self.open_tabs:
             tab_index = self.open_tabs[tab_key]
 
+            # 위젯 제거
+            widget = self.stacked_widget.widget(tab_index)
+            self.stacked_widget.removeWidget(widget)
+            widget.deleteLater()
+
             # 탭 제거
-            self.sheet_tabs.removeTab(tab_index)
+            self.tab_bar.removeTab(tab_index)
             del self.open_tabs[tab_key]
 
             # 인덱스 업데이트 (삭제한 탭 이후의 모든 탭 인덱스를 1씩 감소)
