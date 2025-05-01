@@ -23,7 +23,7 @@ class FileExplorerSidebar(QWidget):
 
         # 메인 컨테이너 생성
         main_container = QFrame()
-        main_container.setStyleSheet("background-color: white; border-radius: 10px; border: 1px solid #CCCCCC;")
+        main_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #CCCCCC;")
 
         # 메인 컨테이너의 레이아웃 설정
         layout = QVBoxLayout(main_container)
@@ -39,7 +39,7 @@ class FileExplorerSidebar(QWidget):
             border-top-right-radius: 10px;
             border-bottom: 1px solid #CCCCCC;
         """)
-        title_frame.setFixedHeight(30)
+        title_frame.setFixedHeight(40)
 
         title_layout = QVBoxLayout(title_frame)
         title_layout.setContentsMargins(10, 0, 10, 0)
