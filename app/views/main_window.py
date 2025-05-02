@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         # FilePaths.set("end_date", end_date_str)
 
     def on_run_button_clicked(self):
-        """Run 버튼이 클릭되면 처리"""
+        """Run 버튼이 클릭되면 처리 - DataStore에서 데이터프레임 가져와 사용"""
         print("메인 윈도우에서 Run 버튼 처리")
 
         # 필요한 모든 데이터가 준비되었는지 확인
@@ -170,8 +170,32 @@ class MainWindow(QMainWindow):
             print("필요한 모든 파일이 업로드되지 않았습니다.")
             return
 
+        # DataStore에서 데이터프레임 가져오기
+        from app.models.common.fileStore import DataStore
+        all_dataframes = DataStore.get("simplified_dataframes", {})
+
+        print(f"최적화에 사용할 데이터프레임: {len(all_dataframes)}개 파일")
+        for file_path, df_data in all_dataframes.items():
+            if isinstance(df_data, dict):  # 엑셀 파일인 경우 (시트별 데이터프레임)
+                print(f"  - 파일: {os.path.basename(file_path)}, 시트 수: {len(df_data)}")
+            else:  # CSV 파일 등 단일 데이터프레임
+                print(f"  - 파일: {os.path.basename(file_path)}, 단일 데이터프레임")
+
         # 최적화 실행
         optimization = Optimization()
+
+        # 데이터프레임 전달 (새로운 방법)
+        try:
+            # Optimization 클래스에 set_data 메소드가 있는지 확인
+            if hasattr(optimization, 'set_data') and callable(getattr(optimization, 'set_data')):
+                optimization.set_data(all_dataframes)
+                print("최적화 엔진에 데이터프레임 전달 완료")
+            else:
+                print("최적화 엔진에 set_data 메소드가 없습니다. 기존 방식으로 진행합니다.")
+        except Exception as e:
+            print(f"데이터프레임 전달 중 오류 발생: {str(e)}")
+
+        # 기존 방식으로 최적화 실행
         df = optimization.pre_assign()
 
         # PlanningPage에 결과 전달

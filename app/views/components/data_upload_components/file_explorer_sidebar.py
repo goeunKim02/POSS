@@ -97,8 +97,8 @@ class FileExplorerSidebar(QWidget):
         # 최소 너비 설정
         self.setMinimumWidth(200)
 
-    def add_file(self, file_path, sheet_names=None):
-        """파일을 트리에 추가"""
+    def add_file(self, file_path, sheet_names=None, is_modified=False):
+        """파일을 트리에 추가 - 수정 상태 표시 지원"""
         # 이미 있는 파일인지 확인
         if file_path in self.files_data:
             # 기존 아이템 업데이트
@@ -106,11 +106,15 @@ class FileExplorerSidebar(QWidget):
                 item = self.tree.topLevelItem(i)
                 if item.data(0, Qt.UserRole) == file_path:
                     # 기존 시트 정보 업데이트
-                    self._update_sheets(item, sheet_names)
+                    self._update_sheets(item, sheet_names, is_modified)
                     return item
         else:
             # 새 파일 아이템 추가
             file_name = file_path.split('/')[-1]
+
+            # 수정된 파일인 경우 표시
+            if is_modified:
+                file_name += " *"
 
             # 파일 아이콘 설정 (확장자에 따라 다른 아이콘 사용 가능)
             file_item = QTreeWidgetItem()
@@ -128,21 +132,25 @@ class FileExplorerSidebar(QWidget):
             elif file_path.endswith('.csv'):
                 file_item.setForeground(0, QColor("#8B4513"))  # CSV 파일은 갈색
 
+            # 수정된 파일인 경우 색상 변경
+            if is_modified:
+                file_item.setForeground(0, QColor("#E74C3C"))  # 수정된 파일은 빨간색
+
             self.tree.addTopLevelItem(file_item)
 
             # 시트 정보 저장
             self.files_data[file_path] = sheet_names or []
 
             # 시트 아이템 추가
-            self._update_sheets(file_item, sheet_names)
+            self._update_sheets(file_item, sheet_names, is_modified)
 
             # 파일 노드 확장
             file_item.setExpanded(True)
 
             return file_item
 
-    def _update_sheets(self, file_item, sheet_names):
-        """파일 아이템에 시트 업데이트"""
+    def _update_sheets(self, file_item, sheet_names, is_modified=False):
+        """파일 아이템에 시트 업데이트 - 수정 상태 표시 지원"""
         # 기존 자식 아이템 모두 제거
         while file_item.childCount() > 0:
             file_item.removeChild(file_item.child(0))
@@ -154,11 +162,21 @@ class FileExplorerSidebar(QWidget):
         # 시트 아이템 추가
         for sheet in sheet_names:
             sheet_item = QTreeWidgetItem()
-            sheet_item.setText(0, sheet)
+
+            # 수정된 시트인 경우 표시
+            sheet_text = sheet
+            if is_modified:
+                sheet_text += " *"
+
+            sheet_item.setText(0, sheet_text)
             sheet_item.setData(0, Qt.UserRole + 1, sheet)  # 시트 이름 저장
 
             font = QFont("Arial", 9)
             sheet_item.setFont(0, font)
+
+            # 수정된 시트인 경우 색상 변경
+            if is_modified:
+                sheet_item.setForeground(0, QColor("#E74C3C"))  # 수정된 시트는 빨간색
 
             file_item.addChild(sheet_item)
 
