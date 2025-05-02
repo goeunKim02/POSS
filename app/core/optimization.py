@@ -66,9 +66,12 @@ class Optimization:
         self.time = list(range(1,15))
         self.line = self.line.to_list()[1:]
 
-    """생산계획 최적화 함수(할당은 되지만 아직 미완성)"""
+        self.df_result = None
+
+    """생산계획 최적화 알고리즘 함수"""
     def execute(self):
         # 아이템에 To_site 까지 포함해서 아이템의 단위로 설정 (출하 capa를 목적함수에 포함시키기 위함)
+        # 반면에 사전할당은 To_site 미포함
         items = (self.df_demand['Item'] + self.df_demand['To_Site']).tolist()
         line_shifts = [(l,s) for l in self.line for s in self.time]
         demand = dict(zip(self.df_demand['Item']+self.df_demand['To_Site'], self.df_demand['MFG']))
@@ -173,7 +176,7 @@ class Optimization:
         df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
         df_result.to_excel('assign_result.xlsx',index = False)
     
-    # 사전할당 알고리즘 함수
+    """사전할당 알고리즘 함수"""
     def pre_assign(self, showlog = False):
         # 모든 (line * shift) 를 원소로 하는 리스트
         line_shifts = [(l,s) for l in self.line for s in self.time]
@@ -324,11 +327,13 @@ class Optimization:
             line_ratio = (line_production / total_production) * 100 if total_production != 0 else 0
             print(f"{row['name']}라인 생산량: {int(line_production)}개, {row['name']}라인 비중: {line_ratio:.2f}%")
 
+        self.df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
+        
+        #주어진 수요량을 모두 생산 가능하면 해를 찾은 것
         if int(pulp.value(model.objective)) == sum(demand.values()):
             print(f"\n최적해를 찾았습니다")
             print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
             print(f"\n총 생산 수요량: {sum(demand.values())}개")
-
         else:
             print("❌ 최적해를 찾지 못했습니다.")
             print(f"\n총 생산 수요량: {sum(demand.values())}")
@@ -344,9 +349,8 @@ class Optimization:
                         print(slack_value)
                         print(f"제약조건 '{name}'이 위배됨: slack = {slack_value}")
                         print(f"제약조건: {constraint}")
-            return {'error':f"❌ 최적해를 찾지 못했습니다."}
+            return {'result':self.df_result ,'error':f"❌ 최적해를 찾지 못했습니다."}
 
-        self.df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
         # df_result.to_excel('pre_assign_result.xlsx',index=False)
         return {'result':self.df_result, 'combined' : self.df_combined }
 
