@@ -60,7 +60,7 @@ class PlanMaintenanceRate:
         #     line (str): 생산 라인 ID
         #     time (str): 시프트 번호
         #     item (str): 제품 코드
-        #     new_qty (int): 새로운 수량
+        #     new_qty (str): 새로운 수량
         #     demand (str, optional): 수요 항목
             
         # Returns:
@@ -72,6 +72,22 @@ class PlanMaintenanceRate:
                 self.adjusted_plan = self.current_plan.copy()
             else:
                 return False
+            
+        # 입력 값 문자열로 변환
+        line = str(line)
+        time = str(time)
+        item = str(item)
+        new_qty = str(new_qty)
+        if demand is not None:
+            demand = str(demand)
+        
+        print(f"시도 중인 업데이트: line={line}, time={time}, item={item}, qty={new_qty}, demand={demand}")
+        
+        # 데이터프레임의 관련 열을 문자열로 변환
+        for col in ['Line', 'Time', 'Item', 'Qty', 'Demand']:
+            if col in self.adjusted_plan.columns:
+                self.adjusted_plan[col] = self.adjusted_plan[col].astype(str)
+    
         
         # 조건에 맞는 행 찾기
         mask = (
