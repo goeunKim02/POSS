@@ -210,6 +210,7 @@ class Optimization:
                 items.append(row['Fixed_Group'])
                 demand[row['Fixed_Group']] = row['Qty']
                 
+        print(items)
         
         # 라인*시프트 별 Capa (최대 생산 가능량)
         capacity = {(l,s):int(self.df_capa_qty.loc[self.df_capa_qty['Line'] == l, s].values[0]) for (l, s) in line_shifts}

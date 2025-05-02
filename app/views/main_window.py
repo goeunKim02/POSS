@@ -1,13 +1,14 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtGui import QCursor, QIcon, QFont
+import pandas as pd
+import os
+from app.core.optimization import Optimization
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.models.input.capa import process_data
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QCursor
-from app.core.optimization import Optimization
-import os
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -101,7 +102,7 @@ class MainWindow(QMainWindow):
 
     """ 도움말 표시 실행 함수"""
     def show_help(self):
-        from app.views.components.help_dialogs import HelpDialog
+        from app.views.components.help_dialogs.help_dialog import HelpDialog
         hel_dialog = HelpDialog(self)
         hel_dialog.exec_()
         print("도움말 표시")
@@ -236,3 +237,20 @@ class MainWindow(QMainWindow):
         # 결과 내보내기 로직
         print(f"결과를 다음 경로에 저장: {file_path}")
         # self.data_model.export_results(file_path)
+
+    """최적화 결과 처리"""
+    def handle_optimization_result(self, results):
+        # Args:
+        #     results (dict): 최적화 결과를 포함하는 딕셔너리
+
+        # 결과 페이지 초기화 확인
+        if not hasattr(self, 'result_page'):
+            self.result_page = ResultPage(self)
+            self.central_widget.addWidget(self.result_page)
+
+        # 결과 페이지의 데이터 업데이트
+        if 'assignment_result' in results and results['assignment_result'] is not None:
+            self.result_page.left_section.update_data(results['assignment_result'])
+
+        # 결과 페이지로 이동
+        self.central_widget.setCurrentWidget(self.result_page)
