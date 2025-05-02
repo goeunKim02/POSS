@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QFont, QCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QScrollArea, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QScrollArea, QDialog
 from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths
 
 import os
@@ -8,6 +8,8 @@ import pandas as pd
 from .pre_assigned_components.style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
+from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
+from app.utils.fileHandler import create_from_master
 
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
@@ -122,7 +124,40 @@ class PlanningPage(QWidget):
 
     # 최적화 요청
     def on_run_click(self):
-        self.optimization_requested.emit({})
+        if self._df.empty:
+            QMessageBox.warning(self, "Error", "먼저 Run을 통해 결과를 불러와야 합니다.")
+            return
+
+        # 전체 프로젝트 그룹 생성
+        all_groups = create_from_master()
+
+        # 화면에 표시된 데이터 프로젝트 집합
+        current = set(self._df['Project'])
+
+        # 화면에 있는 프로젝트가 하나라도 포함된 그룹
+        filtered_groups = {
+            gid: projs
+            for gid, projs in all_groups.items()
+            if current & set(projs)
+        }
+
+        # 필터된 그룹을 다이얼로그에 전달
+        dlg = ProjectGroupDialog(filtered_groups, parent=self)
+        if dlg.exec_() != QDialog.Accepted:
+            # 사용자가 취소를 누르면 함수 종료
+            return
+
+        # 사용자가 체크한 그룹 ID 리스트
+        selected = dlg.selected_groups()
+
+        # 선택된 그룹에 속한 모든 프로젝트 집합
+        selected_projects = set()
+        for gid in selected:
+            selected_projects.update(filtered_groups[gid])
+
+        filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
+
+        print(filtered_df)
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):
