@@ -1,25 +1,32 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
+import os
+from datetime import datetime
+from PyQt5.QtWidgets import QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont
+import pandas as pd
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualizaiton_manager import VisualizationManager
 from app.analysis.output.daily_capa_utilization import analyze_utilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.models.common.fileStore import FilePaths
+from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
+from app.utils.week_plan_manager import WeeklyPlanManager
 
 class ResultPage(QWidget):
-    # 시그널 추가
     export_requested = pyqtSignal(str)
 
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
-        self.utilization_data = None 
         self.capa_ratio_data = None
         self.result_data = None
         self.data_changed_count = 0
+        self.utilization_data = None # 가동률 데이터 저장 변수
+        self.result_data = None # 결과 데이터 저장 변수
         self.init_ui()
+
+        self.connect_signals()
 
     def init_ui(self):
         # 레이아웃 설정
@@ -129,13 +136,12 @@ class ResultPage(QWidget):
         self.left_section.cell_moved.connect(self.on_cell_moved)
         left_layout.addWidget(self.left_section)
 
-        # 오른쪽 컨테이너 (현재는 비어있음)
+        # 오른쪽 컨테이너 
         right_frame = QFrame()
         right_frame.setFrameShape(QFrame.StyledPanel)
         right_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
 
         right_layout = QVBoxLayout(right_frame)
-        # right_layout.setContentsMargins(0, 0, 0, 0)
 
         # 지표 버튼
         button_group_layout = QHBoxLayout()
@@ -185,15 +191,19 @@ class ResultPage(QWidget):
             page = QWidget()
             page_layout = QVBoxLayout(page)
             
-            # 페이지에 적절한 시각화 추가
-            canvas = MplCanvas(width=6, height=4, dpi=100)
-            page_layout.addWidget(canvas)
+            # tab 유형 별 처리 
+            if btn_text == 'Plan':
+                # 계획 유지율 위젯 생성
+                self.plan_maintenance_widget = PlanMaintenanceWidget()
+                page_layout.addWidget(self.plan_maintenance_widget)
 
-            # 캔버스 저장
-            self.viz_canvases.append(canvas)
-            
-            # 초기 시각화 생성
-            self.create_initial_visualization(canvas, btn_text)
+            else: # 다른 탭은 시각화 그대로 유지
+                # 페이지에 적절한 시각화 추가
+                canvas = MplCanvas(width=6, height=4, dpi=100)
+                page_layout.addWidget(canvas)
+                
+                # 초기 시각화 생성
+                self.create_initial_visualization(canvas, btn_text)
             
             # 스택 위젯에 페이지 추가
             self.viz_stack.addWidget(page)
@@ -212,10 +222,101 @@ class ResultPage(QWidget):
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
+    """이벤트 시그널 연결"""
+    def connect_signals(self):
+        # 왼쪽 섹션의 데이터 변경 이벤트 연결
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
+            self.left_section.data_changed.connect(self.on_data_changed)
+        
+        # 아이템 변경 이벤트 연결 (필요한 경우)
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
+            self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
+
+    """데이터가 변경되었을 때 호출되는 함수"""
+    def on_data_changed(self, df): 
+        # 결과 데이터 저장
+        self.result_data = df
+        
+        # Plan 탭의 계획 유지율 위젯 업데이트
+        if hasattr(self, 'plan_maintenance_widget') and df is not None and not df.empty:
+            # 첫 번째 계획이 아님을 설정 (유지율 계산 활성화)
+            self.plan_maintenance_widget.plan_analyzer.set_first_plan(False)
+            
+            # 왼쪽 패널 데이터를 '현재 계획'으로 설정 (이 부분이 누락되었습니다)
+            self.plan_maintenance_widget.plan_analyzer.set_current_plan(df)
+            
+            # 이전 계획이 이미 설정되어 있는 경우에만 유지율 계산
+            if hasattr(self.plan_maintenance_widget.plan_analyzer, 'original_plan') and self.plan_maintenance_widget.plan_analyzer.original_plan is not None:
+                print("이전 계획이 있음, 유지율 계산 시작")
+                
+                # item별 유지율 계산
+                item_df, item_rate = self.plan_maintenance_widget.plan_analyzer.calculate_items_maintenance_rate()
+                self.plan_maintenance_widget.item_maintenance_rate = item_rate if item_rate is not None else 0.0
+                
+                # RMC별 유지율 계산
+                rmc_df, rmc_rate = self.plan_maintenance_widget.plan_analyzer.calculate_rmc_maintenance_rate()
+                self.plan_maintenance_widget.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
+                
+                # 트리 위젯 업데이트
+                self.plan_maintenance_widget.item_tree.clear()
+                self.plan_maintenance_widget.rmc_tree.clear()
+                
+                if item_df is not None and not item_df.empty:
+                    self.plan_maintenance_widget.setup_item_tree(item_df)
+                    print(f"Item별 유지율: {self.plan_maintenance_widget.item_maintenance_rate:.2f}%")
+                else:
+                    print("Item별 유지율 데이터가 없습니다.")
+                
+                if rmc_df is not None and not rmc_df.empty:
+                    self.plan_maintenance_widget.setup_rmc_tree(rmc_df)
+                    print(f"RMC별 유지율: {self.plan_maintenance_widget.rmc_maintenance_rate:.2f}%")
+                else:
+                    print("RMC별 유지율 데이터가 없습니다.")
+                
+                # 선택된 탭에 따라 유지율 레이블 업데이트
+                self.plan_maintenance_widget.update_rate_label(self.plan_maintenance_widget.tab_widget.currentIndex())
+                
+                print("계획 유지율 위젯 데이터 업데이트 완료")
+            else:
+                print("이전 계획이 없습니다. 이전 계획(엑셀 파일)을 먼저 로드해주세요.")
+
+    """아이템 데이터가 변경되었을 때 호출되는 함수"""
+    def on_item_data_changed(self, item, new_data):
+        # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
+        if 'Qty' in new_data and pd.notna(new_data['Qty']):
+            line = new_data.get('Line')
+            time = new_data.get('Time')
+            item = new_data.get('Item')
+            new_qty = new_data.get('Qty')
+            demand = new_data.get('Demand', None)  # 선택적 필드
+
+            # 값 변환 및 검증
+            try:
+                time = int(time) if time is not None else None
+                new_qty = int(float(new_qty)) if new_qty is not None else None
+            except (ValueError, TypeError):
+                print(f"시간 또는 수량 변환 오류: time={time}, qty={qty}")
+                return
+
+            if line is not None and time is not None and item is not None and new_qty is not None:
+                    # 계획 유지율 위젯 업데이트
+                    if hasattr(self, 'plan_maintenance_widget'):
+                        # 수량 직접 업데이트
+                        print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
+                        self.plan_maintenance_widget.update_quantity(line, time, item, new_qty, demand)
+                        
+                        # Plan 탭으로 전환 (선택 사항)
+                        plan_index = [i for i, btn in enumerate(self.viz_buttons) if btn.text() == "Plan"]
+                        if plan_index:
+                            self.switch_viz_page(plan_index[0])
+        
+
+    """최종 최적화 결과를 파일로 내보내는 메서드"""
     def export_results(self):
         try:
-            file_path, _ = QFileDialog.getSaveFileName(
-                self, "결과 내보내기", "", "CSV 파일 (*.csv);;모든 파일 (*)"
+            file_path = QFileDialog.getExistingDirectory(
+            self, "결과 저장 디렉토리 선택", "data/export"
             )
 
             if file_path:
@@ -223,21 +324,66 @@ class ResultPage(QWidget):
                 if hasattr(self, 'left_section') and hasattr(self.left_section,
                                                              'data') and self.left_section.data is not None:
                     try:
-                        # 데이터를 CSV로 저장
-                        self.left_section.data.to_csv(file_path, index=False)
-                        print(f"데이터가 {file_path}에 저장되었습니다.")
+                        plan_manager = WeeklyPlanManager(output_dir=file_path)
+                         # 날짜 범위 가져오기
+                        start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                        
+                        # 이전 계획 감지
+                        is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
+                            start_date, end_date
+                        )
+                        
+                        # 메타데이터와 함께 저장
+                        saved_path = plan_manager.save_plan_with_metadata(
+                            self.left_section.data, start_date, end_date, previous_plan_path
+                        )
+
+                        print(f"최종 결과가 메타데이터와 함께 저장되었습니다: {saved_path}")
+                        print(message)
+
+                        # 사용자에게 성공 메시지 표시
+                        QMessageBox.information(
+                            self, 
+                            "내보내기 성공", 
+                            f"파일이 성공적으로 저장되었습니다:\n{saved_path}\n\n{message}"
+                        )
+
+                        # 시그널 발생
+                        self.export_requested.emit(saved_path)
                     except Exception as e:
                         print(f"파일 저장 오류: {e}")
+                        # 기본 저장 경로 생성
+                        default_filename = f"Result_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                        fallback_path = os.path.join(file_path, default_filename)
+                        
+                        # 기존 저장 방식으로 폴백
+                        self.left_section.data.to_excel(fallback_path, index=False)
+                        QMessageBox.information(
+                            self, 
+                            "내보내기 성공", 
+                            f"파일이 성공적으로 저장되었습니다:\n{fallback_path}\n(메타데이터 없음)"
+                        )
+                        
+                        # 시그널 발생
+                        self.export_requested.emit(fallback_path)
                 else:
                     print("내보낼 데이터가 없습니다.")
+                    QMessageBox.warning(
+                        self, 
+                        "내보내기 실패", 
+                        "내보낼 데이터가 없습니다."
+                    )
 
-                # 시그널 발생
-                self.export_requested.emit(file_path)
         except Exception as e:
             print(f"Export 과정에서 오류 발생: {str(e)}")
+            QMessageBox.critical(
+            self, 
+            "내보내기 오류", 
+            f"내보내기 과정에서 오류가 발생했습니다:\n{str(e)}"
+        )
 
-    """시각화 페이지 전환 및 버튼 스타일 업데이트"""
-    def switch_viz_page(self, index): 
+    def switch_viz_page(self, index):
+        """시각화 페이지 전환 및 버튼 스타일 업데이트"""
         self.viz_stack.setCurrentIndex(index)
 
          # Update button style 
@@ -289,16 +435,8 @@ class ResultPage(QWidget):
         elif viz_type == "Utilization":
             if self.utilization_data is None:
                 try:
-                    result_file = FilePaths.get("result_file")
+                    result_file = FilePaths.get("output_file")
                     master_file = FilePaths.get("master_excel_file")
-
-                    # 파일 경로 유효성 검사
-                    if result_file is None or master_file is None:
-                        error_msg = "Please load the file"
-                        print(error_msg)
-                        canvas.axes.text(0.5, 0.5, error_msg, ha='center', va='center', fontsize=14, color='red')
-                        canvas.draw()
-                        return
 
                     self.utilization_data = analyze_utilization(result_file, master_file)
 

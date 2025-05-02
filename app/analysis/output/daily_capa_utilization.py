@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 
+"""요일별 가동률 계산 함수"""
 def analyze_utilization(file_path, qty_file_path):
     # 수요 데이터 로드
     df_demand = pd.read_excel(file_path)
