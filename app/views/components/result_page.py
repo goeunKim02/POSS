@@ -10,13 +10,12 @@ from app.models.common.fileStore import FilePaths
 from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
 
 class ResultPage(QWidget):
-    # 시그널 추가
     export_requested = pyqtSignal(str)
 
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
-        self.utilization_data = None 
+        self.utilization_data = None # 가동률 데이터 저장 변수
         self.result_data = None # 결과 데이터 저장 변수
         self.init_ui()
 
@@ -210,8 +209,8 @@ class ResultPage(QWidget):
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
+    """이벤트 시그널 연결"""
     def connect_signals(self):
-        """이벤트 시그널 연결"""
         # 왼쪽 섹션의 데이터 변경 이벤트 연결
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
             self.left_section.data_changed.connect(self.on_data_changed)
@@ -221,8 +220,8 @@ class ResultPage(QWidget):
             self.left_section.item_data_changed.connect(self.on_item_data_changed)
 
 
+    """데이터가 변경되었을 때 호출되는 함수"""
     def on_data_changed(self, df): 
-        """데이터가 변경되었을 때 호출되는 함수"""
         # 결과 데이터 저장
         self.result_data = df
         
@@ -269,8 +268,8 @@ class ResultPage(QWidget):
             else:
                 print("이전 계획이 없습니다. 이전 계획(엑셀 파일)을 먼저 로드해주세요.")
 
+    """아이템 데이터가 변경되었을 때 호출되는 함수"""
     def on_item_data_changed(self, item, new_data):
-        """아이템 데이터가 변경되었을 때 호출되는 함수"""
         # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
         if 'Qty' in new_data and pd.notna(new_data['Qty']):
             line = new_data.get('Line')
@@ -301,8 +300,8 @@ class ResultPage(QWidget):
         
 
 
+    """결과를 CSV 파일로 내보내기"""
     def export_results(self):
-        """결과를 CSV 파일로 내보내기"""
         try:
             file_path, _ = QFileDialog.getSaveFileName(
                 self, "결과 내보내기", "", "CSV 파일 (*.csv);;모든 파일 (*)"
@@ -326,8 +325,8 @@ class ResultPage(QWidget):
         except Exception as e:
             print(f"Export 과정에서 오류 발생: {str(e)}")
 
+    """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
-        """시각화 페이지 전환 및 버튼 스타일 업데이트"""
         self.viz_stack.setCurrentIndex(index)
 
          # Update button style 
@@ -356,8 +355,8 @@ class ResultPage(QWidget):
         for i, btn in enumerate(self.viz_buttons):
             btn.setStyleSheet(active_style if i == index else inactive_style)
 
+    """각 지표별 초기 시각화 생성"""
     def create_initial_visualization(self, canvas, viz_type):
-        """각 지표별 초기 시각화 생성"""
         canvas.axes.clear()
 
         # 각 지표 예시

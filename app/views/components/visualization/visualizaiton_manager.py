@@ -2,25 +2,21 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-# Basic visualization module
+"""Basic visualization module"""
 class VisualizationManager:
     @staticmethod
     def create_chart(data, chart_type='bar', title='Chart', xlabel='X', ylabel='Y', ax=None, **kwargs):
-        """
-        Generic chart creation method
+        # Args:
+        # data: Dictionary or DataFrame with data to visualize
+        # chart_type: Type of chart ('bar', 'line', 'pie', 'heatmap', etc)
+        # title: Chart title
+        # xlabel: X-axis label
+        # ylabel: Y-axis label
+        # ax: Matplotlib axes to plot on (optional)
+        # **kwargs: Additional parameters for specific chart types
 
-        Args:
-        data: Dictionary or DataFrame with data to visualize
-        chart_type: Type of chart ('bar', 'line', 'pie', 'heatmap', etc)
-        title: Chart title
-        xlabel: X-axis label
-        ylabel: Y-axis label
-        ax: Matplotlib axes to plot on (optional)
-        **kwargs: Additional parameters for specific chart types
-
-        Returns:
-        Matplotlib axes with the plot
-        """
+        # Returns:
+        # Matplotlib axes with the plot
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(8,5))

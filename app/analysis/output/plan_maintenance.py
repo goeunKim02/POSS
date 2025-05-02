@@ -1,40 +1,36 @@
 import pandas as pd
 import numpy as np
 
-class PlanMaintenanceRate:
-    """
-    생산 계획의 유지율을 계산하는 클래스
-    원본 계획과 현재 계획 간의 유지율을 Item별, RMC별로 계산
+"""
+생산 계획의 유지율을 계산하는 클래스
+원본 계획과 현재 계획 간의 유지율을 Item별, RMC별로 계산
 
-    - 첫 번째 계획인 경우 이전 계획 없음 처리
-    - 계획 조정 시 조정 전/후 비교 기능 추가
-    """
+- 첫 번째 계획인 경우 이전 계획 없음 처리
+- 계획 조정 시 조정 전/후 비교 기능 추가
+"""
+class PlanMaintenanceRate:
     def __init__(self):
         self.original_plan = None # 초기 계획
         self.current_plan = None # 현재 계획(새로 수정한 계획)
         self.adjusted_plan = None # 조정 후 계획
         self.is_first_plan = True # 첫번째 계획 여부
 
+    """첫 번째 계획 여부를 설정"""
     def set_first_plan(self, is_first):
-        """
-        첫 번째 계획 여부를 설정
+        # Parameters:
+        #     is_first_plan (bool) : 첫 번째 계획 여부
 
-        Parameters:
-            is_first_plan (bool) : 첫 번째 계획 여부
-        """
         self.is_first_plan = is_first
         return True
-
+    
+    """초기 계획 설정"""
     def set_original_plan(self, plan_data):
-        """
-        초기 계획 설정
+        # Parameters:
+        #     plan_data (DataFrame) : 생산계획 결과 데이터
 
-        Parameters:
-            plan_data (DataFrame) : 생산계획 결과 데이터
+        # Return:
+        #     bool : 설정 성공 여부
 
-        Return:
-            bool : 설정 성공 여부
-        """
         if plan_data is None or plan_data.empty:
             return False
         
@@ -42,16 +38,14 @@ class PlanMaintenanceRate:
         self.current_plan = plan_data.copy()
         return True
     
+    """새로 수정한 계획 데이터 설정"""
     def set_current_plan(self, plan_data):
-        """
-        새로 수정한 계획 데이터 설정
-
-        Parameters:
-            plan_data (DataFrame): 새 계획 데이터
+        # Parameters:
+        #     plan_data (DataFrame): 새 계획 데이터
             
-        Returns:
-            bool: 설정 성공 여부
-        """
+        # Returns:
+        #     bool: 설정 성공 여부
+        
         if plan_data is None or plan_data.empty:
             return False
         
@@ -60,22 +54,20 @@ class PlanMaintenanceRate:
         return True
     
 
+    """특정 항목의 수량 업데이트 (계획 조정)"""
     def update_quantity(self, line, time, item, new_qty, demand=None):
-        """
-        특정 항목의 수량 업데이트 (계획 조정)
-        
-        Parameters:
-            line (str): 생산 라인 ID
-            time (str): 시프트 번호
-            item (str): 제품 코드
-            new_qty (int): 새로운 수량
-            demand (str, optional): 수요 항목
+        # Parameters:
+        #     line (str): 생산 라인 ID
+        #     time (str): 시프트 번호
+        #     item (str): 제품 코드
+        #     new_qty (int): 새로운 수량
+        #     demand (str, optional): 수요 항목
             
-        Returns:
-            bool: 업데이트 성공 여부
-        """
+        # Returns:
+        #     bool: 업데이트 성공 여부
+        
         if self.adjusted_plan is None:
-            # 아직 조정하지 않았다면, 현재 계획으로 초기화화
+            # 아직 조정하지 않았다면, 현재 계획으로 초기화
             if self.current_plan is not None:
                 self.adjusted_plan = self.current_plan.copy()
             else:
@@ -103,17 +95,14 @@ class PlanMaintenanceRate:
             print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
             return False
         
-    
+    """item별 유지율 계산 및 테이블 생성"""
     def calculate_items_maintenance_rate(self, compare_with_adjusted=False):
-        """ 
-        item별 유지율 계산 및 테이블 생성
-        
-        Parameters:
-            compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
+        # Parameters:
+        #     compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
             
-        Returns:
-            tuple: (결과 DataFrame, 유지율 %)
-        """
+        # Returns:
+        #     tuple: (결과 DataFrame, 유지율 %)
+        
         # 첫 번째 계획이고 조정되지 않았다면 계산 제외
         if self.is_first_plan and not compare_with_adjusted:
             return pd.DataFrame(), None
@@ -182,17 +171,14 @@ class PlanMaintenanceRate:
 
         return result_df, maintenance_rate
 
-    
+    """RMC별 유지율 계산"""
     def calculate_rmc_maintenance_rate(self, compare_with_adjusted=False):
-        """ 
-        RMC별 유지율 계산
-        
-        Parameters:
-            compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
+        # Parameters:
+        #     compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
             
-        Returns:
-            tuple: (결과 DataFrame, 유지율 %)
-        """
+        # Returns:
+        #     tuple: (결과 DataFrame, 유지율 %)
+
         # 첫 번째 수행이고 조정된 계획과의 비교가 아니면 유지율 계산 제외
         if self.is_first_plan and not compare_with_adjusted:
             return pd.DataFrame(), None
@@ -262,17 +248,16 @@ class PlanMaintenanceRate:
         return result_df, maintenance_rate
     
     
+    """ 현재 데이터 반환 """
     def get_current_plan(self):
-        """ 현재 데이터 반환 """
         return self.current_plan.copy() if self.current_plan is not None else None
     
+    """조정된 계획 데이터 반환"""
     def get_adjusted_plan(self):
-        """조정된 계획 데이터 반환"""
         return self.adjusted_plan.copy() if self.adjusted_plan is not None else None
     
-    
+    """ 원본 복원 """
     def reset_to_original(self):
-        """ 원본 복원 """
         if self.original_plan is not None:
             self.current_plan = self.original_plan.copy()
             self.adjusted_plan = self.original_plan.copy()
@@ -280,24 +265,22 @@ class PlanMaintenanceRate:
         
         return False
     
+    """조정 사항 초기화 (현재 계획으로 복원)"""
     def reset_adjustments(self):
-        """조정 사항 초기화 (현재계획으로 복원)"""
         if self.current_plan is not None:
             self.adjusted_plan = self.current_plan.copy()
             return True
         
         return False
     
-    def get_changed_items(self, compare_with_adjusted=False):
-        """ 
-        수량 변경된 항목 확인
+    """수량 변경된 항목 확인"""
+    def get_changed_items(self, compare_with_adjusted=False):        
+        # Parameters:
+        #     compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
         
-        Parameters:
-            compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
+        # Returns:
+        #     DataFrame: 변경된 항목 목록
         
-        Returns:
-            DataFrame: 변경된 항목 목록
-        """
         if self.original_plan is None:
             return pd.DataFrame()
         

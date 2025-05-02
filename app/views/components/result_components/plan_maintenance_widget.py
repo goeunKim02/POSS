@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                           QTabWidget, QTreeWidget, QTreeWidgetItem, QHeaderView,
-                          QFrame, QSplitter, QProgressBar)
+                          QPushButton)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QColor, QBrush, QCursor
 import pandas as pd
@@ -32,7 +32,6 @@ class PlanMaintenanceWidget(QWidget):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        from PyQt5.QtWidgets import QPushButton
         
 
         # 상단 버튼 영역 추가
