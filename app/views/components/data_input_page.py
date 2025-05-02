@@ -1,16 +1,20 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
-                             QSplitter, QHeaderView, QTabWidget)
+                             QSplitter, QStackedWidget, QTabBar)
 from PyQt5.QtGui import QCursor, QFont
 
 import os
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
-from app.views.components.data_upload_components.sheet_selector_component import SheetSelectorComponent
-from app.views.components.data_upload_components.file_tab_component import FileTabComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
-# from app.core.optimization import Optimization
+from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
+
+# 분리된 관리자 클래스 가져오기
+from app.views.components.data_upload_components.data_input_components import FileTabManager
+from app.views.components.data_upload_components.data_input_components import DataModifier
+from app.views.components.data_upload_components.data_input_components import SidebarManager
+
 
 class DataInputPage(QWidget):
     # 시그널 정의
@@ -20,7 +24,20 @@ class DataInputPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.loaded_files = {}  # 로드된 파일과 해당 데이터프레임을 저장
+        self.current_file = None
+        self.current_sheet = None
+
+        # UI 초기화
         self.init_ui()
+
+        # 관리자 클래스 초기화 (UI 초기화 후에 해야 함)
+        self.tab_manager = FileTabManager(self)
+        self.data_modifier = DataModifier(self)
+        self.sidebar_manager = SidebarManager(self)
+
+        # 시그널 연결
+        self._connect_signals()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -58,7 +75,7 @@ class DataInputPage(QWidget):
 
         title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
 
-        # Run 버튼 생성 (수정된 부분)
+        # Run 버튼 생성
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
         run_btn.setStyleSheet("""
@@ -80,12 +97,12 @@ class DataInputPage(QWidget):
         run_btn.setFixedWidth(150)
         run_btn.setFixedHeight(50)
 
-        # 폰트 설정 (문자열이 아닌 QFont 객체 사용)
+        # 폰트 설정
         run_font = QFont("Arial", 9)
         run_font.setBold(True)
         run_btn.setFont(run_font)
 
-        # 버튼 클릭 시그널을 mainwindow로 전달
+        # 버튼 클릭 시그널 연결
         run_btn.clicked.connect(self.on_run_clicked)
 
         title_row_layout.addWidget(run_btn)
@@ -102,12 +119,9 @@ class DataInputPage(QWidget):
 
         # 왼쪽 섹션: 날짜 선택 컴포넌트 사용
         self.date_selector = DateRangeSelector()
-        self.date_selector.date_range_changed.connect(self.on_date_range_changed)
 
         # 오른쪽 섹션: 파일 업로드 컴포넌트 사용
         self.file_uploader = FileUploadComponent()
-        self.file_uploader.file_selected.connect(self.on_file_selected)
-        self.file_uploader.file_removed.connect(self.on_file_removed)  # 파일 삭제 시그널 연결
 
         # 입력 레이아웃에 위젯 추가
         input_layout.addWidget(self.date_selector, 1)  # 왼쪽에 날짜 선택기
@@ -119,55 +133,139 @@ class DataInputPage(QWidget):
 
         # 하단 영역을 위한 컨테이너 생성
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: #f5f5f5; border-radius: 10px;")
+        bottom_container.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border:none;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
-        # 하단 영역을 위한 스플리터 생성 (왼쪽과 오른쪽으로 나눔)
+        # IDE 스타일 레이아웃을 위한 메인 스플리터 (수평 분할)
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setStyleSheet("background-color: transparent;")  # 배경색 투명으로 변경
-        main_splitter.setContentsMargins(0, 0, 0, 0)  # 여백 제거
+        main_splitter.setHandleWidth(10)  # 스플리터 핸들 너비 설정
+        main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
+        main_splitter.setContentsMargins(0, 0, 0, 0)
 
-        # 왼쪽 영역 - 파일 탭 컴포넌트와 시트 선택기로 구성
-        left_panel = QFrame()
-        left_panel.setStyleSheet("background-color: white; border: 1px solid #cccccc; border-radius: 10px;")
-        left_layout = QVBoxLayout(left_panel)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        # 왼쪽 사이드바 (파일 탐색기)
+        self.file_explorer = FileExplorerSidebar()
 
-        # 파일 탭 컴포넌트 추가
-        self.file_tab_component = FileTabComponent()
-        self.file_tab_component.tab_changed.connect(self.on_tab_changed)
-        left_layout.addWidget(self.file_tab_component)
+        # 오른쪽 콘텐츠 영역 (선택된 파일/시트 내용)
+        right_area = QFrame()
+        right_area.setFrameShape(QFrame.NoFrame)  # 프레임 모양 제거
+        right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border: none;")
+        right_layout = QVBoxLayout(right_area)
+        right_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 시트 선택 컴포넌트 추가
-        self.sheet_selector = SheetSelectorComponent()
-        self.sheet_selector.sheet_changed.connect(self.on_sheet_changed)
-        left_layout.addWidget(self.sheet_selector)
+        # 오른쪽 영역에 수직 스플리터 추가 (탭 영역과 파라미터 영역 분리)
+        vertical_splitter = QSplitter(Qt.Vertical)
+        vertical_splitter.setHandleWidth(10)
+        vertical_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #F5F5F5;
+                height: 10px;
+            }
+        """)
 
-        # 오른쪽 영역 - ParameterComponent만 추가 (스플리터 제거)
-        right_panel = QFrame()
-        right_panel.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 10px;")
-        right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
+        # 탭 영역 컨테이너
+        tab_container = QWidget()
+        tab_layout = QVBoxLayout(tab_container)
+        tab_layout.setContentsMargins(0, 0, 0, 0)
+        tab_layout.setSpacing(0)
 
-        # ParameterComponent만 추가
+        # 탭 바
+        self.tab_bar = QTabBar()
+        self.tab_bar.setDocumentMode(True)
+        self.tab_bar.setMovable(True)
+        self.tab_bar.setExpanding(False)
+        self.tab_bar.setDrawBase(False)  # 기본 라인 제거
+        self.tab_bar.setStyleSheet("""
+            QTabBar {
+                background-color: transparent;
+                border: none;
+            }
+            QTabBar::tab {
+                background: #f0f0f0;
+                border: 1px solid #cccccc;
+                border-top-left-radius: 10px;
+                border-top-right-radius: 10px;
+                padding: 6px 10px;
+                margin-right: 2px;
+                margin-bottom: 0px;
+            }
+            QTabBar::tab:selected, QTabBar::tab:hover {
+                background: #1428A0;
+                color: white;
+            }
+        """)
+
+        # 콘텐츠 영역
+        self.stacked_widget = QStackedWidget()
+        self.stacked_widget.setStyleSheet("border: 2px solid #cccccc; background-color: white;")
+
+        # 초기 "Start Page" 추가 (나중에 tab_manager에서 처리)
+        empty_widget = QWidget()
+        empty_layout = QVBoxLayout(empty_widget)
+        empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
+        empty_msg.setAlignment(Qt.AlignCenter)
+        empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")
+        empty_layout.addWidget(empty_msg)
+
+        self.stacked_widget.addWidget(empty_widget)
+        self.tab_bar.addTab("Start Page")
+
+        # 레이아웃에 추가
+        tab_layout.addWidget(self.tab_bar)
+        tab_layout.addWidget(self.stacked_widget)
+
+        # 파라미터 영역
+        parameter_container = QFrame()
+        parameter_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
+        parameter_layout = QVBoxLayout(parameter_container)
+        parameter_layout.setContentsMargins(10, 10, 10, 10)
+
         self.parameter_component = ParameterComponent()
-        right_layout.addWidget(self.parameter_component)
+        parameter_layout.addWidget(self.parameter_component)
 
-        # 메인 스플리터에 왼쪽 패널과 오른쪽 패널 추가
-        main_splitter.addWidget(left_panel)
-        main_splitter.addWidget(right_panel)
-        main_splitter.setSizes([700, 300])  # 초기 크기 설정
+        # 수직 스플리터에 탭 컨테이너와 파라미터 컨테이너 추가
+        vertical_splitter.addWidget(tab_container)
+        vertical_splitter.addWidget(parameter_container)
+
+        # 스플리터 사이즈 설정 (70%:30% 비율로 초기화)
+        vertical_splitter.setSizes([700, 300])
+
+        # 오른쪽 영역 레이아웃에 수직 스플리터 추가
+        right_layout.addWidget(vertical_splitter)
+
+        # 메인 스플리터에 왼쪽 사이드바와 오른쪽 영역 추가
+        main_splitter.addWidget(self.file_explorer)
+        main_splitter.addWidget(right_area)
+        main_splitter.setSizes([200, 800])  # 초기 크기 설정
 
         # 하단 컨테이너에 스플리터 추가
         bottom_container_layout.addWidget(main_splitter)
 
         # 메인 컨테이너에 상단 컨테이너와 하단 컨테이너 추가
         main_container_layout.addWidget(top_container)
-        main_container_layout.addWidget(bottom_container, 1)  # 스플리터가 나머지 공간을 채우도록 stretch factor 1 설정
+        main_container_layout.addWidget(bottom_container, 1)
 
         # 전체 레이아웃에 메인 컨테이너 추가
         layout.addWidget(main_container)
+
+    def _connect_signals(self):
+        """시그널 연결"""
+        # 날짜 범위 선택 시그널
+        self.date_selector.date_range_changed.connect(self.on_date_range_changed)
+
+        # 파일 관련 시그널
+        self.file_uploader.file_selected.connect(self.on_file_selected)
+        self.file_uploader.file_removed.connect(self.on_file_removed)
+
+        # 파일 탐색기 시그널
+        self.file_explorer.file_or_sheet_selected.connect(
+            self.sidebar_manager.on_file_or_sheet_selected)
+
+        # 탭 관련 시그널
+        self.tab_bar.currentChanged.connect(self.tab_manager.on_tab_changed)
+        self.tab_bar.tabCloseRequested.connect(self.tab_manager.on_tab_close_requested)
+        self.tab_bar.tabMoved.connect(self.tab_manager.on_tab_moved)
+        self.tab_bar.setTabsClosable(True)
 
     def on_date_range_changed(self, start_date, end_date):
         """날짜 범위가 변경되면 시그널 발생"""
@@ -175,75 +273,114 @@ class DataInputPage(QWidget):
         self.date_range_selected.emit(start_date, end_date)
 
     def on_file_selected(self, file_path):
-        """파일이 선택되면 시그널 발생 및 탭에 추가"""
+        """파일이 선택되면 시그널 발생 및 사이드바에 추가"""
         print(f"파일 선택됨: {file_path}")
         self.file_selected.emit(file_path)
 
-        # 파일 탭 컴포넌트에 파일 추가
-        success, message = self.file_tab_component.add_file_tab(file_path)
-
-        # 메시지 표시
+        # 사이드바 관리자를 통해 파일 추가
+        success, message = self.sidebar_manager.add_file_to_sidebar(file_path)
         self.update_status_message(success, message)
-
-        # 엑셀 파일이면 시트 선택기 업데이트
-        current_file = self.file_tab_component.get_current_file_path()
-        if current_file and self.file_tab_component.is_excel_file(current_file):
-            sheets = self.file_tab_component.get_excel_sheets(current_file)
-            self.sheet_selector.set_sheets(sheets)
-        else:
-            self.sheet_selector.setVisible(False)
-
-    def on_run_clicked(self):
-        """Run 버튼 클릭 시 호출되는 함수"""
-        print("Run 버튼 클릭됨")
-        # MainWindow로 시그널 전달
-        self.run_button_clicked.emit()
 
     def on_file_removed(self, file_path):
-        """파일이 삭제되면 해당 탭도 제거"""
-        # 파일 탭 컴포넌트에서 해당 탭 제거
-        success, message = self.file_tab_component.remove_file_tab(file_path)
+        """파일이 삭제되면 사이드바에서도 제거하고 관련된 모든 탭 닫기"""
+        # 사이드바 관리자를 통해 파일 제거
+        result = self.sidebar_manager.remove_file_from_sidebar(file_path)
 
-        # 메시지 표시
-        self.update_status_message(success, message)
+        # 탭 관리자를 통해 관련 탭 닫기
+        self.tab_manager.close_file_tabs(file_path)
 
-        # 현재 선택된 파일 확인 및 시트 선택기 업데이트
-        current_file = self.file_tab_component.get_current_file_path()
-        if current_file and self.file_tab_component.is_excel_file(current_file):
-            sheets = self.file_tab_component.get_excel_sheets(current_file)
-            self.sheet_selector.set_sheets(sheets)
-        else:
-            self.sheet_selector.setVisible(False)
+        # 상태 메시지 업데이트
+        file_name = os.path.basename(file_path)
+        self.update_status_message(True, f"파일 '{file_name}'이(가) 제거되었습니다")
 
-        # 탭이 하나도 없으면 기본 메시지 표시 (ErrorStatusComponent 대신 다른 방식으로 처리 필요)
-        if not self.file_tab_component.has_tabs():
-            pass  # ErrorStatusComponent를 사용하지 않으므로 대체 로직 필요
+    def on_run_clicked(self):
+        """Run 버튼 클릭 시 호출되는 함수 - 모든 데이터프레임 DataStore에 저장"""
+        print("Run 버튼 클릭됨 - 현재 탭의 데이터 저장 및 모든 데이터프레임 전달")
 
-    def on_tab_changed(self, file_path):
-        """탭이 변경되면 호출되는 함수"""
-        # 엑셀 파일이면 시트 선택기 표시
-        if self.file_tab_component.is_excel_file(file_path):
-            sheets = self.file_tab_component.get_excel_sheets(file_path)
-            self.sheet_selector.set_sheets(sheets)
-        else:
-            self.sheet_selector.setVisible(False)
+        # 현재 열려있는 탭의 데이터 저장
+        current_tab_index = self.tab_bar.currentIndex()
+        if current_tab_index >= 0 and current_tab_index < self.stacked_widget.count():
+            current_tab_widget = self.stacked_widget.widget(current_tab_index)
+            if current_tab_widget:
+                # 현재 탭에 해당하는 파일과 시트 찾기
+                current_file_path = None
+                current_sheet_name = None
+                for (file_path, sheet_name), idx in self.tab_manager.open_tabs.items():
+                    if idx == current_tab_index:
+                        current_file_path = file_path
+                        current_sheet_name = sheet_name
+                        break
 
-    def on_sheet_changed(self, sheet_name):
-        """시트가 변경되면 호출되는 함수"""
-        # 현재 파일에 해당 시트 로드
-        current_file = self.file_tab_component.get_current_file_path()
-        if not current_file:
-            return
+                if current_file_path:
+                    # 현재 탭 데이터 저장
+                    self.data_modifier.save_tab_data(current_tab_widget, current_file_path, current_sheet_name)
 
-        # 시트 로드
-        success, message = self.file_tab_component.load_sheet(current_file, sheet_name)
+        # DataStore에서 모든 데이터프레임 가져오기
+        from app.models.common.fileStore import DataStore
+        all_dataframes = DataStore.get("dataframes", {})
 
-        # 메시지 표시
-        self.update_status_message(success, message)
+        # 수정된 사항 확인을 위한 상세 로그 추가
+        print("\n===== 데이터프레임 저장 전 상세 정보 =====")
+        print(f"전체 데이터프레임 개수: {len(all_dataframes)}")
+        for key, df in all_dataframes.items():
+            # 데이터프레임의 기본 정보 출력
+            if df is not None:
+                print(f"데이터프레임 키: {key}")
+                print(f"  - 크기: {df.shape}")
+                print(f"  - 컬럼: {df.columns.tolist()}")
+                print(f"  - 데이터 샘플: {df.head(2).to_dict('records')}")
+
+                # 수정 여부 확인 (데이터 수정자에서 추적 중인 경우)
+                is_modified = False
+                # 마지막 콜론의 위치 찾기
+                if ":" in key:
+                    # 키 형식에서 파일 경로와 시트 이름 분리 (마지막 콜론 기준)
+                    last_colon_index = key.rfind(":")
+                    if last_colon_index > 0:  # 콜론이 있는지 확인
+                        file_path = key[:last_colon_index]
+                        sheet_name = key[last_colon_index + 1:]
+
+                        if (file_path in self.data_modifier.modified_data_dict and
+                                sheet_name in self.data_modifier.modified_data_dict[file_path]):
+                            is_modified = True
+                else:
+                    if (key in self.data_modifier.modified_data_dict and
+                            'data' in self.data_modifier.modified_data_dict[key]):
+                        is_modified = True
+
+                print(f"  - 수정됨: {is_modified}")
+            else:
+                print(f"데이터프레임 키: {key} - 데이터 없음")
+        print("========================================\n")
+
+        # 데이터프레임 딕셔너리를 다른 형식으로 변환해야 하는 경우
+        # 예: 파일별로 그룹화 (sheet_name을 제외한 형태)
+        simplified_dataframes = {}
+        for key, df in all_dataframes.items():
+            # 키 형식이 "file_path:sheet_name"인 경우 또는 그냥 file_path인 경우
+            if ":" in key:
+                # 마지막 콜론의 위치 찾기
+                last_colon_index = key.rfind(":")
+                if last_colon_index > 0:  # 콜론이 있는지 확인
+                    file_path = key[:last_colon_index]
+                    sheet_name = key[last_colon_index + 1:]
+
+                    if file_path not in simplified_dataframes:
+                        simplified_dataframes[file_path] = {}
+                    simplified_dataframes[file_path][sheet_name] = df
+            else:
+                # 시트가 없는 파일 (CSV 등)
+                simplified_dataframes[key] = df
+
+        # 단순화된 데이터프레임 딕셔너리 DataStore에 저장
+        DataStore.set("simplified_dataframes", simplified_dataframes)
+        print(f"최종 데이터프레임 딕셔너리 저장됨: {len(simplified_dataframes)}개 파일, {len(all_dataframes)}개 데이터프레임")
+
+        # 기존 시그널 발생
+        self.run_button_clicked.emit()
 
     def update_status_message(self, success, message):
         """상태 메시지 업데이트"""
-        # ErrorStatusComponent를 사용하지 않으므로 기능 비활성화
         if success:
             print(f"성공: {message}")
         else:
