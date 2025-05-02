@@ -99,7 +99,7 @@ QFrame#cardFrameNight:hover {
     border: 1px solid #E57373;
 }
 QFrame#cardFrameNight:pressed {
-    background-color: #EF9A9;
+    background-color: #EF9A9A;
     border: 1px solid #F44336;
 }
 QFrame#cardFrameNight QLabel {

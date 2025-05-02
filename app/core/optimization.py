@@ -95,6 +95,15 @@ class Optimization:
         # 목적함수: 총 생산량 최대화 (추후 지표 8가지를 최적화 하는 목적함수로 수정 예정)
         model += pulp.lpSum([x[(m, l, s)] for m in items for (l, s) in line_shifts])
 
+        # 제약조건 0: 사전할당 결과가 있다면 그 결과를 제약조건에 포함시켜서 고정
+        self.df_demand['Project'] = self.df_demand['Item'].str[3:7]
+        self.df_demand['Tosite_group'] = self.df_demand['Item'].str[7:8]
+        self.df_demand = self.df_demand.merge(self.df_due_LT,on=['Project','Tosite_group'],how='left')
+        print(self.df_demand.head())
+        # if self.df_result is not None:
+        #     for idx,row in self.df_result.iterrows():
+
+
         # 제약조건 1: 모델별 수요량 보다 적게 생산. 꼭 모든 수요를 만족시키지 않아도 됨. demand 시트와 관련됨. 
         for m in items:
             model += pulp.lpSum([x[(m, l, s)] for (l, s) in line_shifts]) <= demand[m]
@@ -361,4 +370,4 @@ if __name__ == "__main__":
         'dynamic': pd.read_excel('ssafy_dynamic_0408.xlsx',sheet_name=None),
     }
     optimization = Optimization(input)
-    optimization.pre_assign()
+    optimization.execute()
