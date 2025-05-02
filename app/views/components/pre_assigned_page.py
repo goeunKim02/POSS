@@ -1,6 +1,6 @@
-from PyQt5.QtGui import QFont, QCursor
+from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QScrollArea, QDialog
-from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths
+from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths, QThread, QSize
 
 import os
 import pandas as pd
@@ -23,9 +23,21 @@ def create_button(text, style="primary", parent=None):
     )
     return btn
 
-class PlanningPage(QWidget):
-    optimization_requested = pyqtSignal(dict)
+class ProcessThread(QThread):
+    finished = pyqtSignal(pd.DataFrame)
 
+    def __init__(self, df: pd.DataFrame):
+        super().__init__()
+        self.df = df
+
+    # 테스트용(실제 처리 로직으로 교체)
+    def run(self):
+        import time
+
+        time.sleep(10)  # 테스트용 지연
+        self.finished.emit(self.df) # 테스트용 원본 데이터 반환
+
+class PlanningPage(QWidget):
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
@@ -48,9 +60,18 @@ class PlanningPage(QWidget):
         btn_export.clicked.connect(self.on_export_click)
         title_hbox.addWidget(btn_export)
 
-        btn_run = create_button("Run", "primary", self)
-        btn_run.clicked.connect(self.on_run_click)
-        title_hbox.addWidget(btn_run)
+        self.btn_run = create_button("Run", "primary", self)
+        self.btn_run.clicked.connect(self.on_run_click)
+        self.btn_run.setIconSize(QSize(32,32))
+        title_hbox.addWidget(self.btn_run)
+
+        icon_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'resources/icon'))
+        gif_path = os.path.join(icon_dir, 'loading.gif')
+
+        self.run_spinner = QMovie(gif_path)
+        self.run_spinner.setScaledSize(QSize(32,32))
+        self.run_spinner.frameChanged.connect(self._update_run_icon)
+        self.btn_run.setIcon(QIcon())
 
         btn_reset = create_button("Reset", "secondary", self)
         btn_reset.clicked.connect(self.on_reset_click)
@@ -58,30 +79,30 @@ class PlanningPage(QWidget):
 
         layout.addLayout(title_hbox)
 
+        # 캘린더 헤더
+        self.header = CalendarHeader(self)
+        layout.addWidget(self.header)
+
         # 본문 영역
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
-        # 캘린더 헤더
-        self.header = CalendarHeader(self)
-        layout.addWidget(self.header)
-
         # 본문 컨테이너
-        layout.addWidget(self.scroll_area)
         self.body_container = QWidget()
         self.body_layout = QVBoxLayout(self.body_container)
         self.body_layout.setContentsMargins(0, 0, 0, 0)
         self.body_layout.setSpacing(0)
         self.scroll_area.setWidget(self.body_container)
 
+        layout.addWidget(self.scroll_area)
+        self.setLayout(layout)
+
         # 헤더 마진
         self._sync_header_margin()
         sb = self.scroll_area.verticalScrollBar()
         sb.rangeChanged.connect(lambda low, high: self._sync_header_margin())
-
-        self.setLayout(layout)
 
     # 헤더 마진 조정
     def _sync_header_margin(self):
@@ -112,11 +133,10 @@ class PlanningPage(QWidget):
 
     # 캘린더 초기화
     def on_reset_click(self):
-        cols = ["Line","Time","Qty","Item","Project"]
-        empty_df = pd.DataFrame(columns=cols)
+        cols = ["Line", "Time", "Qty", "Item", "Project"]
+        self._df = pd.DataFrame(columns=cols)
 
-        self._df = empty_df
-        for i in range(self.body_layout.count()-1, -1, -1):
+        for i in range(self.body_layout.count() - 1, -1, -1):
             w = self.body_layout.takeAt(i).widget()
             if w:
                 w.deleteLater()
@@ -128,36 +148,51 @@ class PlanningPage(QWidget):
             QMessageBox.warning(self, "Error", "먼저 Run을 통해 결과를 불러와야 합니다.")
             return
 
-        # 전체 프로젝트 그룹 생성
+        # 화면에 표시된 데이터 기반 프로젝트 그룹 필터링
         all_groups = create_from_master()
-
-        # 화면에 표시된 데이터 프로젝트 집합
         current = set(self._df['Project'])
-
-        # 화면에 있는 프로젝트가 하나라도 포함된 그룹
         filtered_groups = {
-            gid: projs
-            for gid, projs in all_groups.items()
+            gid: projs for gid, projs in all_groups.items()
             if current & set(projs)
         }
 
-        # 필터된 그룹을 다이얼로그에 전달
         dlg = ProjectGroupDialog(filtered_groups, parent=self)
         if dlg.exec_() != QDialog.Accepted:
-            # 사용자가 취소를 누르면 함수 종료
             return
 
-        # 사용자가 체크한 그룹 ID 리스트
         selected = dlg.selected_groups()
-
-        # 선택된 그룹에 속한 모든 프로젝트 집합
         selected_projects = set()
         for gid in selected:
             selected_projects.update(filtered_groups[gid])
 
         filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
 
-        print(filtered_df)
+        # 실행 버튼 비활성화
+        self.btn_run.setEnabled(False)
+        self.btn_run.setText("")
+        self.run_spinner.start()
+
+        # 최적화 알고리즘 실행
+        self._thread = ProcessThread(filtered_df)
+        self._thread.finished.connect(self._on_process_done)
+        self.btn_run.setStyleSheet("")
+        self._thread.start()
+
+    def _on_process_done(self, result_df):
+        # 실행 버튼 활성화
+        self.run_spinner.stop()
+        self.btn_run.setIcon(QIcon())
+
+        self.btn_run.setText("Run")
+        self.btn_run.setEnabled(True)
+        self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
+
+        print(result_df)
+
+    def _update_run_icon(self):
+        pix = self.run_spinner.currentPixmap()
+        if not pix.isNull():
+            self.btn_run.setIcon(QIcon(pix))
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):
