@@ -5,7 +5,8 @@ class FilePaths:
         "master_excel_file": None,
         "demand_excel_file": None,
         "etc_excel_file": None,
-        "output_file": None
+        "output_file": None,
+        "result_file": None,
     }
 
     # 파일 경로 조회
