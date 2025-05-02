@@ -316,7 +316,7 @@ class DataInputPage(QWidget):
                     self.data_modifier.save_tab_data(current_tab_widget, current_file_path, current_sheet_name)
 
         # DataStore에서 모든 데이터프레임 가져오기
-        from app.models.common.fileStore import DataStore
+        from app.models.common.fileStore import DataStore, FilePaths
         all_dataframes = DataStore.get("dataframes", {})
 
         # 수정된 사항 확인을 위한 상세 로그 추가
@@ -353,8 +353,7 @@ class DataInputPage(QWidget):
                 print(f"데이터프레임 키: {key} - 데이터 없음")
         print("========================================\n")
 
-        # 데이터프레임 딕셔너리를 다른 형식으로 변환해야 하는 경우
-        # 예: 파일별로 그룹화 (sheet_name을 제외한 형태)
+        # 기존 방식의 simplified_dataframes 생성 (파일 경로 기준)
         simplified_dataframes = {}
         for key, df in all_dataframes.items():
             # 키 형식이 "file_path:sheet_name"인 경우 또는 그냥 file_path인 경우
@@ -374,7 +373,56 @@ class DataInputPage(QWidget):
 
         # 단순화된 데이터프레임 딕셔너리 DataStore에 저장
         DataStore.set("simplified_dataframes", simplified_dataframes)
-        print(f"최종 데이터프레임 딕셔너리 저장됨: {len(simplified_dataframes)}개 파일, {len(all_dataframes)}개 데이터프레임")
+        print(f"파일경로 기준 데이터프레임 저장됨: {len(simplified_dataframes)}개 파일, {len(all_dataframes)}개 데이터프레임")
+
+        # 새로운 데이터 구조 - 파일 유형별로 구성
+        organized_dataframes = {
+            "demand": {},
+            "dynamic": {},
+            "master": {},
+            "etc": {}
+        }
+
+        # 파일 유형 결정 함수
+        def get_file_type(file_path):
+            file_name = os.path.basename(file_path).lower()
+            if "demand" in file_name:
+                return "demand"
+            elif "dynamic" in file_name:
+                return "dynamic"
+            elif "master" in file_name:
+                return "master"
+            else:
+                return "etc"
+
+        # 모든 데이터프레임을 새 구조로 재구성
+        for key, df in all_dataframes.items():
+            if ":" in key:  # 엑셀 파일의 시트
+                file_path, sheet_name = key.rsplit(":", 1)
+                file_type = get_file_type(file_path)
+                organized_dataframes[file_type][sheet_name] = df
+            else:  # CSV 파일 등
+                file_type = get_file_type(key)
+                # CSV 파일은 파일명에서 확장자를 제거하여 키로 사용
+                file_name = os.path.basename(key).split('.')[0]
+                organized_dataframes[file_type][file_name] = df
+
+        # 유형별 데이터프레임 딕셔너리 DataStore에 저장
+        DataStore.set("organized_dataframes", organized_dataframes)
+        print(f"유형별 데이터프레임 저장됨:")
+        for file_type, sheets in organized_dataframes.items():
+            print(f"  - {file_type}: {len(sheets)}개 시트/파일")
+
+            # 각 유형의 시트 정보 상세 출력
+            if sheets:
+                print(f"\n{file_type} 데이터 상세 정보:")
+                for sheet_name, df in sheets.items():
+                    print(f"    * 시트: {sheet_name}")
+                    print(f"      - 크기: {df.shape}")
+                    print(f"      - 컬럼: {df.columns.tolist()[:5]}..." if len(
+                        df.columns) > 5 else f"      - 컬럼: {df.columns.tolist()}")
+                    if not df.empty:
+                        print(f"      - 첫 번째 행 샘플: {df.iloc[0].to_dict()}")
 
         # 기존 시그널 발생
         self.run_button_clicked.emit()

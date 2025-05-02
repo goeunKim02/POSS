@@ -100,8 +100,11 @@ class MainWindow(QMainWindow):
         if 0 <= index < self.tab_widget.count():
             self.tab_widget.setCurrentIndex(index)
 
+    """ 도움말 표시 실행 함수"""
     def show_help(self):
-        # 도움말 창 표시 로직
+        from app.views.components.help_dialogs.help_dialog import HelpDialog
+        hel_dialog = HelpDialog(self)
+        hel_dialog.exec_()
         print("도움말 표시")
 
     def show_settings(self):
