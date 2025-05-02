@@ -40,6 +40,8 @@ class ProcessThread(QThread):
         self.finished.emit(self.df) # 테스트용 원본 데이터 반환
 
 class PlanningPage(QWidget):
+    optimization_requested = pyqtSignal(dict)
+    
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
@@ -167,7 +169,9 @@ class PlanningPage(QWidget):
         for gid in selected:
             selected_projects.update(filtered_groups[gid])
 
-        filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
+        # 클래스 맴버 변수로 저장
+        self.filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
+        self.selected_projects = list(selected_projects)
 
         # 실행 버튼 비활성화
         self.btn_run.setEnabled(False)
@@ -175,7 +179,7 @@ class PlanningPage(QWidget):
         self.run_spinner.start()
 
         # 최적화 알고리즘 실행
-        self._thread = ProcessThread(filtered_df)
+        self._thread = ProcessThread(self.filtered_df)
         self._thread.finished.connect(self._on_process_done)
         self.btn_run.setStyleSheet("")
         self._thread.start()
@@ -199,8 +203,8 @@ class PlanningPage(QWidget):
         # 최적화 실행
         optimizer = Optimizer()
         results = optimizer.run_optimization({
-            'pre_assigned_df': filtered_df,
-            'selected_projects': list(selected_projects)
+            'pre_assigned_df': self.filtered_df,
+            'selected_projects': list(self.selected_projects)
         })
 
         # 결과를 메인 윈도우의 결과 페이지로 전달
