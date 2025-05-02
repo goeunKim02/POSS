@@ -4,14 +4,14 @@ import pandas as pd
 import os
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
-from app.views.components.data_upload_components.table_filter_component import TableFilterComponent  # 새로 추가
+from app.views.components.data_upload_components.table_filter_component import TableFilterComponent
 
 
 class FileTabComponent(QWidget):
-    """
-    파일 탭 컴포넌트
-    여러 파일을 탭 형태로 관리하고 표시하는 기능 제공
-    """
+
+    # 파일 탭 컴포넌트
+    # 여러 파일을 탭 형태로 관리하고 표시하는 기능 제공
+
     tab_changed = pyqtSignal(str)  # 탭이 변경되었을 때 발생하는 시그널 (선택된 파일 경로 전달)
 
     def __init__(self, parent=None):
@@ -154,7 +154,7 @@ class FileTabComponent(QWidget):
             return False, f"데이터 로딩 오류: {str(e)}"
 
     def on_tab_changed(self, index):
-        """탭이 변경되면 호출되는 함수"""
+        # 탭이 변경되면 호출되는 함수
         # 현재 탭에 해당하는 파일 경로 찾기
         file_path = None
         for path, tab_idx in self.file_tabs.items():
@@ -169,7 +169,7 @@ class FileTabComponent(QWidget):
             self.tab_changed.emit(file_path)
 
     def remove_file_tab(self, file_path):
-        """파일 탭 제거"""
+        # 파일 탭 제거
         if file_path not in self.file_tabs:
             return False, "해당 파일 탭이 존재하지 않습니다"
 

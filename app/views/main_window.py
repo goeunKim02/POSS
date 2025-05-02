@@ -10,7 +10,6 @@ from app.core.optimization import Optimization
 import pandas as pd
 import os
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -142,7 +141,16 @@ class MainWindow(QMainWindow):
                 print(f"프로젝트 그룹 분석 중 오류 발생: {e}")
                 import traceback
                 print(traceback.format_exc())
-        else:
+
+            try :
+                from app.core.input.materialAnalyzer import MaterialAnalyzer
+                shortage_results = MaterialAnalyzer.analyze_material_shortage()
+
+                if shortage_results :
+                    self.data_model.material_shortage_results = shortage_results
+            except Exception as e :
+                print(f'자재 부족 분석 중 오류 발생 : {e}')
+        else :
             print("데이터 처리에 실패했습니다")
 
     def on_date_range_selected(self, start_date, end_date):
@@ -173,12 +181,13 @@ class MainWindow(QMainWindow):
 
         # 최적화 실행
         optimization = Optimization()
-        optimization.pre_assign()
+        df = optimization.pre_assign()
+
+        # PlanningPage에 결과 전달
+        self.planning_page.display_preassign_result(df)
 
         # 결과 페이지로 이동
-        self.navigate_to_page(1)  # Planning 페이지로 이동
-
-
+        self.navigate_to_page(1)
 
     def export_results(self, file_path=None):
         # 결과 내보내기 로직
