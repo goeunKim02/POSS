@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
         # PlanningPage에 결과 전달
         self.planning_page.display_preassign_result(df)
 
-        # 결과 페이지로 이동
+        # 결과 페이지로 이동+
         self.navigate_to_page(1)
 
     def export_results(self, file_path=None):
