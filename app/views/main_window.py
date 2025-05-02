@@ -82,6 +82,7 @@ class MainWindow(QMainWindow):
         self.data_input_page.run_button_clicked.connect(self.on_run_button_clicked)
 
         self.planning_page = PlanningPage(self)  # self 전달
+        self.planning_page.optimization_requested.connect(self.handle_optimization_result)
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
         self.result_page = ResultPage(self)  # self 전달
@@ -233,3 +234,20 @@ class MainWindow(QMainWindow):
         # 결과 내보내기 로직
         print(f"결과를 다음 경로에 저장: {file_path}")
         # self.data_model.export_results(file_path)
+
+    """최적화 결과 처리"""
+    def handle_optimization_result(self, results):
+        # Args:
+        #     results (dict): 최적화 결과를 포함하는 딕셔너리
+
+        # 결과 페이지 초기화 확인
+        if not hasattr(self, 'result_page'):
+            self.result_page = ResultPage(self)
+            self.central_widget.addWidget(self.result_page)
+    
+        # 결과 페이지의 데이터 업데이트
+        if 'assignment_result' in results and results['assignment_result'] is not None:
+            self.result_page.left_section.update_data(results['assignment_result'])
+        
+        # 결과 페이지로 이동
+        self.central_widget.setCurrentWidget(self.result_page)

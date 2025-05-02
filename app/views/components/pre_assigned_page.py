@@ -10,6 +10,8 @@ from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
 from app.utils.fileHandler import create_from_master
+from app.core.optimizer import Optimizer
+from app.views import main_window
 
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
@@ -158,6 +160,24 @@ class PlanningPage(QWidget):
         filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
 
         print(filtered_df)
+
+        # 최적화 실행
+        optimizer = Optimizer()
+        results = optimizer.run_optimization({
+            'pre_assigned_df': filtered_df,
+            'selected_projects': list(selected_projects)
+        })
+
+        # 결과를 메인 윈도우의 결과 페이지로 전달
+        if hasattr(self.main_window, 'result_page'):
+            # 결과 페이지의 데이터 업데이트
+            self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
+            
+            # 결과 페이지로 이동
+            self.main_window.navigate_to_page(2)
+        else:
+            # 결과 페이지가 없는 경우 생성 또는 시그널 발생
+            self.optimization_requested.emit(results)
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):

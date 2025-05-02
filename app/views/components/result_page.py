@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
+import os
+from datetime import datetime
+from PyQt5.QtWidgets import QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
@@ -310,12 +312,11 @@ class ResultPage(QWidget):
                             self.switch_viz_page(plan_index[0])
         
 
-
-    """결과를 CSV 파일로 내보내기"""
+    """최종 최적화 결과를 파일로 내보내는 메서드"""
     def export_results(self):
         try:
-            file_path = QFileDialog.getSaveFileName(
-                self, "저장 디렉토리 선택", "data/export"
+            file_path = QFileDialog.getExistingDirectory(
+            self, "결과 저장 디렉토리 선택", "data/export"
             )
 
             if file_path:
@@ -323,18 +324,63 @@ class ResultPage(QWidget):
                 if hasattr(self, 'left_section') and hasattr(self.left_section,
                                                              'data') and self.left_section.data is not None:
                     try:
-                        # 데이터를 CSV로 저장
-                        self.left_section.data.to_csv(file_path, index=False)
-                        print(f"데이터가 {file_path}에 저장되었습니다.")
+                        plan_manager = WeeklyPlanManager(output_dir=file_path)
+                         # 날짜 범위 가져오기
+                        start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                        
+                        # 이전 계획 감지
+                        is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
+                            start_date, end_date
+                        )
+                        
+                        # 메타데이터와 함께 저장
+                        saved_path = plan_manager.save_plan_with_metadata(
+                            self.left_section.data, start_date, end_date, previous_plan_path
+                        )
+
+                        print(f"최종 결과가 메타데이터와 함께 저장되었습니다: {saved_path}")
+                        print(message)
+
+                        # 사용자에게 성공 메시지 표시
+                        QMessageBox.information(
+                            self, 
+                            "내보내기 성공", 
+                            f"파일이 성공적으로 저장되었습니다:\n{saved_path}\n\n{message}"
+                        )
+
+                        # 시그널 발생
+                        self.export_requested.emit(saved_path)
                     except Exception as e:
                         print(f"파일 저장 오류: {e}")
+                        # 기본 저장 경로 생성
+                        default_filename = f"Result_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                        fallback_path = os.path.join(file_path, default_filename)
+                        
+                        # 기존 저장 방식으로 폴백
+                        self.left_section.data.to_excel(fallback_path, index=False)
+                        QMessageBox.information(
+                            self, 
+                            "내보내기 성공", 
+                            f"파일이 성공적으로 저장되었습니다:\n{fallback_path}\n(메타데이터 없음)"
+                        )
+                        
+                        # 시그널 발생
+                        self.export_requested.emit(fallback_path)
                 else:
                     print("내보낼 데이터가 없습니다.")
+                    QMessageBox.warning(
+                        self, 
+                        "내보내기 실패", 
+                        "내보낼 데이터가 없습니다."
+                    )
 
-                # 시그널 발생
-                self.export_requested.emit(file_path)
         except Exception as e:
             print(f"Export 과정에서 오류 발생: {str(e)}")
+            QMessageBox.critical(
+            self, 
+            "내보내기 오류", 
+            f"내보내기 과정에서 오류가 발생했습니다:\n{str(e)}"
+        )
 
     def switch_viz_page(self, index):
         """시각화 페이지 전환 및 버튼 스타일 업데이트"""
@@ -389,8 +435,8 @@ class ResultPage(QWidget):
         elif viz_type == "Utilization":
             if self.utilization_data is None:
                 try:
-                    result_file = "app/analysis/output/ssafy_result_0408.xlsx"
-                    master_file = "app/analysis/output/ssafy_master_0408.xlsx"
+                    result_file = FilePaths.get("output_file")
+                    master_file = FilePaths.get("master_excel_file")
 
                     self.utilization_data = analyze_utilization(result_file, master_file)
 
