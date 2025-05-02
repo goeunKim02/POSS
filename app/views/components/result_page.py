@@ -8,6 +8,7 @@ from ..components.visualization.visualizaiton_manager import VisualizationManage
 from app.analysis.output.daily_capa_utilization import analyze_utilization
 from app.models.common.fileStore import FilePaths
 from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
+from app.utils.week_plan_manager import WeeklyPlanManager
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -303,8 +304,8 @@ class ResultPage(QWidget):
     """결과를 CSV 파일로 내보내기"""
     def export_results(self):
         try:
-            file_path, _ = QFileDialog.getSaveFileName(
-                self, "결과 내보내기", "", "CSV 파일 (*.csv);;모든 파일 (*)"
+            file_path = QFileDialog.getSaveFileName(
+                self, "저장 디렉토리 선택", "data/export"
             )
 
             if file_path:

@@ -68,7 +68,7 @@ class WeeklyPlanManager:
         existing_plans = glob.glob(plan_pattern)
 
         if not existing_plans:
-            return True, None, f"First Plan ({week_info}) - 유지율 비교 없음"
+            return True, None, f"First Plan ({week_info}) - No maintenance rate comparison"
         
         # 파일 정보 수집
         plan_info = []
@@ -96,7 +96,7 @@ class WeeklyPlanManager:
                 })
 
         if not plan_info:
-            return True, None, f"First Plan ({week_info}) - 유지율 비교 없음"
+            return True, None, f"First Plan ({week_info}) - No maintenance rate comparison"
         
         # 이전 계획 선택 로직
         # 1) 같은 주차 내 이전 버전 찾기
@@ -107,16 +107,16 @@ class WeeklyPlanManager:
             prev_plan = same_week_plans[0]
             prev_date = datetime.fromtimestamp(prev_plan['mod_time'])
             date_str = prev_date.strftime("%Y-%m-%d")
-            prev_week = prev_plan['week'] if prev_plan['week'] else "None"
-            return False, prev_plan['path'], f"pre_plan({prev_week}, {date_str})과 비교"
+            prev_week = prev_plan['week'] if prev_plan['week'] else "Unknown"
+            return False, prev_plan['path'], f"Comparing with previous plan ({prev_week}, {date_str})"
         
         # 2) 가장 최근 계획 선택 (이 부분이 누락됨)
         plan_info.sort(key=lambda x: x['mod_time'], reverse=True)
         prev_plan = plan_info[0]
         prev_date = datetime.fromtimestamp(prev_plan['mod_time'])
         date_str = prev_date.strftime("%Y-%m-%d")
-        prev_week = prev_plan['week'] if prev_plan['week'] else "None"
-        return False, prev_plan['path'], f"pre_plan({prev_week}, {date_str})과 비교"
+        prev_week = prev_plan['week'] if prev_plan['week'] else "Unknown"
+        return False, prev_plan['path'], f"Comparing with previous plan ({prev_week}, {date_str})"
         
         
     """계획 데이터 저장 및 메타데이터 추가"""
@@ -144,16 +144,6 @@ class WeeklyPlanManager:
         # 전체 경로
         file_path = os.path.join(self.output_dir, file_name)
 
-        # 포함된 demand 목록 추출
-        demands = []
-        if 'demand' in plan_df.columns:
-            demands = sorted(plan_df['demand'].unique().tolist())
-
-        # demands 목록 생성
-        demands_str = ", ".join(demands[:10])
-        if len(demands) > 10:
-            demands_str += f" 외 {len(demands) - 10}개"
-
         # 엑셀 작성자 생성
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
             # 계획 데이터 저장
@@ -165,7 +155,6 @@ class WeeklyPlanManager:
                     'week_info',
                     'week_start',
                     'week_end',
-                    'demands',
                     'mod_time',
                     'result_type',
                     'prev_result'
@@ -174,10 +163,9 @@ class WeeklyPlanManager:
                     week_info,
                     week_start.strftime("%Y-%m-%d"),
                     week_end.strftime("%Y-%m-%d"),
-                    demands_str,
                     now.strftime("%Y-%m-%d %H:%M:%S"),
-                    "수정계획" if previous_plan else "초기계획",
-                    os.path.basename(previous_plan) if previous_plan else "없음"
+                    "Modified Plan" if previous_plan else "Initial Plan",
+                    os.path.basename(previous_plan) if previous_plan else "Unknown"
                 ]
             }
 
