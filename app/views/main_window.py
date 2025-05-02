@@ -9,7 +9,6 @@ from app.models.input.capa import process_data
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
-from app.utils.week_plan_manager import WeeklyPlanManager
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -199,26 +198,6 @@ class MainWindow(QMainWindow):
         # 최적화 실행
         optimization = Optimization()
         df = optimization.pre_assign()
-
-        # 주차 정보를 활용한 계획 파일 저장
-        try:
-            start_date, end_date = self.data_input_page.date_selector.get_date_range()
-            plan_manager = WeeklyPlanManager()
-
-            # 이전 계획 감지
-            is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
-                start_date, end_date
-            )
-
-            # 계획 저장
-            saved_path = plan_manager.save_plan_with_metadata(
-                df, start_date, end_date, previous_plan_path
-            )
-            
-            print(f"메타데이터가가 성공적으로 저장되었습니다: {saved_path}")
-            print(message)
-        except Exception as e:
-            print(f"메타데이터 저장 중 오류 발생: {str(e)}")
 
         # PlanningPage에 결과 전달
         self.planning_page.display_preassign_result(df)
