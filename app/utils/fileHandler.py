@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+from app.models.common.fileStore import FilePaths
+from app.models.common.projectGrouping import ProjectGroupManager
 
 # 파일 유형 감지하는 함수
 def detect_file_type(file_path):
@@ -58,3 +60,11 @@ def get_sheet_names(file_path):
     except Exception as e:
         print(f"시트 이름 목록 가져오기 중 오류 발생: {e}")
         return []
+
+# 프로젝트 그룹화
+def create_from_master():
+    path = FilePaths.get('master_excel_file')
+    if not path:
+        raise FileNotFoundError("master_excel_file 경로가 설정되어 있지 않습니다.")
+    df = pd.read_excel(path, sheet_name='line_available')
+    return ProjectGroupManager.create_project_groups(df)
