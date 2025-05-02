@@ -252,6 +252,3 @@ class MainWindow(QMainWindow):
         # 결과 페이지의 데이터 업데이트
         if 'assignment_result' in results and results['assignment_result'] is not None:
             self.result_page.left_section.update_data(results['assignment_result'])
-        
-        # 결과 페이지로 이동
-        self.central_widget.setCurrentWidget(self.result_page)
