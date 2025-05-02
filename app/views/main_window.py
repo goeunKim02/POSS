@@ -4,10 +4,9 @@ from app.models.input.capa import process_data
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
-from PyQt5.QtCore import Qt, QDate
-from PyQt5.QtGui import QCursor, QIcon, QFont
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QCursor
 from app.core.optimization import Optimization
-import pandas as pd
 import os
 
 class MainWindow(QMainWindow):
@@ -102,7 +101,7 @@ class MainWindow(QMainWindow):
 
     """ 도움말 표시 실행 함수"""
     def show_help(self):
-        from app.views.components.help_dialogs.help_dialog import HelpDialog
+        from app.views.components.help_dialogs import HelpDialog
         hel_dialog = HelpDialog(self)
         hel_dialog.exec_()
         print("도움말 표시")
