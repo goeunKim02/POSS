@@ -100,8 +100,11 @@ class MainWindow(QMainWindow):
         if 0 <= index < self.tab_widget.count():
             self.tab_widget.setCurrentIndex(index)
 
+    """ 도움말 표시 실행 함수"""
     def show_help(self):
-        # 도움말 창 표시 로직
+        from app.views.components.help_dialogs.help_dialog import HelpDialog
+        hel_dialog = HelpDialog(self)
+        hel_dialog.exec_()
         print("도움말 표시")
 
     def show_settings(self):
@@ -197,7 +200,7 @@ class MainWindow(QMainWindow):
 
         # DataStore에서 데이터프레임 가져오기
         from app.models.common.fileStore import DataStore
-        all_dataframes = DataStore.get("simplified_dataframes", {})
+        all_dataframes = DataStore.get("organized_dataframes", {})
 
         print(f"최적화에 사용할 데이터프레임: {len(all_dataframes)}개 파일")
         for file_path, df_data in all_dataframes.items():
@@ -207,7 +210,7 @@ class MainWindow(QMainWindow):
                 print(f"  - 파일: {os.path.basename(file_path)}, 단일 데이터프레임")
 
         # 최적화 실행
-        optimization = Optimization()
+        optimization = Optimization(all_dataframes)
 
         # 데이터프레임 전달 (새로운 방법)
         try:
@@ -221,7 +224,8 @@ class MainWindow(QMainWindow):
             print(f"데이터프레임 전달 중 오류 발생: {str(e)}")
 
         # 기존 방식으로 최적화 실행
-        df = optimization.pre_assign()
+        result_dict = optimization.pre_assign()
+        df = result_dict['result']
 
         # PlanningPage에 결과 전달
         self.planning_page.display_preassign_result(df)
