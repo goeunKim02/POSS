@@ -6,7 +6,7 @@ from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
-from ..components.visualization.visualizaiton_manager import VisualizationManager
+from ..components.visualization.visualization_updater import VisualizationUpdater
 from app.analysis.output.daily_capa_utilization import analyze_utilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.models.common.fileStore import FilePaths
@@ -221,6 +221,28 @@ class ResultPage(QWidget):
 
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
+
+    
+    # 시각화 캔버스 초기화 
+    def init_visualization_canvases(self):
+        self.viz_canvases = []
+
+        # Plan 제외한 탭들의 캔버스 찾기
+        for i in range(3):
+            page = self.viz_stack.widget(i)
+            if page:
+                # 페이지 내의 모든 자식 위젯 중 MplCanvas 찾기
+                canvas = None
+                for child in page.findChildren(MplCanvas):
+                    canvas = child
+                    break
+                
+                # 캔버스가 있으면 리스트에 추가
+                if canvas:
+                    self.viz_canvases.append(canvas)
+                else:
+                    print(f"Tab {i}에서 캔버스를 찾을 수 없습니다.")
+
 
     """이벤트 시그널 연결"""
     def connect_signals(self):
@@ -538,40 +560,10 @@ class ResultPage(QWidget):
     
     """개별 시각화 차트 업데이트"""
     def update_visualization(self, canvas, viz_type):
-        
-        canvas.axes.clear()
-        
-        # 각 지표별 시각화 업데이트
         if viz_type == "Capa":
-            # 데이터가 있는 경우에만 차트 생성, 없으면 메시지 표시 (수정)
-            if self.capa_ratio_data and len(self.capa_ratio_data) > 0:
-                VisualizationManager.create_chart(
-                    self.capa_ratio_data,
-                    chart_type='bar',
-                    title='Plant Capacity Ratio',
-                    xlabel='Plant',
-                    ylabel='Ratio (%)',
-                    ax=canvas.axes
-                )
-            else:
-                canvas.axes.text(0.5, 0.5, 'Please load data', ha='center', va='center', fontsize=18)
-        
-        
-        elif viz_type == "Utilization" and self.utilization_data:
-            days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-            sorted_data = {day: self.utilization_data.get(day, 0) for day in days_order}
+            VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
+        elif viz_type == "Utilization":
+            VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
+        elif viz_type == "PortCapa":
+            pass
 
-            VisualizationManager.create_chart(
-                sorted_data,
-                chart_type='bar',
-                title='Daily Utilization Rate',
-                xlabel='Day of week',
-                ylabel='Utilization Rate(%)',
-                ax=canvas.axes,
-                ylim=(0, 100),
-                threshold_values=[60, 80],
-                threshold_colors=['#4CAF50', '#FFC107', '#F44336'],
-                value_fontsize=14
-            )
-
-        canvas.draw()

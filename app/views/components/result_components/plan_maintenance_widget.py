@@ -22,40 +22,15 @@ class PlanMaintenanceWidget(QWidget):
         """)
         self.init_ui()
 
-        # 개발 모드에서만 자동 테스트 데이터 로드 (옵션)
-        import os
-        if os.environ.get('DEV_MODE') == '1':
-            self.load_excel_data()
-
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
 
-        
-
         # 상단 버튼 영역 추가
         button_widget = QWidget()
         button_layout = QHBoxLayout(button_widget)
         button_layout.setContentsMargins(0, 0, 0, 10)
-
-        # 파일 로드 버튼
-        load_btn = QPushButton("엑셀 파일 로드")
-        load_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1428A0;
-                color: white;
-                padding: 5px 15px;
-                border-radius: 5px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #2A3DB2;
-            }
-        """)
-        load_btn.clicked.connect(self.load_excel_data)
-        button_layout.addWidget(load_btn)
-        button_layout.addStretch(1)
 
         # 메인 레이아웃에 버튼 위젯 추가 (info_widget 앞에)
         main_layout.addWidget(button_widget)
@@ -672,143 +647,3 @@ class PlanMaintenanceWidget(QWidget):
             
         return success
     
-    def load_excel_data(self, file_path=None):
-        """
-        테스트 함수
-        엑셀 파일을 로드하여 '이전 계획'으로 설정
-        
-        Parameters:
-            file_path (str): 엑셀 파일 경로. None이면 파일 선택 대화상자 표시
-        """
-        try:
-            from PyQt5.QtWidgets import QFileDialog, QMessageBox
-            import os
-            
-            # 디버깅 메시지 추가
-            print("파일 로드 함수 시작")
-            
-            # 파일 경로가 없으면 선택 대화상자 표시
-            if file_path is None or not isinstance(file_path, str):
-                print("파일 선택 대화상자 표시 시도")
-                
-                # 대화상자 옵션 설정
-                options = QFileDialog.Options()
-                options |= QFileDialog.DontUseNativeDialog  # 네이티브 대화상자 사용 안 함
-                
-                # 절대 경로 사용
-                initial_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..")
-                
-                # 대화상자 실행
-                file_path, _ = QFileDialog.getOpenFileName(
-                    self,                  # 부모 위젯
-                    "엑셀 파일 선택",       # 제목
-                    initial_dir,           # 초기 디렉토리
-                    "Excel Files (*.xlsx *.xls);;All Files (*)",  # 필터
-                    options=options
-                )
-                
-                print(f"선택된 파일 경로: {file_path}")
-                
-                # 파일이 선택되지 않았으면 함수 종료
-                if not file_path:
-                    print("파일 선택 취소됨")
-                    return False
-            
-            # 파일 경로가 문자열이 아니면 오류 처리
-            if not isinstance(file_path, str):
-                print(f"유효하지 않은 파일 경로 타입: {type(file_path)}")
-                QMessageBox.warning(self, "오류", "유효하지 않은 파일 경로입니다.")
-                return False
-            
-            # 파일 경로 검증
-            if not os.path.exists(file_path):
-                print(f"파일이 존재하지 않습니다: {file_path}")
-                QMessageBox.warning(self, "오류", f"파일이 존재하지 않습니다: {file_path}")
-                return False
-                
-            print(f"파일 로드 시도: {file_path}")
-            
-            # 엑셀 파일 로드
-            df = pd.read_excel(file_path)
-            print(f"엑셀 파일 로드 완료: {file_path}")
-            print(f"데이터 행 수: {len(df)}")
-            
-            # 필수 컬럼 확인
-            required_columns = ['Line', 'Time', 'Item', 'Qty']
-            missing_columns = [col for col in required_columns if col not in df.columns]
-            
-            if missing_columns:
-                print(f"필수 컬럼이 없습니다: {', '.join(missing_columns)}")
-                QMessageBox.warning(self, "오류", f"필수 컬럼이 없습니다: {', '.join(missing_columns)}")
-                return False
-            
-            # RMC 컬럼이 없는 경우 추가
-            if 'RMC' not in df.columns:
-                print("RMC 컬럼이 없습니다. Item에서 추출합니다.")
-                try:
-                    # RMC 추출 (예: 'AB-P973U2DU952' -> 'P973U2')
-                    df['RMC'] = df['Item'].str.extract(r'([A-Z]\d{3,4}[A-Z]\d)')
-                except Exception as e:
-                    print(f"RMC 추출 실패: {e}")
-                    # 실패한 경우 임시 RMC 컬럼 추가
-                    df['RMC'] = df['Item'].apply(lambda x: x[:6] if len(str(x)) >= 6 else x)
-            
-            # 원본 데이터 설정 (중요 수정 부분)
-            self.plan_analyzer.set_first_plan(False)  # 유지율 계산 활성화
-            
-            # 직접 original_plan만 설정 (current_plan은 설정하지 않음)
-            self.plan_analyzer.original_plan = df.copy()
-            
-            # 현재 계획이 이미 있는지 확인
-            current_plan_exists = (hasattr(self.plan_analyzer, 'current_plan') and 
-                                self.plan_analyzer.current_plan is not None and 
-                                not self.plan_analyzer.current_plan.empty)
-            
-            if current_plan_exists:
-                print("기존 현재 계획이 있음, 유지율 계산 시작")
-                
-                # item별 유지율 계산
-                item_df, item_rate = self.plan_analyzer.calculate_items_maintenance_rate()
-                self.item_maintenance_rate = item_rate if item_rate is not None else 0.0
-                
-                # RMC별 유지율 계산
-                rmc_df, rmc_rate = self.plan_analyzer.calculate_rmc_maintenance_rate()
-                self.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
-                
-                # 트리 위젯 업데이트
-                self.item_tree.clear()
-                self.rmc_tree.clear()
-                
-                if item_df is not None and not item_df.empty:
-                    self.setup_item_tree(item_df)
-                    print(f"Item별 유지율: {self.item_maintenance_rate:.2f}%")
-                else:
-                    print("Item별 유지율 데이터가 없습니다.")
-                
-                if rmc_df is not None and not rmc_df.empty:
-                    self.setup_rmc_tree(rmc_df)
-                    print(f"RMC별 유지율: {self.rmc_maintenance_rate:.2f}%")
-                else:
-                    print("RMC별 유지율 데이터가 없습니다.")
-                
-                # 선택된 탭에 따라 유지율 레이블 업데이트
-                self.update_rate_label(self.tab_widget.currentIndex())
-                
-            else:
-                # 현재 계획이 없는 경우, 사용자에게 알림
-                print("현재 계획이 없습니다. 왼쪽 패널의 데이터가 필요합니다.")
-                QMessageBox.information(self, "알림", "이전 계획이 설정되었습니다. 왼쪽 패널의 데이터가 현재 계획으로 설정되면 유지율이 계산됩니다.")
-            
-            # 로드 성공 메시지
-            QMessageBox.information(self, "성공", "이전 계획 데이터가 성공적으로 로드되었습니다.")
-            return True
-            
-        except Exception as e:
-            import traceback
-            print(f"엑셀 파일 로드 중 오류 발생: {e}")
-            traceback.print_exc()
-            
-            # 사용자에게 오류 표시
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "오류", f"엑셀 파일 로드 중 오류가 발생했습니다:\n{str(e)}")
-            return False
