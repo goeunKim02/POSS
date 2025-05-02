@@ -1,7 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
-                             QSplitter, QHeaderView, QTabWidget, QStackedWidget, QTabBar)
-from PyQt5.QtGui import QCursor, QFont, QColor
+                             QSplitter, QStackedWidget, QTabBar)
+from PyQt5.QtGui import QCursor, QFont
 
 import os
 
@@ -9,13 +9,11 @@ from app.views.components.data_upload_components.date_range_selector import Date
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
-from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
-from app.views.components.data_upload_components.data_table_component import DataTableComponent
 
 # 분리된 관리자 클래스 가져오기
-from app.views.components.data_input_components.file_tab_manager import FileTabManager
-from app.views.components.data_input_components.data_modifier import DataModifier
-from app.views.components.data_input_components.sidebar_manager import SidebarManager
+from app.views.components.data_upload_components.data_input_components import FileTabManager
+from app.views.components.data_upload_components.data_input_components import DataModifier
+from app.views.components.data_upload_components.data_input_components import SidebarManager
 
 
 class DataInputPage(QWidget):
