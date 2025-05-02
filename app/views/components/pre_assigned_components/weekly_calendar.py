@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
-from .style import (
+from ....resources.styles.pre_assigned_style import (
     LINE_LABEL_STYLE, DAY_LABEL_STYLE, NIGHT_LABEL_STYLE, SEPARATOR_STYLE
 )
 from .calendar_card import CalendarCard

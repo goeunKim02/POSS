@@ -2,7 +2,7 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from .style import CARD_DAY_FRAME_STYLE, CARD_NIGHT_FRAME_STYLE
+from ....resources.styles.pre_assigned_style import CARD_DAY_FRAME_STYLE, CARD_NIGHT_FRAME_STYLE
 
 class CalendarCard(QFrame):
     clicked = pyqtSignal(dict)

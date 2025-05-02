@@ -2,7 +2,7 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QFrame, QSizePolicy
 from PyQt5.QtCore import Qt
 
-from .style import WEEKDAY_HEADER_STYLE, SEPARATOR_STYLE
+from ....resources.styles.pre_assigned_style import WEEKDAY_HEADER_STYLE, SEPARATOR_STYLE
 
 class CalendarHeader(QWidget):
     def __init__(self, parent=None):

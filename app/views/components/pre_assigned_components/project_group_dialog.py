@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox,
     QDialogButtonBox, QLabel, QFrame
 )
-from .style import (
+from ....resources.styles.pre_assigned_style import (
     DETAIL_DIALOG_STYLE,
     DETAIL_LABEL_TRANSPARENT,
     DETAIL_FRAME_TRANSPARENT,

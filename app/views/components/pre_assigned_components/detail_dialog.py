@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 
-from .style import (
+from ....resources.styles.pre_assigned_style import (
     DETAIL_DIALOG_STYLE,
     DETAIL_LABEL_TRANSPARENT,
     DETAIL_FRAME_TRANSPARENT,

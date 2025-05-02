@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths
 import os
 import pandas as pd
 
-from .pre_assigned_components.style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
+from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
