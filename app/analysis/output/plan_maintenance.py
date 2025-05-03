@@ -114,10 +114,7 @@ class PlanMaintenanceRate:
         #     tuple: (결과 DataFrame, 유지율 %)
         
         # 첫 번째 계획이고 조정되지 않았다면 계산 제외
-        if self.is_first_plan and not compare_with_adjusted:
-            return pd.DataFrame(), None
-        
-        if self.prev_plan is None:
+        if self.is_first_plan or self.prev_plan is None:
             return pd.DataFrame(), None
         
         # 비교 대상 결정
@@ -194,10 +191,7 @@ class PlanMaintenanceRate:
         #     tuple: (결과 DataFrame, 유지율 %)
 
         # 첫 번째 수행이고 조정된 계획과의 비교가 아니면 유지율 계산 제외
-        if self.is_first_plan and not compare_with_adjusted:
-            return pd.DataFrame(), None
-            
-        if self.prev_plan is None:
+        if self.is_first_plan or self.prev_plan is None:
             return pd.DataFrame(), None
             
         # 비교 대상 결정

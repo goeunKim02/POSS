@@ -145,7 +145,7 @@ class WeeklyPlanManager:
                     })
 
         if not week_info or not week_plans:
-            return True, None, f"First Plan ({week_info}) - No maintenance rate comparison"
+            return True, None, f"No maintenance rate comparison"
         
         # 시간순 정렬
         week_plans.sort(key=lambda x: x["mod_time"], reverse=True)
@@ -156,7 +156,7 @@ class WeeklyPlanManager:
             return False, prev_plan["path"], f"Comparing with previous plan ({prev_plan['week']}, {prev_plan['mod_time']})"
         else:
             # 첫 계획인 경우
-            return True, None, f"First Plan ({week_info}) - No previous plan to compare"
+            return True, None, f"No previous plan to compare"
 
 
     """계획 데이터 저장 및 메타데이터 추가"""

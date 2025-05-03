@@ -756,7 +756,7 @@ class PlanMaintenanceWidget(QWidget):
         self.update_rate_label(self.tab_widget.currentIndex())
 
     
-    # 수량 업데이트 및 테이블 갱신 함수
+    """수량 업데이트 및 테이블 갱신 함수"""
     def update_quantity(self, line, time, item, new_qty, demand=None):
         if self.plan_analyzer is None:
             return False
@@ -801,7 +801,7 @@ class PlanMaintenanceWidget(QWidget):
             return False
         
 
-    # 현재 데이터 반환
+    """현재 데이터 반환"""
     def get_current_plan(self):
         """현재 계획 데이터 반환"""
         if self.plan_analyzer is None:
@@ -809,7 +809,7 @@ class PlanMaintenanceWidget(QWidget):
         return self.plan_analyzer.get_current_plan()
     
 
-    # 조정된 계획 데이터 반환
+    """조정된 계획 데이터 반환"""
     def get_adjusted_plan(self):
         """조정된 계획 데이터 반환"""
         if self.plan_analyzer is None:
@@ -822,7 +822,7 @@ class PlanMaintenanceWidget(QWidget):
         if self.plan_analyzer is None:
             return False
         
-        success = self.plan_analyzer.reset_to_original()
+        success = self.plan_analyzer.reset_to_prev()
         
         if success:
             self.refresh_maintenance_rate()
