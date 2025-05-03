@@ -75,19 +75,13 @@ class PlanMaintenanceRate:
             
         # 입력 값 문자열로 변환
         line = str(line)
-        time = time
+        time = int(time)
         item = str(item)
-        new_qty = new_qty
+        new_qty = int(new_qty)
         if demand is not None:
             demand = str(demand)
         
         print(f"시도 중인 업데이트: line={line}, time={time}, item={item}, qty={new_qty}, demand={demand}")
-        
-        # 데이터프레임의 관련 열을 문자열로 변환
-        for col in ['Line', 'Time', 'Item', 'Qty', 'Demand']:
-            if col in self.adjusted_plan.columns:
-                self.adjusted_plan[col] = self.adjusted_plan[col].astype(str)
-    
         
         # 조건에 맞는 행 찾기
         mask = (
@@ -144,13 +138,9 @@ class PlanMaintenanceRate:
         # 비교할 계획 집계 
         curr_grouped = comparison_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
 
-        # 데이터 타입을 정수로 통일 (Time 열)
-        prev_grouped['Time'] = pd.to_numeric(prev_grouped['Time'], errors='coerce').fillna(0).astype(int)
-        curr_grouped['Time'] = pd.to_numeric(curr_grouped['Time'], errors='coerce').fillna(0).astype(int)
-        
-        # 병합 전 데이터 타입 확인 (디버깅용)
-        print("원본 계획 Time 열 타입:", prev_grouped['Time'].dtype)
-        print("비교 계획 Time 열 타입:", curr_grouped['Time'].dtype)
+        # 두 데이터프레임의 'Time' 열 타입 확인
+        print("병합 전 원본 계획 Time 열 타입:", prev_grouped['Time'].dtype)
+        print("병합 전 비교 계획 Time 열 타입:", curr_grouped['Time'].dtype)
 
         # 이전 계획과 비교 계획 병합(중복없이)
         merged = pd.merge(
@@ -227,14 +217,6 @@ class PlanMaintenanceRate:
 
         # 수정 계획 집계
         curr_grouped = comparison_plan.groupby(['Line', 'Time', 'RMC'])['Qty'].sum().reset_index()
-
-        # 데이터 타입을 정수로 통일 (Time 열)
-        prev_grouped['Time'] = pd.to_numeric(prev_grouped['Time'], errors='coerce').fillna(0).astype(int)
-        curr_grouped['Time'] = pd.to_numeric(curr_grouped['Time'], errors='coerce').fillna(0).astype(int)
-        
-        # 병합 전 데이터 타입 확인 (디버깅용)
-        print("원본 계획 Time 열 타입:", prev_grouped['Time'].dtype)
-        print("비교 계획 Time 열 타입:", curr_grouped['Time'].dtype)
         
         # 이전 계획과 병합
         merged = pd.merge(
@@ -344,69 +326,3 @@ class PlanMaintenanceRate:
         return changed
         
     
-if __name__ == "__main__":
-    try:
-        # 파일 로드 (예시)
-        df_prev = pd.read_excel('app/ssafy_result_0408.xlsx')
-        df_current = pd.read_excel('app/ssafy_result_0408.xlsx')
-        
-        # 분석기 초기화
-        analyzer = PlanMaintenanceRate()
-
-        # 첫 번째 계획 여부
-        is_first_plan = True
-        analyzer.set_first_plan(is_first_plan)
-
-        # 2. 이전 계획 설정
-        analyzer.set_prev_plan(df_prev)
-        
-        # 3. 현재 계획 설정
-        analyzer.set_current_plan(df_current)
-
-        # 4. 계획 조정 예시 (필요 시)
-        #analyzer.update_quantity('I_01', 1, 'AB-P495W5ZJ825', 100, demand='AB-P495W5ZJ825U5')
-        #analyzer.update_quantity('I_01', 1, 'AB-P495W5QR295', 100, demand='AB-P495W5QR295U1')
-        
-        # 예시: 현재 계획과 이전 계획 비교 (조정 전)
-        if not is_first_plan:
-            print("현재 계획과 이전 계획의 비교 (조정 전):")
-            
-            # item별 유지율
-            item_rates_df, item_rate = analyzer.calculate_items_maintenance_rate(compare_with_adjusted=False)
-            if item_rate is not None:
-                print(f"item 별 유지율: {item_rate:.2f}%")
-                print(item_rates_df)
-            
-            # RMC별 유지율
-            rmc_rates_df, rmc_rate = analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted=False)
-            if rmc_rate is not None:
-                print(f"RMC별 유지율: {rmc_rate:.2f}%")
-                print(rmc_rates_df)
-        
-        # 예시: 조정된 계획과 이전 계획 비교 (조정 후)
-        print("\n조정된 계획과 이전 계획의 비교 (조정 후):")
-        
-        # item별 유지율 (조정 후)
-        #item_rates_adj_df, item_rate_adj = analyzer.calculate_items_maintenance_rate(compare_with_adjusted=True)
-        #if item_rate_adj is not None:
-        #    print(f"item 별 유지율 (조정 후): {item_rate_adj:.2f}%")
-        #    print(item_rates_adj_df)
-        
-        # RMC별 유지율 (조정 후)
-        #rmc_rates_adj_df, rmc_rate_adj = analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted=True)
-        #if rmc_rate_adj is not None:
-        #    print(f"RMC별 유지율 (조정 후): {rmc_rate_adj:.2f}%")
-        #    print(rmc_rates_adj_df)
-        
-        # 변경된 항목 확인
-        #if not is_first_plan:
-        #    changed_items = analyzer.get_changed_items(compare_with_adjusted=True)
-        #    print("\n변경된 항목:")
-        #    print(changed_items)
-
-    except FileNotFoundError:
-        print("파일을 찾을 수 없습니다.")
-    except Exception as e:
-        import traceback
-        print(f"오류 : {e}")
-        traceback.print_exc()

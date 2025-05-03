@@ -25,19 +25,19 @@ def create_button(text, style="primary", parent=None):
     )
     return btn
 
-class ProcessThread(QThread):
-    finished = pyqtSignal(pd.DataFrame)
+# class ProcessThread(QThread):
+#     finished = pyqtSignal(pd.DataFrame)
 
-    def __init__(self, df: pd.DataFrame):
-        super().__init__()
-        self.df = df
+#     def __init__(self, df: pd.DataFrame):
+#         super().__init__()
+#         self.df = df
 
-    # 테스트용(실제 처리 로직으로 교체)
-    def run(self):
-        import time
+#     # 테스트용(실제 처리 로직으로 교체)
+#     def run(self):
+#         import time
 
-        time.sleep(10)  # 테스트용 지연
-        self.finished.emit(self.df) # 테스트용 원본 데이터 반환
+#         time.sleep(10)  # 테스트용 지연
+#         self.finished.emit(self.df) # 테스트용 원본 데이터 반환
 
 class PlanningPage(QWidget):
     optimization_requested = pyqtSignal(dict)
@@ -175,48 +175,48 @@ class PlanningPage(QWidget):
 
         # 실행 버튼 비활성화
         self.btn_run.setEnabled(False)
-        self.btn_run.setText("")
+        self.btn_run.setText("Processing...")
         self.run_spinner.start()
 
-        # 최적화 알고리즘 실행
-        self._thread = ProcessThread(self.filtered_df)
-        self._thread.finished.connect(self._on_process_done)
-        self.btn_run.setStyleSheet("")
-        self._thread.start()
+        try:
+            # 최적화 알고리즘 직접 실행
+            optimizer = Optimizer()
+            results = optimizer.run_optimization({
+                'pre_assigned_df': self.filtered_df,
+                'selected_projects': list(self.selected_projects)
+            })
+            
+            # 결과를 결과 페이지로 전달
+            if hasattr(self.main_window, 'result_page'):
+                self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
+                self.main_window.navigate_to_page(2)
+            else:
+                self.optimization_requested.emit(results)
+                
+        except Exception as e:
+            QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {str(e)}")
+        finally:
+            # 실행 버튼 상태 복원
+            self.btn_run.setText("Run")
+            self.btn_run.setEnabled(True)
+            self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
-    def _on_process_done(self, result_df):
-        # 실행 버튼 활성화
-        self.run_spinner.stop()
-        self.btn_run.setIcon(QIcon())
+    # def _on_process_done(self, result_df):
+    #     # 실행 버튼 활성화
+    #     self.run_spinner.stop()
+    #     self.btn_run.setIcon(QIcon())
 
-        self.btn_run.setText("Run")
-        self.btn_run.setEnabled(True)
-        self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
+    #     self.btn_run.setText("Run")
+    #     self.btn_run.setEnabled(True)
+    #     self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
-        print(result_df)
+    #     print(result_df)
 
     def _update_run_icon(self):
         pix = self.run_spinner.currentPixmap()
         if not pix.isNull():
             self.btn_run.setIcon(QIcon(pix))
 
-        # 최적화 실행
-        optimizer = Optimizer()
-        results = optimizer.run_optimization({
-            'pre_assigned_df': self.filtered_df,
-            'selected_projects': list(self.selected_projects)
-        })
-
-        # 결과를 메인 윈도우의 결과 페이지로 전달
-        if hasattr(self.main_window, 'result_page'):
-            # 결과 페이지의 데이터 업데이트
-            self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
-            
-            # 결과 페이지로 이동
-            self.main_window.navigate_to_page(2)
-        else:
-            # 결과 페이지가 없는 경우 생성 또는 시그널 발생
-            self.optimization_requested.emit(results)
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):

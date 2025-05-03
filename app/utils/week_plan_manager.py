@@ -190,13 +190,13 @@ class WeeklyPlanManager:
         # 전체 경로
         file_path = os.path.join(week_folder, file_name)
 
-         # 계획 유지율 계산
-        plan_maintenance_rate = None
-        is_first_plan = True
+        #  # 계획 유지율 계산
+        # plan_maintenance_rate = None
+        # is_first_plan = True
         
-        if previous_plan and os.path.exists(previous_plan):
-            is_first_plan = False
-            plan_maintenance_rate = self._calculate_plan_maintenance(plan_df, previous_plan)
+        # if previous_plan and os.path.exists(previous_plan):
+        #     is_first_plan = False
+        #     plan_maintenance_rate = self._calculate_plan_maintenance(plan_df, previous_plan)
 
         # 엑셀 작성자 생성
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
@@ -232,47 +232,47 @@ class WeeklyPlanManager:
         return file_path
     
 
-    """계획 유지율 계산"""
-    def _calculate_plan_maintenance(self, current_df, previous_plan_path):
-        # Parameters:
-        #     current_df (DataFrame): 현재 계획 데이터
-        #     previous_plan_path (str): 이전 계획 파일 경로
+    # """계획 유지율 계산"""
+    # def _calculate_plan_maintenance(self, current_df, previous_plan_path):
+    #     # Parameters:
+    #     #     current_df (DataFrame): 현재 계획 데이터
+    #     #     previous_plan_path (str): 이전 계획 파일 경로
             
-        # Returns:
-        #     float: 계획 유지율 
+    #     # Returns:
+    #     #     float: 계획 유지율 
    
-        try:
-            # 이전 계획 데이터 로드
-            prev_df = pd.read_excel(previous_plan_path, sheet_name='Result')
+    #     try:
+    #         # 이전 계획 데이터 로드
+    #         prev_df = pd.read_excel(previous_plan_path, sheet_name='Result')
             
-            # 분석기 초기화
-            analyzer = PlanMaintenanceRate()
+    #         # 분석기 초기화
+    #         analyzer = PlanMaintenanceRate()
             
-            # 첫 번째 계획이 아님
-            analyzer.set_first_plan(False)
+    #         # 첫 번째 계획이 아닐 경우만
+    #         analyzer.set_first_plan(False)
             
-            # 이전 계획 설정
-            analyzer.set_original_plan(prev_df)
+    #         # 이전 계획 설정
+    #         analyzer.set_original_plan(prev_df)
             
-            # 현재 계획 설정
-            analyzer.set_current_plan(current_df)
+    #         # 현재 계획 설정
+    #         analyzer.set_current_plan(current_df)
             
-            # Item별 유지율 계산
-            _, item_rate = analyzer.calculate_items_maintenance_rate(compare_with_adjusted=False)
+    #         # Item별 유지율 계산
+    #         _, item_rate = analyzer.calculate_items_maintenance_rate(compare_with_adjusted=False)
             
-            # RMC별 유지율 계산
-            _, rmc_rate = analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted=False)
+    #         # RMC별 유지율 계산
+    #         _, rmc_rate = analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted=False)
             
-            return {
-                'item_rate': item_rate,
-                'rmc_rate': rmc_rate
-            }
-        except Exception as e:
-            print(f"계획 유지율 계산 오류: {e}")
-            return {
-                'item_rate': None,
-                'rmc_rate': None
-            }
+    #         return {
+    #             'item_rate': item_rate,
+    #             'rmc_rate': rmc_rate
+    #         }
+    #     except Exception as e:
+    #         print(f"계획 유지율 계산 오류: {e}")
+    #         return {
+    #             'item_rate': None,
+    #             'rmc_rate': None
+    #         }
     
 
 
