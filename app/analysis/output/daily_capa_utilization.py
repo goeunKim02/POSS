@@ -164,9 +164,9 @@ class CapaUtilization:
                     if 'Line' in new_data:
                         df.at[idx, 'Line'] = new_data['Line']
                         
-                    # 시간 정보 업데이트
+                    # 근무 정보 업데이트
                     if 'Time' in new_data:
-                        df.at[idx, 'Time'] = new_data['Time']
+                        df.at[idx, 'Time'] = int(new_data['Time'])
                         
                     # 수량 정보 업데이트
                     if 'Qty' in new_data:

@@ -21,7 +21,6 @@ class ResultPage(QWidget):
         super().__init__()
         self.main_window = main_window
         self.capa_ratio_data = None
-        self.result_data = None
         self.data_changed_count = 0
         self.utilization_data = None # 가동률 데이터 저장 변수
         self.result_data = None # 결과 데이터 저장 변수
@@ -271,7 +270,7 @@ class ResultPage(QWidget):
                 time = int(time) if time is not None else None
                 new_qty = int(float(new_qty)) if new_qty is not None else None
             except (ValueError, TypeError):
-                print(f"시간 또는 수량 변환 오류: time={time}, qty={qty}")
+                print(f"시간 또는 수량 변환 오류: time={time}, qty={new_qty}")
                 return
 
             if line is not None and time is not None and item is not None and new_qty is not None:
@@ -307,10 +306,23 @@ class ResultPage(QWidget):
                         is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
                             start_date, end_date
                         )
+
+                        # 조정된 계획이 있으면 해당 계획 사용, 없으면 현재 계획 사용
+                        export_data = None
+                        if hasattr(self, 'plan_maintenance_widget'):
+                            adjusted_plan = self.plan_maintenance_widget.get_adjusted_plan()
+                            if adjusted_plan is not None:
+                                export_data = adjusted_plan
+                                print("조정된 계획을 저장합니다.")
+                            else:
+                                export_data = self.left_section.data
+                                print("조정된 계획이 없어 현재 계획을 저장합니다.")
+                        else:
+                            export_data = self.left_section.data
                         
                         # 메타데이터와 함께 저장
                         saved_path = plan_manager.save_plan_with_metadata(
-                            self.left_section.data, start_date, end_date, previous_plan_path
+                            export_data, start_date, end_date, previous_plan_path
                         )
 
                         print(f"최종 결과가 메타데이터와 함께 저장되었습니다: {saved_path}")
@@ -457,77 +469,11 @@ class ResultPage(QWidget):
                 print("계획 유지율 위젯 업데이트 시작")
 
                 if hasattr(self, 'plan_maintenance_widget'):
-                    # 이전 계획 데이터 로드 시도 (아직 설정되지 않은 경우)
-                    if not hasattr(self, 'loaded_previous_plan'):
-                        self.loaded_previous_plan = True
-                        # 여기서 이전 계획을 로드하는 코드 필요
-                        try:
-                            # 주차 정보 가져오기
-                            start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                            plan_manager = WeeklyPlanManager()
-                            is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
-                                start_date, end_date
-                            )
-                            
-                            if not is_first_plan and previous_plan_path:
-                                print(f"이전 계획 파일 발견: {previous_plan_path}")
-                                # 이전 계획 파일 로드
-                                previous_plan_df = pd.read_excel(previous_plan_path)
-                                
-                                if not previous_plan_df.empty:
-                                    # 이전 계획 데이터 설정
-                                    success = self.plan_maintenance_widget.plan_analyzer.set_original_plan(previous_plan_df)
-                                    print(f"이전 계획 데이터 설정 {'성공' if success else '실패'}")
-                                    self.plan_maintenance_widget.plan_analyzer.set_first_plan(False)
-                                else:
-                                    print("이전 계획 파일이 비어있습니다")
-                                    self.plan_maintenance_widget.plan_analyzer.set_first_plan(True)
-                            else:
-                                print("이전 계획 파일이 없습니다. 첫 번째 계획으로 간주합니다.")
-                                self.plan_maintenance_widget.plan_analyzer.set_first_plan(True)
-                                # 첫 실행이라면 현재 데이터를 이전 계획으로도 설정
-                                self.plan_maintenance_widget.plan_analyzer.set_original_plan(data.copy())
-                        except Exception as e:
-                            print(f"이전 계획 로드 중 오류: {str(e)}")
-                            # 오류 발생 시 현재 데이터를 이전 계획으로 설정
-                            self.plan_maintenance_widget.plan_analyzer.set_original_plan(data.copy())
-                            self.plan_maintenance_widget.plan_analyzer.set_first_plan(False)
+                    # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
+                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
                     
-                    # 현재 계획 데이터 항상 업데이트
-                    self.plan_maintenance_widget.plan_analyzer.set_current_plan(data)
-                    
-                    print("유지율 계산 시작")
-                    # 실제 유지율 계산 및 트리 위젯 업데이트
-                    item_df, item_rate = self.plan_maintenance_widget.plan_analyzer.calculate_items_maintenance_rate()
-                    rmc_df, rmc_rate = self.plan_maintenance_widget.plan_analyzer.calculate_rmc_maintenance_rate()
-                    
-                    print(f"Item별 유지율 계산 결과: {item_rate}")
-                    print(f"RMC별 유지율 계산 결과: {rmc_rate}")
-                    
-                    # 유지율 설정
-                    self.plan_maintenance_widget.item_maintenance_rate = item_rate if item_rate is not None else 0.0
-                    self.plan_maintenance_widget.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
-                    
-                    # 트리 위젯 업데이트
-                    print(f"트리 위젯 업데이트 시작 - Item: {len(item_df) if item_df is not None else '없음'}, RMC: {len(rmc_df) if rmc_df is not None else '없음'}")
-                    self.plan_maintenance_widget.item_tree.clear()
-                    self.plan_maintenance_widget.rmc_tree.clear()
-                    
-                    if item_df is not None and not item_df.empty:
-                        self.plan_maintenance_widget.setup_item_tree(item_df)
-                        print(f"Item별 유지율: {self.plan_maintenance_widget.item_maintenance_rate:.2f}%")
-                    else:
-                        print("Item별 유지율 데이터가 없습니다.")
-                    
-                    if rmc_df is not None and not rmc_df.empty:
-                        self.plan_maintenance_widget.setup_rmc_tree(rmc_df)
-                        print(f"RMC별 유지율: {self.plan_maintenance_widget.rmc_maintenance_rate:.2f}%")
-                    else:
-                        print("RMC별 유지율 데이터가 없습니다.")
-                    
-                    # 선택된 탭에 따라 유지율 레이블 업데이트
-                    self.plan_maintenance_widget.update_rate_label(self.plan_maintenance_widget.tab_widget.currentIndex())
-                    
+                    # 한 번에 데이터 설정 (자동으로 이전 계획 감지 및 로드)
+                    self.plan_maintenance_widget.set_data(data, start_date, end_date)
                     print("계획 유지율 위젯 데이터 업데이트 완료")
 
                 # Capa 비율 분석
@@ -580,8 +526,21 @@ class ResultPage(QWidget):
 
                     # 시각화 업데이트
                     self.update_all_visualizations()
-                    
+
                     # print(f"업데이트된 분석 결과: {self.capa_ratio_data}")
+
+                    # Plan 탭의 계획 유지율 위젯 업데이트
+                    if hasattr(self, 'plan_maintenance_widget'):
+                        # 필요한 데이터 추출
+                        line = new_data.get('Line')
+                        time = new_data.get('Time')
+                        item = new_data.get('Item')
+                        qty = new_data.get('Qty')
+                        demand = new_data.get('Demand', None)
+                        
+                        # 값이 있으면 수량 업데이트
+                        if line and time is not None and item and qty is not None:
+                            self.plan_maintenance_widget.update_quantity(line, time, item, qty, demand)
         
         except Exception as e:
             print(f"셀 이동 처리 중 오류 발생: {e}")

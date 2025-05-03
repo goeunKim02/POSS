@@ -10,7 +10,7 @@ import numpy as np
 """
 class PlanMaintenanceRate:
     def __init__(self):
-        self.original_plan = None # 초기 계획
+        self.prev_plan = None # 초기 계획
         self.current_plan = None # 현재 계획(새로 수정한 계획)
         self.adjusted_plan = None # 조정 후 계획
         self.is_first_plan = True # 첫번째 계획 여부
@@ -24,7 +24,7 @@ class PlanMaintenanceRate:
         return True
     
     """초기 계획 설정"""
-    def set_original_plan(self, plan_data):
+    def set_prev_plan(self, plan_data):
         # Parameters:
         #     plan_data (DataFrame) : 생산계획 결과 데이터
 
@@ -34,7 +34,7 @@ class PlanMaintenanceRate:
         if plan_data is None or plan_data.empty:
             return False
         
-        self.original_plan = plan_data.copy()
+        self.prev_plan = plan_data.copy()
         self.current_plan = plan_data.copy()
         return True
     
@@ -75,9 +75,9 @@ class PlanMaintenanceRate:
             
         # 입력 값 문자열로 변환
         line = str(line)
-        time = str(time)
+        time = time
         item = str(item)
-        new_qty = str(new_qty)
+        new_qty = new_qty
         if demand is not None:
             demand = str(demand)
         
@@ -123,7 +123,7 @@ class PlanMaintenanceRate:
         if self.is_first_plan and not compare_with_adjusted:
             return pd.DataFrame(), None
         
-        if self.original_plan is None:
+        if self.prev_plan is None:
             return pd.DataFrame(), None
         
         # 비교 대상 결정
@@ -138,48 +138,56 @@ class PlanMaintenanceRate:
                 return pd.DataFrame(), None
             comparison_plan = self.current_plan
         
-        # 원본 계획 집계
-        orig_grouped = self.original_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
+        # 이전 계획 집계
+        prev_grouped = self.prev_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
 
         # 비교할 계획 집계 
         curr_grouped = comparison_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
 
+        # 데이터 타입을 정수로 통일 (Time 열)
+        prev_grouped['Time'] = pd.to_numeric(prev_grouped['Time'], errors='coerce').fillna(0).astype(int)
+        curr_grouped['Time'] = pd.to_numeric(curr_grouped['Time'], errors='coerce').fillna(0).astype(int)
+        
+        # 병합 전 데이터 타입 확인 (디버깅용)
+        print("원본 계획 Time 열 타입:", prev_grouped['Time'].dtype)
+        print("비교 계획 Time 열 타입:", curr_grouped['Time'].dtype)
+
         # 이전 계획과 비교 계획 병합(중복없이)
         merged = pd.merge(
-            orig_grouped,
+            prev_grouped,
             curr_grouped,
             on=['Line', 'Time', 'Item'],
             how='outer', # 외부 병합으로 모든 항목 포함
-            suffixes=('_orig', '_curr')
+            suffixes=('_prev', '_curr')
         )
 
         # 유지 수량 계산
-        merged['maintenance'] = merged.apply(lambda x: min(x['Qty_orig'], x['Qty_curr']), axis=1)
+        merged['maintenance'] = merged.apply(lambda x: min(x['Qty_prev'], x['Qty_curr']), axis=1)
 
         # 필드명 수정
         result_df = merged.rename(columns={
             'Line': 'Line',
             'Time': 'Shift',
             'Item': 'Item',
-            'Qty_orig': 'pre_plan',
-            'Qty_curr': 'post_plan'
+            'Qty_prev': 'prev_plan',
+            'Qty_curr': 'curr_plan'
         })
 
         # 합계 계산
-        pre_plan_sum = result_df['pre_plan'].sum()
-        post_plan_sum = result_df['post_plan'].sum()
+        prev_plan_sum = result_df['prev_plan'].sum()
+        curr_plan_sum = result_df['curr_plan'].sum()
         maintenance_sum = result_df['maintenance'].sum()
 
         # 유지율 계산
-        maintenance_rate = (maintenance_sum / pre_plan_sum) * 100 if pre_plan_sum > 0 else 0
+        maintenance_rate = (maintenance_sum / prev_plan_sum) * 100 if prev_plan_sum > 0 else 0
         
         # Total 행 추가
         total_row = {
             'Line': 'Total',
             'Shift': '',
             'Item': '',
-            'pre_plan': pre_plan_sum,
-            'post_plan': post_plan_sum,
+            'prev_plan': prev_plan_sum,
+            'curr_plan': curr_plan_sum,
             'maintenance': maintenance_sum
         }
 
@@ -199,7 +207,7 @@ class PlanMaintenanceRate:
         if self.is_first_plan and not compare_with_adjusted:
             return pd.DataFrame(), None
             
-        if self.original_plan is None:
+        if self.prev_plan is None:
             return pd.DataFrame(), None
             
         # 비교 대상 결정
@@ -215,46 +223,54 @@ class PlanMaintenanceRate:
             comparison_plan = self.current_plan
         
         # 원본 계획 집계
-        orig_grouped = self.original_plan.groupby(['Line', 'Time', 'RMC'])['Qty'].sum().reset_index()
+        prev_grouped = self.prev_plan.groupby(['Line', 'Time', 'RMC'])['Qty'].sum().reset_index()
 
         # 수정 계획 집계
         curr_grouped = comparison_plan.groupby(['Line', 'Time', 'RMC'])['Qty'].sum().reset_index()
+
+        # 데이터 타입을 정수로 통일 (Time 열)
+        prev_grouped['Time'] = pd.to_numeric(prev_grouped['Time'], errors='coerce').fillna(0).astype(int)
+        curr_grouped['Time'] = pd.to_numeric(curr_grouped['Time'], errors='coerce').fillna(0).astype(int)
+        
+        # 병합 전 데이터 타입 확인 (디버깅용)
+        print("원본 계획 Time 열 타입:", prev_grouped['Time'].dtype)
+        print("비교 계획 Time 열 타입:", curr_grouped['Time'].dtype)
         
         # 이전 계획과 병합
         merged = pd.merge(
-            orig_grouped,
+            prev_grouped,
             curr_grouped,
             on=['Line', 'Time', 'RMC'],
             how='outer',
-            suffixes=('_orig', '_curr')
+            suffixes=('_prev', '_curr')
         )
 
         # 유지 수량 계산
-        merged['maintenance'] = merged.apply(lambda x: min(x['Qty_orig'], x['Qty_curr']), axis=1)
+        merged['maintenance'] = merged.apply(lambda x: min(x['Qty_prev'], x['Qty_curr']), axis=1)
 
         result_df = merged.rename(columns={
             'Line': 'Line',
             'Time': 'Shift',
             'RMC': 'RMC',
-            'Qty_orig': 'pre_plan',
-            'Qty_curr': 'post_plan'
+            'Qty_prev': 'prev_plan',
+            'Qty_curr': 'curr_plan'
         })
        
         # 합계
-        pre_plan_sum = result_df['pre_plan'].sum()
-        post_plan_sum = result_df['post_plan'].sum()
+        prev_plan_sum = result_df['prev_plan'].sum()
+        curr_plan_sum = result_df['curr_plan'].sum()
         maintenance_sum = result_df['maintenance'].sum()
 
         # RMC별 유지율 계산
-        maintenance_rate = (maintenance_sum / pre_plan_sum) * 100 if pre_plan_sum > 0 else 0
+        maintenance_rate = (maintenance_sum / prev_plan_sum) * 100 if prev_plan_sum > 0 else 0
 
         # Total 행 추가
         total_row = {
             'Line': 'Total',
             'Shift': '',
             'RMC': '',
-            'pre_plan': pre_plan_sum,
-            'post_plan': post_plan_sum,
+            'prev_plan': prev_plan_sum,
+            'curr_plan': curr_plan_sum,
             'maintenance': maintenance_sum
         }
 
@@ -273,10 +289,10 @@ class PlanMaintenanceRate:
         return self.adjusted_plan.copy() if self.adjusted_plan is not None else None
     
     """ 원본 복원 """
-    def reset_to_original(self):
-        if self.original_plan is not None:
-            self.current_plan = self.original_plan.copy()
-            self.adjusted_plan = self.original_plan.copy()
+    def reset_to_prev(self):
+        if self.prev_plan is not None:
+            self.current_plan = self.prev_plan.copy()
+            self.adjusted_plan = self.prev_plan.copy()
             return True
         
         return False
@@ -297,7 +313,7 @@ class PlanMaintenanceRate:
         # Returns:
         #     DataFrame: 변경된 항목 목록
         
-        if self.original_plan is None:
+        if self.prev_plan is None:
             return pd.DataFrame()
         
         # 비교 대상 결정
@@ -311,20 +327,20 @@ class PlanMaintenanceRate:
             comparison_plan = self.current_plan
         
         # 집계 후 비교
-        orig_grouped = self.original_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
+        prev_grouped = self.prev_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
         curr_grouped = comparison_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
         
         # 병합
         merged = pd.merge(
-            orig_grouped, 
+            prev_grouped, 
             curr_grouped,
             on=['Line', 'Time', 'Item'],
             how='outer',
-            suffixes=('_orig', '_curr')
+            suffixes=('_prev', '_curr')
         )
         
         # 변경된 항목 필터링
-        changed = merged[merged['Qty_orig'] != merged['Qty_curr']]
+        changed = merged[merged['Qty_prev'] != merged['Qty_curr']]
         return changed
         
     
@@ -342,7 +358,7 @@ if __name__ == "__main__":
         analyzer.set_first_plan(is_first_plan)
 
         # 2. 이전 계획 설정
-        analyzer.set_original_plan(df_prev)
+        analyzer.set_prev_plan(df_prev)
         
         # 3. 현재 계획 설정
         analyzer.set_current_plan(df_current)
