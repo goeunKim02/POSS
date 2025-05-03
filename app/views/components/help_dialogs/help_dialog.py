@@ -1,6 +1,6 @@
 # help_dialog.py - 메인 다이얼로그 클래스
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt, QFile, QTextStream
 
 # 분리된 탭 컴포넌트 import
@@ -61,19 +61,39 @@ class HelpDialog(QDialog):
         result_tab = ResultTabComponent()
 
         # 탭 추가
-        tab_widget.addTab(overview_tab, "개요")
-        tab_widget.addTab(data_input_tab, "데이터 입력")
-        tab_widget.addTab(planning_tab, "계획 수립")
-        tab_widget.addTab(result_tab, "결과 분석")
+        tab_widget.addTab(overview_tab, "OverView")
+        tab_widget.addTab(data_input_tab, "Data Input")
+        tab_widget.addTab(planning_tab, "Pre-Assigned")
+        tab_widget.addTab(result_tab, "Results")
 
         # 버튼 레이아웃
-        button_layout = QHBoxLayout()
-        close_button = QPushButton("닫기")
+        button_frame = QFrame()
+        button_frame.setStyleSheet("background-color: #F5F5F5; border: none;")
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, 0, 50, 20)
+
+        close_button = QPushButton("Close")
+        close_button_font = QFont("Arial", 14)
+        close_button_font.setBold(True)
+        close_button.setFont(close_button_font)
+        close_button.setStyleSheet("""
+        QPushButton {
+            background-color: #228B22;
+            border: none;
+            color: white;
+        }
+        QPushButton:hover {
+            background-color: #228B22;
+            border: none;
+            color: yellow;
+        }
+        """)
+        close_button.setCursor(QCursor(Qt.PointingHandCursor))
         close_button.clicked.connect(self.accept)  # 다이얼로그 닫기
+
         button_layout.addStretch(1)
         button_layout.addWidget(close_button)
 
-        # # 메인 레이아웃에 위젯 추가
-        # main_layout.addWidget(title_label)
+        # 메인 레이아웃에 위젯 추가
         main_layout.addWidget(tab_widget)
-        main_layout.addLayout(button_layout)
+        main_layout.addWidget(button_frame)  # addLayout에서 addWidget으로 수정
