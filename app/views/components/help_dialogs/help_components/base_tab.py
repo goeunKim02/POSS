@@ -16,6 +16,7 @@ class BaseTabComponent(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QScrollArea.NoFrame)
+        self.scroll_area.setStyleSheet("background-color:#F9F9F9; border-radius:10px;")
 
         # 스크롤 내용을 담을 위젯
         self.content_widget = QWidget()

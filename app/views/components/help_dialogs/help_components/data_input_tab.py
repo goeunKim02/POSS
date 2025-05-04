@@ -14,12 +14,26 @@ class DataInputTabComponent(BaseTabComponent):
 
     def init_content(self):
         """콘텐츠 초기화"""
+        self.content_frame = QFrame()
+        self.content_frame.setStyleSheet("""
+                   QFrame {
+                       background-color: #F9F9F9;
+                       border-radius: 10px;
+                       border: 1px solid #cccccc;
+                       margin: 10px;
+                   }
+               """)
+
+        frame_layout = QVBoxLayout(self.content_frame)
+        frame_layout.setContentsMargins(20, 20, 20, 20)
+        frame_layout.setSpacing(15)
+
         # 제목 레이블 생성
-        title_label = QLabel("데이터 입력 사용법")
+        title_label = QLabel("Data Entry Guidelines")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
-        title_label.setStyleSheet("color: #1428A0; padding-bottom: 10px; border-bottom: 2px solid #1428A0;")
+        title_label.setStyleSheet("color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent;")
         title_label.setMinimumHeight(40)
 
         # 1. 날짜 범위 선택 섹션
@@ -130,10 +144,12 @@ class DataInputTabComponent(BaseTabComponent):
         section5_layout.addWidget(section5_desc)
 
         # 메인 레이아웃에 위젯 추가
-        self.content_layout.addWidget(title_label)
-        self.content_layout.addWidget(section1_frame)
-        self.content_layout.addWidget(section2_frame)
-        self.content_layout.addWidget(section3_frame)
-        self.content_layout.addWidget(section4_frame)
-        self.content_layout.addWidget(section5_frame)
-        self.content_layout.addStretch(1)  # 하단 여백용 스트레치 추가
+        frame_layout.addWidget(title_label)
+        frame_layout.addWidget(section1_frame)
+        frame_layout.addWidget(section2_frame)
+        frame_layout.addWidget(section3_frame)
+        frame_layout.addWidget(section4_frame)
+        frame_layout.addWidget(section5_frame)
+        frame_layout.addStretch(1)  # 하단 여백용 스트레치 추가
+
+        self.content_layout.addWidget(self.content_frame)
