@@ -94,7 +94,7 @@ class PlanMaintenanceRate:
         if demand is not None and 'Demand' in self.adjusted_plan.columns:
             mask = mask & (self.adjusted_plan['Demand'] == demand)
 
-        # 수량 업데이트
+        # 일치하는 행이 있으면 수량 업데이트
         if mask.any():
             affected_rows = mask.sum()
             print(f"업데이트 할 행 수: {affected_rows}")
@@ -102,8 +102,30 @@ class PlanMaintenanceRate:
             self.adjusted_plan.loc[mask, 'Qty'] = new_qty
             return True
         else:
-            print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
-            return False
+            # 동일한 아이템의 다른 위치 행 찾기
+            same_item_mask = self.adjusted_plan['Item'] == item
+            
+            if same_item_mask.any():
+                # 기존 행 찾기
+                old_row = self.adjusted_plan[same_item_mask].iloc[0].copy()
+
+                # 새 위치와 수량 정보로 복사본 생성
+                new_row = old_row.copy()
+                new_row['Line'] = line
+                new_row['Time'] = time
+                new_row['Qty'] = new_qty
+
+                # 기존 행 삭제
+                self.adjusted_plan = self.adjusted_plan[~same_item_mask]
+
+                # 새 행 추가
+                self.adjusted_plan = pd.concat([self.adjusted_plan, pd.DataFrame([new_row], index=[0])], ignore_index=True)
+                
+                print(f"아이템 이동 완료: {item}을(를) 삭제 후 {line},{time}에 추가")
+                return True
+            
+        print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
+        return False
         
     """item별 유지율 계산 및 테이블 생성"""
     def calculate_items_maintenance_rate(self, compare_with_adjusted=False):
@@ -264,22 +286,22 @@ class PlanMaintenanceRate:
     def get_adjusted_plan(self):
         return self.adjusted_plan.copy() if self.adjusted_plan is not None else None
     
-    """ 원본 복원 """
-    def reset_to_prev(self):
-        if self.prev_plan is not None:
-            self.current_plan = self.prev_plan.copy()
-            self.adjusted_plan = self.prev_plan.copy()
-            return True
+    # """ 원본 복원 """
+    # def reset_to_prev(self):
+    #     if self.prev_plan is not None:
+    #         self.current_plan = self.prev_plan.copy()
+    #         self.adjusted_plan = self.prev_plan.copy()
+    #         return True
         
-        return False
+    #     return False
     
-    """조정 사항 초기화 (현재 계획으로 복원)"""
-    def reset_adjustments(self):
-        if self.current_plan is not None:
-            self.adjusted_plan = self.current_plan.copy()
-            return True
+    # """조정 사항 초기화 (현재 계획으로 복원)"""
+    # def reset_adjustments(self):
+    #     if self.current_plan is not None:
+    #         self.adjusted_plan = self.current_plan.copy()
+    #         return True
         
-        return False
+    #     return False
     
     """수량 변경된 항목 확인"""
     def get_changed_items(self, compare_with_adjusted=False):        

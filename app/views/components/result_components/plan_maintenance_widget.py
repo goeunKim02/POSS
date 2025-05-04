@@ -22,6 +22,7 @@ class PlanMaintenanceWidget(QWidget):
                 border: none;
             }
         """)
+        self.modified_item_keys = set()  # 수정된 아이템 키 추적
         self.init_ui()
 
     def init_ui(self):
@@ -56,25 +57,25 @@ class PlanMaintenanceWidget(QWidget):
         self.select_plan_btn.clicked.connect(self.select_previous_plan)
 
         # 원래 계획으로 초기화 버튼
-        self.reset_btn = QPushButton("Reset to Original")
-        self.reset_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        self.reset_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #6c757d; 
-                color: white; 
-                border: none;
-                border-radius: 5px;
-                padding: 8px 15px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-            QPushButton:pressed {
-                background-color: #545b62;
-            }
-        """)
-        self.reset_btn.clicked.connect(self.reset_to_original)
+        # self.reset_btn = QPushButton("Reset to Original")
+        # self.reset_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        # self.reset_btn.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #6c757d; 
+        #         color: white; 
+        #         border: none;
+        #         border-radius: 5px;
+        #         padding: 8px 15px;
+        #         font-weight: bold;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #5a6268;
+        #     }
+        #     QPushButton:pressed {
+        #         background-color: #545b62;
+        #     }
+        # """)
+        # self.reset_btn.clicked.connect(self.reset_to_original)
 
          # 이전 계획 상태 레이블
         self.plan_status_label = QLabel("No previous plan loaded")
@@ -82,7 +83,7 @@ class PlanMaintenanceWidget(QWidget):
 
         # 버튼 레이아웃에 추가
         button_layout.addWidget(self.select_plan_btn)
-        button_layout.addWidget(self.reset_btn)
+        # button_layout.addWidget(self.reset_btn)
         button_layout.addStretch(1)
         button_layout.addWidget(self.plan_status_label)
 
@@ -133,7 +134,7 @@ class PlanMaintenanceWidget(QWidget):
                 border-radius: 8px;
             }
             QTabBar::tab:selected {
-                background-color: #F5F5F5;
+                background-color: #FFFFFF;
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
@@ -446,9 +447,29 @@ class PlanMaintenanceWidget(QWidget):
                 child_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
+
+                 # 이 위치에 해당하는 수정 기록이 있는지 확인
+                item = item_data['item']
+                line = group_data['line']
+                shift = group_data['shift']
+                
+                # 이 위치의 모든 demand에 대해 수정 여부 확인
+                is_modified = False
+                for key in self.modified_item_keys:
+                    parts = key.split('_')
+                    if len(parts) >= 4:
+                        # 라인 코드가 두 부분(I_01)일 수 있는 경우 처리
+                        key_line = f"{parts[0]}_{parts[1]}" if parts[0] in ["I", "D", "K", "M"] else parts[0]
+                        key_shift = parts[2]
+                        key_item = parts[3]
+
+                        if key_line == line and key_shift == shift and key_item == item:
+                            print(f"매치 발견: 키={key}, 검색 위치={line}_{shift}_{item}")
+                            is_modified = True
+                            break
                 
                 # 변경 여부에 따라 스타일 적용
-                if item_data['prev_plan'] != item_data['curr_plan']:
+                if is_modified:
                     # 변경된 경우 볼드체로 표시
                     font = child_item.font(4)
                     font.setBold(True)
@@ -762,6 +783,10 @@ class PlanMaintenanceWidget(QWidget):
             return False
         
         print(f"PlanMaintenanceWidget: 수량 업데이트 - {line}, {time}, {item}, {new_qty}, {demand}")
+
+        # 아이템 키
+        item_key = item_key = f"{line}_{time}_{item}_{demand}"
+        self.modified_item_keys.add(item_key)
         
         # 수량 업데이트 
         success = self.plan_analyzer.update_quantity(line, time, item, new_qty, demand)
@@ -817,26 +842,26 @@ class PlanMaintenanceWidget(QWidget):
         return self.plan_analyzer.get_adjusted_plan()
     
     
-    """원본 계획으로 초기화"""
-    def reset_to_original(self):
-        if self.plan_analyzer is None:
-            return False
+    # """원본 계획으로 초기화(조정 복원)"""
+    # def reset_to_original(self):
+    #     if self.plan_analyzer is None:
+    #         return False
         
-        success = self.plan_analyzer.reset_to_prev()
+    #     success = self.plan_analyzer.reset_adjustments()
         
-        if success:
-            self.refresh_maintenance_rate()
-            QMessageBox.information(
-                self, 
-                "초기화 성공", 
-                "계획이 원본 상태로 초기화되었습니다."
-            )
+    #     if success:
+    #         self.refresh_maintenance_rate()
+    #         QMessageBox.information(
+    #             self, 
+    #             "초기화 성공", 
+    #             "계획이 원본 상태로 초기화되었습니다."
+    #         )
 
-            return True
-        else:
-            QMessageBox.warning(
-                self, 
-                "초기화 실패", 
-                "원본 계획이 없어 초기화할 수 없습니다."
-            )
-            return False
+    #         return True
+    #     else:
+    #         QMessageBox.warning(
+    #             self, 
+    #             "초기화 실패", 
+    #             "원본 계획이 없어 초기화할 수 없습니다."
+    #         )
+    #         return False
