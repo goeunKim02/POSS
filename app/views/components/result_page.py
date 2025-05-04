@@ -290,77 +290,85 @@ class ResultPage(QWidget):
     """최종 최적화 결과를 파일로 내보내는 메서드"""
     def export_results(self):
         try:
-            file_path = QFileDialog.getExistingDirectory(
-            self, "결과 저장 디렉토리 선택", "data/export"
-            )
+            # file_path = QFileDialog.getExistingDirectory(
+            # self, "결과 저장 디렉토리 선택", ""
+            # )
 
-            if file_path:
-                # 데이터가 있는지 확인
-                if hasattr(self, 'left_section') and hasattr(self.left_section,
-                                                             'data') and self.left_section.data is not None:
-                    try:
-                        plan_manager = WeeklyPlanManager(output_dir=file_path)
-                         # 날짜 범위 가져오기
-                        start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                        
-                        # 이전 계획 감지
-                        is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
-                            start_date, end_date
-                        )
+            # 바탕화면 경로 가져오기 (OS에 관계없이 작동)
+            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+            
+            # Windows에서는 '바탕 화면'일 수도 있음
+            if not os.path.exists(desktop_path) and os.name == 'nt':
+                # 한글 Windows의 경우
+                desktop_path = os.path.join(os.path.expanduser("~"), "바탕 화면")
+        
+            # if file_path:
+            # 데이터가 있는지 확인
+            if hasattr(self, 'left_section') and hasattr(self.left_section,
+                                                            'data') and self.left_section.data is not None:
+                try:
+                    plan_manager = WeeklyPlanManager(output_dir=desktop_path)
+                        # 날짜 범위 가져오기
+                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                    
+                    # 이전 계획 감지
+                    is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
+                        start_date, end_date
+                    )
 
-                        # 조정된 계획이 있으면 해당 계획 사용, 없으면 현재 계획 사용
-                        export_data = None
-                        if hasattr(self, 'plan_maintenance_widget'):
-                            adjusted_plan = self.plan_maintenance_widget.get_adjusted_plan()
-                            if adjusted_plan is not None:
-                                export_data = adjusted_plan
-                                print("조정된 계획을 저장합니다.")
-                            else:
-                                export_data = self.left_section.data
-                                print("조정된 계획이 없어 현재 계획을 저장합니다.")
+                    # 조정된 계획이 있으면 해당 계획 사용, 없으면 현재 계획 사용
+                    export_data = None
+                    if hasattr(self, 'plan_maintenance_widget'):
+                        adjusted_plan = self.plan_maintenance_widget.get_adjusted_plan()
+                        if adjusted_plan is not None:
+                            export_data = adjusted_plan
+                            print("조정된 계획을 저장합니다.")
                         else:
                             export_data = self.left_section.data
-                        
-                        # 메타데이터와 함께 저장
-                        saved_path = plan_manager.save_plan_with_metadata(
-                            export_data, start_date, end_date, previous_plan_path
-                        )
-
-                        print(f"최종 결과가 메타데이터와 함께 저장되었습니다: {saved_path}")
-                        print(message)
-
-                        # 사용자에게 성공 메시지 표시
-                        QMessageBox.information(
-                            self, 
-                            "내보내기 성공", 
-                            f"파일이 성공적으로 저장되었습니다:\n{saved_path}\n\n{message}"
-                        )
-
-                        # 시그널 발생
-                        self.export_requested.emit(saved_path)
-                    except Exception as e:
-                        print(f"파일 저장 오류: {e}")
-                        # 기본 저장 경로 생성
-                        default_filename = f"Result_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                        fallback_path = os.path.join(file_path, default_filename)
-                        
-                        # 기존 저장 방식으로 폴백
-                        self.left_section.data.to_excel(fallback_path, index=False)
-                        QMessageBox.information(
-                            self, 
-                            "내보내기 성공", 
-                            f"파일이 성공적으로 저장되었습니다:\n{fallback_path}\n(메타데이터 없음)"
-                        )
-                        
-                        # 시그널 발생
-                        self.export_requested.emit(fallback_path)
-                else:
-                    print("내보낼 데이터가 없습니다.")
-                    QMessageBox.warning(
-                        self, 
-                        "내보내기 실패", 
-                        "내보낼 데이터가 없습니다."
+                            print("조정된 계획이 없어 현재 계획을 저장합니다.")
+                    else:
+                        export_data = self.left_section.data
+                    
+                    # 메타데이터와 함께 저장
+                    saved_path = plan_manager.save_plan_with_metadata(
+                        export_data, start_date, end_date, previous_plan_path
                     )
+
+                    print(f"최종 결과가 메타데이터와 함께 바탕화면에 저장되었습니다: {saved_path}")
+                    print(message)
+
+                    # 사용자에게 성공 메시지 표시
+                    QMessageBox.information(
+                        self, 
+                        "내보내기 성공", 
+                        f"파일이 바탕화면에 저장되었습니다:\n{saved_path}\n\n{message}"
+                    )
+
+                    # 시그널 발생
+                    self.export_requested.emit(saved_path)
+                except Exception as e:
+                    print(f"파일 저장 오류: {e}")
+                    # 기본 저장 경로 생성
+                    default_filename = f"Result_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                    fallback_path = os.path.join(desktop_path, default_filename)
+                    
+                    # 기존 저장 방식으로 폴백
+                    self.left_section.data.to_excel(fallback_path, index=False)
+                    QMessageBox.information(
+                        self, 
+                        "내보내기 성공", 
+                        f"파일이 바탕화면에 저장되었습니다:\n{fallback_path}\n(메타데이터 없음)"
+                    )
+                    
+                    # 시그널 발생
+                    self.export_requested.emit(fallback_path)
+            else:
+                print("내보낼 데이터가 없습니다.")
+                QMessageBox.warning(
+                    self, 
+                    "내보내기 실패", 
+                    "내보낼 데이터가 없습니다."
+                )
 
         except Exception as e:
             print(f"Export 과정에서 오류 발생: {str(e)}")
