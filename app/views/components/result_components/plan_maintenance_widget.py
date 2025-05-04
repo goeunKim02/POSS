@@ -626,9 +626,34 @@ class PlanMaintenanceWidget(QWidget):
                 child_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
+
+                # 이 위치에 해당하는 수정 기록이 있는지 확인
+                rmc = item_data['rmc']
+                line = group_data['line']
+                shift = group_data['shift']
+                
+                # 이 위치의 모든 demand에 대해 수정 여부 확인
+                is_modified = False
+                for key in self.modified_item_keys:
+                        parts = key.split('_')
+                        if len(parts) >= 4:
+                            key_line = f"{parts[0]}_{parts[1]}" if parts[0] in ["I", "D", "K", "M"] else parts[0]
+                            key_shift = parts[2]
+                            key_item = parts[3]
+                            
+                            print(f"라인={key_line}, 시프트={key_shift}, 아이템={key_item}")
+                            item_rmc = key_item[3:-3] if len(key_item) > 6 else key_item
+
+                            print(f"추출된 RMC: {item_rmc}, 비교할 RMC: {rmc}")
+                            
+                            # RMC가 일치하는지 확인 (부분 문자열 일치도 고려)
+                            if item_rmc and (item_rmc == rmc or rmc in item_rmc or item_rmc in rmc):
+                                print(f"RMC 매치 발견: 키={key}, RMC={rmc}")
+                                is_modified = True
+                                break
                 
                 # 변경 여부에 따라 스타일 적용
-                if item_data['prev_plan'] != item_data['curr_plan']:
+                if is_modified:
                     # 변경된 경우 볼드체로 표시
                     font = child_item.font(4)
                     font.setBold(True)
@@ -841,27 +866,3 @@ class PlanMaintenanceWidget(QWidget):
             return None
         return self.plan_analyzer.get_adjusted_plan()
     
-    
-    # """원본 계획으로 초기화(조정 복원)"""
-    # def reset_to_original(self):
-    #     if self.plan_analyzer is None:
-    #         return False
-        
-    #     success = self.plan_analyzer.reset_adjustments()
-        
-    #     if success:
-    #         self.refresh_maintenance_rate()
-    #         QMessageBox.information(
-    #             self, 
-    #             "초기화 성공", 
-    #             "계획이 원본 상태로 초기화되었습니다."
-    #         )
-
-    #         return True
-    #     else:
-    #         QMessageBox.warning(
-    #             self, 
-    #             "초기화 실패", 
-    #             "원본 계획이 없어 초기화할 수 없습니다."
-    #         )
-    #         return False
