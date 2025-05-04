@@ -145,16 +145,19 @@ class WeeklyPlanManager:
                     })
 
         if not week_info or not week_plans:
-            return True, None, f"First Plan ({week_info}) - No maintenance rate comparison"
+            return True, None, f"No maintenance rate comparison"
         
         # 시간순 정렬
         week_plans.sort(key=lambda x: x["mod_time"], reverse=True)
         
         # 가장 최근 계획 반환
-        prev_plan = week_plans[0]
-        return False, prev_plan["path"], f"Comparing with previous plan ({prev_plan['week']}, {prev_plan['mod_time']})"
-    
-        
+        if len(week_plans) >= 2:
+            prev_plan = week_plans[0]
+            return False, prev_plan["path"], f"Comparing with previous plan ({prev_plan['week']}, {prev_plan['mod_time']})"
+        else:
+            # 첫 계획인 경우
+            return True, None, f"No previous plan to compare"
+
 
     """계획 데이터 저장 및 메타데이터 추가"""
     def save_plan_with_metadata(self, plan_df, start_date, end_date, previous_plan=None):
@@ -187,15 +190,18 @@ class WeeklyPlanManager:
         # 전체 경로
         file_path = os.path.join(week_folder, file_name)
 
+        #  # 계획 유지율 계산
+        # plan_maintenance_rate = None
+        # is_first_plan = True
+        
+        # if previous_plan and os.path.exists(previous_plan):
+        #     is_first_plan = False
+        #     plan_maintenance_rate = self._calculate_plan_maintenance(plan_df, previous_plan)
+
         # 엑셀 작성자 생성
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
             # 계획 데이터 저장
             plan_df.to_excel(writer, sheet_name='result', index=False)
-
-            # # 계획 유지율 계산
-            # plan_maintenance_rate = None
-            # if previous_plan and os.path.exists(previous_plan):
-            #     plan_maintenance_rate = self._calculate_plan_maintenance(plan_df, previous_plan)
 
             # 메타데이터 시트 생성
             metadata = {
@@ -233,7 +239,7 @@ class WeeklyPlanManager:
     #     #     previous_plan_path (str): 이전 계획 파일 경로
             
     #     # Returns:
-    #     #     float: 계획 유지율 (0-100)
+    #     #     float: 계획 유지율 
    
     #     try:
     #         # 이전 계획 데이터 로드
@@ -242,7 +248,7 @@ class WeeklyPlanManager:
     #         # 분석기 초기화
     #         analyzer = PlanMaintenanceRate()
             
-    #         # 첫 번째 계획이 아님
+    #         # 첫 번째 계획이 아닐 경우만
     #         analyzer.set_first_plan(False)
             
     #         # 이전 계획 설정
@@ -251,13 +257,22 @@ class WeeklyPlanManager:
     #         # 현재 계획 설정
     #         analyzer.set_current_plan(current_df)
             
-    #         # RMC별 유지율 계산 (보통 RMC 기준으로 유지율을 계산)
+    #         # Item별 유지율 계산
+    #         _, item_rate = analyzer.calculate_items_maintenance_rate(compare_with_adjusted=False)
+            
+    #         # RMC별 유지율 계산
     #         _, rmc_rate = analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted=False)
             
-    #         return rmc_rate
+    #         return {
+    #             'item_rate': item_rate,
+    #             'rmc_rate': rmc_rate
+    #         }
     #     except Exception as e:
     #         print(f"계획 유지율 계산 오류: {e}")
-    #         return None
+    #         return {
+    #             'item_rate': None,
+    #             'rmc_rate': None
+    #         }
     
 
 
