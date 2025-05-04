@@ -101,9 +101,10 @@ class PlanAdjustmentValidator:
                     self.line_available_items[line] = set()
                 self.line_available_items[line].add(item)
 
+
+    """라인과 아이템의 호환성 검증"""
     def validate_line_item_compatibility(self, line, item):
-        """라인과 아이템의 호환성 검증"""
-        # 아이템 코드에서 프로젝트 추출 (예: AB-P973U2DU952 -> P973)
+        # 아이템 코드에서 프로젝트 추출 
         project = item[3:7] if len(item) >= 7 else ""
         
         # 마스터 데이터의 호환성 정보 확인
@@ -187,7 +188,7 @@ class PlanAdjustmentValidator:
         
         # 요일별 최대 가동률 설정
         max_utilization = {
-            "Weekday": 100,
+            "Weekday": 110,
             "Saturday": 80,
             "Sunday": 60
         }

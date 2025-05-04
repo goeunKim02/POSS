@@ -263,3 +263,6 @@ class ItemGridWidget(QWidget):
     def get_line_from_row(self, row_index):
         """행 인덱스에 해당하는 라인명 반환"""
         return self.row_line_mapping.get(row_index)
+    
+    def set_validator(self, validator):
+        self.validator = validator

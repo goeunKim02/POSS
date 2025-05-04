@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpacerItem, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpacerItem, QSizePolicy, QMessageBox
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
@@ -285,6 +285,34 @@ class ItemsContainer(QWidget):
 
                                 # Time 값 업데이트
                                 item_data['Time'] = str(new_time)
+
+                                # 제약사항 검증
+                                validator = None
+                                if hasattr(grid_widget, 'validator'):
+                                    validator = grid_widget.validator
+
+                                if validator:
+                                    # 기존 위치 정보
+                                    source_line = source.item_data.get('Line') if hasattr(source, 'item_data') else None
+                                    source_time = source.item_data.get('Time') if hasattr(source, 'item_data') else None
+
+                                    # 검증 실행
+                                    valid, message = validator.validate_adjustment(
+                                        line_part,  # 새 라인
+                                        new_time,   # 새 시간(시프트)
+                                        item_data.get('Item', ''),  # 아이템 코드
+                                        item_data.get('Qty', 0),    # 수량
+                                        source_line,  # 원래 라인
+                                        source_time   # 원래 시간(시프트)
+                                    )
+
+                                     # 검증 실패 시 드롭 거부하고 함수 종료
+                                    if not valid:
+                                        QMessageBox.warning(self, "이동 불가", message)
+                                        event.ignore()  # 드롭 거부
+                                        self.show_drop_indicator = False
+                                        self.update()
+                                        return
 
                                 print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
 
