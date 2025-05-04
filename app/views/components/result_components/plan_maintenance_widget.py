@@ -138,13 +138,13 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 20px; 
+                font-size: 22px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 20px;  
+                font-size: 22px;  
             }
             QTabBar::tab {
                 padding: 8px 16px;
@@ -156,7 +156,7 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 20px;  
+                font-size: 22px;  
             }
             QTabBar::tab::first { margin-left: 10px; }
         """)
@@ -174,7 +174,7 @@ class PlanMaintenanceWidget(QWidget):
                 border: none;
                 background-color: white;
                 alternate-background-color: #f9f9f9;
-                font-size: 22px;  
+                font-size: 24px;  
                 outline: none;
                 gridline-color: #dddddd;  /* 그리드 라인 색상 설정 */
             }
@@ -199,7 +199,7 @@ class PlanMaintenanceWidget(QWidget):
                 border-right: 1px solid #e0e0e0;  /* 헤더 수직 구분선 추가 */
                 font-weight: bold;
                 color: #333333;
-                font-size: 22px;  
+                font-size: 24px;  
             }
             QTreeView::branch {
                 background-color: transparent;
@@ -339,11 +339,16 @@ class PlanMaintenanceWidget(QWidget):
         # 헤더 설정
         header = self.item_tree.header()
         for i in range(len(header_labels)):
-            if i < 3:  # 텍스트 컬럼은 내용에 맞게
-                header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-            else:  # 숫자 컬럼은 고정 크기
-                header.setSectionResizeMode(i, QHeaderView.Fixed)
-                header.resizeSection(i, 150)
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+            
+        # 헤더 마지막 섹션 스트레치 해제 (필요한 크기만큼만 사용)
+        header.setStretchLastSection(False)
+        # for i in range(len(header_labels)):
+        #     if i < 3:  # 텍스트 컬럼은 내용에 맞게
+        #         header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+        #     else:  # 숫자 컬럼은 고정 크기
+        #         header.setSectionResizeMode(i, QHeaderView.Fixed)
+        #         header.resizeSection(i, 150)
         
         # 헤더 정렬 설정
         self.item_tree.headerItem().setTextAlignment(0, Qt.AlignCenter)  # Line - 중앙 정렬
@@ -426,6 +431,8 @@ class PlanMaintenanceWidget(QWidget):
                 group_item.setFont(i, font)
             
             # 데이터 정렬 (수량은 오른쪽 정렬)
+            group_item.setTextAlignment(0, Qt.AlignCenter)  # Line - 중앙 정렬
+            group_item.setTextAlignment(1, Qt.AlignCenter)  # Shift - 중앙 정렬
             group_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
             group_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
             group_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
@@ -444,6 +451,7 @@ class PlanMaintenanceWidget(QWidget):
                 ])
                 
                 # 데이터 정렬 (수량은 오른쪽 정렬)
+                child_item.setTextAlignment(2, Qt.AlignLeft | Qt.AlignVCenter)  
                 child_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
@@ -500,6 +508,7 @@ class PlanMaintenanceWidget(QWidget):
             total_item.setFont(i, font)
             
         # 데이터 정렬 (수량은 오른쪽 정렬)
+        total_item.setTextAlignment(0, Qt.AlignCenter)  # 중앙 정렬
         total_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
         total_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
         total_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
@@ -519,11 +528,16 @@ class PlanMaintenanceWidget(QWidget):
         # 헤더 설정
         header = self.rmc_tree.header()
         for i in range(len(header_labels)):
-            if i < 3:  # 텍스트 컬럼은 내용에 맞게
-                header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
-            else:  # 숫자 컬럼은 고정 크기
-                header.setSectionResizeMode(i, QHeaderView.Fixed)
-                header.resizeSection(i, 150)
+            header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+    
+        # 헤더 마지막 섹션 스트레치 해제 (필요한 크기만큼만 사용)
+        header.setStretchLastSection(False)
+        # for i in range(len(header_labels)):
+        #     if i < 3:  # 텍스트 컬럼은 내용에 맞게
+        #         header.setSectionResizeMode(i, QHeaderView.ResizeToContents)
+        #     else:  # 숫자 컬럼은 고정 크기
+        #         header.setSectionResizeMode(i, QHeaderView.Fixed)
+        #         header.resizeSection(i, 150)
         
         header.setStretchLastSection(False)
 
@@ -605,6 +619,8 @@ class PlanMaintenanceWidget(QWidget):
                 group_item.setFont(i, font)
             
             # 데이터 정렬 (수량은 오른쪽 정렬)
+            group_item.setTextAlignment(0, Qt.AlignCenter)  # Line - 중앙 정렬
+            group_item.setTextAlignment(1, Qt.AlignCenter)  # Shift - 중앙 정렬
             group_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
             group_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
             group_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
@@ -623,6 +639,7 @@ class PlanMaintenanceWidget(QWidget):
                 ])
                 
                 # 데이터 정렬 (수량은 오른쪽 정렬)
+                child_item.setTextAlignment(2, Qt.AlignLeft | Qt.AlignVCenter)  
                 child_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
                 child_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
@@ -684,6 +701,7 @@ class PlanMaintenanceWidget(QWidget):
             total_item.setFont(i, font)
             
         # 데이터 정렬 (수량은 오른쪽 정렬)
+        total_item.setTextAlignment(0, Qt.AlignCenter)  # 중앙 정렬
         total_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
         total_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
         total_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
