@@ -82,7 +82,6 @@ class MainWindow(QMainWindow):
         self.data_input_page.run_button_clicked.connect(self.on_run_button_clicked)
 
         self.planning_page = PlanningPage(self)  # self 전달
-        self.planning_page.optimization_requested.connect(self.handle_optimization_result)
         # 시그널이 정의되지 않았으므로 연결 제거 또는 시그널 추가 필요
 
         self.result_page = ResultPage(self)  # self 전달
@@ -248,10 +247,10 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'result_page'):
             self.result_page = ResultPage(self)
             self.central_widget.addWidget(self.result_page)
-    
+
         # 결과 페이지의 데이터 업데이트
         if 'assignment_result' in results and results['assignment_result'] is not None:
             self.result_page.left_section.update_data(results['assignment_result'])
-        
+
         # 결과 페이지로 이동
         self.central_widget.setCurrentWidget(self.result_page)
