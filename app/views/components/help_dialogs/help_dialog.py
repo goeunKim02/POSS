@@ -34,7 +34,7 @@ class HelpDialog(QDialog):
 
         # 프레임 레이아웃 생성
         title_frame_layout = QVBoxLayout(title_frame)
-        title_frame_layout.setContentsMargins(10, 0, 10, 0)
+        title_frame_layout.setContentsMargins(0, 0, 10, 0)
         title_frame_layout.setAlignment(Qt.AlignCenter)
 
         # 제목 레이블 생성
@@ -53,7 +53,7 @@ class HelpDialog(QDialog):
 
         # 탭 위젯 생성
         tab_widget = QTabWidget()
-        tab_widget.setStyleSheet("margin-left: 10px;")
+        tab_widget.setStyleSheet("")
 
         # 분리된 컴포넌트 추가
         overview_tab = OverviewTabComponent()

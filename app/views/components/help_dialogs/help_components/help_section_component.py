@@ -1,7 +1,7 @@
-# help_components/help_section_component.py
+# help_components/help_section_component.py 수정
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QLabel
 from PyQt5.QtGui import QFont, QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSize
 
 
 class HelpSectionComponent(QFrame):
@@ -23,13 +23,18 @@ class HelpSectionComponent(QFrame):
         self.title = title
         self.description = description
         self.image_path = image_path
+
+        # 고정된 이미지 크기 설정 - 모든 섹션에서 동일하게 사용
+        self.IMAGE_WIDTH = 400
+        self.IMAGE_HEIGHT = 300
+
         self.init_ui()
 
     def init_ui(self):
         """UI 초기화"""
         # 기본 스타일 설정
         self.setStyleSheet(
-            "background-color: #f0f5ff; border:none; border-left: 4px solid #1428A0; padding: 5px; border-radius: 0 5px 5px 0;")
+            "background-color: white; border:none; border-left: 4px solid #1428A0; padding: 5px; border-radius: 0 5px 5px 0;")
 
         # 레이아웃 생성
         main_layout = QHBoxLayout(self)
@@ -72,19 +77,46 @@ class HelpSectionComponent(QFrame):
 
         # 이미지가 있는 경우 이미지 레이블 생성
         if self.image_path:
+            # 이미지 컨테이너 생성 (크기 고정을 위한 추가 위젯)
+            image_container = QWidget()
+            image_container.setFixedSize(self.IMAGE_WIDTH, self.IMAGE_HEIGHT)
+            image_container.setStyleSheet("""
+                background-color: transparent;
+                border: none;
+                border-left: 4px solid #1428A0;
+            """)
+
+            # 이미지 컨테이너 레이아웃 생성
+            image_container_layout = QVBoxLayout(image_container)
+            image_container_layout.setContentsMargins(0, 0, 0, 0)
+            image_container_layout.setAlignment(Qt.AlignCenter)  # 이미지 중앙 정렬
+
+            # 이미지 레이블 생성
             self.image_label = QLabel()
+            self.image_label.setAlignment(Qt.AlignCenter)
+            self.image_label.setStyleSheet("background-color: transparent; border:none;")
+
+            # 이미지 로드 및 크기 조정
             pixmap = QPixmap(self.image_path)
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                # 이미지 크기 조정 (비율 유지, 최대 크기 제한)
+                pixmap = pixmap.scaled(
+                    self.IMAGE_WIDTH,
+                    self.IMAGE_HEIGHT,
+                    Qt.KeepAspectRatio,
+                    Qt.SmoothTransformation
+                )
                 self.image_label.setPixmap(pixmap)
-                self.image_label.setAlignment(Qt.AlignCenter)
             else:
                 self.image_label.setText("이미지를 찾을 수 없습니다")
                 self.image_label.setStyleSheet("color: red;")
 
-            # 메인 레이아웃에 텍스트 위젯과 이미지 레이블 추가
+            # 이미지 레이블을 컨테이너에 추가
+            image_container_layout.addWidget(self.image_label)
+
+            # 메인 레이아웃에 텍스트 위젯과 이미지 컨테이너 추가
             main_layout.addWidget(self.text_widget, 7)  # 텍스트에 더 많은 공간 할당 (비율 7)
-            main_layout.addWidget(self.image_label, 3)  # 이미지에 적은 공간 할당 (비율 3)
+            main_layout.addWidget(image_container, 3)  # 이미지에 적은 공간 할당 (비율 3)
         else:
             # 이미지가 없는 경우 텍스트 위젯만 추가
             main_layout.addWidget(self.text_widget, 1)
@@ -110,7 +142,7 @@ class HelpSectionComponent(QFrame):
         if not list_container:
             list_container = QWidget()
             list_container.setObjectName("list_container")
-            list_container.setStyleSheet("border: none; background-color: transparent;")
+            list_container.setStyleSheet("border: none; background-color: transparent; font-family: Arial;")
             list_layout = QVBoxLayout(list_container)
             list_layout.setContentsMargins(20, 5, 5, 5)
             list_layout.setSpacing(5)
@@ -121,5 +153,5 @@ class HelpSectionComponent(QFrame):
         # 리스트 아이템 레이블 생성 및 추가
         item_label = QLabel(f"• {item_text}")
         item_label.setWordWrap(True)
-        item_label.setStyleSheet("font-size: 15px; border: none;")
+        item_label.setStyleSheet("font-size: 15px; border: none; font-family: Arial;")
         list_layout.addWidget(item_label)
