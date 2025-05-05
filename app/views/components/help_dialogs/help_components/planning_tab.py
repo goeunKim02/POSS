@@ -32,7 +32,7 @@ class PlanningTabComponent(BaseTabComponent):
         frame_layout.setSpacing(15)
 
         # 제목 레이블 생성
-        title_label = QLabel("Pre-assigned Result")
+        title_label = QLabel("Pre-Assigned Result")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
@@ -41,7 +41,7 @@ class PlanningTabComponent(BaseTabComponent):
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
-        desc_label = QLabel("This page allows you to review and adjust the initial planning results.")
+        desc_label = QLabel("This page allows you to review the pre-assigned results.")
         desc_label.setWordWrap(True)
         desc_font = QFont("Arial", 11)
         desc_label.setFont(desc_font)

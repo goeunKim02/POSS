@@ -25,8 +25,8 @@ class HelpSectionComponent(QFrame):
         self.image_path = image_path
 
         # 고정된 이미지 크기 설정 - 모든 섹션에서 동일하게 사용
-        self.IMAGE_WIDTH = 400
-        self.IMAGE_HEIGHT = 300
+        self.IMAGE_WIDTH = 600
+        self.IMAGE_HEIGHT = 400
 
         self.init_ui()
 
@@ -36,9 +36,10 @@ class HelpSectionComponent(QFrame):
         self.setStyleSheet(
             "background-color: white; border:none; border-left: 4px solid #1428A0; padding: 5px; border-radius: 0 5px 5px 0;")
 
-        # 레이아웃 생성
-        main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        # 메인 레이아웃을 수직으로 변경
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(15)  # 내용과 이미지 사이 간격
 
         # 텍스트 위젯 생성
         self.text_widget = QWidget()
@@ -75,15 +76,16 @@ class HelpSectionComponent(QFrame):
         text_layout.addWidget(title_label)
         text_layout.addWidget(desc_container)
 
+        # 메인 레이아웃에 텍스트 위젯 추가
+        main_layout.addWidget(self.text_widget)
+
         # 이미지가 있는 경우 이미지 레이블 생성
         if self.image_path:
-            # 이미지 컨테이너 생성 (크기 고정을 위한 추가 위젯)
+            # 이미지 컨테이너 생성
             image_container = QWidget()
-            image_container.setFixedSize(self.IMAGE_WIDTH, self.IMAGE_HEIGHT)
             image_container.setStyleSheet("""
                 background-color: transparent;
                 border: none;
-                border-left: 4px solid #1428A0;
             """)
 
             # 이미지 컨테이너 레이아웃 생성
@@ -114,12 +116,11 @@ class HelpSectionComponent(QFrame):
             # 이미지 레이블을 컨테이너에 추가
             image_container_layout.addWidget(self.image_label)
 
-            # 메인 레이아웃에 텍스트 위젯과 이미지 컨테이너 추가
-            main_layout.addWidget(self.text_widget, 7)  # 텍스트에 더 많은 공간 할당 (비율 7)
-            main_layout.addWidget(image_container, 3)  # 이미지에 적은 공간 할당 (비율 3)
-        else:
-            # 이미지가 없는 경우 텍스트 위젯만 추가
-            main_layout.addWidget(self.text_widget, 1)
+            # 메인 레이아웃에 이미지 컨테이너 추가
+            main_layout.addWidget(image_container)
+
+        # 나머지 공간 채우기
+        main_layout.addStretch(1)
 
     def add_list_item(self, item_text):
         """

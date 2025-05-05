@@ -30,12 +30,12 @@ class HelpDialog(QDialog):
         title_frame = QFrame()
         title_frame.setFrameShape(QFrame.StyledPanel)
         title_frame.setStyleSheet("background-color: #1428A0; border: none;")
-        title_frame.setFixedHeight(40)
+        title_frame.setFixedHeight(60)
 
         # 프레임 레이아웃 생성
         title_frame_layout = QVBoxLayout(title_frame)
-        title_frame_layout.setContentsMargins(0, 0, 10, 0)
-        title_frame_layout.setAlignment(Qt.AlignCenter)
+        title_frame_layout.setContentsMargins(20, 0, 10, 0)
+        title_frame_layout.setAlignment(Qt.AlignLeft)
 
         # 제목 레이블 생성
         title_label = QLabel("Help Guide")
