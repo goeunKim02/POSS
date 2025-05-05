@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 class BaseTabComponent(QWidget):
     """도움말 탭의 기본 클래스"""
 
-    def __init__(self, parent=None):  # css_path를 선택적 인자로 추가
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(15, 15, 15, 15)
@@ -16,7 +16,50 @@ class BaseTabComponent(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QScrollArea.NoFrame)
-        self.scroll_area.setStyleSheet("background-color:#F9F9F9; border-radius:10px;")
+
+        # 스크롤바 스타일 추가
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color:#F9F9F9; 
+                border-radius:10px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cccccc;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #cccccc;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """)
 
         # 스크롤 내용을 담을 위젯
         self.content_widget = QWidget()
