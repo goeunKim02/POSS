@@ -53,7 +53,31 @@ class HelpDialog(QDialog):
 
         # 탭 위젯 생성
         tab_widget = QTabWidget()
-        tab_widget.setStyleSheet("")
+        tab_widget.setStyleSheet(
+            """      
+                    QTabBar::tab::first { margin-left: 10px;}
+                    QTabBar {
+                        background-color: transparent;
+                        border: none;
+                        font-family : Arial;
+                        
+                    }
+                    QTabBar::tab {
+                        background: #f0f0f0;
+                        border: 1px solid #cccccc;
+                        border-top-left-radius: 10px;
+                        border-top-right-radius: 10px;
+                        padding: 6px 10px;
+                        margin-right: 2px;
+                        margin-bottom: 0px;
+                    }
+                    QTabBar::tab:selected, QTabBar::tab:hover {
+                        background: #1428A0;
+                        color: white;
+                        font-family : Arial;
+                    }
+                """
+        )
 
         # 분리된 컴포넌트 추가
         overview_tab = OverviewTabComponent()
