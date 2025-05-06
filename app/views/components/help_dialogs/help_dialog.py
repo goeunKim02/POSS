@@ -30,12 +30,12 @@ class HelpDialog(QDialog):
         title_frame = QFrame()
         title_frame.setFrameShape(QFrame.StyledPanel)
         title_frame.setStyleSheet("background-color: #1428A0; border: none;")
-        title_frame.setFixedHeight(40)
+        title_frame.setFixedHeight(60)
 
         # 프레임 레이아웃 생성
         title_frame_layout = QVBoxLayout(title_frame)
-        title_frame_layout.setContentsMargins(10, 0, 10, 0)
-        title_frame_layout.setAlignment(Qt.AlignCenter)
+        title_frame_layout.setContentsMargins(20, 0, 10, 0)
+        title_frame_layout.setAlignment(Qt.AlignLeft)
 
         # 제목 레이블 생성
         title_label = QLabel("Help Guide")
@@ -53,6 +53,31 @@ class HelpDialog(QDialog):
 
         # 탭 위젯 생성
         tab_widget = QTabWidget()
+        tab_widget.setStyleSheet(
+            """      
+                    QTabBar::tab::first { margin-left: 10px;}
+                    QTabBar {
+                        background-color: transparent;
+                        border: none;
+                        font-family : Arial;
+                        
+                    }
+                    QTabBar::tab {
+                        background: #f0f0f0;
+                        border: 1px solid #cccccc;
+                        border-top-left-radius: 10px;
+                        border-top-right-radius: 10px;
+                        padding: 6px 10px;
+                        margin-right: 2px;
+                        margin-bottom: 0px;
+                    }
+                    QTabBar::tab:selected, QTabBar::tab:hover {
+                        background: #1428A0;
+                        color: white;
+                        font-family : Arial;
+                    }
+                """
+        )
 
         # 분리된 컴포넌트 추가
         overview_tab = OverviewTabComponent()
@@ -68,24 +93,27 @@ class HelpDialog(QDialog):
 
         # 버튼 레이아웃
         button_frame = QFrame()
-        button_frame.setStyleSheet("background-color: #F5F5F5; border: none;")
+        button_frame.setStyleSheet("background-color: #F0F0F0; border: none;")
         button_layout = QHBoxLayout(button_frame)
-        button_layout.setContentsMargins(0, 0, 50, 20)
+        button_layout.setContentsMargins(0, 0, 30, 10)
 
         close_button = QPushButton("Close")
-        close_button_font = QFont("Arial", 14)
+        close_button_font = QFont("Arial", 10)
         close_button_font.setBold(True)
         close_button.setFont(close_button_font)
         close_button.setStyleSheet("""
         QPushButton {
-            background-color: #228B22;
+            background-color: #1428A0;
             border: none;
             color: white;
+            border-radius: 10px;
+            width: 130px;
+            height: 50px;
         }
         QPushButton:hover {
-            background-color: #228B22;
+            background-color: #1e429f;
             border: none;
-            color: yellow;
+            color: white;
         }
         """)
         close_button.setCursor(QCursor(Qt.PointingHandCursor))

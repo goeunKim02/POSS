@@ -5,6 +5,10 @@ from PyQt5.QtGui import QCursor, QFont
 
 import os
 
+from app.core.input.preAssign import run_allocation
+from app.core.input.maintenance import run_maintenance_analysis
+from app.models.common.fileStore import FilePaths
+
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
@@ -281,6 +285,9 @@ class DataInputPage(QWidget):
         success, message = self.sidebar_manager.add_file_to_sidebar(file_path)
         self.update_status_message(success, message)
 
+        self.register_file_path(file_path)
+        self.run_combined_analysis()
+
     def on_file_removed(self, file_path):
         """파일이 삭제되면 사이드바에서도 제거하고 관련된 모든 탭 닫기"""
         # 사이드바 관리자를 통해 파일 제거
@@ -292,6 +299,12 @@ class DataInputPage(QWidget):
         # 상태 메시지 업데이트
         file_name = os.path.basename(file_path)
         self.update_status_message(True, f"파일 '{file_name}'이(가) 제거되었습니다")
+
+        try:
+             solution, failures = run_allocation()  
+             self.parameter_component.show_failures.emit(solution, failures)
+        except Exception as e:
+            print(f"[preAssign 자동분석] 오류 발생: {e}")
 
     def on_run_clicked(self):
         """Run 버튼 클릭 시 호출되는 함수 - 모든 데이터프레임 DataStore에 저장"""
@@ -410,6 +423,7 @@ class DataInputPage(QWidget):
         # 유형별 데이터프레임 딕셔너리 DataStore에 저장
         DataStore.set("organized_dataframes", organized_dataframes)
         print(f"유형별 데이터프레임 저장됨:")
+        
         for file_type, sheets in organized_dataframes.items():
             print(f"  - {file_type}: {len(sheets)}개 시트/파일")
 
@@ -437,3 +451,33 @@ class DataInputPage(QWidget):
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""
         return self.file_uploader.get_file_paths()
+    
+    def register_file_path(self, file_path):
+        fn = os.path.basename(file_path).lower()
+        if "demand"  in fn:
+            FilePaths.set("demand_excel_file", file_path)
+        elif "dynamic" in fn:
+            FilePaths.set("dynamic_excel_file", file_path)
+        elif "master"  in fn:
+            FilePaths.set("master_excel_file", file_path)
+        elif "pre_assign" in fn:
+            FilePaths.set("pre_assign_excel_file", file_path)
+        else:
+            FilePaths.set("etc_excel_file", file_path)
+
+    def run_combined_analysis(self):
+        try:
+            solution, failures = run_allocation()
+            print(failures)
+
+            failed_items, failed_rmcs = run_maintenance_analysis()
+            print(failed_items, failed_rmcs)
+            
+            failures["plan_adherence_rate"] = {
+                "item_failures": failed_items,
+                "rmc_failures":  failed_rmcs
+            }
+
+            self.parameter_component.show_failures.emit(failures)
+        except Exception as e:
+            print(f"[preAssign 분석] 오류 발생: {e}")
