@@ -287,6 +287,45 @@ class ItemEditDialog(QDialog):
                     changed_fields[field] = {'from': original, 'to': value}
 
             if changes_made:
+                # 검증 로직 추가 - 부모 위젯에서 validator 찾기
+                validator = None
+                parent = self.parent()
+                while parent:
+                    if hasattr(parent, 'validator'):
+                        validator = parent.validator
+                        break
+                    parent = parent.parent()
+
+                # validator가 있는 경우 검증 실행
+                if validator:
+                    line = updated_data.get('Line')
+                    time = updated_data.get('Time')
+                    item_code = updated_data.get('Item')
+                    qty = updated_data.get('Qty', 0)
+
+                    # 이동 여부 확인
+                    is_move = False
+                    source_line = None
+                    source_time = None
+
+                    if 'Line' in changed_fields or 'Time' in changed_fields:
+                        is_move = True
+                        source_line = self.original_data.get('Line')
+                        source_time = self.original_data.get('Time')
+
+                    # 검증 실행
+                    valid, message = validator.validate_adjustment(
+                        line, time, item_code, qty,
+                        source_line if is_move else None,
+                        source_time if is_move else None
+                    )
+
+                    # 검증 실패 시 메시지 표시하고 함수 종료
+                    if not valid:
+                        QMessageBox.warning(self, "조정 불가", message)
+                        return  # 다이얼로그 유지
+                
+                # 검증 통과 또는 validator 없음 - 변경 사항 적용
                 # 변경 사항이 있으면 시그널 발생 (변경된 필드 정보 포함)
                 self.item_data.update(updated_data)
                 self.itemDataChanged.emit(self.item_data, changed_fields)

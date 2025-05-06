@@ -478,7 +478,7 @@ class ResultPage(QWidget):
                 master_data = DataStore.get("master_dataframes", {})
                 demand_data = DataStore.get("demand_dataframes", {})
                 
-                self.validator = PlanAdjustmentValidator(data, master_data, demand_data)
+                self.validator = PlanAdjustmentValidator(data)
                 
                 # validator를 왼쪽 섹션에 전달 
                 if hasattr(self, 'left_section'):

@@ -104,62 +104,62 @@ class ModifiedLeftSection(QWidget):
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         print(f"이전 데이터: {old_data}")
 
-        # 조정 제약사항 검증
-        if hasattr(self, 'validator'):
-            print("validator 존재함 - 검증 시작")
-            line = new_data.get('Line')
-            time = new_data.get('Time')
-            item_code = new_data.get('Item')  # parameter item과 구분위해 item_code 사용
-            qty = new_data.get('Qty', 0)
+        # # 조정 제약사항 검증
+        # if hasattr(self, 'validator'):
+        #     print("validator 존재함 - 검증 시작")
+        #     line = new_data.get('Line')
+        #     time = new_data.get('Time')
+        #     item_code = new_data.get('Item')  # parameter item과 구분위해 item_code 사용
+        #     qty = new_data.get('Qty', 0)
 
-            print(f"검증 데이터: line={line}, time={time}, item_code={item_code}, qty={qty}")
+        #     print(f"검증 데이터: line={line}, time={time}, item_code={item_code}, qty={qty}")
 
-            # 이동 여부 확인
-            is_move = False
-            source_line = None
-            source_time = None
+        #     # 이동 여부 확인
+        #     is_move = False
+        #     source_line = None
+        #     source_time = None
 
-            if changed_fields:
-                print(f"변경된 필드: {changed_fields}")
-                if 'Line' in changed_fields or 'Time' in changed_fields:
-                    is_move = True
-                    source_line = old_data.get('Line')
-                    source_time = old_data.get('Time')
-                    print(f"이동 감지: source_line={source_line}, source_time={source_time}")
+        #     if changed_fields:
+        #         print(f"변경된 필드: {changed_fields}")
+        #         if 'Line' in changed_fields or 'Time' in changed_fields:
+        #             is_move = True
+        #             source_line = old_data.get('Line')
+        #             source_time = old_data.get('Time')
+        #             print(f"이동 감지: source_line={source_line}, source_time={source_time}")
                     
-            # 검증 실행
-            print("검증 함수 호출 전")
-            valid, message = self.validator.validate_adjustment(
-                line, time, item_code, qty, 
-                source_line if is_move else None, 
-                source_time if is_move else None
-            )
-            print(f"검증 결과: valid={valid}, message={message}")
+        #     # 검증 실행
+        #     print("검증 함수 호출 전")
+        #     valid, message = self.validator.validate_adjustment(
+        #         line, time, item_code, qty, 
+        #         source_line if is_move else None, 
+        #         source_time if is_move else None
+        #     )
+        #     print(f"검증 결과: valid={valid}, message={message}")
             
-            # 검증 실패 시 메시지 표시하고 함수 종료
-            if not valid:
-                print("검증 실패 - 원래 값으로 복원 시작")
-                QMessageBox.warning(self, "조정 불가", message)
+        #     # 검증 실패 시 메시지 표시하고 함수 종료
+        #     if not valid:
+        #         print("검증 실패 - 원래 값으로 복원 시작")
+        #         QMessageBox.warning(self, "조정 불가", message)
 
-                # 원래 값 가져오기
-                original_qty = changed_fields['Qty']['from']
+                # # 원래 값 가져오기
+                # original_qty = changed_fields['Qty']['from']
 
-                # 새 데이터에 원래 값 설정
-                restored_data = new_data.copy()
-                restored_data['Qty'] = original_qty
+                # # 새 데이터에 원래 값 설정
+                # restored_data = new_data.copy()
+                # restored_data['Qty'] = original_qty
 
-                # 화면 갱신
-                if hasattr(item, 'update_item_data'):
-                    item.update_item_data(restored_data)
+                # # 화면 갱신
+                # if hasattr(item, 'update_item_data'):
+                #     item.update_item_data(restored_data)
                 
-                # 사용자에게 알림
-                QMessageBox.information(
-                    self, 
-                    "원래 값으로 복원됨", 
-                    f"검증 실패로 인해 수량이 원래 값({original_qty})으로 복원되었습니다."
-                )
+                # # 사용자에게 알림
+                # QMessageBox.information(
+                #     self, 
+                #     "원래 값으로 복원됨", 
+                #     f"검증 실패로 인해 수량이 원래 값({original_qty})으로 복원되었습니다."
+                # )
                 
-                return
+                # return
 
 
         # 검증 통과 시
@@ -246,6 +246,21 @@ class ModifiedLeftSection(QWidget):
 
                 # print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
 
+                # 수정: 데이터를 추가하기 전에 검증
+                if hasattr(self, 'validator'):
+                    valid, message = self.validator.validate_adjustment(
+                        new_data.get('Line'),
+                        new_data.get('Time'),
+                        new_data.get('Item', ''),
+                        new_data.get('Qty', 0),
+                        old_data.get('Line'),
+                        old_data.get('Time')
+                    )
+                    
+                    if not valid:
+                        QMessageBox.warning(self, "조정 불가", message)
+                        return
+
                 # 새 위치에 아이템 추가
                 new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data)
 
@@ -260,13 +275,23 @@ class ModifiedLeftSection(QWidget):
                     return  # 이후 코드는 실행하지 않음
                 else:
                     print("새 아이템 생성 실패")
+                    return
             else:
                 print(
                     f"유효하지 않은 인덱스: old_row_idx={old_row_idx}, old_col_idx={old_col_idx}, new_row_idx={new_row_idx}, new_col_idx={new_col_idx}")
+                return
+            
+        # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
+        if hasattr(item, 'update_item_data'):
+            # 수정: update_item_data 메서드의 반환값 처리
+            success, error_message = item.update_item_data(new_data)
+            if not success:
+                QMessageBox.warning(self, "조정 불가", error_message)
+                return
 
+        # 데이터 변경 성공 시
         # 상위 위젯에 이벤트 전달
         self.item_data_changed.emit(item, new_data)
-
 
         # 셀 이동 이벤트 발생 (시각화 차트 업데이트) 추가
         if not position_change_needed:
