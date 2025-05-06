@@ -111,9 +111,9 @@ class HelpDialog(QDialog):
             height: 50px;
         }
         QPushButton:hover {
-            background-color: #228B22;
+            background-color: #1e429f;
             border: none;
-            color: yellow;
+            color: white;
         }
         """)
         close_button.setCursor(QCursor(Qt.PointingHandCursor))
