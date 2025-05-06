@@ -55,6 +55,7 @@ class CustomCalendarWidget(QCalendarWidget):
                 QCalendarWidget QWidget#qt_calendar_navigationbar {
                     background-color: #1428A0;
                     color: white;
+                    border : none;
                 }
 
                 /* 네비게이션 바 버튼 */
@@ -63,6 +64,7 @@ class CustomCalendarWidget(QCalendarWidget):
                     color: white;
                     border-radius: 3px;
                     padding: 5px;
+                    border:none;
                 }
 
                 /* 버튼 호버 효과 */
@@ -76,6 +78,7 @@ class CustomCalendarWidget(QCalendarWidget):
                     color: black;
                     selection-background-color: #4b6eaf;
                     selection-color: white;
+                    border : none;
                 }
             """)
         except Exception as e:
