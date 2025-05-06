@@ -6,6 +6,7 @@ from PyQt5.QtGui import QCursor, QFont
 import os
 
 from app.core.input.preAssign import run_allocation
+from app.core.input.maintenance import run_maintenance_analysis
 from app.models.common.fileStore import FilePaths
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
@@ -285,7 +286,7 @@ class DataInputPage(QWidget):
         self.update_status_message(success, message)
 
         self.register_file_path(file_path)
-        self.run_preassign_analysis()
+        self.run_combined_analysis()
 
     def on_file_removed(self, file_path):
         """파일이 삭제되면 사이드바에서도 제거하고 관련된 모든 탭 닫기"""
@@ -459,13 +460,24 @@ class DataInputPage(QWidget):
             FilePaths.set("dynamic_excel_file", file_path)
         elif "master"  in fn:
             FilePaths.set("master_excel_file", file_path)
+        elif "pre_assign" in fn:
+            FilePaths.set("pre_assign_excel_file", file_path)
         else:
             FilePaths.set("etc_excel_file", file_path)
 
-    def run_preassign_analysis(self):
-        """preAssign 분석 담당하는 메서드"""
+    def run_combined_analysis(self):
         try:
             solution, failures = run_allocation()
+            print(failures)
+
+            failed_items, failed_rmcs = run_maintenance_analysis()
+            print(failed_items, failed_rmcs)
+            
+            failures["plan_adherence_rate"] = {
+                "item_failures": failed_items,
+                "rmc_failures":  failed_rmcs
+            }
+
             self.parameter_component.show_failures.emit(failures)
         except Exception as e:
             print(f"[preAssign 분석] 오류 발생: {e}")
