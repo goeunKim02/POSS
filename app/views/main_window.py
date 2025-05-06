@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.models.input.capa import process_data
+from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
@@ -164,6 +165,26 @@ class MainWindow(QMainWindow):
                     self.data_model.material_satisfaction_results = satisfaction_results
             except Exception as e :
                 print(f'자재만족률 분석 중 오류 발생 : {e}')
+                import traceback
+                print(traceback.format_exc())
+
+            # 당주 출하 만족률 분석
+            try :
+                from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
+
+                preprocessed_data = preprocess_data_for_fulfillment_rate()
+
+                if preprocessed_data :
+                    fulfillment_results = calculate_fulfillment_rate(preprocessed_data)
+
+                    if fulfillment_results :
+                        self.data_model.fulfillment_rate_results = fulfillment_results
+
+                        print(f"당주 출하 만족률: {fulfillment_results['overall_rate']:.2f}%")
+                        print(f"총 수요(SOP): {fulfillment_results['total_sop']}")
+                        print(f"총 생산 가능: {fulfillment_results['total_production']}")
+            except Exception as e:
+                print(f'당주 출하 만족률 분석 중 오류 발생: {e}')
                 import traceback
                 print(traceback.format_exc())
         else :
