@@ -4,6 +4,7 @@ class FilePaths:
         "dynamic_excel_file": None,
         "master_excel_file": None,
         "demand_excel_file": None,
+        "pre_assign_excel_file": None,
         "etc_excel_file": None,
         "output_file": None,
         "result_file": None,
