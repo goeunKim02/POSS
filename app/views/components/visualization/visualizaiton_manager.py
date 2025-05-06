@@ -20,6 +20,9 @@ class VisualizationManager:
 
         if ax is None:
             fig, ax = plt.subplots(figsize=(8,5))
+        else:
+            ax.clear()
+            ax.set_axis_on()
 
         # 시각화에 필요한 형식으로 데이터 변환
         if isinstance(data, dict):
@@ -150,7 +153,8 @@ class VisualizationManager:
 
         # 그림 레이아웃 조정
         if ax.figure:
-            ax.figure.tight_layout()
+            # ax.figure.tight_layout()
+            ax.figure.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.15)
 
         return ax
     

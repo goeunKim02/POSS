@@ -401,22 +401,9 @@ class ResultPage(QWidget):
 
     """각 지표별 초기 시각화 생성"""
     def create_initial_visualization(self, canvas, viz_type):
-        canvas.axes.clear()
-
         # 각 지표 예시
         if viz_type == "Capa":
-            # 데이터가 있는 경우에만 차트 생성, 없으면 메시지 표시 (수정)
-            if self.capa_ratio_data and len(self.capa_ratio_data) > 0:
-                VisualizationManager.create_chart(
-                    self.capa_ratio_data,
-                    chart_type='bar',
-                    title='Plant Capacity Ratio',
-                    xlabel='Plant',
-                    ylabel='Ratio (%)',
-                    ax=canvas.axes
-                )
-            else:
-                canvas.axes.text(0.5, 0.5, 'Please load data', ha='center', va='center', fontsize=18)
+            VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
         
 
         elif viz_type == "Utilization":
@@ -427,29 +414,11 @@ class ResultPage(QWidget):
                 except Exception as e:
                     print(f"Utilization Rate Error : {str(e)}")
                     self.utilization_data = {}
-        
-            if self.utilization_data:
-                days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                sorted_data = {day: self.utilization_data.get(day, 0) for day in days_order}
+            
+            VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
 
-                VisualizationManager.create_chart(
-                    sorted_data,
-                    chart_type='bar',
-                    title='Daily Utilization Rate',
-                    xlabel='Day of week',
-                    ylabel='Utilization Rate(%)',
-                    ax=canvas.axes,
-                    ylim=(0, 100),
-                    threshold_values=[60, 80],
-                    threshold_colors=['#4CAF50', '#FFC107', '#F44336'],
-                    value_fontsize=14
-                )
-
-            else:
-                canvas.axes.text(0.5, 0.5, 'No utilization data available', ha='center', va='center', fontsize=18)
-
-
-        canvas.draw()
+        elif viz_type == "PortCapa":
+            pass
 
     """
     데이터가 변경되었을 때 호출되는 메서드
@@ -494,7 +463,8 @@ class ResultPage(QWidget):
             else:
                 print("빈 데이터프레임")
                 self.capa_ratio_data = {}
-                
+                self.utilization_data = {}
+
         except Exception as e:
             print(f"데이터 분석 중 오류 발생: {e}")
             import traceback
@@ -564,6 +534,7 @@ class ResultPage(QWidget):
             viz_type = ["Capa", "Utilization", "PortCapa", "Plan"][i]
             print(f"  - 캔버스 {i}: {viz_type}, 유효함: {canvas is not None}")
             self.update_visualization(canvas, viz_type)
+
         print("시각화 업데이트 완료")
     
     """개별 시각화 차트 업데이트"""

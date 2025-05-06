@@ -49,8 +49,8 @@ class ModifiedLeftSection(QWidget):
             }
         """)
         self.load_button.setCursor(QCursor(Qt.PointingHandCursor))
-        # self.load_button.clicked.connect(self.load_excel_file)
-        # control_layout.addWidget(self.load_button)
+        self.load_button.clicked.connect(self.load_excel_file)
+        control_layout.addWidget(self.load_button)
 
         # # 테이블 초기화 버튼
         # self.clear_button = QPushButton("테이블 초기화")
@@ -219,25 +219,25 @@ class ModifiedLeftSection(QWidget):
                                 f"아이템 정보가 성공적으로 변경되었습니다.\n{item.text()}",
                                 QMessageBox.Ok)
 
-    # """엑셀 파일 로드"""
-    # def load_excel_file(self):
-    #     file_path, _ = QFileDialog.getOpenFileName(
-    #         self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls)"
-    #     )
+    """엑셀 파일 로드"""
+    def load_excel_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls)"
+        )
 
-    #     if file_path:
-    #         try:
-    #             # 엑셀 파일 로드
-    #             self.data = pd.read_excel(file_path)
-    #             self.update_table_from_data()
+        if file_path:
+            try:
+                # 엑셀 파일 로드
+                self.data = pd.read_excel(file_path)
+                self.update_table_from_data()
 
-    #             # 데이터 로드 성공 메시지
-    #             QMessageBox.information(self, "파일 로드 성공",
-    #                                     f"파일을 성공적으로 로드했습니다.\n행: {self.data.shape[0]}, 열: {self.data.shape[1]}")
+                # 데이터 로드 성공 메시지
+                QMessageBox.information(self, "파일 로드 성공",
+                                        f"파일을 성공적으로 로드했습니다.\n행: {self.data.shape[0]}, 열: {self.data.shape[1]}")
 
-    #         except Exception as e:
-    #             # 에러 메시지 표시
-    #             QMessageBox.critical(self, "파일 로드 오류", f"파일을 로드하는 중 오류가 발생했습니다.\n{str(e)}")
+            except Exception as e:
+                # 에러 메시지 표시
+                QMessageBox.critical(self, "파일 로드 오류", f"파일을 로드하는 중 오류가 발생했습니다.\n{str(e)}")
 
     """엑셀 파일에서 데이터를 읽어와 테이블 업데이트"""
     def update_table_from_data(self):
