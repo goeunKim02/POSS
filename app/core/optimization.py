@@ -1,5 +1,6 @@
 import pandas as pd
 import pulp 
+import re
 from pulp import LpStatus
 # from app.utils.fileHandler import load_file
 # from app.models.common.fileStore import FilePaths
@@ -22,6 +23,8 @@ class Optimization:
             }
         }
         """
+        
+        
         # 각 엑셀 파일 불러오기. 시트이름이 키, 데이터프레임이 값인 딕셔너리로 저장됨.
         self.demand_excel = input['demand']
         self.master_excel = input['master']
@@ -205,20 +208,36 @@ class Optimization:
 
         # 통합한 시트의 아이템들을 items 와 demand 에 추가
         for index, row in self.df_combined.iterrows():
-            if pd.isna(row['Qty']):
-                if showlog: print(row['Fixed_Group']+' 아이템의 Qty 가 비어있습니다')
-                continue
-            elif row['Qty'] == 'ALL':
-                items.append(row['Fixed_Group'])
-                df_items =self.df_demand[self.df_demand['Item']==row['Fixed_Group']]
-                qty = 0
-                for index, value in df_items.iterrows():
-                    qty += value['MFG']
-                demand[row['Fixed_Group']] = qty
-            else : # Qty 에 값이 있을 경우
-                items.append(row['Fixed_Group'])
-                demand[row['Fixed_Group']] = row['Qty']
-                
+            if '*' in row['Fixed_Group']:
+                if pd.isna(row['Qty']):
+                    if showlog: print(row['Fixed_Group']+' 아이템의 Qty 가 비어있습니다')
+                    continue
+                elif row['Qty'] == 'ALL':
+                    for idx, demandrow in self.df_demand.iterrows():
+                        regex =  str(row['Fixed_Group']).replace("*",".")
+                        item = demandrow['Item']
+                        if bool(re.fullmatch(regex, item)):
+                            if item in demand:
+                                demand[item] += demandrow['MFG']
+                            else: 
+                                demand[item] = demandrow['MFG']
+                else :# 여러 아이템을 ***P205******* 처럼 선택하고 Qty 에 값이 있을 경우
+                    if showlog: (row['Fixed_Group'],",",row['Qty'])
+                    if showlog: print("여러 아이템을 선택하고 수량을 입력했기 때문에 오류입니다")
+            else:
+                if pd.isna(row['Qty']):
+                    if showlog: print(row['Fixed_Group']+' 아이템의 Qty 가 비어있습니다')
+                    continue
+                elif row['Qty'] == 'ALL':
+                    df_items =self.df_demand[self.df_demand['Item']==row['Fixed_Group']]
+                    qty = 0
+                    for index, value in df_items.iterrows():
+                        qty += value['MFG']
+                    demand[row['Fixed_Group']] = qty
+                else : # Qty 에 값이 있을 경우
+                    demand[row['Fixed_Group']] = row['Qty']
+        
+        items = list(demand.keys())
         
         # 라인*시프트 별 Capa (최대 생산 가능량)
         capacity = {(l,s):int(self.df_capa_qty.loc[self.df_capa_qty['Line'] == l, s].values[0]) for (l, s) in line_shifts}
@@ -227,11 +246,20 @@ class Optimization:
         # 라인*시프트 별 생산가능 아이템. pre_assign, fixed_option 시트의 조건들이 들어가야함.
         allowed_items = {} # (line*shift) 별 생산 가능한 모델
         fixed_line_shifts = {}
+        fixed_items = []
         for idx, row in self.df_combined.iterrows():
             fixed_lines = row['Fixed_Line'].split(",") if pd.notna(row['Fixed_Line']) else self.line
             fixed_times = list(map(int,str(row['Fixed_Time']).split(","))) if pd.notna(row['Fixed_Time']) else self.time
+
+            if '*' in str(row['Fixed_Group']):
+                regex = str(row['Fixed_Group']).replace("*",".")
+                for item in self.df_demand['Item']:
+                    if bool(re.fullmatch(regex, item)):
+                        fixed_line_shifts[item] = [(line,time) for line in fixed_lines for time in fixed_times]
+                        fixed_items.append(item)
+                continue
             fixed_line_shifts[row['Fixed_Group']] = [(line,time) for line in fixed_lines for time in fixed_times]
-        fixed_items = self.df_combined['Fixed_Group'].to_list()
+            fixed_items.append(row['Fixed_Group'])
 
         if showlog: print('fixed_line_shifts : ',fixed_line_shifts)
         if showlog: print('fixed_items : ',fixed_items)
@@ -339,7 +367,9 @@ class Optimization:
         self.df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
         
         #주어진 수요량을 모두 생산 가능하면 해를 찾은 것
-        if int(pulp.value(model.objective)) == sum(demand.values()):
+        if model.objective==None:
+            print("model.objective 값이 None 입니다")
+        elif int(pulp.value(model.objective)) == sum(demand.values()):
             print(f"\n최적해를 찾았습니다")
             print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
             print(f"\n총 생산 수요량: {sum(demand.values())}개")
@@ -370,4 +400,4 @@ if __name__ == "__main__":
         'dynamic': pd.read_excel('ssafy_dynamic_0408.xlsx',sheet_name=None),
     }
     optimization = Optimization(input)
-    optimization.execute()
+    optimization.pre_assign(showlog=True)
