@@ -315,13 +315,17 @@ class Optimization:
 
         # 제약조건 5: 각 (제조동 * 시프트) 별 가동가능한 최대 라인 수. capa_qty 시트와 관련됨. Max_line
         # 특정 y[(l,s)] 가 1이면 그 (라인*시프트) 에서 생산되는 모델이 적어도 1개는 있다는 뜻.반대로 0이면 하나도 없다는 뜻.
-        BIG_M = 10_000_000  # 충분히 큰 값. _ 는 오직 가독성을 위한 표현.
+        BIG_M = 1_000_000  # 충분히 큰 값. _ 는 오직 가독성을 위한 표현.
         for (l, s) in line_shifts:
             total_produced = pulp.lpSum(x[(m, l, s)] for m in items)
             model += (total_produced <= BIG_M * y[(l, s)],f'constraint5-1 ({l},{s})')
-            model += (total_produced >= 1 * y[(l, s)] ,f'constraint5-2 ({l},{s})')
+            model += (y[(l, s)] <= total_produced ,f'constraint5-2 ({l},{s})')
             
         blocks = list(set(l[0] for l in self.line)) # 제조동 리스트 ['I','D','K','M']
+
+        # for (l, s) in line_shifts:
+        #     print(f"y[{(l, s)}]:", type(y[(l, s)]))
+
 
         for b in blocks:
             for shift in self.time:
@@ -345,6 +349,7 @@ class Optimization:
 
         # 결과 저장 & 출력
         results = []
+        if showlog: print(y.values())
         for (l, s) in line_shifts:
             if showlog: print(f"{l} - {s} 시프트:")
             for m in items:
@@ -369,35 +374,48 @@ class Optimization:
         self.df_pre_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
         print(self.df_pre_result)
         #주어진 수요량을 모두 생산 가능하면 해를 찾은 것
-        if model.objective==None:
-            print("model.objective 값이 None 입니다")
-            if showlog:
-                for name, constraint in model.constraints.items():
-                    slack_value = constraint.slack
-                    if slack_value is not None and slack_value < 0:
-                        print(slack_value)
-                        print(f"제약조건 '{name}'이 위배됨: slack = {slack_value}")
-                        print(f"제약조건: {constraint}")
-        elif int(pulp.value(model.objective)) == sum(demand.values()):
-            print(f"\n최적해를 찾았습니다")
-            print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
-            print(f"\n총 생산 수요량: {sum(demand.values())}개")
+
+        if pulp.LpStatus[model.status] == 'Optimal':
+            if int(pulp.value(model.objective)) == sum(demand.values()):
+                print(f"\n최적해를 찾았습니다")
+                print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
+                print(f"\n총 생산 수요량: {sum(demand.values())}개")
+            else:
+                print("❌ 최적해를 찾지 못했습니다.")
+                print(f"\n총 생산 수요량: {sum(demand.values())}")
+                print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
+                print(f"\n미할당량: {sum(demand.values())-int(pulp.value(model.objective))}개")
+                if showlog:
+                    for item in y.values():     
+                        print(item, item.varValue)
+                if showlog:
+                    for name, constraint in model.constraints.items():
+                        slack_value = constraint.slack
+                        if slack_value is not None and slack_value < 0:
+                            print(slack_value)
+                            print(f"제약조건 '{name}'이 위배됨: slack = {slack_value}")
+                            print(f"제약조건: {constraint}")
+                return {'result':self.df_pre_result ,'error':f"❌ 최적해를 찾지 못했습니다."}
         else:
-            print("❌ 최적해를 찾지 못했습니다.")
-            print(f"\n총 생산 수요량: {sum(demand.values())}")
-            print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
-            print(f"\n미할당량: {sum(demand.values())-int(pulp.value(model.objective))}개")
-            if showlog:
-                for item in y.values():     
-                    print(item, item.varValue)
-            if showlog:
-                for name, constraint in model.constraints.items():
-                    slack_value = constraint.slack
-                    if slack_value is not None and slack_value < 0:
-                        print(slack_value)
-                        print(f"제약조건 '{name}'이 위배됨: slack = {slack_value}")
-                        print(f"제약조건: {constraint}")
-            return {'result':self.df_pre_result ,'error':f"❌ 최적해를 찾지 못했습니다."}
+            print(f"❌ 모델 최적화 실패: {pulp.LpStatus[model.status]}")
+        if showlog:print(pulp.value(model.objective))
+        if showlog:
+            for name, constraint in model.constraints.items():
+                slack_value = constraint.slack
+                if slack_value is not None and slack_value < 0:
+                    print("=" * 80)
+                    print(f"❗ 제약조건 '{name}' 위배: slack = {slack_value}")
+                    print(f"제약식 원본: {constraint}")
+                    print(f"좌변(lhs) 값: {constraint.value()}")  # 실제 계산된 좌변 값
+                    print(f"우변(rhs): {constraint.constant}")  # 우변 값 (우변에 있는 상수)
+                    print(f"연산자: {constraint.sense}")  # -1: <=, 0: =, 1: >=
+                    
+                    # 사용된 변수들의 값도 같이 출력
+                    used_vars = constraint.keys()
+                    print("사용된 변수 값:")
+                    for var in used_vars:
+                        print(f"  {var.name} = {var.varValue}")
+        
 
         # df_pre_result.to_excel('pre_assign_result.xlsx',index=False)
         return {'result':self.df_pre_result, 'combined' : self.df_combined }
@@ -410,4 +428,3 @@ if __name__ == "__main__":
     }
     optimization = Optimization(input)
     optimization.pre_assign(showlog=True)
-    optimization.execute()
