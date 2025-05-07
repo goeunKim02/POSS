@@ -2,12 +2,11 @@ from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
                              QSplitter, QStackedWidget, QTabBar)
 from PyQt5.QtGui import QCursor, QFont
-
 import os
 
 from app.core.input.preAssign import run_allocation
 from app.core.input.maintenance import run_maintenance_analysis
-from app.models.common.fileStore import FilePaths
+from app.models.common.fileStore import FilePaths, DataStore
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
@@ -24,7 +23,7 @@ class DataInputPage(QWidget):
     # 시그널 정의
     file_selected = pyqtSignal(str)
     date_range_selected = pyqtSignal(QDate, QDate)
-    run_button_clicked = pyqtSignal()  # Run 버튼 클릭 시그널 추가
+    run_button_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,37 +35,38 @@ class DataInputPage(QWidget):
         self.init_ui()
 
         # 관리자 클래스 초기화 (UI 초기화 후에 해야 함)
+        self.sidebar_manager = SidebarManager(self)
         self.tab_manager = FileTabManager(self)
         self.data_modifier = DataModifier(self)
-        self.sidebar_manager = SidebarManager(self)
+
 
         # 시그널 연결
         self._connect_signals()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)  # 전체 여백 제거
-        layout.setSpacing(0)  # 위젯 간 간격 설정
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         # 전체 컨테이너 생성
         main_container = QFrame()
         main_container.setStyleSheet("border:none; border-radius: 5px;")
         main_container_layout = QVBoxLayout(main_container)
         main_container_layout.setContentsMargins(0, 0, 0, 0)
-        main_container_layout.setSpacing(0)  # 내부 위젯 간격
+        main_container_layout.setSpacing(0)
 
         # 제목과 입력 섹션을 포함할 컨테이너 생성
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
         top_container_layout.setContentsMargins(10, 10, 10, 10)
-        top_container_layout.setSpacing(10)  # 위젯 간 간격 설정
+        top_container_layout.setSpacing(10)
         top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
-        top_container.setFixedHeight(150)  # 높이 고정
+        top_container.setFixedHeight(150)
 
         # 제목과 버튼을 포함할 상단 행 컨테이너
         title_row = QFrame()
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, 16, 0)  # 여백 설정
+        title_row_layout.setContentsMargins(0, 0, 16, 0)
 
         # 제목 레이블 생성
         title_label = QLabel("Upload Data")
@@ -77,7 +77,7 @@ class DataInputPage(QWidget):
         title_font.setWeight(99)
         title_label.setFont(title_font)
 
-        title_row_layout.addWidget(title_label, 1)  # 왼쪽에 제목 배치 (stretch 1)
+        title_row_layout.addWidget(title_label, 1)
 
         # Run 버튼 생성
         run_btn = QPushButton("Run")
@@ -128,8 +128,8 @@ class DataInputPage(QWidget):
         self.file_uploader = FileUploadComponent()
 
         # 입력 레이아웃에 위젯 추가
-        input_layout.addWidget(self.date_selector, 1)  # 왼쪽에 날짜 선택기
-        input_layout.addWidget(self.file_uploader, 3)  # 오른쪽에 파일 업로더
+        input_layout.addWidget(self.date_selector, 1)
+        input_layout.addWidget(self.file_uploader, 3)
 
         # 컨테이너에 제목 행과 입력 섹션 추가
         top_container_layout.addWidget(title_row)
@@ -143,7 +143,7 @@ class DataInputPage(QWidget):
 
         # IDE 스타일 레이아웃을 위한 메인 스플리터 (수평 분할)
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setHandleWidth(10)  # 스플리터 핸들 너비 설정
+        main_splitter.setHandleWidth(10)
         main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_splitter.setContentsMargins(0, 0, 0, 0)
 
@@ -152,7 +152,7 @@ class DataInputPage(QWidget):
 
         # 오른쪽 콘텐츠 영역 (선택된 파일/시트 내용)
         right_area = QFrame()
-        right_area.setFrameShape(QFrame.NoFrame)  # 프레임 모양 제거
+        right_area.setFrameShape(QFrame.NoFrame)
         right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border: none;")
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
@@ -175,44 +175,9 @@ class DataInputPage(QWidget):
 
         # 탭 바
         self.tab_bar = QTabBar()
-        self.tab_bar.setDocumentMode(True)
-        self.tab_bar.setMovable(True)
-        self.tab_bar.setExpanding(False)
-        self.tab_bar.setDrawBase(False)  # 기본 라인 제거
-        self.tab_bar.setStyleSheet("""
-            QTabBar {
-                background-color: transparent;
-                border: none;
-            }
-            QTabBar::tab {
-                background: #f0f0f0;
-                border: 1px solid #cccccc;
-                border-top-left-radius: 10px;
-                border-top-right-radius: 10px;
-                padding: 6px 10px;
-                margin-right: 2px;
-                margin-bottom: 0px;
-            }
-            QTabBar::tab:selected, QTabBar::tab:hover {
-                background: #1428A0;
-                color: white;
-            }
-        """)
 
         # 콘텐츠 영역
         self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("border: 2px solid #cccccc; background-color: white;")
-
-        # 초기 "Start Page" 추가 (나중에 tab_manager에서 처리)
-        empty_widget = QWidget()
-        empty_layout = QVBoxLayout(empty_widget)
-        empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
-        empty_msg.setAlignment(Qt.AlignCenter)
-        empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")
-        empty_layout.addWidget(empty_msg)
-
-        self.stacked_widget.addWidget(empty_widget)
-        self.tab_bar.addTab("Start Page")
 
         # 레이아웃에 추가
         tab_layout.addWidget(self.tab_bar)
@@ -265,12 +230,6 @@ class DataInputPage(QWidget):
         self.file_explorer.file_or_sheet_selected.connect(
             self.sidebar_manager.on_file_or_sheet_selected)
 
-        # 탭 관련 시그널
-        self.tab_bar.currentChanged.connect(self.tab_manager.on_tab_changed)
-        self.tab_bar.tabCloseRequested.connect(self.tab_manager.on_tab_close_requested)
-        self.tab_bar.tabMoved.connect(self.tab_manager.on_tab_moved)
-        self.tab_bar.setTabsClosable(True)
-
     def on_date_range_changed(self, start_date, end_date):
         """날짜 범위가 변경되면 시그널 발생"""
         print(f"날짜 범위 변경: {start_date.toString('yyyy-MM-dd')} ~ {end_date.toString('yyyy-MM-dd')}")
@@ -301,8 +260,8 @@ class DataInputPage(QWidget):
         self.update_status_message(True, f"파일 '{file_name}'이(가) 제거되었습니다")
 
         try:
-             solution, failures = run_allocation()  
-             self.parameter_component.show_failures.emit(solution, failures)
+            solution, failures = run_allocation()
+            self.parameter_component.show_failures.emit(solution, failures)
         except Exception as e:
             print(f"[preAssign 자동분석] 오류 발생: {e}")
 
@@ -311,84 +270,20 @@ class DataInputPage(QWidget):
         print("Run 버튼 클릭됨 - 현재 탭의 데이터 저장 및 모든 데이터프레임 전달")
 
         # 현재 열려있는 탭의 데이터 저장
-        current_tab_index = self.tab_bar.currentIndex()
-        if current_tab_index >= 0 and current_tab_index < self.stacked_widget.count():
-            current_tab_widget = self.stacked_widget.widget(current_tab_index)
-            if current_tab_widget:
-                # 현재 탭에 해당하는 파일과 시트 찾기
-                current_file_path = None
-                current_sheet_name = None
-                for (file_path, sheet_name), idx in self.tab_manager.open_tabs.items():
-                    if idx == current_tab_index:
-                        current_file_path = file_path
-                        current_sheet_name = sheet_name
-                        break
+        self.tab_manager.save_current_tab_data()
 
-                if current_file_path:
-                    # 현재 탭 데이터 저장
-                    self.data_modifier.save_tab_data(current_tab_widget, current_file_path, current_sheet_name)
+        # DataStore에서 모든 데이터프레임 준비
+        self.prepare_dataframes_for_optimization()
 
+        # 기존 시그널 발생
+        self.run_button_clicked.emit()
+
+    def prepare_dataframes_for_optimization(self):
+        """최적화를 위한 데이터프레임 준비 및 저장"""
         # DataStore에서 모든 데이터프레임 가져오기
-        from app.models.common.fileStore import DataStore, FilePaths
         all_dataframes = DataStore.get("dataframes", {})
 
-        # 수정된 사항 확인을 위한 상세 로그 추가
-        print("\n===== 데이터프레임 저장 전 상세 정보 =====")
-        print(f"전체 데이터프레임 개수: {len(all_dataframes)}")
-        for key, df in all_dataframes.items():
-            # 데이터프레임의 기본 정보 출력
-            if df is not None:
-                print(f"데이터프레임 키: {key}")
-                print(f"  - 크기: {df.shape}")
-                print(f"  - 컬럼: {df.columns.tolist()}")
-                print(f"  - 데이터 샘플: {df.head(2).to_dict('records')}")
-
-                # 수정 여부 확인 (데이터 수정자에서 추적 중인 경우)
-                is_modified = False
-                # 마지막 콜론의 위치 찾기
-                if ":" in key:
-                    # 키 형식에서 파일 경로와 시트 이름 분리 (마지막 콜론 기준)
-                    last_colon_index = key.rfind(":")
-                    if last_colon_index > 0:  # 콜론이 있는지 확인
-                        file_path = key[:last_colon_index]
-                        sheet_name = key[last_colon_index + 1:]
-
-                        if (file_path in self.data_modifier.modified_data_dict and
-                                sheet_name in self.data_modifier.modified_data_dict[file_path]):
-                            is_modified = True
-                else:
-                    if (key in self.data_modifier.modified_data_dict and
-                            'data' in self.data_modifier.modified_data_dict[key]):
-                        is_modified = True
-
-                print(f"  - 수정됨: {is_modified}")
-            else:
-                print(f"데이터프레임 키: {key} - 데이터 없음")
-        print("========================================\n")
-
-        # 기존 방식의 simplified_dataframes 생성 (파일 경로 기준)
-        simplified_dataframes = {}
-        for key, df in all_dataframes.items():
-            # 키 형식이 "file_path:sheet_name"인 경우 또는 그냥 file_path인 경우
-            if ":" in key:
-                # 마지막 콜론의 위치 찾기
-                last_colon_index = key.rfind(":")
-                if last_colon_index > 0:  # 콜론이 있는지 확인
-                    file_path = key[:last_colon_index]
-                    sheet_name = key[last_colon_index + 1:]
-
-                    if file_path not in simplified_dataframes:
-                        simplified_dataframes[file_path] = {}
-                    simplified_dataframes[file_path][sheet_name] = df
-            else:
-                # 시트가 없는 파일 (CSV 등)
-                simplified_dataframes[key] = df
-
-        # 단순화된 데이터프레임 딕셔너리 DataStore에 저장
-        DataStore.set("simplified_dataframes", simplified_dataframes)
-        print(f"파일경로 기준 데이터프레임 저장됨: {len(simplified_dataframes)}개 파일, {len(all_dataframes)}개 데이터프레임")
-
-        # 새로운 데이터 구조 - 파일 유형별로 구성
+        # 각 파일 유형별로 데이터프레임 구성
         organized_dataframes = {
             "demand": {},
             "dynamic": {},
@@ -423,23 +318,9 @@ class DataInputPage(QWidget):
         # 유형별 데이터프레임 딕셔너리 DataStore에 저장
         DataStore.set("organized_dataframes", organized_dataframes)
         print(f"유형별 데이터프레임 저장됨:")
-        
+
         for file_type, sheets in organized_dataframes.items():
             print(f"  - {file_type}: {len(sheets)}개 시트/파일")
-
-            # 각 유형의 시트 정보 상세 출력
-            if sheets:
-                print(f"\n{file_type} 데이터 상세 정보:")
-                for sheet_name, df in sheets.items():
-                    print(f"    * 시트: {sheet_name}")
-                    print(f"      - 크기: {df.shape}")
-                    print(f"      - 컬럼: {df.columns.tolist()[:5]}..." if len(
-                        df.columns) > 5 else f"      - 컬럼: {df.columns.tolist()}")
-                    if not df.empty:
-                        print(f"      - 첫 번째 행 샘플: {df.iloc[0].to_dict()}")
-
-        # 기존 시그널 발생
-        self.run_button_clicked.emit()
 
     def update_status_message(self, success, message):
         """상태 메시지 업데이트"""
@@ -451,14 +332,15 @@ class DataInputPage(QWidget):
     def get_file_paths(self):
         """선택된 파일 경로 리스트 반환"""
         return self.file_uploader.get_file_paths()
-    
+
     def register_file_path(self, file_path):
+        """파일 경로를 FilePaths에 등록"""
         fn = os.path.basename(file_path).lower()
-        if "demand"  in fn:
+        if "demand" in fn:
             FilePaths.set("demand_excel_file", file_path)
         elif "dynamic" in fn:
             FilePaths.set("dynamic_excel_file", file_path)
-        elif "master"  in fn:
+        elif "master" in fn:
             FilePaths.set("master_excel_file", file_path)
         elif "pre_assign" in fn:
             FilePaths.set("pre_assign_excel_file", file_path)
@@ -466,16 +348,17 @@ class DataInputPage(QWidget):
             FilePaths.set("etc_excel_file", file_path)
 
     def run_combined_analysis(self):
+        """파일 분석 실행"""
         try:
             solution, failures = run_allocation()
             print(failures)
 
             failed_items, failed_rmcs = run_maintenance_analysis()
             print(failed_items, failed_rmcs)
-            
+
             failures["plan_adherence_rate"] = {
                 "item_failures": failed_items,
-                "rmc_failures":  failed_rmcs
+                "rmc_failures": failed_rmcs
             }
 
             self.parameter_component.show_failures.emit(failures)
