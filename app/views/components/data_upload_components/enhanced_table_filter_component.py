@@ -266,7 +266,7 @@ class EnhancedTableFilterComponent(QWidget):
             }
         """)
         self.table_view.setHorizontalHeader(header)
-        header.setStretchLastSection(True)
+        header.setStretchLastSection(False)  # 마지막 열 늘리지 않음
         self.table_view.verticalHeader().setVisible(False)  # 행 번호 숨김
 
         # 다중 필터 프록시 모델 설정
@@ -279,34 +279,6 @@ class EnhancedTableFilterComponent(QWidget):
 
         # 레이아웃에 테이블 뷰 추가
         main_layout.addWidget(self.table_view)
-
-        # # 버튼 영역
-        # button_frame = QFrame()
-        # button_frame.setStyleSheet("background-color: transparent; border: none;")
-        # button_layout = QHBoxLayout(button_frame)
-        #
-        # # 필터 리셋 버튼
-        # self.reset_btn = QPushButton("필터 초기화")
-        # self.reset_btn.setFont(QFont("Arial"))
-        # self.reset_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        # self.reset_btn.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #808080;
-        #         color: white;
-        #         border-radius: 10px;
-        #         padding: 5px 10px;
-        #         border: none;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #606060;
-        #     }
-        # """)
-        # self.reset_btn.clicked.connect(self.reset_filter)
-        #
-        # button_layout.addStretch(1)
-        # button_layout.addWidget(self.reset_btn)
-        #
-        # main_layout.addWidget(button_frame)
 
     def _update_filter(self, col, value, checked):
         """필터 업데이트 (체크박스 상태 변경시 호출)"""
@@ -424,6 +396,22 @@ class EnhancedTableFilterComponent(QWidget):
         model = PandasModel(self._df, self)
         self.proxy_model.filters.clear()
         self.proxy_model.setSourceModel(model)
+
+        # 열 너비 균일하게 설정
+        header = self.table_view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Interactive)
+
+        # 모든 열의 초기 너비를 동일하게 설정
+        column_count = len(df.columns)
+        if column_count > 0:
+            table_width = self.table_view.width()
+            column_width = max(100, table_width // column_count)
+            for i in range(column_count):
+                self.table_view.setColumnWidth(i, column_width)
+
+        # 마지막 열을 늘리지 않도록 설정
+        header.setStretchLastSection(False)
+
         self.filter_applied.emit()
 
     def reset_filter(self):
