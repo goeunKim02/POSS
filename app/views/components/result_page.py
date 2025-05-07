@@ -1,25 +1,32 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
+import os
+from datetime import datetime
+from PyQt5.QtWidgets import QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QFrame, QSplitter, QStackedWidget
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont
+import pandas as pd
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
+from ..components.visualization.visualization_updater import VisualizationUpdater
 from ..components.visualization.visualizaiton_manager import VisualizationManager
-from app.analysis.output.daily_capa_utilization import analyze_utilization
+from app.analysis.output.daily_capa_utilization import CapaUtilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.models.common.fileStore import FilePaths
+from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
+from app.utils.export_manager import ExportManager
 
 class ResultPage(QWidget):
-    # 시그널 추가
     export_requested = pyqtSignal(str)
 
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
-        self.utilization_data = None 
         self.capa_ratio_data = None
-        self.result_data = None
         self.data_changed_count = 0
+        self.utilization_data = None # 가동률 데이터 저장 변수
+        self.result_data = None # 결과 데이터 저장 변수
         self.init_ui()
+
+        self.connect_signals()
 
     def init_ui(self):
         # 레이아웃 설정
@@ -129,13 +136,12 @@ class ResultPage(QWidget):
         self.left_section.cell_moved.connect(self.on_cell_moved)
         left_layout.addWidget(self.left_section)
 
-        # 오른쪽 컨테이너 (현재는 비어있음)
+        # 오른쪽 컨테이너 
         right_frame = QFrame()
         right_frame.setFrameShape(QFrame.StyledPanel)
         right_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
 
         right_layout = QVBoxLayout(right_frame)
-        # right_layout.setContentsMargins(0, 0, 0, 0)
 
         # 지표 버튼
         button_group_layout = QHBoxLayout()
@@ -185,15 +191,19 @@ class ResultPage(QWidget):
             page = QWidget()
             page_layout = QVBoxLayout(page)
             
-            # 페이지에 적절한 시각화 추가
-            canvas = MplCanvas(width=6, height=4, dpi=100)
-            page_layout.addWidget(canvas)
+            # tab 유형 별 처리 
+            if btn_text == 'Plan':
+                # 계획 유지율 위젯 생성
+                self.plan_maintenance_widget = PlanMaintenanceWidget()
+                page_layout.addWidget(self.plan_maintenance_widget)
 
-            # 캔버스 저장
-            self.viz_canvases.append(canvas)
-            
-            # 초기 시각화 생성
-            self.create_initial_visualization(canvas, btn_text)
+            else: # 다른 탭은 시각화 그대로 유지
+                # 페이지에 적절한 시각화 추가
+                canvas = MplCanvas(width=6, height=4, dpi=100)
+                page_layout.addWidget(canvas)
+                
+                # 초기 시각화 생성
+                self.create_initial_visualization(canvas, btn_text)
             
             # 스택 위젯에 페이지 추가
             self.viz_stack.addWidget(page)
@@ -212,32 +222,72 @@ class ResultPage(QWidget):
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
-    def export_results(self):
-        try:
-            file_path, _ = QFileDialog.getSaveFileName(
-                self, "결과 내보내기", "", "CSV 파일 (*.csv);;모든 파일 (*)"
-            )
+    
+    # 시각화 캔버스 초기화 
+    def init_visualization_canvases(self):
+        self.viz_canvases = []
 
-            if file_path:
-                # 데이터가 있는지 확인
-                if hasattr(self, 'left_section') and hasattr(self.left_section,
-                                                             'data') and self.left_section.data is not None:
-                    try:
-                        # 데이터를 CSV로 저장
-                        self.left_section.data.to_csv(file_path, index=False)
-                        print(f"데이터가 {file_path}에 저장되었습니다.")
-                    except Exception as e:
-                        print(f"파일 저장 오류: {e}")
+        # Plan 제외한 탭들의 캔버스 찾기
+        for i in range(3):
+            page = self.viz_stack.widget(i)
+            if page:
+                # 페이지 내의 모든 자식 위젯 중 MplCanvas 찾기
+                canvas = None
+                for child in page.findChildren(MplCanvas):
+                    canvas = child
+                    break
+                
+                # 캔버스가 있으면 리스트에 추가
+                if canvas:
+                    self.viz_canvases.append(canvas)
                 else:
-                    print("내보낼 데이터가 없습니다.")
+                    print(f"Tab {i}에서 캔버스를 찾을 수 없습니다.")
 
-                # 시그널 발생
-                self.export_requested.emit(file_path)
-        except Exception as e:
-            print(f"Export 과정에서 오류 발생: {str(e)}")
+
+    """이벤트 시그널 연결"""
+    def connect_signals(self):
+        # 왼쪽 섹션의 데이터 변경 이벤트 연결
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
+            self.left_section.data_changed.connect(self.on_data_changed)
+        
+        # 아이템 변경 이벤트 연결 (필요한 경우)
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
+            self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
+
+    """아이템 데이터가 변경되었을 때 호출되는 함수"""
+    def on_item_data_changed(self, item, new_data):
+        # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
+        if 'Qty' in new_data and pd.notna(new_data['Qty']):
+            line = new_data.get('Line')
+            time = new_data.get('Time')
+            item = new_data.get('Item')
+            new_qty = new_data.get('Qty')
+            demand = new_data.get('Demand', None)  # 선택적 필드
+
+            # 값 변환 및 검증
+            try:
+                time = int(time) if time is not None else None
+                new_qty = int(float(new_qty)) if new_qty is not None else None
+            except (ValueError, TypeError):
+                print(f"시간 또는 수량 변환 오류: time={time}, qty={new_qty}")
+                return
+
+            if line is not None and time is not None and item is not None and new_qty is not None:
+                    # 계획 유지율 위젯 업데이트
+                    if hasattr(self, 'plan_maintenance_widget'):
+                        # 수량 직접 업데이트
+                        print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
+                        self.plan_maintenance_widget.update_quantity(line, time, item, new_qty, demand)
+                        
+                        # Plan 탭으로 전환 (선택 사항)
+                        plan_index = [i for i, btn in enumerate(self.viz_buttons) if btn.text() == "Plan"]
+                        if plan_index:
+                            self.switch_viz_page(plan_index[0])
+        
 
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
-    def switch_viz_page(self, index): 
+    def switch_viz_page(self, index):
         self.viz_stack.setCurrentIndex(index)
 
          # Update button style 
@@ -268,81 +318,51 @@ class ResultPage(QWidget):
 
     """각 지표별 초기 시각화 생성"""
     def create_initial_visualization(self, canvas, viz_type):
-        canvas.axes.clear()
-
         # 각 지표 예시
         if viz_type == "Capa":
-            # 데이터가 있는 경우에만 차트 생성, 없으면 메시지 표시 (수정)
-            if self.capa_ratio_data and len(self.capa_ratio_data) > 0:
-                VisualizationManager.create_chart(
-                    self.capa_ratio_data,
-                    chart_type='bar',
-                    title='Plant Capacity Ratio',
-                    xlabel='Plant',
-                    ylabel='Ratio (%)',
-                    ax=canvas.axes
-                )
-            else:
-                canvas.axes.text(0.5, 0.5, 'Please load data', ha='center', va='center', fontsize=18)
+            VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
         
 
         elif viz_type == "Utilization":
             if self.utilization_data is None:
                 try:
-                    result_file = FilePaths.get("result_file")
-                    master_file = FilePaths.get("master_excel_file")
-
-                    # 파일 경로 유효성 검사
-                    if result_file is None or master_file is None:
-                        error_msg = "Please load the file"
-                        print(error_msg)
-                        canvas.axes.text(0.5, 0.5, error_msg, ha='center', va='center', fontsize=14, color='red')
-                        canvas.draw()
-                        return
-
-                    self.utilization_data = analyze_utilization(result_file, master_file)
-
+                    self.utilization_data = CapaUtilization.analyze_utilization(self.result_data)
                     print("Finished Utilization Rate :", self.utilization_data)
                 except Exception as e:
                     print(f"Utilization Rate Error : {str(e)}")
                     self.utilization_data = {}
-        
-            if self.utilization_data:
-                days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-                sorted_data = {day: self.utilization_data.get(day, 0) for day in days_order}
+            
+            VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
 
-                VisualizationManager.create_chart(
-                    sorted_data,
-                    chart_type='bar',
-                    title='Daily Utilization Rate',
-                    xlabel='Day of week',
-                    ylabel='Utilization Rate(%)',
-                    ax=canvas.axes,
-                    ylim=(0, 100),
-                    threshold_values=[60, 80],
-                    threshold_colors=['#4CAF50', '#FFC107', '#F44336'],
-                    value_fontsize=14
-                )
-
-            else:
-                canvas.axes.text(0.5, 0.5, 'No utilization data available', ha='center', va='center', fontsize=18)
-
-
-        canvas.draw()
+        elif viz_type == "PortCapa":
+            pass
 
     """
     데이터가 변경되었을 때 호출되는 메서드
     데이터프레임을 분석하여 시각화 업데이트
     """
     def on_data_changed(self, data):
+        print("on_data_changed 호출됨 - 데이터 변경 감지")
         self.result_data = data
         
         try:
             # 데이터가 비어있지 않은 경우에만 분석 수행
-            if not data.empty:
+            if data is not None and not data.empty:
                 # 데이터 변경 이벤트 카운터 증가
                 self.data_changed_count += 1
-                
+
+                # Plan 탭의 계획 유지율 위젯 업데이트
+                print("계획 유지율 위젯 업데이트 시작")
+
+                if hasattr(self, 'plan_maintenance_widget'):
+                    # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
+                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                    
+                    # 한 번에 데이터 설정 (자동으로 이전 계획 감지 및 로드)
+                    self.plan_maintenance_widget.set_data(data, start_date, end_date)
+                    print("계획 유지율 위젯 데이터 업데이트 완료")
+
+                # Capa 비율 분석
                 # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
                 if self.data_changed_count > 1:
                     # 제조동별 생산량 비율 분석
@@ -351,13 +371,17 @@ class ResultPage(QWidget):
                     # 첫 번째 이벤트는 결과를 저장하지만 출력하지 않음
                     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
                 
+                # 요일별 가동률 
+                self.utilization_data = CapaUtilization.analyze_utilization(data)
+
                 # 시각화 업데이트
                 self.update_all_visualizations()
                     
             else:
                 print("빈 데이터프레임")
                 self.capa_ratio_data = {}
-                
+                self.utilization_data = {}
+
         except Exception as e:
             print(f"데이터 분석 중 오류 발생: {e}")
             import traceback
@@ -381,11 +405,29 @@ class ResultPage(QWidget):
                 # 업데이트된 비율이 있는 경우
                 if updated_ratio:
                     self.capa_ratio_data = updated_ratio
-                    
+
+                    # 요일별 가동률 업데이트 : 불필요한 계산 막기 위해 capa가 업데이트 되면 시행
+                    self.utilization_data = CapaUtilization.update_utilization_for_cell_move(
+                        self.result_data, old_data, new_data
+                    )
+
                     # 시각화 업데이트
                     self.update_all_visualizations()
-                    
+
                     # print(f"업데이트된 분석 결과: {self.capa_ratio_data}")
+
+                    # Plan 탭의 계획 유지율 위젯 업데이트
+                    if hasattr(self, 'plan_maintenance_widget'):
+                        # 필요한 데이터 추출
+                        line = new_data.get('Line')
+                        time = new_data.get('Time')
+                        item = new_data.get('Item')
+                        qty = new_data.get('Qty')
+                        demand = new_data.get('Demand', None)
+                        
+                        # 값이 있으면 수량 업데이트
+                        if line and time is not None and item and qty is not None:
+                            self.plan_maintenance_widget.update_quantity(line, time, item, qty, demand)
         
         except Exception as e:
             print(f"셀 이동 처리 중 오류 발생: {e}")
@@ -394,46 +436,69 @@ class ResultPage(QWidget):
     
     """모든 시각화 차트 업데이트"""
     def update_all_visualizations(self):
+        print(f"시각화 업데이트 시작 - 캔버스 개수: {len(self.viz_canvases)}")
+
+        # 캔버스 초기화
+        if not self.viz_canvases:
+            print("캔버스가 초기화되지 않음. 초기화 실행...")
+            self.init_visualization_canvases()
+        
+        # 데이터 로그
+        print(f"Capa 비율 데이터: {self.capa_ratio_data}")
+        print(f"가동률 데이터: {self.utilization_data}")
+
         for i, canvas in enumerate(self.viz_canvases):
             viz_type = ["Capa", "Utilization", "PortCapa", "Plan"][i]
+            print(f"  - 캔버스 {i}: {viz_type}, 유효함: {canvas is not None}")
             self.update_visualization(canvas, viz_type)
+
+        print("시각화 업데이트 완료")
     
     """개별 시각화 차트 업데이트"""
     def update_visualization(self, canvas, viz_type):
-        
-        canvas.axes.clear()
-        
-        # 각 지표별 시각화 업데이트
         if viz_type == "Capa":
-            # 데이터가 있는 경우에만 차트 생성, 없으면 메시지 표시 (수정)
-            if self.capa_ratio_data and len(self.capa_ratio_data) > 0:
-                VisualizationManager.create_chart(
-                    self.capa_ratio_data,
-                    chart_type='bar',
-                    title='Plant Capacity Ratio',
-                    xlabel='Plant',
-                    ylabel='Ratio (%)',
-                    ax=canvas.axes
+            VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
+        elif viz_type == "Utilization":
+            VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
+        elif viz_type == "PortCapa":
+            pass
+
+
+    """최종 최적화 결과를 파일로 내보내는 메서드"""
+    def export_results(self):
+        try:
+            # 데이터가 있는지 확인
+            if hasattr(self, 'left_section') and hasattr(self.left_section,
+                                                            'data') and self.left_section.data is not None:
+                
+                # 날짜 범위 가져오기
+                start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                
+                # 통합 내보내기 로직
+                saved_path = ExportManager.export_data(
+                    parent=self,
+                    data_df=self.left_section.data,
+                    start_date=start_date,
+                    end_date=end_date,
+                    is_planning=False
                 )
+
+                # 성공적으로 파일 저장 시 시그널 발생
+                if saved_path:
+                    self.export_requested.emit(saved_path)
+
             else:
-                canvas.axes.text(0.5, 0.5, 'Please load data', ha='center', va='center', fontsize=18)
-        
-        
-        elif viz_type == "Utilization" and self.utilization_data:
-            days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-            sorted_data = {day: self.utilization_data.get(day, 0) for day in days_order}
+                print("No data to export.")
+                QMessageBox.warning(
+                    self,
+                    "Export Error",
+                    "No data to export."
+                )
 
-            VisualizationManager.create_chart(
-                sorted_data,
-                chart_type='bar',
-                title='Daily Utilization Rate',
-                xlabel='Day of week',
-                ylabel='Utilization Rate(%)',
-                ax=canvas.axes,
-                ylim=(0, 100),
-                threshold_values=[60, 80],
-                threshold_colors=['#4CAF50', '#FFC107', '#F44336'],
-                value_fontsize=14
-            )
-
-        canvas.draw()
+        except Exception as e:
+            print(f"Export 과정에서 오류 발생: {str(e)}")
+            QMessageBox.critical(
+            self, 
+            "Export Error", 
+            f"An error occurred during export:\n{str(e)}"
+        )

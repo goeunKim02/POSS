@@ -10,6 +10,9 @@ from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
 from app.utils.fileHandler import create_from_master
+from app.core.optimizer import Optimizer
+from app.views import main_window
+from app.utils.export_manager import ExportManager
 
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
@@ -38,6 +41,8 @@ class ProcessThread(QThread):
         self.finished.emit(self.df) # 테스트용 원본 데이터 반환
 
 class PlanningPage(QWidget):
+    optimization_requested = pyqtSignal(dict)
+    
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
@@ -114,22 +119,26 @@ class PlanningPage(QWidget):
 
     # 엑셀 파일로 내보내기
     def on_export_click(self):
-        options = QFileDialog.Options()
-        desktop_dir = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
-        default_path = os.path.join(desktop_dir, "initial_assign.xlsx")
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Save as Excel", default_path,
-            "Excel Files (*.xlsx);;All Files (*)", options=options
-        )
-        if not file_path:
+        # 데이터가 있는지 확인
+        if self._df is None or self._df.empty:
+            QMessageBox.warning(self, "Export Error", "No data to export.")
             return
-        if not file_path.lower().endswith('.xlsx'):
-            file_path += '.xlsx'
+        
         try:
-            self._df.to_excel(file_path, index=False)
-            QMessageBox.information(self, "Export Success", f"파일이 다음 경로로 저장되었습니다: {file_path}")
+            start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
         except Exception as e:
-            QMessageBox.warning(self, "Export Failed", f"엑셀 파일 저장 중 오류가 발생했습니다: {e}")
+            # 날짜 범위를 가져올 수 없는 경우 기본값 사용
+            print("Could not retrieve date range. Using current date instead")
+            start_date, end_date = None, None
+
+        # 통합 내보내기 사용
+        ExportManager.export_data(
+            parent=self,
+            data_df=self._df,
+            start_date=start_date,
+            end_date=end_date,
+            is_planning=True  # 사전할당 페이지임을 표시
+        )
 
     # 캘린더 초기화
     def on_reset_click(self):
@@ -165,18 +174,37 @@ class PlanningPage(QWidget):
         for gid in selected:
             selected_projects.update(filtered_groups[gid])
 
-        filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
+        # 클래스 맴버 변수로 저장
+        self.filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
+        self.selected_projects = list(selected_projects)
 
         # 실행 버튼 비활성화
         self.btn_run.setEnabled(False)
-        self.btn_run.setText("")
+        self.btn_run.setText("Processing...")
         self.run_spinner.start()
 
-        # 최적화 알고리즘 실행
-        self._thread = ProcessThread(filtered_df)
-        self._thread.finished.connect(self._on_process_done)
-        self.btn_run.setStyleSheet("")
-        self._thread.start()
+        try:
+            # 최적화 알고리즘 직접 실행
+            optimizer = Optimizer()
+            results = optimizer.run_optimization({
+                'pre_assigned_df': self.filtered_df,
+                'selected_projects': list(self.selected_projects)
+            })
+            
+            # 결과를 결과 페이지로 전달
+            if hasattr(self.main_window, 'result_page'):
+                self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
+                self.main_window.navigate_to_page(2)
+            else:
+                self.optimization_requested.emit(results)
+                
+        except Exception as e:
+            QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {str(e)}")
+        finally:
+            # 실행 버튼 상태 복원
+            self.btn_run.setText("Run")
+            self.btn_run.setEnabled(True)
+            self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
     def _on_process_done(self, result_df):
         # 실행 버튼 활성화
@@ -193,6 +221,7 @@ class PlanningPage(QWidget):
         pix = self.run_spinner.currentPixmap()
         if not pix.isNull():
             self.btn_run.setIcon(QIcon(pix))
+
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):

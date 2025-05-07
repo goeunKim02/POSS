@@ -1,0 +1,46 @@
+{
+  "plans": [
+    {
+      "path": "C:/Users/SSAFY/Desktop\\W051\\Plan_W051_20250502_160053.xlsx",
+      "week": "W051",
+      "start_date": "2025-05-02",
+      "end_date": "2025-05-09",
+      "mod_time": "2025-05-02 16:00:53"
+    },
+    {
+      "path": "C:/Users/SSAFY/Desktop\\W051\\Plan_W051_20250502_221954.xlsx",
+      "week": "W051",
+      "start_date": "2025-05-02",
+      "end_date": "2025-05-09",
+      "mod_time": "2025-05-02 22:19:54"
+    },
+    {
+      "path": "C:/Users/SSAFY/Desktop\\W051\\Plan_W051_20250503_191210.xlsx",
+      "week": "W051",
+      "start_date": "2025-05-03",
+      "end_date": "2025-05-10",
+      "mod_time": "2025-05-03 19:12:10"
+    },
+    {
+      "path": "C:/Users/SSAFY/Desktop\\W051\\Plan_W051_20250504_002043.xlsx",
+      "week": "W051",
+      "start_date": "2025-05-04",
+      "end_date": "2025-05-11",
+      "mod_time": "2025-05-04 00:20:43"
+    },
+    {
+      "path": "C:\\Users\\SSAFY\\Desktop\\W051\\Plan_W051_20250507_141141.xlsx",
+      "week": "W051",
+      "start_date": "2025-05-07",
+      "end_date": "2025-05-14",
+      "mod_time": "2025-05-07 14:11:41"
+    },
+    {
+      "path": "C:\\Users\\SSAFY\\Desktop\\W051\\Plan_W051_20250507_142244.xlsx",
+      "week": "W051",
+      "start_date": "2025-05-07",
+      "end_date": "2025-05-14",
+      "mod_time": "2025-05-07 14:22:44"
+    }
+  ]
+}

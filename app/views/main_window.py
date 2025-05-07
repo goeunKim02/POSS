@@ -1,14 +1,15 @@
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
+from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtGui import QCursor, QIcon, QFont
+import pandas as pd
+import os
+from app.core.optimization import Optimization
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.models.input.capa import process_data
+from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
-from PyQt5.QtCore import Qt, QDate
-from PyQt5.QtGui import QCursor, QIcon, QFont
-from app.core.optimization import Optimization
-import pandas as pd
-import os
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -169,6 +170,26 @@ class MainWindow(QMainWindow):
                 print(f'자재만족률 분석 중 오류 발생 : {e}')
                 import traceback
                 print(traceback.format_exc())
+
+            # 당주 출하 만족률 분석
+            try :
+                from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
+
+                preprocessed_data = preprocess_data_for_fulfillment_rate()
+
+                if preprocessed_data :
+                    fulfillment_results = calculate_fulfillment_rate(preprocessed_data)
+
+                    if fulfillment_results :
+                        self.data_model.fulfillment_rate_results = fulfillment_results
+
+                        print(f"당주 출하 만족률: {fulfillment_results['overall_rate']:.2f}%")
+                        print(f"총 수요(SOP): {fulfillment_results['total_sop']}")
+                        print(f"총 생산 가능: {fulfillment_results['total_production']}")
+            except Exception as e:
+                print(f'당주 출하 만족률 분석 중 오류 발생: {e}')
+                import traceback
+                print(traceback.format_exc())
         else :
             print("데이터 처리에 실패했습니다")
 
@@ -237,3 +258,20 @@ class MainWindow(QMainWindow):
         # 결과 내보내기 로직
         print(f"결과를 다음 경로에 저장: {file_path}")
         # self.data_model.export_results(file_path)
+
+    """최적화 결과 처리"""
+    def handle_optimization_result(self, results):
+        # Args:
+        #     results (dict): 최적화 결과를 포함하는 딕셔너리
+
+        # 결과 페이지 초기화 확인
+        if not hasattr(self, 'result_page'):
+            self.result_page = ResultPage(self)
+            self.central_widget.addWidget(self.result_page)
+
+        # 결과 페이지의 데이터 업데이트
+        if 'assignment_result' in results and results['assignment_result'] is not None:
+            self.result_page.left_section.update_data(results['assignment_result'])
+
+        # 결과 페이지로 이동
+        self.central_widget.setCurrentWidget(self.result_page)

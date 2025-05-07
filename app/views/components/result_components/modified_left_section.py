@@ -52,26 +52,26 @@ class ModifiedLeftSection(QWidget):
         self.load_button.clicked.connect(self.load_excel_file)
         control_layout.addWidget(self.load_button)
 
-        # 테이블 초기화 버튼
-        self.clear_button = QPushButton("테이블 초기화")
-        self.clear_button.setStyleSheet("""
-            QPushButton {
-                background-color: #808080;
-                color: white;
-                font-weight: bold;
-                padding: 8px 15px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #606060;
-            }
-            QPushButton:pressed {
-                background-color: #404040;
-            }
-        """)
-        self.clear_button.setCursor(QCursor(Qt.PointingHandCursor))
-        self.clear_button.clicked.connect(self.clear_table)
-        control_layout.addWidget(self.clear_button)
+        # # 테이블 초기화 버튼
+        # self.clear_button = QPushButton("테이블 초기화")
+        # self.clear_button.setStyleSheet("""
+        #     QPushButton {
+        #         background-color: #808080;
+        #         color: white;
+        #         font-weight: bold;
+        #         padding: 8px 15px;
+        #         border-radius: 4px;
+        #     }
+        #     QPushButton:hover {
+        #         background-color: #606060;
+        #     }
+        #     QPushButton:pressed {
+        #         background-color: #404040;
+        #     }
+        # """)
+        # self.clear_button.setCursor(QCursor(Qt.PointingHandCursor))
+        # self.clear_button.clicked.connect(self.clear_table)
+        # control_layout.addWidget(self.clear_button)
 
         # 나머지 공간 채우기
         control_layout.addStretch(1)
@@ -346,26 +346,38 @@ class ModifiedLeftSection(QWidget):
             import traceback
             traceback.print_exc()
 
-    """테이블 초기화"""
-    def clear_table(self):
-        reply = QMessageBox.question(
-            self, '테이블 초기화',
-            "정말로 테이블을 초기화하시겠습니까?",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
+    # """테이블 초기화"""
+    # def clear_table(self):
+    #     reply = QMessageBox.question(
+    #         self, '테이블 초기화',
+    #         "정말로 테이블을 초기화하시겠습니까?",
+    #         QMessageBox.Yes | QMessageBox.No,
+    #         QMessageBox.No
+    #     )
 
-        if reply == QMessageBox.Yes:
-            self.grid_widget.clearAllItems()
-            self.data = None
-            self.grouped_data = None
-            self.row_headers = []
+    #     if reply == QMessageBox.Yes:
+    #         self.grid_widget.clearAllItems()
+    #         self.data = None
+    #         self.grouped_data = None
+    #         self.row_headers = []
 
-            # 빈 데이터프레임 신호 발생
-            self.data_changed.emit(pd.DataFrame())
+    #         # 빈 데이터프레임 신호 발생
+    #         self.data_changed.emit(pd.DataFrame())
 
 
     """외부에서 데이터 설정"""
     def set_data_from_external(self, new_data):
+        # 데이터 타입 통일
+        if not new_data.empty:
+            # 정수 변환
+            new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce')
+            new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce')
+            
+        print("데이터 타입 통일 후:")
+        if 'Time' in new_data.columns:
+            print(f"Time 열 타입: {new_data['Time'].dtype}")
+        if 'Qty' in new_data.columns:
+            print(f"Qty 열 타입: {new_data['Qty'].dtype}")
+        
         self.data = new_data
         self.update_table_from_data()
