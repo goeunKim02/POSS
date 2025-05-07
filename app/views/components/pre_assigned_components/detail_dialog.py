@@ -15,7 +15,7 @@ class DetailDialog(QDialog):
         self.setModal(True)
 
         # 다이얼로그 크기 설정
-        self.resize(1000, 610)
+        self.resize(1000, 600)
 
         # 메인 레이아웃
         main_layout = QVBoxLayout(self)
