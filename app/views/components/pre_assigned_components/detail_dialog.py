@@ -18,6 +18,8 @@ class DetailDialog(QDialog):
     def __init__(self, row: dict, time_map: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("카드 상세 정보")
+        # 도움말 아이콘(물음표) 제거 - 윈도우 플래그 설정
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
         self.setStyleSheet(
             DETAIL_DIALOG_STYLE
@@ -49,18 +51,26 @@ class DetailDialog(QDialog):
         grid.setHorizontalSpacing(20)
         grid.setVerticalSpacing(8)
 
+        # 안전하게 값을 가져오는 함수
+        def safe_get(key, default="-"):
+            value = row.get(key, default)
+            # None, NaN 등을 확인하여 기본값으로 대체
+            if value is None or (hasattr(value, 'isna') and value.isna()) or value == "?" or str(value).lower() == "nan":
+                return default
+            return str(value)
+
         fields = [
-            ("Line",       row.get("line", "-")),
-            ("Time",       row.get("time", "-")),
-            ("Project",    row.get("project", "-")),
-            ("Item",       row.get("item", "-")),
-            ("Qty",        row.get("qty", "-")),
-            ("Demand",     row.get("demand", "-")),
-            ("To Site",    row.get("to_site", "-")),
-            ("SOP",        row.get("sop", "-")),
-            ("MFG",        row.get("mfg", "-")),
-            ("RMC",        row.get("rmc", "-")),
-            ("Due LT",     row.get("due_LT", "-")),
+            ("Line",       safe_get("line")),
+            ("Time",       safe_get("time")),
+            ("Project",    safe_get("project")),
+            ("Item",       safe_get("item")),
+            ("Qty",        safe_get("qty")),
+            ("Demand",     safe_get("demand")),
+            ("To Site",    safe_get("to_site")),
+            ("SOP",        safe_get("sop")),
+            ("MFG",        safe_get("mfg")),
+            ("RMC",        safe_get("rmc")),
+            ("Due LT",     safe_get("due_LT")),
         ]
 
         for i, (name, val) in enumerate(fields):
