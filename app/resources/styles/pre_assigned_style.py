@@ -110,8 +110,9 @@ QFrame#cardFrameNight QLabel {
 # 상세정보 스타일
 DETAIL_DIALOG_STYLE = """
 QDialog {
-    background-color: #fdfdfd;
-    border: 1px solid #ccc;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
 }
 """
 
