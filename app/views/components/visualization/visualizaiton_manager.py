@@ -24,6 +24,11 @@ class VisualizationManager:
             ax.clear()
             ax.set_axis_on()
 
+        # 비교 차트 처리
+        if chart_type == 'comparison_bar':
+            print("비교 차트 함수 호출됨")
+            return VisualizationManager.create_comparison_bar_chart(data, title, xlabel, ylabel, ax, **kwargs)
+
         # 시각화에 필요한 형식으로 데이터 변환
         if isinstance(data, dict):
             x_data = list(data.keys())
@@ -158,3 +163,88 @@ class VisualizationManager:
 
         return ax
     
+
+    """
+    원본 데이터와 조정 데이터 비교 차트 생성
+    Args:
+        data: {'original': dict, 'adjusted': dict} 형태의 데이터
+        title: 차트 제목
+        xlabel: X축 레이블
+        ylabel: Y축 레이블
+        ax: Matplotlib axes
+        **kwargs: 추가 파라미터
+    
+    Returns:
+        Matplotlib axes with the comparison bar chart
+    """
+    @staticmethod
+    def create_comparison_bar_chart(data, title, xlabel, ylabel, ax, **kwargs):
+        print("create_comparison_bar_chart 함수 실행됨")
+        print(f"데이터 키: {list(data.keys())}")
+        if 'original' not in data or 'adjusted' not in data:
+            raise ValueError("Data must contain 'original' and 'adjusted' keys for comparison chart")
+        
+        orig_data = data['original']
+        adj_data = data['adjusted']
+
+        # 모든 키(x축)를 가져옴
+        all_keys = sorted(set(list(orig_data.keys()) + list(adj_data.keys())))
+
+        # x 위치 설정
+        x = np.arange(len(all_keys))
+        width = 0.35  # 막대 너비
+
+        # 원본 데이터와 조정 데이터 값 준비
+        orig_values = [orig_data.get(k, 0) for k in all_keys]
+        adj_values = [adj_data.get(k, 0) for k in all_keys]
+
+        # 비교 막대 차트 그리기
+        bar1 = ax.bar(x - width/2, orig_values, width, label='Original', color='steelblue', alpha=0.8)
+        bar2 = ax.bar(x + width/2, adj_values, width, label='Adjusted', color='orangered', alpha=0.8)
+
+        # 값 레이블 추가
+        if kwargs.get('show_value', True):
+            for bars, values in [(bar1, orig_values), (bar2, adj_values)]:
+                for bar, val in zip(bars, values):
+                    height = bar.get_height()
+                    ax.text(bar.get_x() + bar.get_width()/2., height,
+                            f'{height:.1f}' if isinstance(height, float) else f'{height}',
+                            ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 9))
+                    
+        # 임계값 라인 추가
+        if 'threshold_values' in kwargs and 'threshold_colors' in kwargs:
+            threshold_values = kwargs['threshold_values']
+            threshold_colors = kwargs['threshold_colors']
+            threshold_labels = kwargs.get('threshold_labels', [''] * len(threshold_values))
+            
+            for i, threshold in enumerate(threshold_values):
+                label = threshold_labels[i] if i < len(threshold_labels) else ''
+                ax.axhline(y=threshold, color=threshold_colors[i], linestyle='--', alpha=0.7)
+                ax.text(len(all_keys)-1 + 0.2, threshold, f'{threshold}% {label}', 
+                        color=threshold_colors[i], va='center', fontsize=10)
+                
+        # 차트 설정
+        ax.set_title(title, fontsize=kwargs.get('title_fontsize', 20))
+        ax.set_xlabel(xlabel, fontsize=kwargs.get('label_fontsize', 18))
+        ax.set_ylabel(ylabel, fontsize=kwargs.get('label_fontsize', 18))
+
+        # y축 범위 설정
+        if 'ylim' in kwargs:
+            ax.set_ylim(kwargs['ylim'])
+        else:
+            # 여유 공간 추가
+            ax.set_ylim(0, max(max(orig_values, default=0), max(adj_values, default=0)) *1.2)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(all_keys, fontsize=kwargs.get('tick_fontsize', 16))
+        ax.tick_params(axis='y', labelsize=kwargs.get('tick_fontsize', 16))
+
+        # 범례 추가
+        if kwargs.get('show_legend', True):
+            ax.legend(fontsize=16)
+
+        # 그리드 추가
+        if kwargs.get('show_grid', True):
+            ax.grid(alpha=kwargs.get('grid_alpha', 0.3), linestyle=kwargs.get('grid_style', '--'))
+
+        return ax

@@ -641,14 +641,14 @@ class PlanMaintenanceWidget(QWidget):
                             key_shift = parts[2]
                             key_item = parts[3]
                             
-                            print(f"라인={key_line}, 시프트={key_shift}, 아이템={key_item}")
+                            # print(f"라인={key_line}, 시프트={key_shift}, 아이템={key_item}")
                             item_rmc = key_item[3:-3] if len(key_item) > 6 else key_item
 
-                            print(f"추출된 RMC: {item_rmc}, 비교할 RMC: {rmc}")
+                            # print(f"추출된 RMC: {item_rmc}, 비교할 RMC: {rmc}")
                             
                             # RMC가 일치하는지 확인 (부분 문자열 일치도 고려)
                             if item_rmc and (item_rmc == rmc or rmc in item_rmc or item_rmc in rmc):
-                                print(f"RMC 매치 발견: 키={key}, RMC={rmc}")
+                                # print(f"RMC 매치 발견: 키={key}, RMC={rmc}")
                                 is_modified = True
                                 break
                 
