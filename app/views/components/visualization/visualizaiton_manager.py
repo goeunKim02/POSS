@@ -157,4 +157,3 @@ class VisualizationManager:
             ax.figure.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.15)
 
         return ax
-    

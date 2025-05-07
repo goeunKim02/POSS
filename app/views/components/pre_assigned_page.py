@@ -25,19 +25,19 @@ def create_button(text, style="primary", parent=None):
     )
     return btn
 
-# class ProcessThread(QThread):
-#     finished = pyqtSignal(pd.DataFrame)
+class ProcessThread(QThread):
+    finished = pyqtSignal(pd.DataFrame)
 
-#     def __init__(self, df: pd.DataFrame):
-#         super().__init__()
-#         self.df = df
+    def __init__(self, df: pd.DataFrame):
+        super().__init__()
+        self.df = df
 
-#     # 테스트용(실제 처리 로직으로 교체)
-#     def run(self):
-#         import time
+    # 테스트용(실제 처리 로직으로 교체)
+    def run(self):
+        import time
 
-#         time.sleep(10)  # 테스트용 지연
-#         self.finished.emit(self.df) # 테스트용 원본 데이터 반환
+        time.sleep(10)  # 테스트용 지연
+        self.finished.emit(self.df) # 테스트용 원본 데이터 반환
 
 class PlanningPage(QWidget):
     optimization_requested = pyqtSignal(dict)
@@ -197,20 +197,22 @@ class PlanningPage(QWidget):
             QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {str(e)}")
         finally:
             # 실행 버튼 상태 복원
+            self.run_spinner.stop()  # 로딩 애니메이션 중지
+            self.btn_run.setIcon(QIcon())  # 아이콘 제거
             self.btn_run.setText("Run")
             self.btn_run.setEnabled(True)
             self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
-    # def _on_process_done(self, result_df):
-    #     # 실행 버튼 활성화
-    #     self.run_spinner.stop()
-    #     self.btn_run.setIcon(QIcon())
+    def _on_process_done(self, result_df):
+        # 실행 버튼 활성화
+        self.run_spinner.stop()
+        self.btn_run.setIcon(QIcon())
 
-    #     self.btn_run.setText("Run")
-    #     self.btn_run.setEnabled(True)
-    #     self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
+        self.btn_run.setText("Run")
+        self.btn_run.setEnabled(True)
+        self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
-    #     print(result_df)
+        print(result_df)
 
     def _update_run_icon(self):
         pix = self.run_spinner.currentPixmap()

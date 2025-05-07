@@ -444,8 +444,8 @@ class ResultPage(QWidget):
                 self.data_changed_count += 1
 
                 # validator 초기화
-                master_data = DataStore.get("master_dataframes", {})
-                demand_data = DataStore.get("demand_dataframes", {})
+                # master_data = DataStore.get("master_dataframes", {})
+                # demand_data = DataStore.get("demand_dataframes", {})
                 
                 self.validator = PlanAdjustmentValidator(data)
                 
