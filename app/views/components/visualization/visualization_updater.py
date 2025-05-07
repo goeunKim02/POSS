@@ -59,14 +59,7 @@ class VisualizationUpdater:
                 'ylim': None  # 자동 계산
             }
         }
-        # # 데이터가 없으면 기본 메세지 표시
-        # chart_config = {
-        #     'has_data_check': VisualizationUpdater._is_capa_data_valid,
-        #     'chart_type' :'bar',
-        #     'title' : 'Plant Capacity Ratio',
-        #     'xlabel' :'Plant',
-        #     'ylabel' :'Ratio (%)'
-        # }
+     
         DisplayHelper.show_chart_or_message(canvas, capa_ratio_data, chart_config)
 
     """요일별 가동률 차트 업데이트"""
@@ -92,20 +85,7 @@ class VisualizationUpdater:
                 'show_legend': is_comparison
             }
         }
-        # chart_config = {
-        #     'has_data_check': VisualizationUpdater._is_utilization_data_valid,
-        #     'chart_type': 'bar',
-        #     'title' :'Daily Utilization Rate',
-        #     'xlabel' : 'Day of week',
-        #     'ylabel' : 'Utilization Rate(%)',
-        #     'transform_data': VisualizationUpdater._transform_utilization_data,
-        #     'extra_params': {
-        #         'ylim': (0, 110),
-        #         'threshold_values': [60, 80],
-        #         'threshold_colors': ['#4CAF50', '#FFC107', '#F44336'],
-        #         'value_fontsize': 14
-        #     }
-        # }
+       
         DisplayHelper.show_chart_or_message(canvas, utilization_data, chart_config)
 
     """출하포트 Capa 차트 업데이트"""
