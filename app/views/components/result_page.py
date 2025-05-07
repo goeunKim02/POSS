@@ -404,12 +404,36 @@ class ResultPage(QWidget):
 
                 # 업데이트된 비율이 있는 경우
                 if updated_ratio:
-                    self.capa_ratio_data = updated_ratio
+                    # 원본 데이터가 없는 경우 원본 데이터 저장
+                    if not hasattr(self, 'original_capa_ratio') or self.original_capa_ratio is None:
+                        self.original_capa_ratio = self.capa_ratio_data.copy() if isinstance(self.capa_ratio_data, dict) else {}
+                    
+                    # 비교 형식으로 데이터 구성
+                    self.capa_ratio_data = {
+                        'original': self.original_capa_ratio,
+                        'adjusted': updated_ratio
+                    }
 
+                    # utilization 비교 데이터 처리
                     # 요일별 가동률 업데이트 : 불필요한 계산 막기 위해 capa가 업데이트 되면 시행
-                    self.utilization_data = CapaUtilization.update_utilization_for_cell_move(
+                    utilization_updated = CapaUtilization.update_utilization_for_cell_move(
                         self.result_data, old_data, new_data
                     )
+                    
+                    print(f"가동률 업데이트: {utilization_updated}")
+
+                    if utilization_updated:
+                        # 원본 데이터 저장(처음 수정 시)
+                        if not hasattr(self, 'original_utilization') or self.original_utilization is None:
+                            self.original_utilization = self.utilization_data.copy() if isinstance(self.utilization_data, dict) else {}
+
+                        # 비교 형식으로 데이터 구성
+                        self.utilization_data = {
+                            'original' : self.original_utilization,
+                            'adjusted': utilization_updated
+                        }
+
+                        print(f"비교 데이터 구성: {self.utilization_data}")
 
                     # 시각화 업데이트
                     self.update_all_visualizations()
