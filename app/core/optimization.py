@@ -102,8 +102,6 @@ class Optimization:
             for idx,row in self.df_pre_result.iterrows():
                 model += x[(row['Item'], row['Line'], row['Time'])] == row['Qty']
 
-
-
         # 제약조건 1: 모델별 수요량 보다 적게 생산. 꼭 모든 수요를 만족시키지 않아도 됨. demand 시트와 관련됨. 
         for m in items:
             model += pulp.lpSum([x[(m, l, s)] for (l, s) in line_shifts]) <= demand[m]
