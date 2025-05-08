@@ -10,6 +10,12 @@ from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
 from app.models.common.fileStore import FilePaths
+from app.models.common.fileStore import DataStore
+from app.views.components.help_dialogs.help_dialog import HelpDialog
+from app.core.input.capaValidator import validate_distribution_ratios
+from app.core.input.materialAnalyzer import MaterialAnalyzer
+from app.core.input.materialRateValidator import analyze_material_satisfaction_all
+from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -103,7 +109,6 @@ class MainWindow(QMainWindow):
 
     """ 도움말 표시 실행 함수"""
     def show_help(self):
-        from app.views.components.help_dialogs.help_dialog import HelpDialog
         hel_dialog = HelpDialog(self)
         hel_dialog.exec_()
         print("도움말 표시")
@@ -132,7 +137,7 @@ class MainWindow(QMainWindow):
         
         if processed_data :
             # 제조동별 capa 검증
-            from app.core.input.capaValidator import validate_distribution_ratios
+
             validation_results = validate_distribution_ratios(processed_data)
             print(validation_results)
             # self.display_validation_results(validation_results)
@@ -150,7 +155,6 @@ class MainWindow(QMainWindow):
 
             # 0 미만 자재 분석
             try :
-                from app.core.input.materialAnalyzer import MaterialAnalyzer
                 shortage_results = MaterialAnalyzer.analyze_material_shortage()
 
                 if shortage_results :
@@ -160,7 +164,6 @@ class MainWindow(QMainWindow):
 
             # 자재만족률 분석
             try :
-                from app.core.input.materialRateValidator import analyze_material_satisfaction_all
                 # threshold의 값에 따라 기준 비율 바뀜
                 satisfaction_results = analyze_material_satisfaction_all(threshold=80)
 
@@ -173,8 +176,6 @@ class MainWindow(QMainWindow):
 
             # 당주 출하 만족률 분석
             try :
-                from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
-
                 preprocessed_data = preprocess_data_for_fulfillment_rate()
 
                 if preprocessed_data :
@@ -220,7 +221,6 @@ class MainWindow(QMainWindow):
             return
 
         # DataStore에서 데이터프레임 가져오기
-        from app.models.common.fileStore import DataStore
         all_dataframes = DataStore.get("organized_dataframes", {})
 
         print(f"최적화에 사용할 데이터프레임: {len(all_dataframes)}개 파일")
