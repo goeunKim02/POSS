@@ -107,6 +107,11 @@ QFrame#cardFrameNight QLabel {
 }
 """
 
+# 선택된 카드 스타일(테두리 강조)
+CARD_DAY_SELECTED_STYLE = CARD_DAY_FRAME_STYLE + "\nQFrame#cardFrameDay { border: 2px solid #4CAF50; }\n"""
+
+CARD_NIGHT_SELECTED_STYLE = CARD_NIGHT_FRAME_STYLE + "\nQFrame#cardFrameNight { border: 2px solid #F44336; }\n"""
+
 # 상세정보 스타일
 DETAIL_DIALOG_STYLE = """
 QDialog {

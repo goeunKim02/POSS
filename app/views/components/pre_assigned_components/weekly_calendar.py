@@ -85,7 +85,7 @@ class WeeklyCalendar(QWidget):
                 subset = self.data[(self.data['line'] == line) & (self.data['time'] == time)]
                 for _, r in subset.iterrows():
                     card = CalendarCard(r.to_dict(), is_day=True, parent=cell)
-                    card.clicked.connect(self.show_detail_card)
+                    card.clicked.connect(lambda card, row: self.show_detail_card(card, row))
                     cell_layout.addWidget(card)
 
                 cell_layout.addStretch()
@@ -138,6 +138,9 @@ class WeeklyCalendar(QWidget):
 
         self.setLayout(layout)
 
-    def show_detail_card(self, row: dict):
+    def show_detail_card(self, card: CalendarCard, row: dict):
         dlg = DetailDialog(row, self.time_map, parent=self)
         dlg.exec_()
+
+        card._is_selected = False
+        card.setStyleSheet(card.base_style)
