@@ -44,4 +44,4 @@ class CalendarCard(QFrame):
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self.clicked.emit(self._row)
-        super().mousePressEvent(e)
+        super().mouseReleaseEvent(e)

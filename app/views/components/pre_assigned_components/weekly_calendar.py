@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt
 
+from app.views.components.pre_assigned_components.calendar_box import CalendarBox
+
 from ....resources.styles.pre_assigned_style import (
     LINE_LABEL_STYLE, DAY_LABEL_STYLE, NIGHT_LABEL_STYLE, SEPARATOR_STYLE
 )
@@ -71,25 +73,18 @@ class WeeklyCalendar(QWidget):
             day_label.setMaximumWidth(80)
             day_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             layout.addWidget(day_label, row_index, 1)
-
+            
+            # Day Boxes
             layout.setRowMinimumHeight(row_index, 80)
-
-            # Day 카드들
-            for time in range(1, 15, 2):
-                col_idx = (time - 1) // 2 + 2
-                cell = QWidget()
-                cell_layout = QVBoxLayout(cell)
-                cell_layout.setContentsMargins(2, 2, 2, 2)
-                cell_layout.setSpacing(4)
-
+            for time in range(1, 13):
                 subset = self.data[(self.data['line'] == line) & (self.data['time'] == time)]
-                for _, r in subset.iterrows():
-                    card = CalendarCard(r.to_dict(), is_day=True, parent=cell)
-                    card.clicked.connect(self.show_detail_card)
-                    cell_layout.addWidget(card)
+                qty_sum = subset['qty'].sum()
+                records = subset.to_dict(orient='records')
 
-                cell_layout.addStretch()
-                layout.addWidget(cell, row_index, col_idx)
+                box = CalendarBox(qty_sum, records, is_day=(time % 2 == 1), parent=self)
+                box.clicked.connect(self.show_detail_cards)
+                if qty_sum!=0:
+                    layout.addWidget(box, row_index + 2, (time-1) // 2 + 2)
 
             # Day/Night 구분선
             mid_sep = QFrame()
@@ -111,21 +106,21 @@ class WeeklyCalendar(QWidget):
             layout.setRowMinimumHeight(row_index + 2, 80)
 
             # Night 카드들
-            for time in range(2, 15, 2):
-                col_idx = (time - 1) // 2 + 2
-                cell = QWidget()
-                cell_layout = QVBoxLayout(cell)
-                cell_layout.setContentsMargins(2, 2, 2, 2)
-                cell_layout.setSpacing(4)
+            # for time in range(2, 15, 2):
+            #     col_idx = (time - 1) // 2 + 2
+            #     cell = QWidget()
+            #     cell_layout = QVBoxLayout(cell)
+            #     cell_layout.setContentsMargins(2, 2, 2, 2)
+            #     cell_layout.setSpacing(4)
 
-                subset = self.data[(self.data['line'] == line) & (self.data['time'] == time)]
-                for _, r in subset.iterrows():
-                    card = CalendarCard(r.to_dict(), is_day=False, parent=cell)
-                    card.clicked.connect(self.show_detail_card)
-                    cell_layout.addWidget(card)
+            #     subset = self.data[(self.data['line'] == line) & (self.data['time'] == time)]
+            #     for _, r in subset.iterrows():
+            #         card = CalendarCard(r.to_dict(), is_day=False, parent=cell)
+            #         card.clicked.connect(self.show_detail_card)
+            #         cell_layout.addWidget(card)
 
-                cell_layout.addStretch()
-                layout.addWidget(cell, row_index + 2, col_idx)
+            #     cell_layout.addStretch()
+            #     layout.addWidget(cell, row_index + 2, col_idx)
 
             # 라인 끝 구분선
             end_sep = QFrame()
@@ -138,6 +133,10 @@ class WeeklyCalendar(QWidget):
 
         self.setLayout(layout)
 
+    def show_detail_cards(self, records: list):
+        for row in records:
+            dlg = DetailDialog(row, self.time_map, parent=self)
+            dlg.exec_()
     def show_detail_card(self, row: dict):
         dlg = DetailDialog(row, self.time_map, parent=self)
         dlg.exec_()
