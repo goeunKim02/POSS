@@ -16,6 +16,8 @@ from app.core.input.capaValidator import validate_distribution_ratios
 from app.core.input.materialAnalyzer import MaterialAnalyzer
 from app.core.input.materialRateValidator import analyze_material_satisfaction_all
 from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
+from app.views.components.settings_dialogs.settings_dialog import SettingsDialog
+from app.models.common.settings_store import SettingsStore
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -114,8 +116,36 @@ class MainWindow(QMainWindow):
         print("도움말 표시")
 
     def show_settings(self):
-        # 설정 창 표시 로직
-        print("설정 표시")
+        """설정 창 표시"""
+        # SettingsDialog 생성 및 표시
+        settings_dialog = SettingsDialog(self)
+
+        # 설정 변경 이벤트 연결
+        settings_dialog.settings_changed.connect(self.on_settings_changed)
+
+        # 다이얼로그 실행
+        result = settings_dialog.exec_()
+
+        if result == settings_dialog.Accepted:
+            print("설정이 저장되었습니다.")
+        else:
+            print("설정이 취소되었습니다.")
+
+    def on_settings_changed(self, settings):
+        """설정 변경 시 호출되는 콜백"""
+        # 설정 변경 시 필요한 작업 수행
+        print("설정이 변경되었습니다.")
+
+        # 예: 최적화 파라미터 업데이트
+        if hasattr(self, 'optimization') and self.optimization:
+            self.optimization.update_parameters(settings)
+
+        # 예: UI 업데이트
+        # self.update_ui_based_on_settings(settings)
+
+        # 예: 데이터 모델에 설정 전달
+        if hasattr(self, 'data_model'):
+            self.data_model.update_settings(settings)
 
     def on_file_selected(self, file_path):
         # 파일 경로를 데이터 모델에 저장
