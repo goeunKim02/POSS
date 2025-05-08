@@ -7,11 +7,9 @@ import pandas as pd
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualization_updater import VisualizationUpdater
-from ..components.visualization.visualizaiton_manager import VisualizationManager
 from app.analysis.output.daily_capa_utilization import CapaUtilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
-from app.models.common.fileStore import FilePaths
-from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
+from ..components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
 from app.utils.export_manager import ExportManager
 
 class ResultPage(QWidget):
@@ -250,7 +248,7 @@ class ResultPage(QWidget):
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
             self.left_section.data_changed.connect(self.on_data_changed)
         
-        # 아이템 변경 이벤트 연결 
+        # 아이템 변경 이벤트 연결 (필요한 경우)
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
             self.left_section.item_data_changed.connect(self.on_item_data_changed)
 
@@ -279,6 +277,11 @@ class ResultPage(QWidget):
                         # 수량 직접 업데이트
                         print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
                         self.plan_maintenance_widget.update_quantity(line, time, item, new_qty, demand)
+                        
+                        # Plan 탭으로 전환 (선택 사항)
+                        plan_index = [i for i, btn in enumerate(self.viz_buttons) if btn.text() == "Plan"]
+                        if plan_index:
+                            self.switch_viz_page(plan_index[0])
         
 
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
