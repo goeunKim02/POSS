@@ -92,7 +92,7 @@ class VisualizationUpdater:
     @staticmethod
     def update_port_capa_chart(canvas, port_capa_data):
         pass
-        # 비교 데이터 형식 감지
+        # # 비교 데이터 형식 감지
         # is_comparison = isinstance(port_capa_data, dict) and 'original' in port_capa_data and 'adjusted' in port_capa_data
         
         # chart_config = {

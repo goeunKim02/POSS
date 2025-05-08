@@ -187,8 +187,13 @@ class VisualizationManager:
         orig_data = data['original']
         adj_data = data['adjusted']
 
-        # 모든 키(x축)를 가져옴
-        all_keys = sorted(set(list(orig_data.keys()) + list(adj_data.keys())))
+        # 요일 순서 유지
+        if xlabel == 'Day of week':
+            days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+            all_keys = [day for day in days_order if day in orig_data.keys() or day in adj_data.keys()]
+        else:
+            # 모든 키(x축)를 가져옴
+            all_keys = sorted(set(list(orig_data.keys()) + list(adj_data.keys())))
 
         # x 위치 설정
         x = np.arange(len(all_keys))
