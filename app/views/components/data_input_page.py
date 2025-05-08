@@ -79,6 +79,29 @@ class DataInputPage(QWidget):
 
         title_row_layout.addWidget(title_label, 1)
 
+        save_btn = QPushButton("Save")
+        save_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        save_btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: #1428A0; 
+                            color: white; 
+                            border: none;
+                            border-radius: 10px;
+                            padding: 5px 15px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
+                            background-color: #0069d9;
+                        }
+                        QPushButton:pressed {
+                            background-color: #0062cc;
+                        }
+                    """
+        )
+        save_btn.setFixedWidth(150)
+        save_btn.setFixedHeight(50)
+
+
         # Run 버튼 생성
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -105,10 +128,13 @@ class DataInputPage(QWidget):
         run_font = QFont("Arial", 9)
         run_font.setBold(True)
         run_btn.setFont(run_font)
+        save_btn.setFont(run_font)
 
         # 버튼 클릭 시그널 연결
         run_btn.clicked.connect(self.on_run_clicked)
+        save_btn.clicked.connect(self.on_save_clicked)
 
+        title_row_layout.addWidget(save_btn)
         title_row_layout.addWidget(run_btn)
 
         # 입력 섹션 생성
@@ -402,3 +428,59 @@ class DataInputPage(QWidget):
             self.parameter_component.show_failures.emit(failures)
         except Exception as e:
             print(f"[preAssign 분석] 오류 발생: {e}")
+
+    def on_save_clicked(self):
+        """Save 버튼 클릭 시 호출되는 함수 - 현재 데이터를 원본 파일에 저장"""
+        import pandas as pd
+
+        print("Save 버튼 클릭됨 - 원본 파일에 변경사항 저장")
+
+        # 현재 탭 데이터 저장 (내부 저장소에만)
+        self.tab_manager.save_current_tab_data()
+
+        # 모든 수정된 데이터 가져오기
+        modified_data = self.data_modifier.get_all_modified_data()
+
+        if not modified_data:
+            print("저장할 변경사항이 없습니다.")
+            return
+
+        success_count = 0
+        error_count = 0
+
+        # 각 파일에 대해 처리
+        for file_path, sheets in modified_data.items():
+            file_ext = os.path.splitext(file_path)[1].lower()
+
+            try:
+                if file_ext == '.csv':
+                    # CSV 파일 처리
+                    if 'data' in sheets:
+                        df = sheets['data']
+                        df.to_csv(file_path, index=False, encoding='utf-8')
+                        success_count += 1
+                elif file_ext in ['.xls', '.xlsx']:
+                    # 엑셀 파일 처리
+                    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                        for sheet_name, df in sheets.items():
+                            if sheet_name != 'data':  # data는 CSV용 특수 키
+                                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    success_count += 1
+            except Exception as e:
+                print(f"파일 '{file_path}' 저장 중 오류 발생: {str(e)}")
+                error_count += 1
+
+        # 저장 후 수정 상태 초기화
+        if success_count > 0:
+            self.data_modifier.modified_data_dict.clear()
+
+            # UI 업데이트 - 모든 탭과 사이드바 항목의 '*' 제거
+            for (file_path, sheet_name), idx in self.tab_manager.open_tabs.items():
+                self.data_modifier.remove_modified_status_in_sidebar(file_path, sheet_name)
+                self.tab_manager.update_tab_title(file_path, sheet_name, False)
+
+        # 결과 메시지
+        if error_count == 0:
+            self.update_status_message(True, f"{success_count}개 파일 저장 완료")
+        else:
+            self.update_status_message(False, f"{success_count}개 파일 저장 완료, {error_count}개 파일 저장 실패")
