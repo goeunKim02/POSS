@@ -12,6 +12,7 @@ from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
 from app.utils.fileHandler import create_from_master
 from app.core.optimizer import Optimizer
 from app.views import main_window
+from app.utils.export_manager import ExportManager
 
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
@@ -118,22 +119,26 @@ class PlanningPage(QWidget):
 
     # 엑셀 파일로 내보내기
     def on_export_click(self):
-        options = QFileDialog.Options()
-        desktop_dir = QStandardPaths.writableLocation(QStandardPaths.DesktopLocation)
-        default_path = os.path.join(desktop_dir, "initial_assign.xlsx")
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Save as Excel", default_path,
-            "Excel Files (*.xlsx);;All Files (*)", options=options
-        )
-        if not file_path:
+        # 데이터가 있는지 확인
+        if self._df is None or self._df.empty:
+            QMessageBox.warning(self, "Export Error", "No data to export.")
             return
-        if not file_path.lower().endswith('.xlsx'):
-            file_path += '.xlsx'
+        
         try:
-            self._df.to_excel(file_path, index=False)
-            QMessageBox.information(self, "Export Success", f"파일이 다음 경로로 저장되었습니다: {file_path}")
+            start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
         except Exception as e:
-            QMessageBox.warning(self, "Export Failed", f"엑셀 파일 저장 중 오류가 발생했습니다: {e}")
+            # 날짜 범위를 가져올 수 없는 경우 기본값 사용
+            print("Could not retrieve date range. Using current date instead")
+            start_date, end_date = None, None
+
+        # 통합 내보내기 사용
+        ExportManager.export_data(
+            parent=self,
+            data_df=self._df,
+            start_date=start_date,
+            end_date=end_date,
+            is_planning=True  # 사전할당 페이지임을 표시
+        )
 
     # 캘린더 초기화
     def on_reset_click(self):

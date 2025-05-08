@@ -1,5 +1,6 @@
 import pandas as pd
 import pulp 
+import re
 from pulp import LpStatus
 # from app.utils.fileHandler import load_file
 # from app.models.common.fileStore import FilePaths
@@ -22,6 +23,8 @@ class Optimization:
             }
         }
         """
+        
+        
         # 각 엑셀 파일 불러오기. 시트이름이 키, 데이터프레임이 값인 딕셔너리로 저장됨.
         self.demand_excel = input['demand']
         self.master_excel = input['master']
@@ -66,21 +69,23 @@ class Optimization:
         self.time = list(range(1,15))
         self.line = self.line.to_list()[1:]
 
+        self.df_pre_result = None
         self.df_result = None
 
     """생산계획 최적화 알고리즘 함수"""
-    def execute(self):
+    def execute(self,showlog = False):
         # 아이템에 To_site 까지 포함해서 아이템의 단위로 설정 (출하 capa를 목적함수에 포함시키기 위함)
         # 반면에 사전할당은 To_site 미포함
-        items = (self.df_demand['Item'] + self.df_demand['To_Site']).tolist()
+        items = self.df_demand['Item'].tolist()
         line_shifts = [(l,s) for l in self.line for s in self.time]
-        demand = dict(zip(self.df_demand['Item']+self.df_demand['To_Site'], self.df_demand['MFG']))
+        demand = dict(zip(self.df_demand['Item'], self.df_demand['MFG']))
         capacity = {(l,s):int(self.df_capa_qty.loc[self.df_capa_qty['Line'] == l, s].values[0]) for (l, s) in line_shifts}
 
         allowed_items = {}
         for l, s in line_shifts:
             if l not in self.df_line_available.columns:
-                raise ValueError(f"라인 {l}는 line_available에 존재하지 않습니다.")
+                print(f"라인 {l}는 line_available에 존재하지 않습니다.")
+                continue
             # line_available에서 값이 1 인 프로젝트들의 리스트
             projects = self.df_line_available[self.df_line_available[l] == 1]['Project'].tolist()
             allowed = [m for m in items if any(m[3:7] == project for project in projects)]
@@ -88,7 +93,6 @@ class Optimization:
 
         # 결정 변수 x : 모델 m을 라인 l, 시프트 s에서 몇 개 생산할지의 딕셔너리
         x = pulp.LpVariable.dicts("produce", [(m, l, s) for m in items for (l, s) in line_shifts], lowBound=0, cat='Integer')
-
         # 문제 정의
         model = pulp.LpProblem("LineShift_Production_Scheduling", pulp.LpMaximize)
         
@@ -96,13 +100,10 @@ class Optimization:
         model += pulp.lpSum([x[(m, l, s)] for m in items for (l, s) in line_shifts])
 
         # 제약조건 0: 사전할당 결과가 있다면 그 결과를 제약조건에 포함시켜서 고정
-        self.df_demand['Project'] = self.df_demand['Item'].str[3:7]
-        self.df_demand['Tosite_group'] = self.df_demand['Item'].str[7:8]
-        self.df_demand = self.df_demand.merge(self.df_due_LT,on=['Project','Tosite_group'],how='left')
-        print(self.df_demand.head())
-        # if self.df_result is not None:
-        #     for idx,row in self.df_result.iterrows():
-
+        if self.df_pre_result is not None:
+            for idx,row in self.df_pre_result.iterrows():
+                if (row['Item'], row['Line'], row['Time']) in x:
+                    model += x[(row['Item'], row['Line'], row['Time'])] == row['Qty']
 
         # 제약조건 1: 모델별 수요량 보다 적게 생산. 꼭 모든 수요를 만족시키지 않아도 됨. demand 시트와 관련됨. 
         for m in items:
@@ -164,16 +165,20 @@ class Optimization:
         # 결과 출력
         results = []
         for (l, s) in line_shifts:
-            print(f"{l} - {s} 시프트:")
+            if showlog: print(f"{l} - {s} 시프트:")
             for m in items:
                 units = int(pulp.value(x[(m, l, s)]))
                 if units > 0:
-                    print(f"  모델 {m} → {units}개 생산")
+                    if showlog: print(f"  모델 {m} → {units}개 생산")
                     # 아이템의 SOP 와 MFG 값은 demand 시트에서 참조, due_LT 값은 due_LT 시트에서 참조
-                    sop = self.df_demand.loc[(self.df_demand['Item']==m[:-2])&(self.df_demand['To_Site']==m[-2:]),'SOP'].values[0]
-                    mfg = self.df_demand.loc[(self.df_demand['Item']==m[:-2])&(self.df_demand['To_Site']==m[-2:]),'MFG'].values[0]
-                    due_lt= self.df_due_LT.loc[(self.df_due_LT['Project']==m[3:7])&(self.df_due_LT['Tosite_group']==m[7:8]),'Due_date_LT'].values[0]
-                    results.append((l,s,m,m[:-2],units,m[3:7],m[-2:],sop,mfg,m[3:11],due_lt)) 
+                    sop = -99
+                    mfg = -99
+                    due_lt = -99
+                    to_site = "XX"
+                    # sop = self.df_demand.loc[(self.df_demand['Item']==m[:-2])&(self.df_demand['To_Site']==m[-2:]),'SOP'].values[0]
+                    # mfg = self.df_demand.loc[(self.df_demand['Item']==m[:-2])&(self.df_demand['To_Site']==m[-2:]),'MFG'].values[0]
+                    # due_lt= self.df_due_LT.loc[(self.df_due_LT['Project']==m[3:7])&(self.df_due_LT['Tosite_group']==m[7:8]),'Due_date_LT'].values[0]
+                    results.append((l,s,m+to_site,m,units,m[3:7],to_site,sop,mfg,m[3:11],due_lt)) 
         print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
         # 제조동별 생산량
         total_production = pulp.value(pulp.lpSum([x[(m, l, s)] for (m, l, s) in x]))
@@ -183,7 +188,8 @@ class Optimization:
             print(f"{row['name']}라인 생산량: {int(line_production)}개, {row['name']}라인 비중: {line_ratio:.2f}%")
 
         df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
-        df_result.to_excel('assign_result.xlsx',index = False)
+        print(df_result)
+        return {'result':self.df_result, 'combined' : self.df_combined }
     
     """사전할당 알고리즘 함수"""
     def pre_assign(self, showlog = False):
@@ -205,21 +211,36 @@ class Optimization:
 
         # 통합한 시트의 아이템들을 items 와 demand 에 추가
         for index, row in self.df_combined.iterrows():
-            if pd.isna(row['Qty']):
-                if showlog: print(row['Fixed_Group']+' 아이템의 Qty 가 비어있습니다')
-                continue
-            elif row['Qty'] == 'ALL':
-                items.append(row['Fixed_Group'])
-                df_items =self.df_demand[self.df_demand['Item']==row['Fixed_Group']]
-                qty = 0
-                for index, value in df_items.iterrows():
-                    qty += value['MFG']
-                demand[row['Fixed_Group']] = qty
-            else : # Qty 에 값이 있을 경우
-                items.append(row['Fixed_Group'])
-                demand[row['Fixed_Group']] = row['Qty']
-                
-        print(items)
+            if '*' in row['Fixed_Group']:
+                if pd.isna(row['Qty']):
+                    if showlog: print(row['Fixed_Group']+' 아이템의 Qty 가 비어있습니다')
+                    continue
+                elif str(row['Qty']) == 'ALL':
+                    for idx, demandrow in self.df_demand.iterrows():
+                        regex =  str(row['Fixed_Group']).replace("*",".")
+                        item = demandrow['Item']
+                        if bool(re.fullmatch(regex, item)):
+                            if item in demand:
+                                demand[item] = demand[item] + demandrow['MFG']
+                            else: 
+                                demand[item] = demandrow['MFG']
+                else :# 여러 아이템을 ***P205******* 처럼 선택하고 Qty 에 값이 있을 경우
+                    if showlog: (row['Fixed_Group'],",",row['Qty'])
+                    if showlog: print("여러 아이템을 선택하고 수량을 입력했기 때문에 오류입니다")
+            else:
+                if pd.isna(row['Qty']):
+                    if showlog: print(row['Fixed_Group']+' 아이템의 Qty 가 비어있습니다')
+                    continue
+                elif str(row['Qty']) == 'ALL':
+                    df_items =self.df_demand[self.df_demand['Item']==row['Fixed_Group']]
+                    qty = 0
+                    for index, value in df_items.iterrows():
+                        qty += value['MFG']
+                    demand[row['Fixed_Group']] = qty
+                else : # Qty 에 값이 있을 경우
+                    demand[row['Fixed_Group']] = row['Qty']
+        
+        items = list(demand.keys())
         
         # 라인*시프트 별 Capa (최대 생산 가능량)
         capacity = {(l,s):int(self.df_capa_qty.loc[self.df_capa_qty['Line'] == l, s].values[0]) for (l, s) in line_shifts}
@@ -228,11 +249,20 @@ class Optimization:
         # 라인*시프트 별 생산가능 아이템. pre_assign, fixed_option 시트의 조건들이 들어가야함.
         allowed_items = {} # (line*shift) 별 생산 가능한 모델
         fixed_line_shifts = {}
+        fixed_items = []
         for idx, row in self.df_combined.iterrows():
             fixed_lines = row['Fixed_Line'].split(",") if pd.notna(row['Fixed_Line']) else self.line
             fixed_times = list(map(int,str(row['Fixed_Time']).split(","))) if pd.notna(row['Fixed_Time']) else self.time
+
+            if '*' in str(row['Fixed_Group']):
+                regex = str(row['Fixed_Group']).replace("*",".")
+                for item in self.df_demand['Item']:
+                    if bool(re.fullmatch(regex, item)):
+                        fixed_line_shifts[item] = [(line,time) for line in fixed_lines for time in fixed_times]
+                        fixed_items.append(item)
+                continue
             fixed_line_shifts[row['Fixed_Group']] = [(line,time) for line in fixed_lines for time in fixed_times]
-        fixed_items = self.df_combined['Fixed_Group'].to_list()
+            fixed_items.append(row['Fixed_Group'])
 
         if showlog: print('fixed_line_shifts : ',fixed_line_shifts)
         if showlog: print('fixed_items : ',fixed_items)
@@ -247,7 +277,7 @@ class Optimization:
                 if any(m[3:7] == project for project in projects) and (l,s) in fixed_line_shifts[m]:
                     allowed.append(m)
                 elif not any(m[3:7] == project for project in projects) and (l,s) in fixed_line_shifts[m]:
-                    print(f"{m} 아이템은 {l},{s} 에서 생산할 수 없는 아이템입니다")
+                    if showlog: print(f"{m} 아이템은 {l},{s} 에서 생산할 수 없는 아이템입니다")
             allowed_items[(l, s)] = allowed
         if showlog: print('allowed_items : ',allowed_items)
 
@@ -284,7 +314,6 @@ class Optimization:
             model += (pulp.lpSum([x[(m, l, s)] for m in items]) <= capacity[(l, s)],f'constraint4 ({l},{s})')
 
         # 제약조건 5: 각 (제조동 * 시프트) 별 가동가능한 최대 라인 수. capa_qty 시트와 관련됨. Max_line
-        
         # 특정 y[(l,s)] 가 1이면 그 (라인*시프트) 에서 생산되는 모델이 적어도 1개는 있다는 뜻.반대로 0이면 하나도 없다는 뜻.
         BIG_M = 10_000_000  # 충분히 큰 값. _ 는 오직 가독성을 위한 표현.
         for (l, s) in line_shifts:
@@ -317,18 +346,18 @@ class Optimization:
         # 결과 저장 & 출력
         results = []
         for (l, s) in line_shifts:
-            print(f"{l} - {s} 시프트:")
+            if showlog: print(f"{l} - {s} 시프트:")
             for m in items:
                 units = int(pulp.value(x[(m, l, s)]))
                 if units > 0:
-                    print(f"  모델 {m} → {units}개 생산")
+                    if showlog: print(f"  모델 {m} → {units}개 생산")
                     # 아이템의 SOP 와 MFG 값은 demand 시트에서 참조, due_LT 값은 due_LT 시트에서 참조
                     # 해야 하지만 사전할당에서 To_site 값까지 입력하지 않기 때문에 임의 값으로 넣어놓고 추후 생각해보겠음.
                     sop = -99
                     mfg = -99
                     due_lt= -99
                     to_site = "XX"
-                    results.append((l,s,m,m[:-2],units,m[3:7],to_site,sop,mfg,m[3:11],due_lt)) 
+                    results.append((l,s,m+to_site,m,units,m[3:7],to_site,sop,mfg,m[3:11],due_lt)) 
                     
         # 제조동별 생산량
         total_production = pulp.value(pulp.lpSum([x[(m, l, s)] for (m, l, s) in x]))
@@ -337,10 +366,19 @@ class Optimization:
             line_ratio = (line_production / total_production) * 100 if total_production != 0 else 0
             print(f"{row['name']}라인 생산량: {int(line_production)}개, {row['name']}라인 비중: {line_ratio:.2f}%")
 
-        self.df_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
-        
+        self.df_pre_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
+        print(self.df_pre_result)
         #주어진 수요량을 모두 생산 가능하면 해를 찾은 것
-        if int(pulp.value(model.objective)) == sum(demand.values()):
+        if model.objective==None:
+            print("model.objective 값이 None 입니다")
+            if showlog:
+                for name, constraint in model.constraints.items():
+                    slack_value = constraint.slack
+                    if slack_value is not None and slack_value < 0:
+                        print(slack_value)
+                        print(f"제약조건 '{name}'이 위배됨: slack = {slack_value}")
+                        print(f"제약조건: {constraint}")
+        elif int(pulp.value(model.objective)) == sum(demand.values()):
             print(f"\n최적해를 찾았습니다")
             print(f"\n총 생산량: {int(pulp.value(model.objective))}개")
             print(f"\n총 생산 수요량: {sum(demand.values())}개")
@@ -359,10 +397,10 @@ class Optimization:
                         print(slack_value)
                         print(f"제약조건 '{name}'이 위배됨: slack = {slack_value}")
                         print(f"제약조건: {constraint}")
-            return {'result':self.df_result ,'error':f"❌ 최적해를 찾지 못했습니다."}
+            return {'result':self.df_pre_result ,'error':f"❌ 최적해를 찾지 못했습니다."}
 
-        # df_result.to_excel('pre_assign_result.xlsx',index=False)
-        return {'result':self.df_result, 'combined' : self.df_combined }
+        # df_pre_result.to_excel('pre_assign_result.xlsx',index=False)
+        return {'result':self.df_pre_result, 'combined' : self.df_combined }
 
 if __name__ == "__main__":
     input = {
@@ -371,4 +409,5 @@ if __name__ == "__main__":
         'dynamic': pd.read_excel('ssafy_dynamic_0408.xlsx',sheet_name=None),
     }
     optimization = Optimization(input)
+    optimization.pre_assign(showlog=True)
     optimization.execute()

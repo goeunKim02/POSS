@@ -7,13 +7,12 @@ import pandas as pd
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualization_updater import VisualizationUpdater
-from ..components.visualization.visualizaiton_manager import VisualizationManager
 from app.analysis.output.daily_capa_utilization import CapaUtilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
-from ..components.result_components.plan_maintenance_widget import PlanMaintenanceWidget
-from app.utils.week_plan_manager import WeeklyPlanManager
+from ..components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
+from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
-from app.models.common.fileStore import DataStore
+
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -281,105 +280,9 @@ class ResultPage(QWidget):
                         print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
                         self.plan_maintenance_widget.update_quantity(line, time, item, new_qty, demand)
                         
-                        # Plan 탭으로 전환 (선택 사항)
-                        plan_index = [i for i, btn in enumerate(self.viz_buttons) if btn.text() == "Plan"]
-                        if plan_index:
-                            self.switch_viz_page(plan_index[0])
-        
-
-    """최종 최적화 결과를 파일로 내보내는 메서드"""
-    def export_results(self):
-        try:
-            # file_path = QFileDialog.getExistingDirectory(
-            # self, "결과 저장 디렉토리 선택", ""
-            # )
-
-            # 바탕화면 경로 가져오기 (OS에 관계없이 작동)
-            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
-            
-            # Windows에서는 '바탕 화면'일 수도 있음
-            if not os.path.exists(desktop_path) and os.name == 'nt':
-                # 한글 Windows의 경우
-                desktop_path = os.path.join(os.path.expanduser("~"), "바탕 화면")
-        
-            # if file_path:
-            # 데이터가 있는지 확인
-            if hasattr(self, 'left_section') and hasattr(self.left_section,
-                                                            'data') and self.left_section.data is not None:
-                try:
-                    plan_manager = WeeklyPlanManager(output_dir=desktop_path)
-                        # 날짜 범위 가져오기
-                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                    
-                    # 이전 계획 감지
-                    is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
-                        start_date, end_date
-                    )
-
-                    # 조정된 계획이 있으면 해당 계획 사용, 없으면 현재 계획 사용
-                    export_data = None
-                    if hasattr(self, 'plan_maintenance_widget'):
-                        adjusted_plan = self.plan_maintenance_widget.get_adjusted_plan()
-                        if adjusted_plan is not None:
-                            export_data = adjusted_plan
-                            print("조정된 계획을 저장합니다.")
-                        else:
-                            export_data = self.left_section.data
-                            print("조정된 계획이 없어 현재 계획을 저장합니다.")
-                    else:
-                        export_data = self.left_section.data
-                    
-                    # 메타데이터와 함께 저장
-                    saved_path = plan_manager.save_plan_with_metadata(
-                        export_data, start_date, end_date, previous_plan_path
-                    )
-
-                    print(f"최종 결과가 메타데이터와 함께 바탕화면에 저장되었습니다: {saved_path}")
-                    print(message)
-
-                    # 사용자에게 성공 메시지 표시
-                    QMessageBox.information(
-                        self, 
-                        "내보내기 성공", 
-                        f"파일이 바탕화면에 저장되었습니다:\n{saved_path}\n\n{message}"
-                    )
-
-                    # 시그널 발생
-                    self.export_requested.emit(saved_path)
-                except Exception as e:
-                    print(f"파일 저장 오류: {e}")
-                    # 기본 저장 경로 생성
-                    default_filename = f"Result_fallback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                    fallback_path = os.path.join(desktop_path, default_filename)
-                    
-                    # 기존 저장 방식으로 폴백
-                    self.left_section.data.to_excel(fallback_path, index=False)
-                    QMessageBox.information(
-                        self, 
-                        "내보내기 성공", 
-                        f"파일이 바탕화면에 저장되었습니다:\n{fallback_path}\n(메타데이터 없음)"
-                    )
-                    
-                    # 시그널 발생
-                    self.export_requested.emit(fallback_path)
-            else:
-                print("내보낼 데이터가 없습니다.")
-                QMessageBox.warning(
-                    self, 
-                    "내보내기 실패", 
-                    "내보낼 데이터가 없습니다."
-                )
-
-        except Exception as e:
-            print(f"Export 과정에서 오류 발생: {str(e)}")
-            QMessageBox.critical(
-            self, 
-            "내보내기 오류", 
-            f"내보내기 과정에서 오류가 발생했습니다:\n{str(e)}"
-        )
-
+                        
+    """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
-        """시각화 페이지 전환 및 버튼 스타일 업데이트"""
         self.viz_stack.setCurrentIndex(index)
 
          # Update button style 
@@ -506,12 +409,36 @@ class ResultPage(QWidget):
 
                 # 업데이트된 비율이 있는 경우
                 if updated_ratio:
-                    self.capa_ratio_data = updated_ratio
+                    # 원본 데이터가 없는 경우 원본 데이터 저장
+                    if not hasattr(self, 'original_capa_ratio') or self.original_capa_ratio is None:
+                        self.original_capa_ratio = self.capa_ratio_data.copy() if isinstance(self.capa_ratio_data, dict) else {}
+                    
+                    # 비교 형식으로 데이터 구성
+                    self.capa_ratio_data = {
+                        'original': self.original_capa_ratio,
+                        'adjusted': updated_ratio
+                    }
 
+                    # utilization 비교 데이터 처리
                     # 요일별 가동률 업데이트 : 불필요한 계산 막기 위해 capa가 업데이트 되면 시행
-                    self.utilization_data = CapaUtilization.update_utilization_for_cell_move(
+                    utilization_updated = CapaUtilization.update_utilization_for_cell_move(
                         self.result_data, old_data, new_data
                     )
+                    
+                    print(f"가동률 업데이트: {utilization_updated}")
+
+                    if utilization_updated:
+                        # 원본 데이터 저장(처음 수정 시)
+                        if not hasattr(self, 'original_utilization') or self.original_utilization is None:
+                            self.original_utilization = self.utilization_data.copy() if isinstance(self.utilization_data, dict) else {}
+
+                        # 비교 형식으로 데이터 구성
+                        self.utilization_data = {
+                            'original' : self.original_utilization,
+                            'adjusted': utilization_updated
+                        }
+
+                        print(f"비교 데이터 구성: {self.utilization_data}")
 
                     # 시각화 업데이트
                     self.update_all_visualizations()
@@ -565,3 +492,42 @@ class ResultPage(QWidget):
         elif viz_type == "PortCapa":
             pass
 
+
+    """최종 최적화 결과를 파일로 내보내는 메서드"""
+    def export_results(self):
+        try:
+            # 데이터가 있는지 확인
+            if hasattr(self, 'left_section') and hasattr(self.left_section,
+                                                            'data') and self.left_section.data is not None:
+                
+                # 날짜 범위 가져오기
+                start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                
+                # 통합 내보내기 로직
+                saved_path = ExportManager.export_data(
+                    parent=self,
+                    data_df=self.left_section.data,
+                    start_date=start_date,
+                    end_date=end_date,
+                    is_planning=False
+                )
+
+                # 성공적으로 파일 저장 시 시그널 발생
+                if saved_path:
+                    self.export_requested.emit(saved_path)
+
+            else:
+                print("No data to export.")
+                QMessageBox.warning(
+                    self,
+                    "Export Error",
+                    "No data to export."
+                )
+
+        except Exception as e:
+            print(f"Export 과정에서 오류 발생: {str(e)}")
+            QMessageBox.critical(
+            self, 
+            "Export Error", 
+            f"An error occurred during export:\n{str(e)}"
+        )

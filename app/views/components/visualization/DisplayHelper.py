@@ -20,10 +20,42 @@ class DisplayHelper:
         # 캔버스 초기화
         canvas.axes.clear()
 
-        # 데이터 유효성 확인
-        has_data = chart_config['has_data_check'](data)
+        # 비교 데이터 감지
+        is_comparison_data = (
+            isinstance(data, dict) and
+            'original' in data and
+            'adjusted' in data
+        )
 
-        # 데이터가 있으면 차트 표시시
+        # 비교 차트 타입인데 데이터가 비교 형식이 아니면 차트 타입 변경
+        chart_type = chart_config.get('chart_type', 'bar')
+        if chart_type == 'comparison_bar' and not is_comparison_data:
+            chart_type = 'bar'
+
+        # 일반 데이터인데 비교 데이터 형식이면 차트 타입 변경
+        if chart_type != 'comparison_bar' and is_comparison_data:
+            chart_type = 'comparison_bar'
+
+        # 차트 설정 업데이트
+        chart_config['chart_type'] = chart_type
+
+        # 데이터 유효성 확인
+        has_data_func = chart_config.get('has_data_check', lambda x:x is not None and len(x) > 0)
+
+        print(f"차트 타입 (처리 전): {chart_config.get('chart_type')}")
+        print(f"비교 데이터 여부: {is_comparison_data}")
+        print(f"차트 타입 (처리 후): {chart_type}")
+
+        # 비교 차트 데이터의 유효성 확인
+        if is_comparison_data:
+            has_data = (
+                has_data_func(data['original']) or
+                has_data_func(data['adjusted'])
+            )
+        else:
+            has_data = has_data_func(data)
+
+        # 데이터가 있으면 차트 표시
         if has_data:
             canvas.axes.set_axis_on() # 축 보이기
             canvas.axes.set_frame_on(True)
@@ -37,7 +69,7 @@ class DisplayHelper:
 
             # 기본 파라미터 설정
             chart_params = {
-                'chart_type': chart_config['chart_type'],
+                'chart_type': chart_type,
                 'title': chart_config['title'],
                 'xlabel': chart_config['xlabel'],
                 'ylabel': chart_config['ylabel'],
