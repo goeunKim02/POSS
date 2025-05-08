@@ -186,11 +186,49 @@ class DataInputPage(QWidget):
         # 파라미터 영역
         parameter_container = QFrame()
         parameter_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
-        parameter_layout = QVBoxLayout(parameter_container)
-        parameter_layout.setContentsMargins(10, 10, 10, 10)
+        parameter_layout = QHBoxLayout(parameter_container)  # QVBoxLayout에서 QHBoxLayout으로 변경
+        parameter_layout.setContentsMargins(5, 5, 5, 5)
 
+        # 수평 스플리터 추가
+        parameter_splitter = QSplitter(Qt.Horizontal)
+        parameter_splitter.setHandleWidth(10)
+        parameter_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #cccccc;
+                width: 1px;
+            }
+        """)
+
+        # 왼쪽 영역 (새로 추가)
+        left_parameter_area = QFrame()
+        left_parameter_area.setStyleSheet("background-color: white; border: none;")
+        left_parameter_layout = QVBoxLayout(left_parameter_area)
+        left_parameter_layout.setContentsMargins(5, 5, 5, 5)
+
+        # 왼쪽 영역에 임시 레이블 추가 (나중에 실제 컴포넌트로 대체)
+        left_label = QLabel("왼쪽 파라미터 영역")
+        left_label.setAlignment(Qt.AlignCenter)
+        left_parameter_layout.addWidget(left_label)
+
+        # 오른쪽 영역 (기존 ParameterComponent 포함)
+        right_parameter_area = QFrame()
+        right_parameter_area.setStyleSheet("background-color: white; border: none;")
+        right_parameter_layout = QVBoxLayout(right_parameter_area)
+        right_parameter_layout.setContentsMargins(5, 5, 5, 5)
+
+        # 기존 ParameterComponent 추가
         self.parameter_component = ParameterComponent()
-        parameter_layout.addWidget(self.parameter_component)
+        right_parameter_layout.addWidget(self.parameter_component)
+
+        # 스플리터에 왼쪽/오른쪽 영역 추가
+        parameter_splitter.addWidget(left_parameter_area)
+        parameter_splitter.addWidget(right_parameter_area)
+
+        # 7:3 비율로 설정
+        parameter_splitter.setSizes([700, 300])
+
+        # 메인 레이아웃에 스플리터 추가
+        parameter_layout.addWidget(parameter_splitter)
 
         # 수직 스플리터에 탭 컨테이너와 파라미터 컨테이너 추가
         vertical_splitter.addWidget(tab_container)
