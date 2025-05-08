@@ -13,7 +13,7 @@ class DataLoader:
         """
         path = FilePaths.get("dynamic_excel_file")
         if not path:
-            raise FileNotFoundError("dynamic_excel_file 경로를 찾을 수 없습니다.")
+            return pd.DataFrame()
         raw = load_file(path)
         fixed_opt  = raw.get('fixed_option', pd.DataFrame())
         fixed_opt['Fixed_Time'] = fixed_opt['Fixed_Time'].astype(str)
@@ -27,7 +27,7 @@ class DataLoader:
         """
         path = FilePaths.get("demand_excel_file")
         if not path:
-            raise FileNotFoundError("demand_excel_file 경로를 찾을 수 없습니다.")
+            return pd.DataFrame()
         raw = load_file(path)
         return raw.get('demand', pd.DataFrame())
 
@@ -38,7 +38,7 @@ class DataLoader:
         """
         path = FilePaths.get("master_excel_file")
         if not path:
-            raise FileNotFoundError("master_excel_file 경로를 찾을 수 없습니다.")
+            return pd.DataFrame()
         raw = load_file(path)
         line_avail = raw.get('line_available', pd.DataFrame())
         capa_qty   = raw.get('capa_qty',       pd.DataFrame())

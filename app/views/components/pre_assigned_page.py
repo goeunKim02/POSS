@@ -54,9 +54,10 @@ class PlanningPage(QWidget):
 
         # 제목 및 버튼 레이아웃
         title_hbox = QHBoxLayout()
-        lbl = QLabel("Pre-Assigned Calendar View")
+        lbl = QLabel("Pre-Assignment")
         font_title = QFont("Arial", 15)
         font_title.setBold(True)
+        font_title.setWeight(99)
         lbl.setFont(font_title)
         title_hbox.addWidget(lbl)
         title_hbox.addStretch()

@@ -1,9 +1,13 @@
 from PyQt5.QtGui import QFont, QColor, QBrush
 from PyQt5.QtWidgets import (
     QWidget, QTreeWidget, QTreeWidgetItem,
-    QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy
+    QVBoxLayout, QHBoxLayout, QPushButton, QSizePolicy,
+    QDialog, QMessageBox
 )
 from PyQt5.QtCore import pyqtSignal, Qt
+
+from .open_dynamic_properties_dialog import DynamicPropertiesDialog
+from app.models.common.fileStore import FilePaths
 
 class ParameterComponent(QWidget):
     show_failures = pyqtSignal(dict)
@@ -77,6 +81,15 @@ class ParameterComponent(QWidget):
             },
         }
 
+        self.dynamic_props_btn = QPushButton("Dynamic 속성 설정")
+        self.dynamic_props_btn.setFont(QFont('Arial', 9, QFont.Bold))
+        self.dynamic_props_btn.setCursor(Qt.PointingHandCursor)
+        self.dynamic_props_btn.setFixedHeight(30)
+        self.dynamic_props_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.dynamic_props_btn.clicked.connect(self.open_dynamic_properties_dialog)
+        # 초기에는 Filestore에 파일이 있어야만 보이도록
+        self.dynamic_props_btn.setVisible(bool(FilePaths.get("dynamic_excel_file")))
+
         self.buttons = {}
         self._init_ui()
         self._build_metric_buttons()
@@ -124,6 +137,7 @@ class ParameterComponent(QWidget):
             self.buttons[label] = btn
 
         self.button_bar.addStretch()
+        self.button_bar.addWidget(self.dynamic_props_btn)
         self._update_button_styles()
 
     def _on_failures(self, failures: dict):
@@ -214,3 +228,17 @@ class ParameterComponent(QWidget):
                 f" border: none; border-radius: 4px; padding: 4px 12px; }}"
                 f"QPushButton:hover {{ background-color: {hover}; }}"
             )
+
+    def open_dynamic_properties_dialog(self):
+        dlg = DynamicPropertiesDialog(self)
+        result = dlg.exec_()
+        if result == QDialog.Accepted:
+            QMessageBox.information(
+            self,
+            "설정 저장됨",
+            "라인/시프트별 Item 및 RMC 임계값이 저장되었습니다."
+        )
+
+    def on_file_selected(self, filepath: str):
+        if FilePaths.get("dynamic_excel_file"):
+            self.dynamic_props_btn.setVisible(True)

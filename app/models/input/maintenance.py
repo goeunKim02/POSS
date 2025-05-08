@@ -12,7 +12,7 @@ class DataLoader:
         """
         path = FilePaths.get("dynamic_excel_file")
         if not path:
-            raise FileNotFoundError("dynamic_excel_file 경로를 찾을 수 없습니다.")
+            return pd.DataFrame()
         raw = load_file(path)
         return raw.get('pre_assign', pd.DataFrame())
 
@@ -23,7 +23,7 @@ class DataLoader:
         """
         path = FilePaths.get("pre_assign_excel_file")
         if not path:
-            raise FileNotFoundError("pre_assign_excel_file 경로를 찾을 수 없습니다.")
+            return pd.DataFrame()
         raw = load_file(path)
         return raw.get('pre_assign', pd.DataFrame())
 
