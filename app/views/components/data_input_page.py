@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, 
 from PyQt5.QtGui import QCursor, QFont
 import os
 
-from app.core.input.preAssign import run_allocation
+from app.core.input.pre_assign import run_allocation
 from app.core.input.maintenance import run_maintenance_analysis
 from app.models.common.fileStore import FilePaths, DataStore
 
@@ -225,6 +225,8 @@ class DataInputPage(QWidget):
         # 파일 관련 시그널
         self.file_uploader.file_selected.connect(self.on_file_selected)
         self.file_uploader.file_removed.connect(self.on_file_removed)
+
+        self.file_selected.connect(self.parameter_component.on_file_selected)
 
         # 파일 탐색기 시그널
         self.file_explorer.file_or_sheet_selected.connect(
