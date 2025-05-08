@@ -8,21 +8,26 @@ from pulp import LpStatus
 
 class Optimization:
     def __init__(self,input):
-        """input 형식
-        {
-            'demand':{
-                'demand': df
-            },
-            'master':{
-                'line_available': df,
-                ...
-            },
-            'dynamic':{
-                'material_item': df,
-                ...
-            }
-        }
         """
+        input 데이터를 받아서 optimization 객체를 생성합니다
+
+        Parameters:
+        input (dictionary) : 
+            {
+                'demand':{
+                    'demand': df
+                },
+                'master':{
+                    'line_available': df,
+                    ...
+                },
+                'dynamic':{
+                    'material_item': df,
+                    ...
+                }
+            }
+        """
+
         
         
         # 각 엑셀 파일 불러오기. 시트이름이 키, 데이터프레임이 값인 딕셔너리로 저장됨.
@@ -193,6 +198,16 @@ class Optimization:
     
     """사전할당 알고리즘 함수"""
     def pre_assign(self, showlog = False):
+        """
+        Returns:
+            dictionary: 
+                {
+                    'result': 할당 결과 데이터프레임,
+                    'combined': fixed option + pre assign 시트 데이터프레임
+                    'error': 에러 문구 문자열
+                }
+
+        """
         # 모든 (line * shift) 를 원소로 하는 리스트
         line_shifts = [(l,s) for l in self.line for s in self.time]
         # 생산해야 하는 아이템들 리스트. 
@@ -428,3 +443,4 @@ if __name__ == "__main__":
     }
     optimization = Optimization(input)
     optimization.pre_assign(showlog=True)
+    optimization.execute(showlog=True)
