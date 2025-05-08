@@ -147,9 +147,6 @@ class CapaUtilization:
         #     dict: 업데이트된 가동률 데이터
        
         try:
-            # # 데이터 복사본 생성
-            # df = data_df.copy()
-            
             # 아이템 정보 찾기
             item_id = item_data.get('Item')
             

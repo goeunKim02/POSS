@@ -119,9 +119,6 @@ class CapaRatioAnalyzer:
             dict: 업데이트된 제조동별 비율 데이터
         """
         try:
-            # # 데이터 복사본 생성
-            # df = data_df.copy()
-            
             # 아이템 정보 찾기
             item_id = item_data.get('Item')
             
@@ -142,11 +139,11 @@ class CapaRatioAnalyzer:
                         
                     # 수량 정보 업데이트
                     if 'Qty' in new_data:
-                       data_df.at[idx, 'Qty'] = int(new_data['Qty'])
+                        data_df.at[idx, 'Qty'] = int(new_data['Qty'])
                         
             # 업데이트된 데이터로 비율 분석
             return CapaRatioAnalyzer.analyze_capa_ratio(data_df=data_df, is_initial=is_initial)
-
+            
         except Exception as e:
             # print(f"Error in update_capa_ratio_for_cell_move: {str(e)}")
             import traceback
