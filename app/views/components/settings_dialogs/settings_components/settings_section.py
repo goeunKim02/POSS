@@ -86,6 +86,7 @@ class SettingsSectionComponent(QFrame):
         # 정수 스핀박스
         elif widget_type == 'spinbox':
             widget = QSpinBox()
+            widget.wheelEvent = lambda event: event.ignore()
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
             if 'max' in kwargs:
@@ -99,6 +100,7 @@ class SettingsSectionComponent(QFrame):
         # 실수 스핀박스
         elif widget_type == 'doublespinbox':
             widget = QDoubleSpinBox()
+            widget.wheelEvent = lambda event: event.ignore()
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
             if 'max' in kwargs:
