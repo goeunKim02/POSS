@@ -6,7 +6,10 @@ from app.views.components.data_upload_components.data_table_component import Dat
 
 
 class SidebarManager:
-    """사이드바 관리를 위한 클래스"""
+    """
+    사이드바 관리를 위한 클래스
+    파일 탐색기 사이드바와 파일 데이터 로딩 담당
+    """
 
     def __init__(self, parent):
         self.parent = parent
@@ -22,20 +25,23 @@ class SidebarManager:
             # 엑셀 파일인 경우 시트 목록 가져오기
             sheet_names = None
             if file_ext in ['.xls', '.xlsx']:
-                import pandas as pd
                 excel = pd.ExcelFile(file_path)
                 sheet_names = excel.sheet_names
 
-                # 첫 번째 시트 로드
-                if sheet_names:
-                    df = DataTableComponent.load_data_from_file(file_path, sheet_name=sheet_names[0])
-                    self.parent.loaded_files[file_path] = {'df': df, 'sheets': sheet_names,
-                                                           'current_sheet': sheet_names[0]}
+                # 모든 시트 로드하여 저장
+                from app.models.common.fileStore import DataStore
+                df_dict = DataStore.get("dataframes", {})
 
-                    # DataStore에 등록
-                    from app.models.common.fileStore import DataStore
-                    df_dict = DataStore.get("dataframes", {})
-                    df_dict[f"{file_path}:{sheet_names[0]}"] = df
+                # 첫 번째 시트는 기본값으로 로드
+                if sheet_names:
+                    first_sheet = sheet_names[0]
+                    df = DataTableComponent.load_data_from_file(file_path, sheet_name=first_sheet)
+                    self.parent.loaded_files[file_path] = {
+                        'df': df,
+                        'sheets': sheet_names,
+                        'current_sheet': first_sheet
+                    }
+                    df_dict[f"{file_path}:{first_sheet}"] = df
 
                     # 다른 모든 시트도 로드하여 저장
                     for sheet in sheet_names[1:]:
@@ -47,7 +53,11 @@ class SidebarManager:
             # CSV 파일인 경우
             elif file_ext == '.csv':
                 df = DataTableComponent.load_data_from_file(file_path)
-                self.parent.loaded_files[file_path] = {'df': df, 'sheets': None, 'current_sheet': None}
+                self.parent.loaded_files[file_path] = {
+                    'df': df,
+                    'sheets': None,
+                    'current_sheet': None
+                }
 
                 # DataStore에 등록
                 from app.models.common.fileStore import DataStore
@@ -68,7 +78,7 @@ class SidebarManager:
             return False, f"파일 로드 오류: {str(e)}"
 
     def remove_file_from_sidebar(self, file_path):
-        """사이드바에서 파일 제거"""
+        """사이드바에서 파일 제거 및 관련 데이터 정리"""
         # 사이드바에서 파일 제거
         result = self.file_explorer.remove_file(file_path)
 
@@ -101,7 +111,10 @@ class SidebarManager:
         return result
 
     def on_file_or_sheet_selected(self, file_path, sheet_name):
-        """파일 탐색기에서 파일이나 시트가 선택되면 호출 - 수정된 데이터 로드"""
+        """
+        파일 탐색기에서 파일이나 시트 선택 처리
+        선택된 항목을 탭으로 표시하거나 기존 탭 활성화
+        """
         print(f"사이드바에서 선택됨: {file_path}, 시트: {sheet_name}")
 
         # 탭으로부터의 업데이트 중이면 무시 (무한 루프 방지)
@@ -146,3 +159,9 @@ class SidebarManager:
             self.parent.tab_manager.create_new_tab(file_path, self.parent.current_sheet)
 
         self.updating_from_sidebar = False
+
+    def get_loaded_sheet_names(self, file_path):
+        """로드된 파일의 시트 이름 목록 반환"""
+        if file_path in self.parent.loaded_files:
+            return self.parent.loaded_files[file_path].get('sheets', [])
+        return []

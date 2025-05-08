@@ -62,6 +62,21 @@ class DataTableComponent:
                 }
             """)
 
+            # 열 너비 균일하게 설정 (필터 컴포넌트용)
+            header = filter_component.table_view.horizontalHeader()
+            header.setSectionResizeMode(QHeaderView.Interactive)
+
+            # 모든 열의 초기 너비를 동일하게 설정
+            column_count = len(df.columns)
+            if column_count > 0:
+                table_width = filter_component.table_view.width()
+                column_width = max(100, table_width // column_count)
+                for i in range(column_count):
+                    filter_component.table_view.setColumnWidth(i, column_width)
+
+            # 마지막 열을 늘리지 않도록 설정
+            header.setStretchLastSection(False)
+
             # 필터 위젯 추가
             layout.addWidget(filter_component)
             # 테이블 뷰는 이미 필터 컴포넌트 내부에 있으므로 별도로 추가할 필요가 없음
@@ -118,11 +133,8 @@ class DataTableComponent:
         """)
         data_table.setAlternatingRowColors(True)
 
-        # 모든 열이 동일한 너비를 가지도록 Stretch 모드 설정
-        data_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        # 마지막 열을 늘리는 설정 비활성화
-        data_table.horizontalHeader().setStretchLastSection(False)
+        # 모든 열을 고정 크기로 설정하고 사용자가 직접 크기 조정할 수 있게 함
+        data_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
 
         # 테이블 설정
         data_table.setRowCount(len(df))
@@ -143,6 +155,17 @@ class DataTableComponent:
                     display_value = str(value)
                 item = QTableWidgetItem(display_value)
                 data_table.setItem(row, col, item)
+
+        # 모든 열의 초기 너비를 동일하게 설정
+        column_count = len(df.columns)
+        if column_count > 0:
+            table_width = data_table.width()
+            column_width = max(100, table_width // column_count)
+            for i in range(column_count):
+                data_table.setColumnWidth(i, column_width)
+
+        # 마지막 열을 늘리지 않도록 설정
+        data_table.horizontalHeader().setStretchLastSection(False)
 
         # 레이아웃에 테이블 추가
         layout.addWidget(data_table)
