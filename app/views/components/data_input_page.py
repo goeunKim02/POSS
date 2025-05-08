@@ -191,7 +191,7 @@ class DataInputPage(QWidget):
 
         # 수평 스플리터 추가
         parameter_splitter = QSplitter(Qt.Horizontal)
-        parameter_splitter.setHandleWidth(10)
+        parameter_splitter.setHandleWidth(3)
         parameter_splitter.setStyleSheet("""
             QSplitter::handle {
                 background-color: #cccccc;
