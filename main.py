@@ -11,10 +11,10 @@ def exception_hook(exctype, value, traceback_obj):
 
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Critical)
-    msg.setText("프로그램에서 오류가 발생했습니다")
-    msg.setInformativeText("자세한 오류 내용은 아래를 참조하세요:")
+    msg.setText("An error has occurred in the application.")
+    msg.setInformativeText("Please refer to the details below for more information about the error.")
     msg.setDetailedText(error_msg)
-    msg.setWindowTitle("오류 발생")
+    msg.setWindowTitle("Error Occurred")
     msg.setStandardButtons(QMessageBox.Ok)
     msg.exec_()
 
