@@ -201,7 +201,6 @@ class PlanAdjustmentValidator:
                     return True, ""
         
         # 마스터 데이터도 없고 결과 데이터에서도 확인 불가능한 경우 기본 통과
-        # (이 부분은 실제 비즈니스 로직에 따라 다를 수 있음)
         return True, ""
     
     """라인 용량 초과 여부 검증"""
@@ -223,9 +222,9 @@ class PlanAdjustmentValidator:
         # 마스터 데이터에서 라인과 시프트 용량 가져오기
         capacity = self.get_line_capacity(line, time)
         
-        print(f"검증: 라인={line}, 시프트={time}, 현재 할당량={current_allocation}, 신규 수량={new_qty}")
-        print(f"용량 정보: {capacity}")
-        print(f"검증 결과: {current_allocation + new_qty} <= {capacity} = {current_allocation + new_qty <= capacity}")
+        # print(f"검증: 라인={line}, 시프트={time}, 현재 할당량={current_allocation}, 신규 수량={new_qty}")
+        # print(f"용량 정보: {capacity}")
+        # print(f"검증 결과: {current_allocation + new_qty} <= {capacity} = {current_allocation + new_qty <= capacity}")
         # 용량 검증
         if capacity is not None:
             if current_allocation + new_qty > capacity:
@@ -307,7 +306,7 @@ class PlanAdjustmentValidator:
     
     """모든 검증 로직을 통합 실행"""
     def validate_adjustment(self, line, time, item, new_qty, source_line=None, source_time=None):
-        print("validate_adjustment 호출됨")
+        # print("validate_adjustment 호출됨")
         # 이동 여부 확인
         is_move = source_line is not None and source_time is not None
 
@@ -330,12 +329,12 @@ class PlanAdjustmentValidator:
             data_df=temp_result_data,
             is_initial=True
         )
-        print(f"업데이트 전 제조동별 비율: {original_ratios}")
+        # print(f"업데이트 전 제조동별 비율: {original_ratios}")
         
         # 각 제조동별 수량 출력 - 디버깅
         for building in ['I', 'D', 'K', 'M']:
             building_qty = temp_result_data[temp_result_data['Line'].str.startswith(building)]['Qty'].sum()
-            print(f"업데이트 전 {building} 제조동 총 수량: {building_qty}")
+            # print(f"업데이트 전 {building} 제조동 총 수량: {building_qty}")
 
         # 이동인 경우 원본 위치에서 제거
         if source_line and source_time:
@@ -359,9 +358,9 @@ class PlanAdjustmentValidator:
 
         # 대상 위치에 있으면 업데이트, 없으면 추가
         if target_mask.any():
-            print(f"업데이트 전 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
+            # print(f"업데이트 전 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
             temp_result_data.loc[target_mask, 'Qty'] = new_qty
-            print(f"업데이트 후 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
+            # print(f"업데이트 후 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
         else:
             # 새 행 데이터 구성
             new_row = {
@@ -430,45 +429,19 @@ class PlanAdjustmentValidator:
         # 숫자형 time 문자열로 변환 (마스터 데이터와 형식 일치를 위해)
         print(f"디버깅 - get_line_capacity 시작: 라인={line}, 시프트={time}")
         
-        # # 이미 캐싱된 capa_qty_data 사용
-        # if self.capa_qty_data is None or self.capa_qty_data.empty:
-        #     print("capa_qty 데이터가 비어 있습니다.")
-        #     return None
-
-            # capa_qty_data 확인
-        if self.capa_qty_data is None:
-            print("디버깅 - capa_qty_data가 None입니다.")
+        # 이미 캐싱된 capa_qty_data 사용
+        if self.capa_qty_data is None or self.capa_qty_data.empty:
+            print("capa_qty 데이터가 비어 있습니다.")
             return None
-        elif self.capa_qty_data.empty:
-            print("디버깅 - capa_qty_data가 비어 있습니다.")
-            return None
-            
-        # capa_qty_data의 기본 정보 출력
-        print(f"디버깅 - capa_qty_data 컬럼: {self.capa_qty_data.columns.tolist()}")
-        print(f"디버깅 - capa_qty_data 'Line' 컬럼 존재: {'Line' in self.capa_qty_data.columns}")
-        print(f"디버깅 - capa_qty_data {time} 컬럼 존재: {time in self.capa_qty_data.columns}")
-        
 
         try:
-            # # 라인이 인덱스에 있는 경우
-            # if 'Line' in self.capa_qty_data.columns and time in self.capa_qty_data.columns:
-            #     line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == line]
-            #     if not line_rows.empty:
-            #         capacity = line_rows.iloc[0][time]
-            #         if pd.notna(capacity):
-            #             return float(capacity)
-            if 'Line' in self.capa_qty_data.columns:
-                print(f"디버깅 - Line 값 예시: {self.capa_qty_data['Line'].head(5).tolist()}")
+            # 라인이 인덱스에 있는 경우
+            if 'Line' in self.capa_qty_data.columns and time in self.capa_qty_data.columns:
                 line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == line]
-                print(f"디버깅 - 라인 '{line}'에 해당하는 행 수: {len(line_rows)}")
-                
-                if not line_rows.empty and time in self.capa_qty_data.columns:
+                if not line_rows.empty:
                     capacity = line_rows.iloc[0][time]
-                    print(f"디버깅 - 찾은 용량 값: {capacity}, 타입: {type(capacity)}")
                     if pd.notna(capacity):
                         return float(capacity)
-                    else:
-                        print(f"디버깅 - 용량 값이 NaN입니다.")
             
             # 제조동 제약 확인 (I, D, K, M)
             if len(line) >= 1:
@@ -570,20 +543,19 @@ class PlanAdjustmentValidator:
             is_initial=True
         )
 
-        # 디버깅: 제조동별 총수량 출력
-        print("\n===== 비율 계산 후 제조동별 수량 확인 =====")
-        for building in ['I', 'D', 'K', 'M']:
-            building_qty = self.result_data[self.result_data['Line'].str.startswith(building)]['Qty'].sum()
-            print(f"최종 {building} 제조동 총 수량: {building_qty}")
-        print("========================================\n")
+        # # 디버깅: 제조동별 총수량 출력
+        # print("\n===== 비율 계산 후 제조동별 수량 확인 =====")
+        # for building in ['I', 'D', 'K', 'M']:
+        #     building_qty = self.result_data[self.result_data['Line'].str.startswith(building)]['Qty'].sum()
+        #     print(f"최종 {building} 제조동 총 수량: {building_qty}")
+        # print("========================================\n")
 
-        # 각 제조동별 비율 확인
-        print("\n===== 계산된 비율 =====")
-        for building, ratio in building_ratios.items():
-            print(f"{building}: {ratio}%")
-        print("=======================\n")
+        # # 각 제조동별 비율 확인
+        # print("\n===== 계산된 비율 =====")
+        # for building, ratio in building_ratios.items():
+        #     print(f"{building}: {ratio}%")
+        # print("=======================\n")
     
-
         if not building_ratios:
             return True, "생산량이 없거나 제조동별 비율을 계산할 수 없습니다."
         
