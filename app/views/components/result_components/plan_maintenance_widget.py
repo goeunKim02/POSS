@@ -15,7 +15,7 @@ class PlanMaintenanceWidget(QWidget):
         self.plan_analyzer = PlanMaintenanceRate()
         self.setStyleSheet("""
             QWidget {
-                background-color: transparent;
+                background-color: #FFFFFF;
                 border: none;
             }
             QWidget > QFrame, QWidget > QWidget {
@@ -240,7 +240,7 @@ class PlanMaintenanceWidget(QWidget):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
-            "Select Previous Plan File", 
+            "SelectPlan File", 
             "", 
             "Excel Files (*.xlsx *.xls);;All Files (*)",
             options=options
