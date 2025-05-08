@@ -17,7 +17,7 @@ from app.views.components.data_upload_components.file_explorer_sidebar import Fi
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
-
+from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
 class DataInputPage(QWidget):
     # 시그널 정의
@@ -340,7 +340,6 @@ class DataInputPage(QWidget):
 
         if modified_data:
             # 변경 사항이 있으면 다이얼로그 표시
-            from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
             choice = SaveConfirmationDialog.show_dialog(self)
 
             if choice == "save_and_run":
