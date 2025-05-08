@@ -126,6 +126,9 @@ class CapaRatioAnalyzer:
             item_id = item_data.get('Item')
             
             if item_id is not None:
+                print(f"업데이트 전 Qty 합계: {df['Qty'].sum()}")
+                print(f"업데이트 대상 아이템: {item_id}")
+                print(f"대상 라인/시프트: {item_data.get('Line')}/{item_data.get('Time')}")
                 # 해당 아이템 행 찾기
                 item_row = df[df['Item'] == item_id]
                 

@@ -1,7 +1,6 @@
 import pandas as pd
-from app.core.input.capaValidator import validate_distribution_ratios
-from app.models.common.fileStore import DataStore, FilePaths
-from app.utils.fileHandler import load_file
+from app.models.common.fileStore import DataStore
+from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 
 """결과 조정 시 제약사항 점검 클래스"""
 class PlanAdjustmentValidator:
@@ -25,7 +24,7 @@ class PlanAdjustmentValidator:
     """제약사항 추출"""
     def _extract_constraints(self):
         # 초기화
-        self.line_capacities = {}    # 라인별 용량
+        self.line_capacities = {}    # 라임 및 shift별 용량
         self.due_dates = {}          # 아이템/프로젝트별 납기일
         self.building_constraints = {}  # 제조동 제약
         self.line_item_compatibility = {}  # 라인-아이템 호환성
@@ -262,8 +261,8 @@ class PlanAdjustmentValidator:
             3: 110,  
             4: 110,  
             5: 110,  
-            6: 80,  
-            7: 60,   
+            6: 110,  
+            7: 110,   
             8: 110,  
             9: 110, 
             10: 110, 
@@ -323,12 +322,77 @@ class PlanAdjustmentValidator:
         except (ValueError, TypeError) as e:
             return False, f"입력값 변환 중 오류 발생: {str(e)}"
         
-        # 물량 비율 검증은 기존 함수 재사용
-        # processed_data = self._prepare_data_for_validator()
-        # distribution_result = validate_distribution_ratios(processed_data)
+        # 제조동별 검증
+        temp_result_data = self.result_data.copy()
+
+        # 디버깅: 업데이트 전 제조동별 비율 - 디버깅깅
+        original_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
+            data_df=temp_result_data,
+            is_initial=True
+        )
+        print(f"업데이트 전 제조동별 비율: {original_ratios}")
         
-        # if not distribution_result['current_valid'] and not distribution_result['alternative_possible']:
-        #     return False, "제조동별 물량 비율 제약을 만족하지 않습니다."
+        # 각 제조동별 수량 출력 - 디버깅
+        for building in ['I', 'D', 'K', 'M']:
+            building_qty = temp_result_data[temp_result_data['Line'].str.startswith(building)]['Qty'].sum()
+            print(f"업데이트 전 {building} 제조동 총 수량: {building_qty}")
+
+        # 이동인 경우 원본 위치에서 제거
+        if source_line and source_time:
+            source_mask = (
+                (temp_result_data['Line'] == source_line) & 
+                (temp_result_data['Time'] == source_time) & 
+                (temp_result_data['Item'] == item)
+            )
+            if source_mask.any():
+                # 원본 데이터 삭제
+                temp_result_data = temp_result_data[~source_mask]
+
+        # 새 위치에 할당
+        target_mask = (
+            (temp_result_data['Line'] == line) &
+            (temp_result_data['Time'] == time) &
+            (temp_result_data['Item'] == item)
+        )
+
+        print(f"대상 위치 행 수: {target_mask.sum()}")
+
+        # 대상 위치에 있으면 업데이트, 없으면 추가
+        if target_mask.any():
+            print(f"업데이트 전 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
+            temp_result_data.loc[target_mask, 'Qty'] = new_qty
+            print(f"업데이트 후 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
+        else:
+            # 새 행 데이터 구성
+            new_row = {
+                'Line': line,
+                'Time': time,
+                'Item': item,
+                'Qty': new_qty
+            }
+
+            # 디버깅: 업데이트 후 제조동별 비율
+            updated_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
+                data_df=temp_result_data,
+                is_initial=True
+            )
+            print(f"업데이트 후 제조동별 비율: {updated_ratios}")
+
+            # 프로젝트, rmc 등 필요한 정보 추가
+            if item in self.result_data['Item'].values:
+                item_data = self.result_data[self.result_data['Item'] == item].iloc[0]
+                for col in ['Project', 'RMC', 'To_site', 'SOP', 'MFG', 'Due_LT']:
+                    if col in item_data and pd.notna(item_data[col]):
+                        new_row[col] = item_data[col]
+
+            # 새 행 추가
+            temp_result_data = pd.concat([temp_result_data, pd.DataFrame([new_row])], ignore_index=True)
+
+        # 제조동 비율 검증
+        temp_validator = PlanAdjustmentValidator(temp_result_data)
+        valid, message = temp_validator.validate_building_ratios()
+        if not valid:
+            return False, message
         
         # 라인-아이템 호환성 검증
         valid, message = self.validate_line_item_compatibility(line, item)
@@ -498,6 +562,55 @@ class PlanAdjustmentValidator:
                 allocation += row.get('Qty', 0)
         
         return allocation
+    
+
+    def validate_building_ratios(self):
+        building_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
+            data_df=self.result_data,
+            is_initial=True
+        )
+
+        # 디버깅: 제조동별 총수량 출력
+        print("\n===== 비율 계산 후 제조동별 수량 확인 =====")
+        for building in ['I', 'D', 'K', 'M']:
+            building_qty = self.result_data[self.result_data['Line'].str.startswith(building)]['Qty'].sum()
+            print(f"최종 {building} 제조동 총 수량: {building_qty}")
+        print("========================================\n")
+
+        # 각 제조동별 비율 확인
+        print("\n===== 계산된 비율 =====")
+        for building, ratio in building_ratios.items():
+            print(f"{building}: {ratio}%")
+        print("=======================\n")
+    
+
+        if not building_ratios:
+            return True, "생산량이 없거나 제조동별 비율을 계산할 수 없습니다."
+        
+        violations = []
+
+        # 각 제조동 별 비율이 제약조건을 만족하는지 검증
+        for building, ratio in building_ratios.items():
+            constraints = self.building_constraints[building]
+            lower_limit = constraints.get('lower_limit', 0) * 100
+            upper_limit = constraints.get('upper_limit', 0) * 100
+
+            if ratio < lower_limit:
+                violations.append(
+                    f"제조동 '{building}'의 생산비율{ratio:.2f}% 이"
+                    f"최소 비율({lower_limit:.2f}%)보다 작습니다."
+                )
+            elif ratio > upper_limit:
+                violations.append(
+                    f"제조동 '{building}'의 생산 비율({ratio:.2f}%)이 "
+                    f"최대 비율({upper_limit:.2f}%)보다 큽니다."
+                )
+
+        # 위반 사항이 있는지 확인
+        if violations:
+            return False, "\n".join(violations)
+        else:
+            return True, "제조동별 물량 비율 제약을 만족합니다."
 
 
 
