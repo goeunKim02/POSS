@@ -15,7 +15,7 @@ class PlanMaintenanceWidget(QWidget):
         self.plan_analyzer = PlanMaintenanceRate()
         self.setStyleSheet("""
             QWidget {
-                background-color: #F5F5F5;
+                background-color: transparent;
                 border: none;
             }
             QWidget > QFrame, QWidget > QWidget {
@@ -23,13 +23,35 @@ class PlanMaintenanceWidget(QWidget):
             }
         """)
         self.modified_item_keys = set()  # 수정된 아이템 키 추적
+
+        # 메인 레이아웃 설정
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(10)
+        
+        # 데이터 없음 메시지 레이블
+        self.no_data_message = QLabel("Please Load to Data")
+        self.no_data_message.setAlignment(Qt.AlignCenter)
+        self.no_data_message.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            background-color: transparent;
+        """)
+        
+        # 데이터 있을 때 표시할 위젯 컨테이너
+        self.content_container = QWidget()
+        self.content_layout = QVBoxLayout(self.content_container)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(10)
+        
+        # 초기 상태 설정 - 데이터 없음 메시지만 표시
+        self.main_layout.addWidget(self.no_data_message)
+        self.main_layout.addWidget(self.content_container)
+        self.content_container.hide()
+
         self.init_ui()
 
     def init_ui(self):
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
-
         # 상단 버튼 영역 추가
         button_widget = QWidget()
         button_layout = QHBoxLayout(button_widget)
@@ -56,39 +78,17 @@ class PlanMaintenanceWidget(QWidget):
         """)
         self.select_plan_btn.clicked.connect(self.select_previous_plan)
 
-        # 원래 계획으로 초기화 버튼
-        # self.reset_btn = QPushButton("Reset to Original")
-        # self.reset_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        # self.reset_btn.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #6c757d; 
-        #         color: white; 
-        #         border: none;
-        #         border-radius: 5px;
-        #         padding: 8px 15px;
-        #         font-weight: bold;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #5a6268;
-        #     }
-        #     QPushButton:pressed {
-        #         background-color: #545b62;
-        #     }
-        # """)
-        # self.reset_btn.clicked.connect(self.reset_to_original)
-
          # 이전 계획 상태 레이블
         self.plan_status_label = QLabel("No previous plan loaded")
         self.plan_status_label.setStyleSheet("color: #6c757d; font-style: italic;")
 
         # 버튼 레이아웃에 추가
         button_layout.addWidget(self.select_plan_btn)
-        # button_layout.addWidget(self.reset_btn)
         button_layout.addStretch(1)
         button_layout.addWidget(self.plan_status_label)
 
         # 메인 레이아웃에 버튼 위젯 추가 (info_widget 앞에)
-        main_layout.addWidget(button_widget)
+        self.content_layout.addWidget(button_widget)
 
         # 상단 정보 위젯
         info_widget = QWidget()
@@ -106,7 +106,7 @@ class PlanMaintenanceWidget(QWidget):
         value_font.setPointSize(13)
         value_font.setBold(True)
         
-        self.rate_title_label = QLabel("Item별 유지율 :")
+        self.rate_title_label = QLabel("Item Maintenance Rate :")
         self.rate_title_label.setFont(title_font)
         self.rate_title_label.setStyleSheet("color: #333333;")
         
@@ -120,7 +120,7 @@ class PlanMaintenanceWidget(QWidget):
         
         # 컨텐츠 위젯 (흰색 배경)
         content_widget = QWidget()
-        content_widget.setStyleSheet("background-color: white; border-radius: 8px; ")
+        content_widget.setStyleSheet("background-color: transparent; border: none;")
         content_layout = QVBoxLayout(content_widget)
         content_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -138,17 +138,17 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 20px; 
+                font-size: 24px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 20px;  
+                font-size: 24px;  
             }
             QTabBar::tab {
                 padding: 8px 16px;
-                min-width: 150px;
+                min-width: 300px;
                 margin-left: 7px;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
@@ -156,7 +156,7 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 20px;  
+                font-size: 24px;  
             }
             QTabBar::tab::first { margin-left: 10px; }
         """)
@@ -174,7 +174,7 @@ class PlanMaintenanceWidget(QWidget):
                 border: none;
                 background-color: white;
                 alternate-background-color: #f9f9f9;
-                font-size: 22px;  
+                font-size: 24px;  
                 outline: none;
                 gridline-color: #dddddd;  /* 그리드 라인 색상 설정 */
             }
@@ -199,7 +199,7 @@ class PlanMaintenanceWidget(QWidget):
                 border-right: 1px solid #e0e0e0;  /* 헤더 수직 구분선 추가 */
                 font-weight: bold;
                 color: #333333;
-                font-size: 22px;  
+                font-size: 24px;  
             }
             QTreeView::branch {
                 background-color: transparent;
@@ -222,14 +222,14 @@ class PlanMaintenanceWidget(QWidget):
         rmc_layout.addWidget(self.rmc_tree)
                 
         # 탭 추가
-        self.tab_widget.addTab(self.item_tab, "Item별 유지율")
-        self.tab_widget.addTab(self.rmc_tab, "RMC별 유지율")
+        self.tab_widget.addTab(self.item_tab, "Item Maintenance Rate")
+        self.tab_widget.addTab(self.rmc_tab, "RMC Maintenance Rate")
         
         content_layout.addWidget(self.tab_widget)
         
         # 메인 레이아웃에 위젯 추가
-        main_layout.addWidget(info_widget)
-        main_layout.addWidget(content_widget, 1)  # 1의 stretch 값으로 나머지 공간 채우기
+        self.content_layout.addWidget(info_widget)
+        self.content_layout.addWidget(content_widget, 1)  # 1의 stretch 값으로 나머지 공간 채우기
         
         # 탭 변경 시 유지율 레이블 업데이트
         self.tab_widget.currentChanged.connect(self.update_rate_label)
@@ -240,7 +240,7 @@ class PlanMaintenanceWidget(QWidget):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
-            "이전 계획 파일 선택", 
+            "Select Previous Plan File", 
             "", 
             "Excel Files (*.xlsx *.xls);;All Files (*)",
             options=options
@@ -270,27 +270,27 @@ class PlanMaintenanceWidget(QWidget):
                     
                     QMessageBox.information(
                         self, 
-                        "이전 계획 로드 성공", 
-                        f"이전 계획이 성공적으로 로드되었습니다:\n{file_name}"
+                        "Previous Plan Loaded Successfully", 
+                        f"Previous plan has been loaded successfully:\n{file_name}"
                     )
                 else:
                     QMessageBox.warning(
                         self, 
-                        "로드 실패", 
-                        "선택한 파일에 유효한 데이터가 없습니다."
+                        "Load Failed", 
+                        "The selected file dose not contain valid open"
                     )
             except Exception as e:
                 QMessageBox.critical(
                     self, 
-                    "로드 오류", 
-                    f"파일 로드 중 오류가 발생했습니다:\n{str(e)}"
+                    "Load Error", 
+                    f"An error occurred while loading the file:\n{str(e)}"
                 )
 
 
     """레이블 업데이트 함수"""
     def update_rate_label(self, index):
         if index == 0:  # Item별 탭
-            self.rate_title_label.setText("Item별 유지율 :")
+            self.rate_title_label.setText("Item Maintenance Rate :")
             if hasattr(self, 'item_maintenance_rate'):
                 if self.item_maintenance_rate is not None:
                     # 정수로 표시
@@ -308,7 +308,7 @@ class PlanMaintenanceWidget(QWidget):
                     self.item_rate_label.setText("N/A")
      
         else:  # RMC별 탭
-            self.rate_title_label.setText("RMC별 유지율 :")
+            self.rate_title_label.setText("RMC Maintenance Rate :")
             if hasattr(self, 'rmc_maintenance_rate'):
                 if self.rmc_maintenance_rate is not None:
                     # 정수로 표시
@@ -694,7 +694,14 @@ class PlanMaintenanceWidget(QWidget):
     """결과 데이터 설정(이전 계획 자동 탐색)"""
     def set_data(self, result_data, start_date=None, end_date=None):
         if result_data is None or result_data.empty:
+            # 데이터가 없는 경우
+            self.no_data_message.show()
+            self.content_container.hide()
             return False
+        
+        # 데이터가 있는 경우 UI 요소 표시
+        self.no_data_message.hide()
+        self.content_container.show()
         
         print(f"PlanMaintenanceWidget: 데이터 설정 - 행 수: {len(result_data)}")
 
