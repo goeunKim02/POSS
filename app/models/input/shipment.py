@@ -20,7 +20,7 @@ def preprocess_data_for_fulfillment_rate() :
         demand_file_path = FilePaths.get('demand_excel_file')
 
         if not master_file_path:
-                raise FileError('Master file path not found', {'file_type' : 'master_excel_file'})
+            raise FileError('Master file path not found', {'file_type' : 'master_excel_file'})
         
         if not material_file_path:
             raise FileError('Material file path not found', {'file_type' : 'dynamic_excel_file'})
