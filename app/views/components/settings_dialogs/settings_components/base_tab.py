@@ -1,0 +1,81 @@
+# app/views/components/settings_dialogs/settings_components/base_tab.py - 설정 기본 탭 컴포넌트
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
+from PyQt5.QtCore import Qt, pyqtSignal
+
+
+class BaseTabComponent(QWidget):
+    """설정 탭의 기본 클래스"""
+    # 설정 변경 시그널 정의
+    settings_changed = pyqtSignal(str, object)  # 키, 값
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(15, 15, 15, 15)
+        self.layout.setSpacing(10)
+
+        # 스크롤 영역 생성
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.NoFrame)
+
+        # 스크롤바 스타일 추가
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                background-color:#F9F9F9; 
+                border-radius:10px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cccccc;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #cccccc;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """)
+
+        # 스크롤 내용을 담을 위젯
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(10)
+        self.content_layout.setAlignment(Qt.AlignTop)
+
+        # 스크롤 영역에 콘텐츠 위젯 설정
+        self.scroll_area.setWidget(self.content_widget)
+
+        # 메인 레이아웃에 스크롤 영역 추가
+        self.layout.addWidget(self.scroll_area)
+
+    def emit_setting_change(self, key, value):
+        """설정 변경 시그널 발생"""
+        self.settings_changed.emit(key, value)
