@@ -54,9 +54,10 @@ class PlanningPage(QWidget):
 
         # 제목 및 버튼 레이아웃
         title_hbox = QHBoxLayout()
-        lbl = QLabel("Pre-Assigned Calendar View")
+        lbl = QLabel("Pre-Assignment")
         font_title = QFont("Arial", 15)
         font_title.setBold(True)
+        font_title.setWeight(99)
         lbl.setFont(font_title)
         title_hbox.addWidget(lbl)
         title_hbox.addStretch()
@@ -202,6 +203,8 @@ class PlanningPage(QWidget):
             QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {str(e)}")
         finally:
             # 실행 버튼 상태 복원
+            self.run_spinner.stop()  # 로딩 애니메이션 중지
+            self.btn_run.setIcon(QIcon())  # 아이콘 제거
             self.btn_run.setText("Run")
             self.btn_run.setEnabled(True)
             self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)

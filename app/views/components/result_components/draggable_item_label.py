@@ -44,6 +44,31 @@ class DraggableItemLabel(QLabel):
             margin: 2px;
         """
 
+        # 자재 부족 스타일 추가
+        self.shortage_style = """
+            background-color: #FFE0E0;
+            border: 1px solid #FF8080;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+        
+        self.shortage_selected_style = """
+            background-color: #FFC0C0;
+            border: 1px solid #0078D7;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+        
+        self.shortage_hover_style = """
+            background-color: #FFC8C8;
+            border: 1px solid #FF6060;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+
         self.setStyleSheet(self.default_style)
         self.setAlignment(Qt.AlignCenter)
         self.setCursor(Qt.OpenHandCursor)
@@ -58,6 +83,10 @@ class DraggableItemLabel(QLabel):
 
         # 툴팁 관련 설정
         QToolTip.setFont(QFont('SansSerif', 10))
+
+        # 자재 부족 상태 관련 속성 추가
+        self.is_shortage = False
+        self.shortage_data = None
 
         # 아이템 데이터 저장 (엑셀 행 정보)
         self.item_data = item_data
@@ -112,13 +141,16 @@ class DraggableItemLabel(QLabel):
     def enterEvent(self, event):
         """마우스가 위젯 위에 올라갔을 때 호출됨"""
         if not self.is_selected:
-            self.setStyleSheet(self.hover_style)
+            if self.is_shortage:
+                self.setStyleSheet(self.shortage_hover_style)
+            else:
+                self.setStyleSheet(self.hover_style)
         super().enterEvent(event)
 
     def leaveEvent(self, event):
         """마우스가 위젯을 벗어났을 때 호출됨"""
         if not self.is_selected:
-            self.setStyleSheet(self.default_style)
+            self.update_style()
         super().leaveEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -185,12 +217,57 @@ class DraggableItemLabel(QLabel):
             self.is_selected = selected
             self.update_style()
 
-    def update_style(self):
-        """현재 선택 상태에 맞게 스타일 업데이트"""
-        if self.is_selected:
-            self.setStyleSheet(self.selected_style)
+    # 자재 부족 상태 설정 메서드 추가
+    def set_shortage_status(self, is_shortage, shortage_data=None):
+        """자재 부족 상태 설정"""
+        self.is_shortage = is_shortage
+        self.shortage_data = shortage_data
+        self.update_style()
+        
+        # 자재 부족 상태에 따라 툴팁 업데이트
+        if is_shortage and shortage_data:
+            self.setToolTip(self._create_shortage_tooltip())
         else:
-            self.setStyleSheet(self.default_style)
+            # 기본 툴팁 사용
+            if self.item_data is not None:
+                self.setToolTip(self._create_tooltip_text())
+            else:
+                self.setToolTip(self.text())
+
+    def _create_shortage_tooltip(self):
+        """자재 부족 정보 툴팁 생성"""
+        if not self.shortage_data:
+            return self._create_tooltip_text()
+        
+        item_code = self.item_data.get('Item', 'Unknown Item') if self.item_data else 'Unknown Item'
+        
+        tooltip = f"<b>{item_code}</b> Material Shortage Details:<br><br>"
+        tooltip += "<table border='1' cellspacing='0' cellpadding='3'>"
+        tooltip += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Required</th><th>Available</th><th>Shortage</th></tr>"
+        
+        for shortage in self.shortage_data:
+            tooltip += f"<tr>"
+            tooltip += f"<td>{shortage['Material']}</td>"
+            tooltip += f"<td align='right'>{int(shortage['Required']):,}</td>"
+            tooltip += f"<td align='right'>{int(shortage['Available']):,}</td>"
+            tooltip += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td>"
+            tooltip += f"</tr>"
+        
+        tooltip += "</table>"
+        return tooltip
+
+    def update_style(self):
+        """현재 상태에 맞게 스타일 업데이트"""
+        if self.is_selected:
+            if self.is_shortage:
+                self.setStyleSheet(self.shortage_selected_style)
+            else:
+                self.setStyleSheet(self.selected_style)
+        else:
+            if self.is_shortage:
+                self.setStyleSheet(self.shortage_style)
+            else:
+                self.setStyleSheet(self.default_style)
 
     def update_text_from_data(self):
         """아이템 데이터로부터 표시 텍스트 업데이트"""
@@ -209,11 +286,52 @@ class DraggableItemLabel(QLabel):
     def update_item_data(self, new_data):
         """아이템 데이터 업데이트"""
         if new_data:
+            # 데이터 변경 전 검증 (부모 위젯을 통해 validator 찾기)
+            validator = None
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'validator'):
+                    validator = parent.validator
+                    break
+                # 그리드 위젯을 통해 validator 찾기
+                if hasattr(parent, 'grid_widget') and hasattr(parent.grid_widget, 'validator'):
+                    validator = parent.grid_widget.validator
+                    break
+                parent = parent.parent()
+            
+            # validator가 있으면 검증 수행
+            if validator:
+                # 현재 데이터와 신규 데이터 비교하여 변경 항목 검출
+                is_move = False
+                if self.item_data:
+                    if ('Line' in new_data and 'Line' in self.item_data and 
+                        new_data['Line'] != self.item_data['Line']):
+                        is_move = True
+                    if ('Time' in new_data and 'Time' in self.item_data and 
+                        new_data['Time'] != self.item_data['Time']):
+                        is_move = True
+                
+                # 검증 실행
+                valid, message = validator.validate_adjustment(
+                    new_data.get('Line'), 
+                    new_data.get('Time'),
+                    new_data.get('Item', ''),
+                    new_data.get('Qty', 0),
+                    self.item_data.get('Line') if is_move else None,
+                    self.item_data.get('Time') if is_move else None
+                )
+                
+                # 검증 실패 시 데이터 변경하지 않고 False 반환
+                if not valid:
+                    # 오류 메시지는 호출자에서 표시 (여기서는 표시하지 않음)
+                    return False, message
+            
+            # 검증 통과 또는 validator 없음 - 데이터 업데이트 진행
             # 데이터 직접 할당 (데이터 참조 복사)
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
             self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
-            return True
-        return False
+            return True, ""
+        return False, "데이터가 없습니다."

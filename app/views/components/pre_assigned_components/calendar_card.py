@@ -2,22 +2,22 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from ....resources.styles.pre_assigned_style import CARD_DAY_FRAME_STYLE, CARD_NIGHT_FRAME_STYLE
+from ....resources.styles.pre_assigned_style import CARD_DAY_FRAME_STYLE, CARD_NIGHT_FRAME_STYLE, CARD_DAY_SELECTED_STYLE, CARD_NIGHT_SELECTED_STYLE
 
 class CalendarCard(QFrame):
-    clicked = pyqtSignal(dict)
+    clicked = pyqtSignal(object, dict)
 
     def __init__(self, row_data: dict, is_day: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._row = row_data
 
-        if is_day:
-            self.setObjectName("cardFrameDay")
-            self.setStyleSheet(CARD_DAY_FRAME_STYLE)
-        else:
-            self.setObjectName("cardFrameNight")
-            self.setStyleSheet(CARD_NIGHT_FRAME_STYLE)
+        self.base_style = CARD_DAY_FRAME_STYLE if is_day else CARD_NIGHT_FRAME_STYLE
+        self.selected_style = CARD_DAY_SELECTED_STYLE if is_day else CARD_NIGHT_SELECTED_STYLE
 
+        self.setStyleSheet(self.base_style)
+        self._is_selected = False
+
+        self.setObjectName("cardFrameDay" if is_day else "cardFrameNight")
         self.setFrameShape(QFrame.NoFrame)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
@@ -43,5 +43,7 @@ class CalendarCard(QFrame):
 
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
-            self.clicked.emit(self._row)
+            self._is_selected = not self._is_selected
+            self.setStyleSheet(self.selected_style if self._is_selected else self.base_style)
+            self.clicked.emit(self, self._row)
         super().mousePressEvent(e)

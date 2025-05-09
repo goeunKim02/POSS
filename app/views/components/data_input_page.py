@@ -18,6 +18,7 @@ from app.views.components.data_upload_components.file_explorer_sidebar import Fi
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
+from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.models.input.capa import process_data
@@ -348,11 +349,34 @@ class DataInputPage(QWidget):
         # 현재 열려있는 탭의 데이터 저장
         self.tab_manager.save_current_tab_data()
 
-        # DataStore에서 모든 데이터프레임 준비
-        self.prepare_dataframes_for_optimization()
+        modified_data = self.data_modifier.get_all_modified_data()
 
-        # 기존 시그널 발생
-        self.run_button_clicked.emit()
+        if modified_data:
+            # 변경 사항이 있으면 다이얼로그 표시
+            choice = SaveConfirmationDialog.show_dialog(self)
+
+            if choice == "save_and_run":
+                # 저장 후 실행
+                self.on_save_clicked()
+                # DataStore에서 모든 데이터프레임 준비
+                self.prepare_dataframes_for_optimization()
+                # 기존 시그널 발생
+                self.run_button_clicked.emit()
+            elif choice == "run_without_save":
+                # 저장하지 않고 실행
+                # DataStore에서 모든 데이터프레임 준비
+                self.prepare_dataframes_for_optimization()
+                # 기존 시그널 발생
+                self.run_button_clicked.emit()
+            else:  # "cancel"
+                # 작업 취소
+                return
+        else:
+            # 변경 사항이 없으면 바로 실행
+            # DataStore에서 모든 데이터프레임 준비
+            self.prepare_dataframes_for_optimization()
+            # 기존 시그널 발생
+            self.run_button_clicked.emit()
 
     def prepare_dataframes_for_optimization(self):
         """최적화를 위한 데이터프레임 준비 및 저장"""
