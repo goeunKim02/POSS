@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, 
 from PyQt5.QtGui import QCursor, QFont
 import os
 
-from app.core.input.preAssign import run_allocation
+from app.core.input.pre_assign import run_allocation
 from app.core.input.maintenance import run_maintenance_analysis
 from app.models.common.fileStore import FilePaths, DataStore
 
@@ -17,7 +17,7 @@ from app.views.components.data_upload_components.file_explorer_sidebar import Fi
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
-
+from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
 class DataInputPage(QWidget):
     # 시그널 정의
@@ -79,6 +79,29 @@ class DataInputPage(QWidget):
 
         title_row_layout.addWidget(title_label, 1)
 
+        save_btn = QPushButton("Save")
+        save_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        save_btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: #1428A0; 
+                            color: white; 
+                            border: none;
+                            border-radius: 10px;
+                            padding: 5px 15px;
+                            font-weight: bold;
+                        }
+                        QPushButton:hover {
+                            background-color: #0069d9;
+                        }
+                        QPushButton:pressed {
+                            background-color: #0062cc;
+                        }
+                    """
+        )
+        save_btn.setFixedWidth(150)
+        save_btn.setFixedHeight(50)
+
+
         # Run 버튼 생성
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -105,10 +128,13 @@ class DataInputPage(QWidget):
         run_font = QFont("Arial", 9)
         run_font.setBold(True)
         run_btn.setFont(run_font)
+        save_btn.setFont(run_font)
 
         # 버튼 클릭 시그널 연결
         run_btn.clicked.connect(self.on_run_clicked)
+        save_btn.clicked.connect(self.on_save_clicked)
 
+        title_row_layout.addWidget(save_btn)
         title_row_layout.addWidget(run_btn)
 
         # 입력 섹션 생성
@@ -186,11 +212,49 @@ class DataInputPage(QWidget):
         # 파라미터 영역
         parameter_container = QFrame()
         parameter_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
-        parameter_layout = QVBoxLayout(parameter_container)
-        parameter_layout.setContentsMargins(10, 10, 10, 10)
+        parameter_layout = QHBoxLayout(parameter_container)  # QVBoxLayout에서 QHBoxLayout으로 변경
+        parameter_layout.setContentsMargins(5, 5, 5, 5)
 
+        # 수평 스플리터 추가
+        parameter_splitter = QSplitter(Qt.Horizontal)
+        parameter_splitter.setHandleWidth(3)
+        parameter_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #cccccc;
+                width: 1px;
+            }
+        """)
+
+        # 왼쪽 영역 (새로 추가)
+        left_parameter_area = QFrame()
+        left_parameter_area.setStyleSheet("background-color: white; border: none;")
+        left_parameter_layout = QVBoxLayout(left_parameter_area)
+        left_parameter_layout.setContentsMargins(5, 5, 5, 5)
+
+        # 왼쪽 영역에 임시 레이블 추가 (나중에 실제 컴포넌트로 대체)
+        left_label = QLabel("왼쪽 파라미터 영역")
+        left_label.setAlignment(Qt.AlignCenter)
+        left_parameter_layout.addWidget(left_label)
+
+        # 오른쪽 영역 (기존 ParameterComponent 포함)
+        right_parameter_area = QFrame()
+        right_parameter_area.setStyleSheet("background-color: white; border: none;")
+        right_parameter_layout = QVBoxLayout(right_parameter_area)
+        right_parameter_layout.setContentsMargins(5, 5, 5, 5)
+
+        # 기존 ParameterComponent 추가
         self.parameter_component = ParameterComponent()
-        parameter_layout.addWidget(self.parameter_component)
+        right_parameter_layout.addWidget(self.parameter_component)
+
+        # 스플리터에 왼쪽/오른쪽 영역 추가
+        parameter_splitter.addWidget(left_parameter_area)
+        parameter_splitter.addWidget(right_parameter_area)
+
+        # 7:3 비율로 설정
+        parameter_splitter.setSizes([700, 300])
+
+        # 메인 레이아웃에 스플리터 추가
+        parameter_layout.addWidget(parameter_splitter)
 
         # 수직 스플리터에 탭 컨테이너와 파라미터 컨테이너 추가
         vertical_splitter.addWidget(tab_container)
@@ -225,6 +289,8 @@ class DataInputPage(QWidget):
         # 파일 관련 시그널
         self.file_uploader.file_selected.connect(self.on_file_selected)
         self.file_uploader.file_removed.connect(self.on_file_removed)
+
+        self.file_selected.connect(self.parameter_component.on_file_selected)
 
         # 파일 탐색기 시그널
         self.file_explorer.file_or_sheet_selected.connect(
@@ -272,11 +338,34 @@ class DataInputPage(QWidget):
         # 현재 열려있는 탭의 데이터 저장
         self.tab_manager.save_current_tab_data()
 
-        # DataStore에서 모든 데이터프레임 준비
-        self.prepare_dataframes_for_optimization()
+        modified_data = self.data_modifier.get_all_modified_data()
 
-        # 기존 시그널 발생
-        self.run_button_clicked.emit()
+        if modified_data:
+            # 변경 사항이 있으면 다이얼로그 표시
+            choice = SaveConfirmationDialog.show_dialog(self)
+
+            if choice == "save_and_run":
+                # 저장 후 실행
+                self.on_save_clicked()
+                # DataStore에서 모든 데이터프레임 준비
+                self.prepare_dataframes_for_optimization()
+                # 기존 시그널 발생
+                self.run_button_clicked.emit()
+            elif choice == "run_without_save":
+                # 저장하지 않고 실행
+                # DataStore에서 모든 데이터프레임 준비
+                self.prepare_dataframes_for_optimization()
+                # 기존 시그널 발생
+                self.run_button_clicked.emit()
+            else:  # "cancel"
+                # 작업 취소
+                return
+        else:
+            # 변경 사항이 없으면 바로 실행
+            # DataStore에서 모든 데이터프레임 준비
+            self.prepare_dataframes_for_optimization()
+            # 기존 시그널 발생
+            self.run_button_clicked.emit()
 
     def prepare_dataframes_for_optimization(self):
         """최적화를 위한 데이터프레임 준비 및 저장"""
@@ -364,3 +453,59 @@ class DataInputPage(QWidget):
             self.parameter_component.show_failures.emit(failures)
         except Exception as e:
             print(f"[preAssign 분석] 오류 발생: {e}")
+
+    def on_save_clicked(self):
+        """Save 버튼 클릭 시 호출되는 함수 - 현재 데이터를 원본 파일에 저장"""
+        import pandas as pd
+
+        print("Save 버튼 클릭됨 - 원본 파일에 변경사항 저장")
+
+        # 현재 탭 데이터 저장 (내부 저장소에만)
+        self.tab_manager.save_current_tab_data()
+
+        # 모든 수정된 데이터 가져오기
+        modified_data = self.data_modifier.get_all_modified_data()
+
+        if not modified_data:
+            print("저장할 변경사항이 없습니다.")
+            return
+
+        success_count = 0
+        error_count = 0
+
+        # 각 파일에 대해 처리
+        for file_path, sheets in modified_data.items():
+            file_ext = os.path.splitext(file_path)[1].lower()
+
+            try:
+                if file_ext == '.csv':
+                    # CSV 파일 처리
+                    if 'data' in sheets:
+                        df = sheets['data']
+                        df.to_csv(file_path, index=False, encoding='utf-8')
+                        success_count += 1
+                elif file_ext in ['.xls', '.xlsx']:
+                    # 엑셀 파일 처리
+                    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                        for sheet_name, df in sheets.items():
+                            if sheet_name != 'data':  # data는 CSV용 특수 키
+                                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                    success_count += 1
+            except Exception as e:
+                print(f"파일 '{file_path}' 저장 중 오류 발생: {str(e)}")
+                error_count += 1
+
+        # 저장 후 수정 상태 초기화
+        if success_count > 0:
+            self.data_modifier.modified_data_dict.clear()
+
+            # UI 업데이트 - 모든 탭과 사이드바 항목의 '*' 제거
+            for (file_path, sheet_name), idx in self.tab_manager.open_tabs.items():
+                self.data_modifier.remove_modified_status_in_sidebar(file_path, sheet_name)
+                self.tab_manager.update_tab_title(file_path, sheet_name, False)
+
+        # 결과 메시지
+        if error_count == 0:
+            self.update_status_message(True, f"{success_count}개 파일 저장 완료")
+        else:
+            self.update_status_message(False, f"{success_count}개 파일 저장 완료, {error_count}개 파일 저장 실패")

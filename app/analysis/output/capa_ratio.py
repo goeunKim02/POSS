@@ -119,15 +119,12 @@ class CapaRatioAnalyzer:
             dict: 업데이트된 제조동별 비율 데이터
         """
         try:
-            # 데이터 복사본 생성
-            df = data_df.copy()
-            
             # 아이템 정보 찾기
             item_id = item_data.get('Item')
             
             if item_id is not None:
                 # 해당 아이템 행 찾기
-                item_row = df[df['Item'] == item_id]
+                item_row = data_df[data_df['Item'] == item_id]
                 
                 if not item_row.empty:
                     # 인덱스 가져오기
@@ -135,17 +132,14 @@ class CapaRatioAnalyzer:
                     
                     # 라인 정보 업데이트
                     if 'Line' in new_data:
-                        df.at[idx, 'Line'] = new_data['Line']
+                        data_df.at[idx, 'Line'] = new_data['Line']
                         
                     # 수량 정보 업데이트
                     if 'Qty' in new_data:
-                        df.at[idx, 'Qty'] = int(new_data['Qty'])
+                        data_df.at[idx, 'Qty'] = int(new_data['Qty'])
                         
-                    # 업데이트된 데이터로 비율 분석
-                    return CapaRatioAnalyzer.analyze_capa_ratio(data_df=df, is_initial=is_initial)
-            
-            # 아이템을 찾지 못한 경우, 기존 데이터로 비율 분석
-            return CapaRatioAnalyzer.analyze_capa_ratio(data_df=df, is_initial=is_initial)
+            # 업데이트된 데이터로 비율 분석
+            return CapaRatioAnalyzer.analyze_capa_ratio(data_df=data_df, is_initial=is_initial)
             
         except Exception as e:
             # print(f"Error in update_capa_ratio_for_cell_move: {str(e)}")

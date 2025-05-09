@@ -4,14 +4,36 @@ from typing import Tuple
 
 import pandas as pd
 
-from ...models.input.preAssign import Request, PreAssignSolution, PreAssignFailures, DataLoader
+from ...models.input.pre_assign import Request, PreAssignSolution, PreAssignFailures, DataLoader
 
+"""dynamic, demand, master 데이터를 로드"""
 def load_data():
-    """dynamic, demand, master 데이터를 로드"""
-    fixed_opt, pre_assign = DataLoader.load_dynamic_data()
-    demand               = DataLoader.load_demand_data()
-    line_avail, capa_qty = DataLoader.load_master_data()
-    capa_qty = capa_qty.set_index('Line')
+    # dynamic 데이터
+    try:
+        fixed_opt, pre_assign = DataLoader.load_dynamic_data()
+    except Exception as e:
+        print(f"[load_data] load_dynamic_data 에러: {e}")
+        fixed_opt, pre_assign = pd.DataFrame(), pd.DataFrame()
+
+    # demand 데이터
+    try:
+        demand = DataLoader.load_demand_data()
+    except Exception as e:
+        print(f"[load_data] load_demand_data 에러: {e}")
+        demand = pd.DataFrame(columns=['Item', 'MFG'])
+
+    # master 데이터
+    try:
+        line_avail, capa_qty = DataLoader.load_master_data()
+    except Exception as e:
+        print(f"[load_data] load_master_data 에러: {e}")
+        line_avail, capa_qty = pd.DataFrame(), pd.DataFrame()
+
+    if not capa_qty.empty and 'Line' in capa_qty.columns:
+        capa_qty = capa_qty.set_index('Line')
+    else:
+        capa_qty = pd.DataFrame()
+
     return fixed_opt, pre_assign, demand, line_avail, capa_qty
 
 def expand_pre_assign(fixed_opt: pd.DataFrame, pre_assign: pd.DataFrame) -> pd.DataFrame:
@@ -46,23 +68,38 @@ def process_all_qty(fixed_opt: pd.DataFrame, demand: pd.DataFrame) -> pd.DataFra
     fixed_opt['Qty'] = fixed_opt.apply(resolve_qty, axis=1)
     return fixed_opt.dropna(subset=['Qty']).copy()
 
-def validate_fixed_lines(fixed_opt: pd.DataFrame, line_avail: pd.DataFrame) -> pd.DataFrame:
-    """Fixed_Line 검증 & 정리"""
+"""Fixed_Line 검증 & 정리"""
+def validate_fixed_lines(
+    fixed_opt: pd.DataFrame,
+    line_avail: pd.DataFrame
+) -> pd.DataFrame:
     drops = []
     for idx, row in fixed_opt.iterrows():
-        proj = row['Fixed_Group'][3:7]
-        raw  = str(row['Fixed_Line'])
-        if not raw or raw.lower()=='nan':
-            avail = line_avail[line_avail['Project'].str.contains(proj)].iloc[0]
+        proj_code = row['Fixed_Group'][3:7]
+        raw_line  = str(row.get('Fixed_Line', '')).strip()
+
+        # 해당 프로젝트를 포함하는 행 검색
+        avail_df = line_avail[line_avail['Project'].str.contains(proj_code, na=False)]
+        if avail_df.empty:
+            drops.append(idx)
+            continue
+
+        avail = avail_df.iloc[0]
+
+        # Fixed_Line이 비어있거나 'nan'인 경우, 상태가 1인 모든 라인 선택
+        if not raw_line or raw_line.lower() == 'nan':
             lines = [ln for ln, v in avail.drop('Project').items() if v == 1]
         else:
-            lines = raw.split(',')
-        allowed = line_avail[line_avail['Project'].str.contains(proj)].iloc[0]
-        if any(allowed.get(ln,0)!=1 for ln in lines):
+            lines = [ln.strip() for ln in raw_line.split(',') if ln.strip()]
+
+        # 허용되지 않는 라인 검사
+        invalid = [ln for ln in lines if avail.get(ln, 0) != 1]
+        if invalid:
             drops.append(idx)
         else:
-            fixed_opt.at[idx,'Fixed_Line'] = ','.join(lines)
-    return fixed_opt.drop(index=drops)
+            fixed_opt.at[idx, 'Fixed_Line'] = ','.join(lines)
+
+    return fixed_opt.drop(index=drops).reset_index(drop=True)
 
 def validate_capacity_and_time(fixed_opt: pd.DataFrame, capa_qty: pd.DataFrame) -> pd.DataFrame:
     """용량 검증 & Fixed_Time 정리"""

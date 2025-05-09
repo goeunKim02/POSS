@@ -1,184 +1,303 @@
 import pandas as pd
 from app.models.common.fileStore import FilePaths
 from app.utils.fileHandler import load_file
+from app.utils.error_handler import (
+    error_handler, safe_operation,
+    DataError, FileError
+)
 
 """
 당주 출하 만족률 계산을 위한 전처리
 """
+@error_handler(
+    show_dialog=True,
+    default_return=None
+)
 def preprocess_data_for_fulfillment_rate() :
-    master_file_path = FilePaths.get('master_excel_file')
-    material_file_path = FilePaths.get('dynamic_excel_file')
-    demand_file_path = FilePaths.get('demand_excel_file')
+    try :
+        master_file_path = FilePaths.get('master_excel_file')
+        material_file_path = FilePaths.get('dynamic_excel_file')
+        demand_file_path = FilePaths.get('demand_excel_file')
 
-    master_data = load_file(master_file_path)
-    material_data = load_file(material_file_path)
-    demand_data = load_file(demand_file_path)
+        if not master_file_path:
+            raise FileError('Master file path not found', {'file_type' : 'master_excel_file'})
+        
+        if not material_file_path:
+            raise FileError('Material file path not found', {'file_type' : 'dynamic_excel_file'})
+        
+        if not demand_file_path:
+            raise FileError('Demand file path not found', {'file_type' : 'demand_excel_file'})
+            
 
-    df_demand = demand_data.get('demand', pd.DataFrame())
-    df_due_lt = master_data.get('due_LT', pd.DataFrame())
-    df_line_available = master_data.get('line_available', pd.DataFrame())
-    df_capa_qty = master_data.get('capa_qty', pd.DataFrame())
-    df_material_qty = material_data.get('material_qty', pd.DataFrame())
-    df_material_item = material_data.get('material_item', pd.DataFrame())
-    df_material_equal = material_data.get('material_equal', pd.DataFrame())
+        master_data = safe_operation(load_file, 'Error loading master file', master_file_path)
+        material_data = safe_operation(load_file, 'Error loading material file', material_file_path)
+        demand_data = safe_operation(load_file, 'Error loading demand file', demand_file_path)
 
-    if any(df.empty for df in [df_demand, df_due_lt, df_line_available, df_capa_qty,
-                               df_material_qty, df_material_item]) :
-        return None
-    
-    for i, row in df_demand.iterrows() :
-        df_demand.loc[i, 'Project'] = row['Item'][3:7]
-        df_demand.loc[i, "Basic2"] = row['Item'][3:8]
-        df_demand.loc[i, "Tosite_group"] = row['Item'][7:8]
-        df_demand.loc[i, "RMC"] = row['Item'][3:-3]
-        df_demand.loc[i, "Color"] = row['Item'][8:-4]
+        if master_data is None :
+            raise FileError('Failed to load master file', {'file_path' : master_file_path})
+        
+        if material_data is None :
+            raise FileError('Failed to load material file', {'file_path' : material_file_path})
+        
+        if demand_data is None :
+            raise FileError('Failed to load demand file', {'file_path' : demand_file_path})
 
-    if 'SOP' in df_demand.columns :
-        df_demand['SOP'] = df_demand['SOP'].apply(lambda x : max(0, x if pd.notna(x) else 0))
-    
-    processed_data = {
-        'demand' : {
-            'df' : df_demand,
-            'items' : df_demand.to_dict('records'),
-            'project_items' : {proj : group.to_dict('records')
-                               for proj, group in df_demand.groupby('Project')},
-            'site_items' : {site : group.to_dict('records')
-                            for site, group in df_demand.groupby('Tosite_group')
-                            if site and not pd.isna(site)}
-        },
-        'material' : process_material(df_material_qty, df_material_item, df_material_equal),
-        'production' : process_production(df_line_available, df_capa_qty),
-        'due_lt' : process_due_lt(df_due_lt)
-    }
+        df_demand = demand_data.get('demand', pd.DataFrame())
+        df_due_lt = master_data.get('due_LT', pd.DataFrame())
+        df_line_available = master_data.get('line_available', pd.DataFrame())
+        df_capa_qty = master_data.get('capa_qty', pd.DataFrame())
+        df_material_qty = material_data.get('material_qty', pd.DataFrame())
+        df_material_item = material_data.get('material_item', pd.DataFrame())
+        df_material_equal = material_data.get('material_equal', pd.DataFrame())
 
-    return processed_data
+        if any(df.empty for df in [df_demand, df_due_lt, df_line_available, df_capa_qty,
+                                df_material_qty, df_material_item]) :
+            return None
+        
+        try :
+            for i, row in df_demand.iterrows() :
+                if 'Item' not in row or not isinstance(row['Item'], str) :
+                    continue
+
+                df_demand.loc[i, 'Project'] = row['Item'][3:7]
+                df_demand.loc[i, "Basic2"] = row['Item'][3:8]
+                df_demand.loc[i, "Tosite_group"] = row['Item'][7:8]
+                df_demand.loc[i, "RMC"] = row['Item'][3:-3]
+                df_demand.loc[i, "Color"] = row['Item'][8:-4]
+        except Exception as e :
+            raise DataError('Error processing demand items', {'error' : str(e)})
+
+        if 'SOP' in df_demand.columns :
+            try :
+                df_demand['SOP'] = df_demand['SOP'].apply(lambda x : max(0, x if pd.notna(x) else 0))
+            except Exception as e :
+                raise DataError('Error processing SOP column', {'error' : str(e)})
+        
+        try :
+            processed_data = {
+                'demand' : {
+                    'df' : df_demand,
+                    'items' : df_demand.to_dict('records'),
+                    'project_items' : {proj : group.to_dict('records')
+                                    for proj, group in df_demand.groupby('Project')},
+                    'site_items' : {site : group.to_dict('records')
+                                    for site, group in df_demand.groupby('Tosite_group')
+                                    if site and not pd.isna(site)}
+                },
+                'material' : safe_operation(
+                    process_material,
+                    'Error processing material data',
+                    df_material_qty, df_material_item, df_material_equal
+                ),
+                'production': safe_operation(
+                    process_production, 
+                    "Error processing production data",
+                    df_line_available, df_capa_qty
+                ),
+                'due_lt': safe_operation(
+                    process_due_lt, 
+                    "Error processing due LT data",
+                    df_due_lt
+                )
+            }
+
+            if any(v is None for k, v in processed_data.items() if k != 'material_equal') :
+                raise DataError('One or more data processing steps failed')
+            
+            return processed_data
+        except Exception as e :
+            raise DataError('Error in final data processing', {'error' : str(e)})
+    except Exception as e :
+        if not isinstance(e, (FileError, DataError)) :
+            raise DataError('Unexpected error in preprocess data for fulfillment rate', {'error' : str(e)})
+        raise
 
 """
 자재 관련 데이터 처리
 """
+@error_handler(
+    show_dialog=True,
+    default_return=None
+)
 def process_material(df_material_qty, df_material_item, df_material_equal) :
-    active_materials_qty = df_material_qty[df_material_qty['Active_OX'] == 'O'].copy()
-    active_materials_item = df_material_item[df_material_item['Active_OX'] == 'O'].copy()
+    try :
+        if 'Active_OX' not in df_material_qty.columns :
+            raise DataError('Active_OX column missing in material quantity data')
+        
+        active_materials_qty = df_material_qty[df_material_qty['Active_OX'] == 'O'].copy()
 
-    material_availability = {}
+        if 'Active_OX' not in df_material_item.columns :
+            raise DataError('Active_OX column missing in material item data')
 
-    for _, row in active_materials_qty.iterrows() :
-        material = row['Material']
-        on_hand = row['On-Hand'] if pd.notna(row['On-Hand']) else 0
-        available_lt = row.get('Available L/T', 0) if pd.notna(row.get('Available L/T', 0)) else 0
+        active_materials_item = df_material_item[df_material_item['Active_OX'] == 'O'].copy()
 
-        material_availability[material] = {
-            'on_hand' : on_hand,
-            'available_lt' : available_lt
+        material_availability = {}
+
+        for _, row in active_materials_qty.iterrows() :
+            try :
+                material = row['Material']
+                on_hand = row['On-Hand'] if pd.notna(row['On-Hand']) else 0
+                available_lt = row.get('Available L/T', 0) if pd.notna(row.get('Available L/T', 0)) else 0
+
+                material_availability[material] = {
+                    'on_hand' : on_hand,
+                    'available_lt' : available_lt
+                }
+            except Exception as e :
+                continue
+
+        material_groups = {}
+
+        if not df_material_equal.empty :
+            for _, row in df_material_equal.iterrows() :
+                try :
+                    group = []
+
+                    for col in ['Material A', 'Material B', 'Material C'] :
+                        if col in row and pd.notna(row[col]) and row[col] :
+                            group.append(row[col])
+
+                    if group :
+                        for material in group :
+                            material_groups[material] = group
+                except Exception as e :
+                    continue
+
+        material_to_models = {}
+        model_to_materials = {}
+
+        for _, row in active_materials_item.iterrows() :
+            try :
+                if 'Material' not in row :
+                    continue
+
+                material = row['Material']
+                material_to_models[material] = []
+
+                for i in range(1, 11) :
+                    col_name = f'Top_Model_{i}'
+
+                    if col_name in row and pd.notna(row[col_name]) and row[col_name] :
+                        pattern = row[col_name]
+                        material_to_models[material].append(pattern)
+
+                        if pattern not in model_to_materials :
+                            model_to_materials[pattern] = []
+                        
+                        model_to_materials[pattern].append(material)
+            except Exception as e :
+                continue
+
+        return {
+            'availability' : material_availability,
+            'material_groups' : material_groups,
+            'material_to_models' : material_to_models,
+            'model_to_materials' : model_to_materials,
+            'df_qty' : active_materials_qty,
+            'df_item' : active_materials_item
         }
-
-    material_groups = {}
-
-    if not df_material_equal.empty :
-        for _, row in df_material_equal.iterrows() :
-            group = []
-
-            for col in ['Material A', 'Material B', 'Material C'] :
-                if col in row and pd.notna(row[col]) and row[col] :
-                    group.append(row[col])
-
-            if group :
-                for material in group :
-                    material_groups[material] = group
-
-    material_to_models = {}
-    model_to_materials = {}
-
-    for _, row in active_materials_item.iterrows() :
-        material = row['Material']
-        material_to_models[material] = []
-
-        for i in range(1, 11) :
-            col_name = f'Top_Model_{i}'
-
-            if col_name in row and pd.notna(row[col_name]) and row[col_name] :
-                pattern = row[col_name]
-                material_to_models[material].append(pattern)
-
-                if pattern not in model_to_materials :
-                    model_to_materials[pattern] = []
-                
-                model_to_materials[pattern].append(material)
-
-    return {
-        'availability' : material_availability,
-        'material_groups' : material_groups,
-        'material_to_models' : material_to_models,
-        'model_to_materials' : model_to_materials,
-        'df_qty' : active_materials_qty,
-        'df_item' : active_materials_item
-    }
+    except Exception as e :
+        if not isinstance(e, DataError) :
+            raise DataError('Unexpected error in process_material', {'error' : str(e)})
+        raise
 
 """
 생산 관련 데이터 처리
 """
+@error_handler(
+    show_dialog=True,
+    default_return=None
+)
 def process_production(df_line_available, df_capa_qty) :
-    project_lines = {}
+    try :
+        project_lines = {}
 
-    if 'Project' in df_line_available.columns :
-        for _, row in df_line_available.iterrows() :
-            project = str(row['Project'])
-            available_lines = []
+        if 'Project' in df_line_available.columns :
+            for _, row in df_line_available.iterrows() :
+                try :
+                    project = str(row['Project'])
+                    available_lines = []
 
-            for col in df_line_available.columns :
-                if col != 'Project' and pd.notna(row[col]) and row[col] > 0 :
-                    available_lines.append(col)
+                    for col in df_line_available.columns :
+                        if col != 'Project' and pd.notna(row[col]) and row[col] > 0 :
+                            available_lines.append(col)
 
-            project_lines[project] = available_lines
+                    project_lines[project] = available_lines
+                except Exception as e :
+                    continue
 
-    line_capacities = {}
+        line_capacities = {}
 
-    if 'Line' in df_capa_qty.columns :
-        df_capa_qty = df_capa_qty.set_index('Line')
+        try :
+            df_capa_qty_processed = df_capa_qty.copy()
 
-    meta_prefixes = ['Max_', 'Total_', 'Sum_']
-    filtered_capa_qty = df_capa_qty[~df_capa_qty.index.astype(str).str.startswith(tuple(meta_prefixes))]
+            if 'Line' in df_capa_qty_processed.columns :
+                df_capa_qty_processed = df_capa_qty_processed.set_index('Line')
 
-    shift_columns = [col for col in filtered_capa_qty.columns if isinstance(col, int) or (isinstance(col, str) and col.isdigit())]
+            meta_prefixes = ['Max_', 'Total_', 'Sum_']
+            filtered_capa_qty = df_capa_qty_processed[~df_capa_qty_processed.index.astype(str).str.startswith(tuple(meta_prefixes))]
 
-    for line, row in filtered_capa_qty.iterrows() :
-        line_str = str(line)
-        capacities = {}
+            shift_columns = [col for col in filtered_capa_qty.columns if isinstance(col, int) or (isinstance(col, str) and col.isdigit())]
 
-        for shift in range(1, 15) :
-            capacity = 0
+            for line, row in filtered_capa_qty.iterrows() :
+                try :
+                    line_str = str(line)
+                    capacities = {}
 
-            if shift in shift_columns :
-                capacity = row[shift] if pd.notna(row[shift]) else 0
+                    for shift in range(1, 15) :
+                        capacity = 0
 
-            capacities[shift] = float(capacity) if pd.notna(capacity) else 0
+                        if shift in shift_columns :
+                            capacity = row[shift] if pd.notna(row[shift]) else 0
 
-        line_capacities[line_str] = capacities
-    
-    return {
-        'project_lines' : project_lines,
-        'line_capacities': line_capacities,
-        'df_line_available': df_line_available,
-        'df_capa_qty': df_capa_qty
-    }
+                        capacities[shift] = float(capacity) if pd.notna(capacity) else 0
+
+                    line_capacities[line_str] = capacities
+                except Exception as e :
+                    continue
+        except Exception as e :
+            pass
+        
+        return {
+            'project_lines' : project_lines,
+            'line_capacities': line_capacities,
+            'df_line_available': df_line_available,
+            'df_capa_qty': df_capa_qty
+        }
+    except Exception as e :
+        if not isinstance(e, DataError) :
+            raise DataError('Unexpected error in process_production', {'error' : str(e)})
+        raise
 
 """
 납기 정보 처리
 """
+@error_handler(
+    show_dialog=True,
+    default_return=None
+)
 def process_due_lt(df_due_lt) :
-    due_lt_map = {}
+    try :
+        due_lt_map = {}
 
-    for _, row in df_due_lt.iterrows() :
-        project = row['Project']
-        tosite_group = row['Tosite_group']
-        due_lt = row['Due_date_LT']
+        for _, row in df_due_lt.iterrows() :
+            try :
+                project = row['Project']
+                tosite_group = row['Tosite_group']
+                due_lt = row['Due_date_LT']
 
-        if project not in due_lt_map :
-            due_lt_map[project] = {}
+                if project not in due_lt_map :
+                    due_lt_map[project] = {}
 
-        due_lt_map[project][tosite_group] = due_lt
+                due_lt_map[project][tosite_group] = due_lt
+            except Exception as e :
+                continue
 
-    return {
-        'df' : df_due_lt,
-        'due_lt_map' : due_lt_map
-    }
+        return {
+            'df' : df_due_lt,
+            'due_lt_map' : due_lt_map
+        }
+    except Exception as e :
+        if not isinstance(e, DataError) :
+            raise DataError('Unexpected error in process_due_lt', {'error' : str(e)})
+        raise

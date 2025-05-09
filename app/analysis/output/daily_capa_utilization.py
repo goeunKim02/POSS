@@ -146,15 +146,12 @@ class CapaUtilization:
         #     dict: 업데이트된 가동률 데이터
        
         try:
-            # 데이터 복사본 생성
-            df = data_df.copy()
-            
             # 아이템 정보 찾기
             item_id = item_data.get('Item')
             
             if item_id is not None:
                 # 해당 아이템 행 찾기
-                item_row = df[df['Item'] == item_id]
+                item_row = data_df[data_df['Item'] == item_id]
                 
                 if not item_row.empty:
                     # 인덱스 가져오기
@@ -162,21 +159,18 @@ class CapaUtilization:
                     
                     # 라인 정보 업데이트
                     if 'Line' in new_data:
-                        df.at[idx, 'Line'] = new_data['Line']
+                        data_df.at[idx, 'Line'] = new_data['Line']
                         
                     # 근무 정보 업데이트
                     if 'Time' in new_data:
-                        df.at[idx, 'Time'] = int(new_data['Time'])
+                        data_df.at[idx, 'Time'] = int(new_data['Time'])
                         
                     # 수량 정보 업데이트
                     if 'Qty' in new_data:
-                        df.at[idx, 'Qty'] = int(float(new_data['Qty']))
+                        data_df.at[idx, 'Qty'] = int(float(new_data['Qty']))
                         
-                    # 업데이트된 데이터로 가동률 분석
-                    return CapaUtilization.analyze_utilization(df)
-            
-            # 아이템을 찾지 못한 경우, 기존 데이터로 가동률 분석
-            return CapaUtilization.analyze_utilization(df)
+            # 업데이트된 데이터로 가동률 분석
+            return CapaUtilization.analyze_utilization(data_df)
             
         except Exception as e:
             print(f"셀 이동 시 가동률 업데이트 중 오류 발생: {str(e)}")

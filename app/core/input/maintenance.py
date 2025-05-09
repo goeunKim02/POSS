@@ -2,8 +2,12 @@ import pandas as pd
 import numpy as np
 from typing import List, Tuple
 from app.models.input.maintenance import ItemMaintenance, RMCMaintenance, DataLoader
+from app.models.common.fileStore import DataStore
 
 def melt_plan(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return pd.DataFrame(columns=['Line','Shift','Item','Qty'])
+    
     records = []
     for _, row in df.iterrows():
         for day in range(1, 8):
@@ -19,12 +23,25 @@ def melt_plan(df: pd.DataFrame) -> pd.DataFrame:
                 })
     return pd.DataFrame(records)
 
-def get_threshold(shift: int, mode: str) -> float:
-    if shift in (1,2):
-        return 0.90 if mode=='item' else 0.95
-    if shift in (3,4):
-        return 0.80 if mode=='item' else 0.90
-    return np.nan
+def get_threshold(
+    line: str,
+    shift: int,
+    mode: str,
+    key: Tuple[str, int, str] = None
+) -> float:
+    # 사용자 설정된 thresholds 검색
+    if mode == 'item':
+        item_map = DataStore.get('maintenance_thresholds_items', {})
+        if key and key in item_map:
+            return item_map[key]
+    if mode == 'rmc':
+        rmc_map = DataStore.get('maintenance_thresholds_rmcs', {})
+        if key and key in rmc_map:
+            return rmc_map[key]
+
+        # 기본 fallback threshold
+    return 0.8 if mode == 'item' else 0.9
+
 
 def analyze_maintenance(
     prev_df: pd.DataFrame,
@@ -32,57 +49,51 @@ def analyze_maintenance(
 ) -> Tuple[List[ItemMaintenance], List[RMCMaintenance]]:
 
     df_prev = melt_plan(prev_df).rename(columns={'Qty':'prev_qty'})
-    df_new = melt_plan(new_df) .rename(columns={'Qty':'new_qty'})
-    print(df_new)
-    print(df_prev)
+    df_new  = melt_plan(new_df).rename(columns={'Qty':'new_qty'})
     df = (
         pd.merge(df_prev, df_new,
-                 on=['Line','Shift','Item'],
-                 how='outer')
+                 on=['Line','Shift','Item'], how='outer')
           .fillna(0)
     )
     df['maintain_qty'] = df[['prev_qty','new_qty']].min(axis=1)
     df['RMC'] = df['Item'].str[3:-7]
 
-    items = []
+    items, rmcs = [], []
+
     for (line, shift, item), g in df.groupby(['Line','Shift','Item'], sort=False):
         prev_qty = g['prev_qty'].sum()
-        new_qty = g['new_qty'].sum()
-        m_qty = g['maintain_qty'].sum()
-        m_rate = (m_qty/prev_qty) if prev_qty>0 else None
-        thresh = get_threshold(shift, 'item')
-        below = (m_rate is not None and m_rate < thresh)
+        new_qty  = g['new_qty'].sum()
+        m_qty    = g['maintain_qty'].sum()
+        m_rate   = (m_qty/prev_qty) if prev_qty > 0 else None
+        thresh   = get_threshold(line, shift, 'item', (line, shift, item))
+        below    = (m_rate is not None and m_rate < thresh)
         items.append(ItemMaintenance(
             line, shift, item,
             prev_qty, new_qty, m_qty,
             m_rate, thresh, below
         ))
 
-    rmcs = []
+    # RMCMaintenance 생성
     for (line, shift, rmc), g in df.groupby(['Line','Shift','RMC'], sort=False):
         prev_qty = g['prev_qty'].sum()
-        new_qty = g['new_qty'].sum()
-        m_qty = g['maintain_qty'].sum()
-        m_rate = (m_qty/prev_qty) if prev_qty>0 else None
-        thresh = get_threshold(shift, 'rmc')
-        below = (m_rate is not None and m_rate < thresh)
+        new_qty  = g['new_qty'].sum()
+        m_qty    = g['maintain_qty'].sum()
+        m_rate   = (m_qty/prev_qty) if prev_qty > 0 else None
+        thresh   = get_threshold(line, shift, 'rmc', (line, shift, rmc))
+        below    = (m_rate is not None and m_rate < thresh)
         rmcs.append(RMCMaintenance(
             line, shift, rmc,
             prev_qty, new_qty, m_qty,
             m_rate, thresh, below
         ))
-
     return items, rmcs
 
 def run_maintenance_analysis() -> Tuple[List[ItemMaintenance], List[RMCMaintenance]]:
     prev_df = DataLoader.load_dynamic_data()
-    print(prev_df.columns.tolist())
-    new_df = DataLoader.load_pre_assign_data()
-    print(new_df.columns.tolist())
+    new_df  = DataLoader.load_pre_assign_data()
 
     items, rmcs = analyze_maintenance(prev_df, new_df)
 
     failed_items = [i for i in items if i.below_thresh]
-    failed_rmcs = [r for r in rmcs  if r.below_thresh]
-
+    failed_rmcs  = [r for r in rmcs  if r.below_thresh]
     return failed_items, failed_rmcs
