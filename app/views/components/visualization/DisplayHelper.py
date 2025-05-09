@@ -92,3 +92,63 @@ class DisplayHelper:
         
         # 캔버스 갱신
         canvas.draw()
+
+    @staticmethod
+    def show_material_shortage_chart(canvas, data, max_items=20):
+        """자재 부족량 차트 전용 표시 메서드"""
+        canvas.axes.clear()
+        
+        if not data or len(data) == 0:
+            canvas.axes.text(0.5, 0.5, "No Material Shortage Found", ha="center", va="center", fontsize=20)
+            canvas.axes.set_frame_on(False)
+            canvas.axes.get_xaxis().set_visible(False)
+            canvas.axes.get_yaxis().set_visible(False)
+            canvas.draw()
+            return
+
+        # 데이터 정렬 (부족률 높은 순)
+        sorted_data = dict(sorted(data.items(), key=lambda x: x[1], reverse=True)[:max_items])
+        
+        # X축 라벨 축약 (길이가 긴 경우)
+        item_labels = []
+        for item in sorted_data.keys():
+            if len(item) > 15:
+                item_labels.append(item[:10] + '...')
+            else:
+                item_labels.append(item)
+        
+        # 막대 색상 지정 (부족률에 따라)
+        colors = []
+        for value in sorted_data.values():
+            if value > 50:
+                colors.append('#FF7777')  # 고위험 (진한 빨강)
+            elif value > 20:
+                colors.append('#FFAAAA')  # 중간 위험 (중간 빨강)
+            else:
+                colors.append('#FFD6D6')  # 저위험 (연한 빨강)
+        
+        # 막대 그래프 그리기
+        bars = canvas.axes.bar(item_labels, sorted_data.values(), color=colors, width=0.6)
+        
+        # 막대 위에 값 표시
+        for bar, value in zip(bars, sorted_data.values()):
+            height = bar.get_height()
+            canvas.axes.text(bar.get_x() + bar.get_width()/2., height + 1.5,
+                        f'{value:.1f}%', ha='center', va='bottom', fontsize=8)
+        
+        # 차트 설정
+        canvas.axes.set_title('Material Shortage Analysis', fontsize=20)
+        canvas.axes.set_xlabel('Model', fontsize=10)
+        canvas.axes.set_ylabel('Shortage (%)', fontsize=14)
+        canvas.axes.tick_params(axis='both', which='major', labelsize=8)
+        canvas.axes.set_ylim(0, max(sorted_data.values()) * 1.5)
+        
+        
+        # 임계선 추가
+        canvas.axes.axhline(y=20, color='#FFD6D6', linestyle='--', alpha=0.7)
+        canvas.axes.axhline(y=50, color='#FF7777', linestyle='--', alpha=0.7)
+        
+        # 그리드 추가
+        canvas.axes.grid(alpha=0.3, linestyle='--')
+        
+        canvas.draw()

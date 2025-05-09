@@ -1,5 +1,6 @@
 from app.views.components.visualization.visualizaiton_manager import VisualizationManager
 from app.views.components.visualization.DisplayHelper import DisplayHelper
+from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
 
 """output 시각화 업데이트 클래스"""
 class VisualizationUpdater:
@@ -110,3 +111,56 @@ class VisualizationUpdater:
         # }
         
         # DisplayHelper.show_chart_or_message(canvas, port_capa_data, chart_config)
+
+
+    """자재 부족량 차트 업데이트"""
+    @staticmethod
+    def update_material_shortage_chart(canvas, result_data=None):
+        # 자재 부족량 분석 실행 (결과 데이터 직접 전달)
+        analyzer = MaterialShortageAnalyzer()
+        analyzer.analyze_material_shortage(result_data)
+        
+        # 차트 데이터 가져오기
+        shortage_data = analyzer.get_shortage_chart_data()
+            
+        # 데이터가 없는 경우 메시지 표시
+        if not shortage_data:
+            canvas.axes.clear()
+            canvas.axes.text(0.5, 0.5, "No Material Shortage Found", 
+                        ha="center", va="center", fontsize=20)
+            canvas.axes.set_frame_on(False)
+            canvas.axes.get_xaxis().set_visible(False)
+            canvas.axes.get_yaxis().set_visible(False)
+            canvas.draw()
+            return analyzer
+    
+
+        # 차트 설정
+        chart_config = {
+            'has_data_check': VisualizationUpdater._is_material_shortage_data_valid,
+            'chart_type': 'bar',
+            'title': 'Material Shortage Analysis',
+            'xlabel': 'Model',
+            'ylabel': 'Shortage (%)',
+            'extra_params': {
+                'threshold_values': [20, 50],
+                'threshold_colors': ['#FFD6D6', '#FFAAAA', '#FF7777'],  # 연한 빨강 → 진한 빨강
+                'value_fontsize': 14,
+                'max_bars': 20,  # 최대 표시 항목 수
+                'sort_descending': True,  # 내림차순 정렬
+                'truncate_labels': False,  # 긴 레이블 축약
+                'label_max_length': 20,  # 레이블 최대 길이
+                'annotate_above_bars': True  # 막대 위에 값 표시
+            }
+        }
+        
+        DisplayHelper.show_chart_or_message(canvas, shortage_data, chart_config)
+        
+        
+        return analyzer  # 추가 정보 표시를 위해 분석기 객체 반환
+    
+    """Material 차트의 데이터 유효성 확인 함수"""
+    @staticmethod
+    def _is_material_shortage_data_valid(data):
+        return data and len(data) > 0
+    
