@@ -3,8 +3,22 @@ from app.models.common.fileStore import DataStore
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.utils.conversion import convert_value
 
-"""결과 조정 시 제약사항 점검 클래스"""
+"""
+결과 조정 시 제약사항 점검 클래스
+
+- 라인과 아이템 호환성
+- 라인 시프트별 용량 제약
+- 납기일 준수 여부
+- 요일별 가동률 제약
+- 제조동 비율 제약
+"""
 class PlanAdjustmentValidator:
+    """
+    validator 초기화
+    
+    Args:
+        result_data (DataFrame): 현재 생산 계획 결과 데이터
+    """
     def __init__(self, result_data):
         self.result_data = result_data
 
@@ -19,7 +33,14 @@ class PlanAdjustmentValidator:
         self._extract_constraints()
         self._cache_reference_data()
 
-    """제약사항 추출"""
+    """
+    마스터 데이터에서 각종 제약사항 추출하여 메모리에 캐싱
+
+    - line_capacities: 라인 및 시프트별 용량
+    - due_dates: 아이템/프로젝트별 납기일
+    - building_constraints: 제조동별 상/하한 비율
+    - line_item_compatibility: 라인-아이템 호환성
+    """
     def _extract_constraints(self):
         # 초기화
         self.line_capacities = {}    # 라임 및 shift별 용량
@@ -27,7 +48,7 @@ class PlanAdjustmentValidator:
         self.building_constraints = {}  # 제조동 제약
         self.line_item_compatibility = {}  # 라인-아이템 호환성
 
-        # master_data 추출
+        # capa_qty 시트에서 라인 용량 추출
         if 'capa_qty' in self.master_data:
             df_capa_qty = self.master_data['capa_qty']
             for _, row in df_capa_qty.iterrows():
@@ -44,7 +65,7 @@ class PlanAdjustmentValidator:
                             except (ValueError, TypeError):
                                 pass
 
-        # 라인 가용성 추출
+        # line_available 시트에서 라인 가용성 추출
         if 'line_available' in self.master_data:
             df_line_available = self.master_data['line_available']
             for _, row in df_line_available.iterrows():
@@ -56,7 +77,7 @@ class PlanAdjustmentValidator:
                         if col != 'Project' and row[col] == 1:
                             self.line_item_compatibility[project].append(col)
 
-        # 납기일 추출
+        # demand 시트에서 납기일 추출
         if 'demand' in self.demand_data:
             df_demand = self.demand_data['demand']
             for _, row in df_demand.iterrows():
@@ -72,7 +93,7 @@ class PlanAdjustmentValidator:
                     if project not in self.due_dates:
                         self.due_dates[project] = due_date
 
-         # 제조동 제약 추출
+         # capa_portion 시트에서 제조동 비율 제약 추출
         if 'capa_portion' in self.master_data:
             df_portion = self.master_data['capa_portion']
             if not df_portion.empty and 'name' in df_portion.columns:
@@ -85,7 +106,11 @@ class PlanAdjustmentValidator:
                         }
 
 
-    """결과에서 참조 정보 추출"""
+    """
+    현재 결과 데이터에서 참조 정보 추출하여 캐싱
+    - 라인별 시프트별 현재 할당량
+    - 라인별 사용 가능한 아이템 목록
+    """
     def _cache_reference_data(self):
         if self.result_data is None or self.result_data.empty:
             return
@@ -100,7 +125,12 @@ class PlanAdjustmentValidator:
         self.line_available_items = self.result_data.groupby('Line')['Item'].apply(set).to_dict()
         
 
-    """capaValidator에 전달할 데이터"""
+    """
+    현재 결과 데이터를 capaValidator 형식으로 변환
+    
+    Returns:
+        dict: capaValidator에 사용할 데이터 구조
+    """
     def _prepare_data_for_validator(self):
         # 결과 데이터를 capaValidator 형식으로 변환
         processed_data = {
@@ -132,7 +162,7 @@ class PlanAdjustmentValidator:
             
             processed_data['demand_items'].append(item_dict)
 
-        # project_to_buildings 설정
+        # project_to_buildings 설정 (프로젝트별 생산 가능 제조동)
         if 'line_available' in self.master_data:
             df_line_available = self.master_data['line_available']
             if not df_line_available.empty and 'Project' in df_line_available.columns:
@@ -157,7 +187,16 @@ class PlanAdjustmentValidator:
         return processed_data
 
 
-    """라인과 아이템의 호환성 검증"""
+    """
+    라인과 아이템의 호환성 검증
+    
+    Args:
+        line (str): 라인 코드
+        item (str): 아이템 코드
+        
+    Returns:
+        tuple: (성공 여부, 오류 메시지)
+    """
     def validate_line_item_compatibility(self, line, item):
         # 아이템 코드에서 프로젝트 추출 
         project = item[3:7] if len(item) >= 7 else ""
@@ -185,7 +224,20 @@ class PlanAdjustmentValidator:
         # 마스터 데이터도 없고 결과 데이터에서도 확인 불가능한 경우 기본 통과
         return True, ""
     
-    """라인 용량 초과 여부 검증"""
+    
+    """
+    라인과 시프트의 용량 초과 여부 검증
+    
+    Args:
+        line (str): 라인 코드
+        time (int): 시프트 번호
+        new_qty (int): 추가할 생산량
+        item (str, optional): 아이템 코드 (이동인 경우)
+        is_move (bool): 이동 여부 플래그
+        
+    Returns:
+        tuple: (성공 여부, 오류 메시지)
+    """
     def validate_capacity(self, line, time, new_qty, item=None, is_move=False):
         
         # 라인-시프트 키 생성
@@ -214,7 +266,17 @@ class PlanAdjustmentValidator:
         
         return True, ""
     
-    """납기일 준수 여부 검증"""
+    
+    """
+    납기일 준수 여부 검증
+    
+    Args:
+        item (str): 아이템 코드
+        time (int): 시프트 번호
+        
+    Returns:
+        tuple: (성공 여부, 오류 메시지)
+    """
     def validate_due_date(self, item, time):
         # 아이템 또는 프로젝트의 납기일 확인
         due_time = None
@@ -233,7 +295,18 @@ class PlanAdjustmentValidator:
             
         return True, ""
     
-    """요일별 가동률 제약 검증"""
+    
+    """
+    요일별/시프트별 가동률 제약 검증
+    
+    Args:
+        line (str): 라인 코드
+        time (int): 시프트 번호
+        new_qty (int): 추가할 생산량
+        
+    Returns:
+        tuple: (성공 여부, 오류 메시지)
+    """
     def validate_utilization_rate(self, line, time, new_qty):
         # 시프트별 최대 가동률 설정 
         max_utilization_by_shift = {
@@ -273,7 +346,22 @@ class PlanAdjustmentValidator:
     
         return True, ""
     
-    """모든 검증 로직을 통합 실행"""
+    
+
+    """
+    모든 검증 로직을 통합 실행 - 외부 호출용 메인 함수
+    
+    Args:
+        line (str): 목표 라인 코드
+        time (int/str): 목표 시프트 번호
+        item (str): 아이템 코드
+        new_qty (int/str): 새 생산량
+        source_line (str, optional): 이동 시 원래 라인
+        source_time (int/str, optional): 이동 시 원래 시프트
+        
+    Returns:
+        tuple: (성공 여부, 오류 메시지)
+    """
     def validate_adjustment(self, line, time, item, new_qty, source_line=None, source_time=None):
         # 이동 여부 확인
         is_move = source_line is not None and source_time is not None
@@ -432,6 +520,15 @@ class PlanAdjustmentValidator:
         return allocation
     
 
+    """
+    제조동별 생산량 비율 제약 검증
+    
+    Args:
+        result_data (DataFrame, optional): 검증할 데이터
+        
+    Returns:
+        tuple: (성공 여부, 오류 메시지)
+    """
     def validate_building_ratios(self, result_data=None):
         data_df = result_data if result_data is not None else self.result_data
 
@@ -469,7 +566,16 @@ class PlanAdjustmentValidator:
             return True, "제조동별 물량 비율 제약을 만족합니다."
 
 
-    """아이템의 총 수요량(MFG) 반환"""
+    
+    """
+    아이템의 총 수요량(MFG) 반환
+    
+    Args:
+        item (str): 아이템 코드
+        
+    Returns:
+        int: 총 수요량, 정보 없으면 0
+    """
     def _get_total_demand_for_item(self, item):
         if 'demand' in self.demand_data:
             df_demand = self.demand_data['demand']
@@ -486,7 +592,21 @@ class PlanAdjustmentValidator:
         return 0
     
 
-    """벡터화된 연산으로 조정된 결과 데이터 계산"""
+    
+    """
+    조정된 결과 데이터를 계산 (제약조건 검증용 임시 데이터)
+    
+    Args:
+        line (str): 목표 라인 코드
+        time (int): 목표 시프트 번호
+        item (str): 아이템 코드
+        new_qty (int): 새 생산량
+        source_line (str, optional): 이동 시 원래 라인
+        source_time (int, optional): 이동 시 원래 시프트
+        
+    Returns:
+        DataFrame: 조정된 결과 데이터
+    """
     def _calculate_adjusted_data(self, line, time, item, new_qty, source_line=None, source_time=None):
         # 제조동별 검증
         temp_result_data = self.result_data.copy()

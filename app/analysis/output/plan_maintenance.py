@@ -54,17 +54,20 @@ class PlanMaintenanceRate:
         return True
     
 
-    """특정 항목의 수량 업데이트 (계획 조정)"""
+    """
+    특정 항목의 수량 업데이트 (계획 조정)
+    
+    Parameters:
+        line (str): 생산 라인 ID
+        time (str): 시프트 번호
+        item (str): 제품 코드
+        new_qty (str): 새로운 수량
+        demand (str, optional): 수요 항목
+        
+    Returns:
+        bool: 업데이트 성공 여부
+    """
     def update_quantity(self, line, time, item, new_qty, demand=None):
-        # Parameters:
-        #     line (str): 생산 라인 ID
-        #     time (str): 시프트 번호
-        #     item (str): 제품 코드
-        #     new_qty (str): 새로운 수량
-        #     demand (str, optional): 수요 항목
-            
-        # Returns:
-        #     bool: 업데이트 성공 여부
         
         if self.adjusted_plan is None:
             # 아직 조정하지 않았다면, 현재 계획으로 초기화
@@ -81,7 +84,7 @@ class PlanMaintenanceRate:
         if demand is not None:
             demand = str(demand)
         
-        print(f"시도 중인 업데이트: line={line}, time={time}, item={item}, qty={new_qty}, demand={demand}")
+        # print(f"시도 중인 업데이트: line={line}, time={time}, item={item}, qty={new_qty}, demand={demand}")
         
         # 조건에 맞는 행 찾기
         mask = (
@@ -121,19 +124,22 @@ class PlanMaintenanceRate:
                 # 새 행 추가
                 self.adjusted_plan = pd.concat([self.adjusted_plan, pd.DataFrame([new_row], index=[0])], ignore_index=True)
                 
-                print(f"아이템 이동 완료: {item}을(를) 삭제 후 {line},{time}에 추가")
+                # print(f"아이템 이동 완료: {item}을(를) 삭제 후 {line},{time}에 추가")
                 return True
             
-        print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
+        # print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
         return False
         
-    """item별 유지율 계산 및 테이블 생성"""
+    """
+    item별 유지율 계산 및 테이블 생성
+    
+    Parameters:
+        compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
+        
+    Returns:
+        tuple: (결과 DataFrame, 유지율 %)
+    """
     def calculate_items_maintenance_rate(self, compare_with_adjusted=False):
-        # Parameters:
-        #     compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
-            
-        # Returns:
-        #     tuple: (결과 DataFrame, 유지율 %)
         
         # 첫 번째 계획이고 조정되지 않았다면 계산 제외
         if self.is_first_plan or self.prev_plan is None:
@@ -156,10 +162,6 @@ class PlanMaintenanceRate:
 
         # 비교할 계획 집계 
         curr_grouped = comparison_plan.groupby(['Line', 'Time', 'Item'])['Qty'].sum().reset_index()
-
-        # 두 데이터프레임의 'Time' 열 타입 확인
-        print("병합 전 원본 계획 Time 열 타입:", prev_grouped['Time'].dtype)
-        print("병합 전 비교 계획 Time 열 타입:", curr_grouped['Time'].dtype)
 
         # 이전 계획과 비교 계획 병합(중복없이)
         merged = pd.merge(
@@ -204,14 +206,16 @@ class PlanMaintenanceRate:
 
         return result_df, maintenance_rate
 
-    """RMC별 유지율 계산"""
+    """
+    RMC별 유지율 계산
+    
+    Parameters:
+        compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
+        
+    Returns:
+        tuple: (결과 DataFrame, 유지율 %)
+    """
     def calculate_rmc_maintenance_rate(self, compare_with_adjusted=False):
-        # Parameters:
-        #     compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
-            
-        # Returns:
-        #     tuple: (결과 DataFrame, 유지율 %)
-
         # 첫 번째 수행이고 조정된 계획과의 비교가 아니면 유지율 계산 제외
         if self.is_first_plan or self.prev_plan is None:
             return pd.DataFrame(), None
@@ -303,14 +307,16 @@ class PlanMaintenanceRate:
         
     #     return False
     
-    """수량 변경된 항목 확인"""
+    """
+    수량 변경된 항목 확인
+
+    Parameters:
+        compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
+    
+    Returns:
+        DataFrame: 변경된 항목 목록
+    """
     def get_changed_items(self, compare_with_adjusted=False):        
-        # Parameters:
-        #     compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
-        
-        # Returns:
-        #     DataFrame: 변경된 항목 목록
-        
         if self.prev_plan is None:
             return pd.DataFrame()
         
