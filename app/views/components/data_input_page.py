@@ -11,6 +11,7 @@ from app.models.common.fileStore import FilePaths, DataStore
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
+from app.views.components.data_upload_components.left_parameter_component import LeftParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
 
 # 분리된 관리자 클래스 가져오기
@@ -18,6 +19,10 @@ from app.views.components.data_upload_components.data_input_components import Fi
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
+
+from app.core.input.capaAnalysis import PjtGroupAnalyzer
+from app.models.input.capa import process_data
+from app.models.common.event_bus import EventBus
 
 class DataInputPage(QWidget):
     # 시그널 정의
@@ -31,6 +36,8 @@ class DataInputPage(QWidget):
         self.current_file = None
         self.current_sheet = None
 
+        # EventBus.on('show_project_analysis', self.toggle_project_analysis_visibility)
+
         # UI 초기화
         self.init_ui()
 
@@ -43,7 +50,7 @@ class DataInputPage(QWidget):
         # 시그널 연결
         self._connect_signals()
 
-    def init_ui(self):
+    def init_ui(self) :
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -231,10 +238,14 @@ class DataInputPage(QWidget):
         left_parameter_layout = QVBoxLayout(left_parameter_area)
         left_parameter_layout.setContentsMargins(5, 5, 5, 5)
 
-        # 왼쪽 영역에 임시 레이블 추가 (나중에 실제 컴포넌트로 대체)
-        left_label = QLabel("왼쪽 파라미터 영역")
-        left_label.setAlignment(Qt.AlignCenter)
-        left_parameter_layout.addWidget(left_label)
+        # # 왼쪽 영역에 임시 레이블 추가 (나중에 실제 컴포넌트로 대체)
+        # left_label = QLabel("왼쪽 파라미터 영역")
+        # left_label.setAlignment(Qt.AlignCenter)
+        # left_parameter_layout.addWidget(left_label)
+
+        self.left_parameter_component = LeftParameterComponent()
+        left_parameter_layout.addWidget(self.left_parameter_component)
+        self.left_parameter_component.setVisible(True)
 
         # 오른쪽 영역 (기존 ParameterComponent 포함)
         right_parameter_area = QFrame()
@@ -269,7 +280,7 @@ class DataInputPage(QWidget):
         # 메인 스플리터에 왼쪽 사이드바와 오른쪽 영역 추가
         main_splitter.addWidget(self.file_explorer)
         main_splitter.addWidget(right_area)
-        main_splitter.setSizes([200, 800])  # 초기 크기 설정
+        main_splitter.setSizes([150, 850])  # 초기 크기 설정
 
         # 하단 컨테이너에 스플리터 추가
         bottom_container_layout.addWidget(main_splitter)
@@ -450,6 +461,33 @@ class DataInputPage(QWidget):
                 "rmc_failures": failed_rmcs
             }
 
+            try :
+                processed_data = process_data()
+
+                if processed_data :
+                    pjt_analyzer = PjtGroupAnalyzer(processed_data)
+                    project_analysis_results = pjt_analyzer.analyze()
+
+                    if project_analysis_results and 'display_df' in project_analysis_results :
+                        result = {'Production Capacity': project_analysis_results}
+                        self.left_parameter_component.set_project_analysis_data(result)
+
+                        if 'display_df' in project_analysis_results :
+                            display_df = project_analysis_results['display_df']
+                            has_issues = False
+
+                            for _, row in display_df.iterrows() :
+                                if row.get('PJT') == 'Total' and row.get('status') == '이상' :
+                                    has_issues = True
+                                    break
+
+                            if has_issues :
+                                failures['production_capacity'] = []
+                                self.parameter_component.set_project_analysis_data(project_analysis_results)
+            except Exception as e :
+                import traceback
+                traceback.print_exc()
+
             self.parameter_component.show_failures.emit(failures)
         except Exception as e:
             print(f"[preAssign 분석] 오류 발생: {e}")
@@ -509,3 +547,10 @@ class DataInputPage(QWidget):
             self.update_status_message(True, f"{success_count}개 파일 저장 완료")
         else:
             self.update_status_message(False, f"{success_count}개 파일 저장 완료, {error_count}개 파일 저장 실패")
+
+    # """
+    # 프로젝트 분석 결과 패널 표시/숨김 전환
+    # """
+    # def toggle_project_analysis_visibility(self, show=True) :
+    #     if hasattr(self, 'left_parameter_component') :
+    #         self.left_parameter_component.setVisible(show)

@@ -3,13 +3,15 @@ import logging
 from app.utils.fileHandler import load_file
 from app.models.common.fileStore import FilePaths
 from app.utils.error_handler import (
-    error_handler, safe_operation, DataError, FileError, ErrorLevel
+    error_handler, safe_operation, DataError, FileError
 )
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# 자재와 수요 데이터 로드
+"""
+자재와 수요 데이터 로드
+"""
 @error_handler(
         show_dialog=True,
         default_return=None
@@ -26,21 +28,21 @@ def process_material_data():
     try :
         df_material = load_file(material_file_path)
         df_material_qty = df_material.get('material_qty', pd.DataFrame())
-        logger.info(f"로드된 자재 수량 데이터 형태: {df_material_qty.shape}")
 
         if df_material_qty.empty:
             return None
         
         processed_data = preprocess_material_data(df_material_qty)
-        logger.info(f"처리된 자재 데이터 컬럼: {list(processed_data['material_df'].columns)}")
-        logger.info(f"처리된 날짜 컬럼: {processed_data['date_columns']}")
+
         return processed_data
     except Exception as e :
         if not isinstance(e, (FileError, DataError)) :
             raise DataError(f'Unexpected error in process material data : {str(e)}')
         raise
 
-# 자재 만족률 분석을 위한 데이터 처리
+"""
+자재 만족률 분석을 위한 데이터 처리
+"""
 @error_handler(
         show_dialog=True,
         default_return={'error' : 'Error processing material satisfaction data'}
@@ -113,7 +115,9 @@ def process_material_satisfaction_data() :
         return {'error' : f'Error loading and preprocessing data : {str(e)}'}
     
     
-# 자재 데이터 전처리 후 변환
+"""
+자재 데이터 전처리 후 변환
+"""
 @error_handler(
         show_dialog=True,
         default_return=None
@@ -169,7 +173,9 @@ def preprocess_material_data(df_material_qty) :
             raise DataError(f'Unexpected error in preprocess material data : {str(e)}')
         raise
 
-# 값을 숫자로 변환하는 함수
+"""
+값을 숫자로 변환하는 함수
+"""
 @error_handler(
         show_dialog=False,
         default_return=0

@@ -1,5 +1,5 @@
 # app/views/components/settings_dialogs/settings_dialog.py - 설정 다이얼로그 클래스
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame, QApplication
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -22,7 +22,17 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Samsung Production Planning Optimization Settings")
-        self.resize(1800, 1250)
+
+        # 화면 크기 가져오기
+        desktop = QApplication.desktop()
+        screen_rect = desktop.availableGeometry(self)
+        screen_width, screen_height = screen_rect.width(), screen_rect.height()
+
+        # 화면 크기의 80%로 다이얼로그 크기 설정
+        dialog_width = int(screen_width * 0.8)
+        dialog_height = int(screen_height * 0.8)
+        self.resize(dialog_width, dialog_height)
+
         self.settings_map = {}  # 변경된 설정 추적
         self.init_ui()
 
@@ -106,7 +116,7 @@ class SettingsDialog(QDialog):
         button_layout.setContentsMargins(0, 0, 30, 10)
 
         # 저장 및 닫기 버튼
-        save_button = QPushButton("저장")
+        save_button = QPushButton("Save")
         save_button_font = QFont("Arial", 10)
         save_button_font.setBold(True)
         save_button.setFont(save_button_font)
@@ -129,7 +139,7 @@ class SettingsDialog(QDialog):
         save_button.clicked.connect(self.save_settings)
 
         # 취소 버튼
-        cancel_button = QPushButton("취소")
+        cancel_button = QPushButton("Cancel")
         cancel_button_font = QFont("Arial", 10)
         cancel_button_font.setBold(True)
         cancel_button.setFont(cancel_button_font)

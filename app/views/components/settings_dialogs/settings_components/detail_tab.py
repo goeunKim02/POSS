@@ -33,7 +33,7 @@ class DetailTabComponent(BaseTabComponent):
         frame_layout.setSpacing(15)
 
         # 제목 레이블 생성
-        title_label = QLabel("상세 설정")
+        title_label = QLabel("Detail Settings")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
@@ -42,7 +42,7 @@ class DetailTabComponent(BaseTabComponent):
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
-        desc_label = QLabel("최적화 프로세스의 세부 설정을 구성하세요.")
+        desc_label = QLabel("Set up the detailed configuration for the optimization process.")
         desc_label.setWordWrap(True)
         desc_font = QFont("Arial", 11)
         desc_label.setFont(desc_font)
@@ -56,18 +56,18 @@ class DetailTabComponent(BaseTabComponent):
         sections_layout.setSpacing(15)  # 섹션간 간격
 
         # 저장 경로 섹션
-        path_section = SettingsSectionComponent("저장 경로")
+        path_section = SettingsSectionComponent("Save Path")
         path_section.setting_changed.connect(self.on_setting_changed)
 
         # 저장 경로 설정 항목 추가
         path_section.add_setting_item(
-            "인풋경로", "op_InputRoute", "filepath",
+            "Input Route", "op_InputRoute", "filepath",
             default=SettingsStore.get("op_InputRoute", ""),
             dialog_type="directory"
         )
 
         path_section.add_setting_item(
-            "아웃풋경로", "op_SavingRoute", "filepath",
+            "Result Route", "op_SavingRoute", "filepath",
             default=SettingsStore.get("op_SavingRoute", ""),
             dialog_type="directory"
         )
@@ -78,32 +78,32 @@ class DetailTabComponent(BaseTabComponent):
 
         # 라인 변경 설정 항목 추가
         line_change_section.add_setting_item(
-            "기종변경 시간 반영여부", "itemcnt_limit_ox", "checkbox",
+            "Apply Model Changeover Time", "itemcnt_limit_ox", "checkbox",
             default=bool(SettingsStore.get("itemcnt_limit_ox", 0))
         )
 
         line_change_section.add_setting_item(
-            "기종변경 최소 종수", "itemcnt_limit", "spinbox",
+            "Minimum SKU Count", "itemcnt_limit", "spinbox",
             min=1, max=100, default=SettingsStore.get("itemcnt_limit", 1)
         )
 
         line_change_section.add_setting_item(
-            "최대 할당 종수_i 반영여부", "itemcnt_limit_max_i_ox", "checkbox",
+            "Apply Max CNT Limit for I", "itemcnt_limit_max_i_ox", "checkbox",
             default=bool(SettingsStore.get("itemcnt_limit_max_i_ox", 0))
         )
 
         line_change_section.add_setting_item(
-            "최대 할당 종수_i 제조동", "itemcnt_limit_max_i", "spinbox",
+            "Max CNT Limit for I", "itemcnt_limit_max_i", "spinbox",
             min=1, max=100, default=SettingsStore.get("itemcnt_limit_max_i", 1)
         )
 
         line_change_section.add_setting_item(
-            "최대 할당 종수_그 외 반영여부", "itemcnt_limit_max_o_ox", "checkbox",
+            "Apply Max CNT Limit for O", "itemcnt_limit_max_o_ox", "checkbox",
             default=bool(SettingsStore.get("itemcnt_limit_max_o_ox", 0))
         )
 
         line_change_section.add_setting_item(
-            "최대 할당 종수_그 외 제조동", "itemcnt_limit_max_o", "spinbox",
+            "Max CNT Limit for O", "itemcnt_limit_max_o", "spinbox",
             min=1, max=100, default=SettingsStore.get("itemcnt_limit_max_o", 1)
         )
 
@@ -113,7 +113,7 @@ class DetailTabComponent(BaseTabComponent):
 
         # 자재 설정 항목 추가
         material_section.add_setting_item(
-            "자재제약 반영여부", "mat_use", "checkbox",
+            "Material Constraint", "mat_use", "checkbox",
             default=bool(SettingsStore.get("mat_use", 0))
         )
 
@@ -123,12 +123,12 @@ class DetailTabComponent(BaseTabComponent):
 
         # 라인 할당 설정 항목 추가
         line_assign_section.add_setting_item(
-            "P999 제약 반영여부", "P999_line_ox", "checkbox",
+            "P999 Constraint", "P999_line_ox", "checkbox",
             default=bool(SettingsStore.get("P999_line_ox", 0))
         )
 
         line_assign_section.add_setting_item(
-            "P999 할당라인", "P999_line", "input",
+            "P999 Assign Line", "P999_line", "input",
             default=SettingsStore.get("P999_line", "")
         )
 
@@ -138,7 +138,7 @@ class DetailTabComponent(BaseTabComponent):
 
         # 작업률 설정 항목 추가
         operation_rate_section.add_setting_item(
-            "shift별 가중치 반영여부", "weight_day_ox", "checkbox",
+            "Apply Shift-Based Weight", "weight_day_ox", "checkbox",
             default=bool(SettingsStore.get("weight_day_ox", 0))
         )
 
@@ -147,7 +147,7 @@ class DetailTabComponent(BaseTabComponent):
         weight_day_str = ", ".join(map(str, weight_day))
 
         operation_rate_section.add_setting_item(
-            "shift별 가중치 (쉼표로 구분)", "weight_day_str", "input",
+            "Shift-Based Weights(Comma-separated)", "weight_day_str", "input",
             default=weight_day_str
         )
 
@@ -159,7 +159,7 @@ class DetailTabComponent(BaseTabComponent):
         sections_layout.addWidget(operation_rate_section)
 
         # 메모 레이블
-        note_label = QLabel("상세 설정은 최적화 알고리즘의 정확한 동작에 영향을 미칩니다.")
+        note_label = QLabel("The detailed configuration influences the accurate execution of the optimization algorithm.")
         note_label.setStyleSheet(
             "font-style: italic; color: #666; margin-top: 20px; background-color: transparent; border:none;")
 
