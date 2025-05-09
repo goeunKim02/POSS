@@ -36,7 +36,7 @@ class DataInputPage(QWidget):
         self.current_file = None
         self.current_sheet = None
 
-        EventBus.on('show_project_analysis', self.toggle_project_analysis_visibility)
+        # EventBus.on('show_project_analysis', self.toggle_project_analysis_visibility)
 
         # UI 초기화
         self.init_ui()
@@ -245,7 +245,7 @@ class DataInputPage(QWidget):
 
         self.left_parameter_component = LeftParameterComponent()
         left_parameter_layout.addWidget(self.left_parameter_component)
-        self.left_parameter_component.setVisible(False)
+        self.left_parameter_component.setVisible(True)
 
         # 오른쪽 영역 (기존 ParameterComponent 포함)
         right_parameter_area = QFrame()
@@ -469,7 +469,8 @@ class DataInputPage(QWidget):
                     project_analysis_results = pjt_analyzer.analyze()
 
                     if project_analysis_results and 'display_df' in project_analysis_results :
-                        self.left_parameter_component.set_project_analysis_data(project_analysis_results)
+                        result = {'Production Capacity': project_analysis_results}
+                        self.left_parameter_component.set_project_analysis_data(result)
 
                         if 'display_df' in project_analysis_results :
                             display_df = project_analysis_results['display_df']
@@ -482,17 +483,12 @@ class DataInputPage(QWidget):
 
                             if has_issues :
                                 failures['production_capacity'] = []
-                                # self.parameter_component.set_project_analysis_data(project_analysis_results)
+                                self.parameter_component.set_project_analysis_data(project_analysis_results)
             except Exception as e :
                 import traceback
                 traceback.print_exc()
 
             self.parameter_component.show_failures.emit(failures)
-
-            if self.parameter_component.current_metric == 'Production Capacity':
-                self.left_parameter_component.setVisible(True)
-            else:
-                self.left_parameter_component.setVisible(False)
         except Exception as e:
             print(f"[preAssign 분석] 오류 발생: {e}")
 
@@ -552,9 +548,9 @@ class DataInputPage(QWidget):
         else:
             self.update_status_message(False, f"{success_count}개 파일 저장 완료, {error_count}개 파일 저장 실패")
 
-    """
-    프로젝트 분석 결과 패널 표시/숨김 전환
-    """
-    def toggle_project_analysis_visibility(self, show=True) :
-        if hasattr(self, 'left_parameter_component') :
-            self.left_parameter_component.setVisible(show)
+    # """
+    # 프로젝트 분석 결과 패널 표시/숨김 전환
+    # """
+    # def toggle_project_analysis_visibility(self, show=True) :
+    #     if hasattr(self, 'left_parameter_component') :
+    #         self.left_parameter_component.setVisible(show)
