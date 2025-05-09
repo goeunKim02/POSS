@@ -44,6 +44,14 @@ class WeeklyCalendar(QWidget):
         for c in range(2, total_cols):
             layout.setColumnStretch(c, 1)
 
+        present = set(self.data['time'])
+        # 토요일, 일요일에 데이터가 전혀 없으면
+        if not any(t in present for t in (11, 12, 13, 14)):
+            layout.setColumnStretch(7, 0)
+            layout.setColumnMinimumWidth(7, 80)
+            layout.setColumnStretch(8, 0)
+            layout.setColumnMinimumWidth(8, 80)
+
         layout.setContentsMargins(0, 10, 0, 10)
         layout.setSpacing(6)
 

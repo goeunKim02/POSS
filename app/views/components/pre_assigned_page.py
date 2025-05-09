@@ -86,7 +86,8 @@ class PlanningPage(QWidget):
         layout.addLayout(title_hbox)
 
         # 캘린더 헤더
-        self.header = CalendarHeader(self)
+        present_times = set(self._df['Time']) if not self._df.empty else set()
+        self.header = CalendarHeader(present_times, parent=self)
         layout.addWidget(self.header)
 
         # 본문 영역
@@ -150,6 +151,13 @@ class PlanningPage(QWidget):
             w = self.body_layout.takeAt(i).widget()
             if w:
                 w.deleteLater()
+
+        present_times = set(self._df['Time'])
+        self.header.setParent(None)
+        self.header = CalendarHeader(present_times, parent=self)
+        self.layout().insertWidget(1, self.header)
+        self._sync_header_margin()
+
         self.body_layout.addWidget(WeeklyCalendar(self._df))
 
     # 최적화 요청
@@ -243,9 +251,17 @@ class PlanningPage(QWidget):
             details,
             on=['Line','Time','Project']
         )
-        print(df_agg.at[0, 'Details'])
 
         self._df = df_agg
+
+        old_header = self.header
+        self.layout().removeWidget(old_header)
+        old_header.deleteLater()
+        
+        self.header = CalendarHeader(set(self._df['Time']), parent=self)
+        self.layout().insertWidget(1, self.header)
+        self._sync_header_margin()
+
         for i in range(self.body_layout.count()-1, -1, -1):
             w = self.body_layout.takeAt(i).widget()
             if w:
