@@ -18,15 +18,9 @@ class WeeklyCalendar(QWidget):
         self.data = data.rename(columns={
             "Line": "line",
             "Time": "time",
-            "Demand": "demand",
-            "Item": "item",
             "Qty": "qty",
             "Project": "project",
-            "To_site": "to_site",
-            "SOP": "sop",
-            "MFG": "mfg",
-            "RMC": "rmc",
-            "Due_LT": "due_LT"
+            "Details": "details",
         })
         self.time_map = {
             1: "Mon-Day", 2: "Mon-Night",
@@ -85,7 +79,8 @@ class WeeklyCalendar(QWidget):
                 subset = self.data[(self.data['line'] == line) & (self.data['time'] == time)]
                 for _, r in subset.iterrows():
                     card = CalendarCard(r.to_dict(), is_day=True, parent=cell)
-                    card.clicked.connect(lambda card, row: self.show_detail_card(card, row))
+                    card.row = r.to_dict()
+                    card.clicked.connect(self.show_detail_card)
                     cell_layout.addWidget(card)
 
                 cell_layout.addStretch()
@@ -121,6 +116,7 @@ class WeeklyCalendar(QWidget):
                 subset = self.data[(self.data['line'] == line) & (self.data['time'] == time)]
                 for _, r in subset.iterrows():
                     card = CalendarCard(r.to_dict(), is_day=False, parent=cell)
+                    card.row = r.to_dict()
                     card.clicked.connect(self.show_detail_card)
                     cell_layout.addWidget(card)
 
@@ -138,8 +134,11 @@ class WeeklyCalendar(QWidget):
 
         self.setLayout(layout)
 
-    def show_detail_card(self, card: CalendarCard, row: dict):
-        dlg = DetailDialog(row, self.time_map, parent=self)
+    def show_detail_card(self, row: dict):
+        card = self.sender()
+
+        row  = getattr(card, 'row', {})
+        dlg  = DetailDialog(row, self.time_map, parent=self)
         dlg.exec_()
 
         card._is_selected = False

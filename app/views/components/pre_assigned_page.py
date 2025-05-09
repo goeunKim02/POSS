@@ -216,8 +216,6 @@ class PlanningPage(QWidget):
         self.btn_run.setEnabled(True)
         self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
-        print(result_df)
-
     def _update_run_icon(self):
         pix = self.run_spinner.currentPixmap()
         if not pix.isNull():
@@ -226,7 +224,28 @@ class PlanningPage(QWidget):
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):
-        self._df = df
+        agg_qty = (
+            df.groupby(['Line','Time','Project'], as_index=False)
+            ['Qty']
+            .sum()
+        )
+        detail_series = df.groupby(['Line','Time','Project']).apply(
+            lambda g: g[
+                ['Demand','Item','To_site','SOP','MFG','RMC','Due_LT','Qty']
+            ].to_dict('records')
+        )
+        details = (
+            detail_series
+            .to_frame('Details')
+            .reset_index()
+        )
+        df_agg = agg_qty.merge(
+            details,
+            on=['Line','Time','Project']
+        )
+        print(df_agg.at[0, 'Details'])
+
+        self._df = df_agg
         for i in range(self.body_layout.count()-1, -1, -1):
             w = self.body_layout.takeAt(i).widget()
             if w:
