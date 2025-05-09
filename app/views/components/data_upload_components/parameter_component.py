@@ -8,6 +8,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 
 from .open_dynamic_properties_dialog import DynamicPropertiesDialog
 from app.models.common.fileStore import FilePaths
+from app.models.common.event_bus import EventBus
 
 class ParameterComponent(QWidget):
     show_failures = pyqtSignal(dict)
@@ -87,7 +88,7 @@ class ParameterComponent(QWidget):
         self.dynamic_props_btn.setFixedHeight(30)
         self.dynamic_props_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.dynamic_props_btn.clicked.connect(self.open_dynamic_properties_dialog)
-        # 초기에는 Filestore에 파일이 있어야만 보이도록
+        
         self.dynamic_props_btn.setVisible(bool(FilePaths.get("dynamic_excel_file")))
 
         self.buttons = {}
@@ -100,12 +101,10 @@ class ParameterComponent(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        # 버튼 바
         self.button_bar = QHBoxLayout()
         self.button_bar.setSpacing(8)
         layout.addLayout(self.button_bar)
 
-        # 실패 테이블
         self.failure_table = QTreeWidget()
         self.failure_table.setRootIsDecorated(False)
         self.failure_table.setSortingEnabled(True)
@@ -117,16 +116,14 @@ class ParameterComponent(QWidget):
         """)
         layout.addWidget(self.failure_table, 1)
 
-    def _build_metric_buttons(self):
-        # 기존 버튼 제거
-        for i in reversed(range(self.button_bar.count())):
+    def _build_metric_buttons(self) :
+        for i in reversed(range(self.button_bar.count())) :
             w = self.button_bar.takeAt(i).widget()
-            if w:
+            if w :
                 w.deleteLater()
         self.buttons.clear()
 
-        # 새 버튼 생성
-        for label in self.metric_key_map:
+        for label in self.metric_key_map :
             btn = QPushButton(label)
             btn.setFont(QFont('Arial', 9, QFont.Bold))
             btn.setCursor(Qt.PointingHandCursor)
@@ -140,32 +137,40 @@ class ParameterComponent(QWidget):
         self.button_bar.addWidget(self.dynamic_props_btn)
         self._update_button_styles()
 
-    def _on_failures(self, failures: dict):
+    def _on_failures(self, failures: dict) :
         self.failures = failures
         self._build_metric_buttons()
 
-        if failures.get('production_capacity'):
+        if failures.get('production_capacity') :
             self.current_metric = 'Production Capacity'
-        elif failures.get('plan_adherence_rate'):
+        elif failures.get('plan_adherence_rate') :
             self.current_metric = 'Plan Adherence Rate'
         else:
-            for lbl, key in self.metric_key_map.items():
-                if failures.get(key):
+            for lbl, key in self.metric_key_map.items() :
+                if failures.get(key) :
                     self.current_metric = lbl
                     break
 
         self._populate_for_metric(self.current_metric)
 
-    def _on_metric_clicked(self, label: str):
-        if label == 'Plan Adherence Rate':
+    def _on_metric_clicked(self, label: str) :
+        self.current_metric = label
+
+        if label == 'Production Capacity' :
+            EventBus.emit('show_project_analysis', True)
+        else:
+            EventBus.emit('show_project_analysis', False)
+
+        if label == 'Plan Adherence Rate' :
             self._pa_view = 'rmc' if self._pa_view == 'item' else 'item'
         else:
             self.current_metric = label
 
         self._populate_for_metric(label)
+        self._update_button_styles()
 
     def _populate_for_metric(self, label: str):
-        self.current_metric = label
+        # self.current_metric = label
         key = self.metric_key_map[label]
 
         if label == 'Plan Adherence Rate':
@@ -176,7 +181,6 @@ class ParameterComponent(QWidget):
             data = self.failures.get(key, []) or []
             fields = self.header_map[label]
 
-        # 테이블 헤더 구성
         headers = [h for h, _ in fields]
         self.failure_table.clear()
         self.failure_table.setColumnCount(len(headers))
@@ -184,6 +188,11 @@ class ParameterComponent(QWidget):
         self.failure_table.header().show()
 
         red = QBrush(QColor('#e74c3c'))
+
+        if not hasattr(data, '__iter__') or isinstance(data, bool):
+            print(f"경고: '{label}'의 데이터는 반복 가능한 객체가 아닙니다. 타입: {type(data)}")
+            data = []
+
         for info in data:
             vals = []
             for _, field in fields:
@@ -229,7 +238,7 @@ class ParameterComponent(QWidget):
                 f"QPushButton:hover {{ background-color: {hover}; }}"
             )
 
-    def open_dynamic_properties_dialog(self):
+    def open_dynamic_properties_dialog(self) :
         dlg = DynamicPropertiesDialog(self)
         result = dlg.exec_()
         if result == QDialog.Accepted:
@@ -242,3 +251,26 @@ class ParameterComponent(QWidget):
     def on_file_selected(self, filepath: str):
         if FilePaths.get("dynamic_excel_file"):
             self.dynamic_props_btn.setVisible(True)
+
+    """
+    프로젝트 분석 데이터 설정
+    """
+    def set_project_analysis_data(self, data) :
+        self.project_analysis_data = data
+
+        if data and isinstance(data, dict) and 'display_df' in data:
+            display_df = data['display_df']
+            has_issues = False
+
+            for _, row in display_df.iterrows():
+                if row.get('PJT') == 'Total' and row.get('status') == '이상':
+                    has_issues = True
+                    break
+
+            if has_issues:
+                self.failures['production_capacity'] = []
+                self._update_button_styles()
+
+        # if self.current_metric == 'Production Capacity':
+        #     self._populate_project_analysis_table()
+        #     self.stacked_widget.setCurrentWidget(self.project_analysis_table)
