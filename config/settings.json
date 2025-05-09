@@ -1,14 +1,11 @@
 {
-    "time_limit": 300,
+    "time_limit": 1,
     "weight_sop_ox": 1.0,
     "weight_mat_qty": 1.0,
     "weight_linecnt_bypjt": 1.0,
     "weight_linecnt_byitem": 1.0,
     "weight_operation": 1.0,
-    "op_timeset_1": [
-        "1",
-        "5"
-    ],
+    "op_timeset_1": [],
     "op_SKU_1": 100,
     "op_RMC_1": 100,
     "op_timeset_2": [],

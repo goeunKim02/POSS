@@ -1,9 +1,10 @@
 from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QScrollArea, QDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory
 from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths, QThread, QSize
 
 import os
 import pandas as pd
+import time
 
 from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
 from .pre_assigned_components.calendar_header import CalendarHeader
@@ -13,6 +14,7 @@ from app.utils.fileHandler import create_from_master
 from app.core.optimizer import Optimizer
 from app.views import main_window
 from app.utils.export_manager import ExportManager
+from app.models.common.settings_store import SettingsStore
 
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
@@ -27,18 +29,20 @@ def create_button(text, style="primary", parent=None):
     return btn
 
 class ProcessThread(QThread):
+    progress = pyqtSignal(int)
     finished = pyqtSignal(pd.DataFrame)
 
     def __init__(self, df: pd.DataFrame):
         super().__init__()
         self.df = df
 
-    # 테스트용(실제 처리 로직으로 교체)
     def run(self):
-        import time
-
-        time.sleep(10)  # 테스트용 지연
-        self.finished.emit(self.df) # 테스트용 원본 데이터 반환
+        limit = SettingsStore._settings.get("time_limit", 10)
+        for i in range(limit):
+            time.sleep(1)
+            pct = int((i+1) / limit * 100)
+            self.progress.emit(pct)
+        self.finished.emit(self.df)
 
 class PlanningPage(QWidget):
     optimization_requested = pyqtSignal(dict)
@@ -84,6 +88,28 @@ class PlanningPage(QWidget):
         title_hbox.addWidget(btn_reset)
 
         layout.addLayout(title_hbox)
+
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.hide()
+
+        self.progress_bar.setStyle(QStyleFactory.create("Fusion"))
+
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #AAA;
+                border-radius: 4px;
+                text-align: center;
+                background-color: #E0E0E0;
+            }
+            QProgressBar::chunk {
+                background-color: #1428A0;
+                width: 20px;
+            }
+        """)
+        
+        layout.addWidget(self.progress_bar)
 
         # 캘린더 헤더
         present_times = set(self._df['Time']) if not self._df.empty else set()
@@ -155,7 +181,7 @@ class PlanningPage(QWidget):
         present_times = set(self._df['Time'])
         self.header.setParent(None)
         self.header = CalendarHeader(present_times, parent=self)
-        self.layout().insertWidget(1, self.header)
+        self.layout().insertWidget(2, self.header)
         self._sync_header_margin()
 
         self.body_layout.addWidget(WeeklyCalendar(self._df))
@@ -166,71 +192,61 @@ class PlanningPage(QWidget):
             QMessageBox.warning(self, "Error", "먼저 Run을 통해 결과를 불러와야 합니다.")
             return
 
-        # 화면에 표시된 데이터 기반 프로젝트 그룹 필터링
         all_groups = create_from_master()
         current = set(self._df['Project'])
         filtered_groups = {
             gid: projs for gid, projs in all_groups.items()
             if current & set(projs)
         }
-
         dlg = ProjectGroupDialog(filtered_groups, parent=self)
         if dlg.exec_() != QDialog.Accepted:
             return
-
         selected = dlg.selected_groups()
-        selected_projects = set()
+        self.selected_projects = set()
         for gid in selected:
-            selected_projects.update(filtered_groups[gid])
+            self.selected_projects |= set(filtered_groups[gid])
+        self.filtered_df = self._df[self._df['Project'].isin(self.selected_projects)].copy()
 
-        # 클래스 맴버 변수로 저장
-        self.filtered_df = self._df[self._df['Project'].isin(selected_projects)].copy()
-        self.selected_projects = list(selected_projects)
-
-        # 실행 버튼 비활성화
         self.btn_run.setEnabled(False)
         self.btn_run.setText("Processing...")
-        self.run_spinner.start()
+        self.progress_bar.setValue(0)
+        self.progress_bar.show()
 
+        self.thread = ProcessThread(self.filtered_df)
+        self.thread.progress.connect(self.progress_bar.setValue)
+        self.thread.finished.connect(self._on_optimization_prepare)
+        self.thread.start()
+
+    # 실제 최적화 로직
+    def _on_optimization_prepare(self, _):
         try:
-            # 최적화 알고리즘 직접 실행
             optimizer = Optimizer()
             results = optimizer.run_optimization({
                 'pre_assigned_df': self.filtered_df,
                 'selected_projects': list(self.selected_projects)
             })
-            
-            # 결과를 결과 페이지로 전달
+            # 결과 페이지 전송
             if hasattr(self.main_window, 'result_page'):
-                self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
+                self.main_window.result_page.left_section.set_data_from_external(
+                    results['assignment_result']
+                )
                 self.main_window.navigate_to_page(2)
             else:
                 self.optimization_requested.emit(results)
-                
+
         except Exception as e:
-            QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {str(e)}")
+            QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {e}")
+
         finally:
-            # 실행 버튼 상태 복원
-            self.run_spinner.stop()  # 로딩 애니메이션 중지
-            self.btn_run.setIcon(QIcon())  # 아이콘 제거
+            self.progress_bar.hide()
             self.btn_run.setText("Run")
             self.btn_run.setEnabled(True)
             self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
-
-    def _on_process_done(self, result_df):
-        # 실행 버튼 활성화
-        self.run_spinner.stop()
-        self.btn_run.setIcon(QIcon())
-
-        self.btn_run.setText("Run")
-        self.btn_run.setEnabled(True)
-        self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
     def _update_run_icon(self):
         pix = self.run_spinner.currentPixmap()
         if not pix.isNull():
             self.btn_run.setIcon(QIcon(pix))
-
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):
@@ -261,7 +277,7 @@ class PlanningPage(QWidget):
         old_header.deleteLater()
         
         self.header = CalendarHeader(set(self._df['Time']), parent=self)
-        self.layout().insertWidget(1, self.header)
+        self.layout().insertWidget(2, self.header)
         self._sync_header_margin()
 
         for i in range(self.body_layout.count()-1, -1, -1):

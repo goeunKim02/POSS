@@ -16,7 +16,7 @@ class ParameterComponent(QWidget):
     def __init__(self):
         super().__init__()
         self.failures = {}
-        self.current_metric = 'Production Capacity'
+        self.current_metric = None
         self._pa_view = 'item'
 
         self.metric_key_map = {
