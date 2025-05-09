@@ -13,6 +13,7 @@ class DataModel(QObject):
         self.start_date = None
         self.end_date = None
         self.analysis_results = None
+        self.settings = {}  # 설정 데이터를 저장할 딕셔너리 추가
 
     def set_file_path(self, file_path):
         """파일 경로 설정"""
@@ -44,9 +45,40 @@ class DataModel(QObject):
         """분석 결과 반환"""
         return self.analysis_results
 
+    def update_settings(self, settings):
+        """
+        설정 업데이트 메서드
+
+        Args:
+            settings (dict): 업데이트할 설정 딕셔너리
+        """
+        # 설정 값 저장
+        self.settings.update(settings)
+
+        # 설정 변경 로그 출력
+        print("DataModel: 설정이 업데이트되었습니다")
+
+        # 설정에 따라 모델 상태 업데이트가 필요한 경우 여기에 구현
+        # 예: 시간 제한 설정 업데이트
+        if 'time_limit' in settings:
+            print(f"  - 작업 시간 제한이 {settings['time_limit']}초로 설정되었습니다")
+
+        # 필요한 경우 다른 설정에 따른 처리 추가
+        if 'op_InputRoute' in settings and settings['op_InputRoute']:
+            print(f"  - 입력 경로가 '{settings['op_InputRoute']}'(으)로 설정되었습니다")
+
+        if 'op_SavingRoute' in settings and settings['op_SavingRoute']:
+            print(f"  - 결과 저장 경로가 '{settings['op_SavingRoute']}'(으)로 설정되었습니다")
+
+    def get_settings(self):
+        """현재 설정 반환"""
+        return self.settings
+
     def clear(self):
         """모든 데이터 초기화"""
         self.file_paths = []
         self.start_date = None
         self.end_date = None
         self.analysis_results = None
+        # 설정은 초기화하지 않음 - 필요한 경우 아래 주석 해제
+        self.settings = {}

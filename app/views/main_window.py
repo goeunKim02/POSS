@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QDesktopWidget
+from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QDesktopWidget, QMessageBox
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QCursor, QIcon, QFont
 import pandas as pd
@@ -133,19 +133,19 @@ class MainWindow(QMainWindow):
 
     def on_settings_changed(self, settings):
         """설정 변경 시 호출되는 콜백"""
-        # 설정 변경 시 필요한 작업 수행
-        print("설정이 변경되었습니다.")
+        # try:
+            # DataModel에 update_settings 메서드가 없으므로 주석 처리하거나 제거
+            # self.data_model.update_settings(settings)
 
-        # 예: 최적화 파라미터 업데이트
-        if hasattr(self, 'optimization') and self.optimization:
-            self.optimization.update_parameters(settings)
-
-        # 예: UI 업데이트
-        # self.update_ui_based_on_settings(settings)
-
-        # 예: 데이터 모델에 설정 전달
-        if hasattr(self, 'data_model'):
-            self.data_model.update_settings(settings)
+            # 대신 필요한 처리를 여기에 구현
+            # 예: 설정 변경 사항을 로그로 남김
+        #     print("Settings have been changed:", settings)
+        #
+        #     # 사용자에게 알림
+        #     QMessageBox.information(self, "Change Settings", "Settings have been saved.")
+        # except Exception as e:
+        #     print(f"Error applying settings: {e}")
+        pass
 
     def on_file_selected(self, file_path):
         # 파일 경로를 데이터 모델에 저장
