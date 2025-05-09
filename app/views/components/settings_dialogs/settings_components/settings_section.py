@@ -271,14 +271,14 @@ class SettingsSectionComponent(QFrame):
             remove_button = QPushButton("Remove")
             remove_button.setStyleSheet("""
                 QPushButton {
-                    background-color: #B22222;
+                    background-color: #FF5252;
                     color: white;
                     border-radius: 3px;
                     padding: 5px;
                     font-family: Arial;
                 }
                 QPushButton:hover {
-                    background-color: #DC143C;
+                    background-color: #FF7676;
                 }
             """)
 
