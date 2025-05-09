@@ -286,11 +286,52 @@ class DraggableItemLabel(QLabel):
     def update_item_data(self, new_data):
         """아이템 데이터 업데이트"""
         if new_data:
+            # 데이터 변경 전 검증 (부모 위젯을 통해 validator 찾기)
+            validator = None
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'validator'):
+                    validator = parent.validator
+                    break
+                # 그리드 위젯을 통해 validator 찾기
+                if hasattr(parent, 'grid_widget') and hasattr(parent.grid_widget, 'validator'):
+                    validator = parent.grid_widget.validator
+                    break
+                parent = parent.parent()
+            
+            # validator가 있으면 검증 수행
+            if validator:
+                # 현재 데이터와 신규 데이터 비교하여 변경 항목 검출
+                is_move = False
+                if self.item_data:
+                    if ('Line' in new_data and 'Line' in self.item_data and 
+                        new_data['Line'] != self.item_data['Line']):
+                        is_move = True
+                    if ('Time' in new_data and 'Time' in self.item_data and 
+                        new_data['Time'] != self.item_data['Time']):
+                        is_move = True
+                
+                # 검증 실행
+                valid, message = validator.validate_adjustment(
+                    new_data.get('Line'), 
+                    new_data.get('Time'),
+                    new_data.get('Item', ''),
+                    new_data.get('Qty', 0),
+                    self.item_data.get('Line') if is_move else None,
+                    self.item_data.get('Time') if is_move else None
+                )
+                
+                # 검증 실패 시 데이터 변경하지 않고 False 반환
+                if not valid:
+                    # 오류 메시지는 호출자에서 표시 (여기서는 표시하지 않음)
+                    return False, message
+            
+            # 검증 통과 또는 validator 없음 - 데이터 업데이트 진행
             # 데이터 직접 할당 (데이터 참조 복사)
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
             self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
-            return True
-        return False
+            return True, ""
+        return False, "데이터가 없습니다."
