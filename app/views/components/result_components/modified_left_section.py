@@ -238,9 +238,9 @@ class ModifiedLeftSection(QWidget):
             # 위치 변경이 없는 데이터 수정의 경우에도 시각화 업데이트
             self.cell_moved.emit(item, old_data, new_data)
 
-        # 변경 알림 메시지 표시
-        EnhancedMessageBox.show_validation_success(self, "Data Updated",
-                                f"The production schedule has been successfully updated. \n{item.text()}")
+        # # 변경 알림 메시지 표시
+        # EnhancedMessageBox.show_validation_success(self, "Data Updated",
+        #                         f"The production schedule has been successfully updated. \n{item.text()}")
 
     """엑셀 파일 로드"""
     def load_excel_file(self):
