@@ -806,8 +806,8 @@ class ResultPage(QWidget):
             print("자재 부족 항목 데이터가 비어있습니다.")
             return
                 
-        print(f"자재 부족 항목 데이터 크기: {shortage_df.shape}")
-        print(f"데이터 샘플:\n{shortage_df.head()}")
+        # print(f"자재 부족 항목 데이터 크기: {shortage_df.shape}")
+        # print(f"데이터 샘플:\n{shortage_df.head()}")
                 
         # 부족률 계산 및 정렬 (부족률 높은 순)
         shortage_df['Shortage_Pct'] = (shortage_df['Shortage'] / shortage_df['Required']) * 100

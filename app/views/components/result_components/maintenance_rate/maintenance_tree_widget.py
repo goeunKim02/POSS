@@ -162,122 +162,110 @@ class MaintenanceTreeWidget(QTreeWidget):
     트리 위젯에 데이터를 채우는 메서드
     """
     def _populate_tree(self, df_data, modified_item_keys, item_field='Item'):
-        # 데이터프레임이 비어있으면 종료
-        if df_data is None or df_data.empty:
-            return
+        """데이터를 트리에 표시"""
+        # Line-Shift별 그룹화
+        groups = {}
+        total_prev = 0
+        total_curr = 0
+        total_maintenance = 0
         
-
-        # 디버깅: 원본 데이터 확인
-        print(f"트리 위젯 데이터 채우기 - 원본 행 수: {len(df_data)}")
-        print(f"고유한 Line 값: {df_data['Line'].unique()}")
-        print(f"고유한 Shift 값: {df_data['Shift'].unique()}")
-        
-        # 트리 위젯 초기화
-        self.clear()
-        
-        # Line, Shift별로 그룹화
-        line_shift_groups = {}
-        
-        for _, row in df_data.iterrows():
-            line = row['Line']
-            shift = row['Shift']
+        for idx, row in df_data.iterrows():
+            line = str(row['Line'])
+            shift = str(row['Shift'])
+            item_value = str(row[item_field])
+            prev_plan = row['prev_plan'] if not pd.isna(row['prev_plan']) else 0
+            curr_plan = row['curr_plan'] if not pd.isna(row['curr_plan']) else 0
+            maintenance = row['maintenance'] if not pd.isna(row['maintenance']) else 0
             
-            # 총계 행은 별도로 처리
-            if line == 'Total':
-                continue
-                
-            # 그룹 키
-            group_key = f"{line}_{shift}"
+            # 그룹 키 생성 (Line-Shift)
+            group_key = f"{line}_{shift}" if shift else line
             
-            # 그룹이 없으면 새로 생성
-            if group_key not in line_shift_groups:
-                line_shift_groups[group_key] = []
-                
-            # 그룹에 행 추가
-            line_shift_groups[group_key].append(row)
+            if group_key not in groups:
+                groups[group_key] = {
+                    'line': line,
+                    'shift': shift,
+                    'items': [],
+                    'prev_sum': 0,
+                    'curr_sum': 0,
+                    'maintenance_sum': 0
+                }
+            
+            # 항목 추가
+            groups[group_key]['items'].append({
+                item_field.lower(): item_value,
+                'prev_plan': prev_plan,
+                'curr_plan': curr_plan, 
+                'maintenance': maintenance
+            })
+            
+            # 그룹 합계 업데이트
+            groups[group_key]['prev_sum'] += prev_plan
+            groups[group_key]['curr_sum'] += curr_plan
+            groups[group_key]['maintenance_sum'] += maintenance
+            
+            # 전체 합계 업데이트
+            total_prev += prev_plan
+            total_curr += curr_plan
+            total_maintenance += maintenance
         
-        # Line-Shift 그룹별로 처리
-        for group_key, rows in line_shift_groups.items():
-            print(f"그룹 처리 중: {group_key}, 행 수: {len(rows)}")
-            # 첫 번째 행에서 기본 정보 가져오기
-            first_row = rows[0]
-            line = first_row['Line']
-            shift = str(first_row['Shift'])
-            
-            # 그룹의 총합 계산
-            prev_sum = sum(row['prev_plan'] for row in rows)
-            curr_sum = sum(row['curr_plan'] for row in rows)
-            maintenance_sum = sum(row['maintenance'] for row in rows)
-            
+        # 트리 아이템 추가
+        for group_key, group_data in sorted(groups.items()):
             # 그룹 아이템 생성
-            group_item = self.create_group_item(line, shift, prev_sum, curr_sum, maintenance_sum)
+            group_item = self.create_group_item(
+                group_data['line'],
+                group_data['shift'],
+                group_data['prev_sum'],
+                group_data['curr_sum'],
+                group_data['maintenance_sum']
+            )
+            
             self.addTopLevelItem(group_item)
             
-            # 개별 아이템 추가
-            for row in rows:
-                # 그룹 소계 행은 건너뛰기
-                if 'is_group_total' in row and row['is_group_total']:
-                    continue
-                    
-                # 아이템 정보
-                item_text = row[item_field]
-                prev_plan = row['prev_plan']
-                curr_plan = row['curr_plan']
-                maintenance = row['maintenance']
+            # 자식 아이템 추가
+            item_key = item_field.lower()
+            for item_data in sorted(group_data['items'], key=lambda x: x[item_key]):
+                # 이 위치에 해당하는 수정 기록이 있는지 확인
+                item_value = item_data[item_key]
+                line = group_data['line']
+                shift = group_data['shift']
                 
-                # 수정된 아이템인지 확인
+                # 수정 여부 확인
                 is_modified = False
-                if modified_item_keys:
-                    # 아이템 키 비교
-                    item_key = f"{line}_{shift}_{item_text}"
-                    is_modified = item_key in modified_item_keys
-
-                    # 디버깅: 수정 여부 확인
-                    if is_modified:
-                        print(f"수정된 아이템 발견: {item_key}")
+                for key in modified_item_keys:
+                    parts = key.split('_')
+                    if len(parts) >= 4:
+                        # 라인 코드가 두 부분(I_01)일 수 있는 경우 처리
+                        key_line = f"{parts[0]}_{parts[1]}" if parts[0] in ["I", "D", "K", "M"] else parts[0]
+                        key_shift = parts[2]
+                        key_item = parts[3]
+                        
+                        if item_field == 'Item' and key_line == line and key_shift == shift and key_item == item_value:
+                            is_modified = True
+                            break
+                        elif item_field == 'RMC':
+                            # RMC 비교는 부분 문자열 일치 검사
+                            item_rmc = key_item[3:-3] if len(key_item) > 6 else key_item
+                            if key_line == line and key_shift == shift and (item_rmc == item_value or item_value in item_rmc or item_rmc in item_value):
+                                is_modified = True
+                                break
                 
                 # 자식 아이템 생성
-                child_item = self.create_child_item(item_text, prev_plan, curr_plan, maintenance, is_modified)
+                child_item = self.create_child_item(
+                    item_value,
+                    item_data['prev_plan'],
+                    item_data['curr_plan'],
+                    item_data['maintenance'],
+                    is_modified
+                )
+                
                 group_item.addChild(child_item)
             
-            # 그룹 노드 열기
+            # 기본적으로 그룹 확장
             group_item.setExpanded(True)
         
-        # 총계 행 추가 (마지막 행으로 가정)
-        if not df_data.empty:
-            last_row = None
-            for _, row in df_data.iterrows():
-                if row['Line'] == 'Total':
-                    last_row = row
-                    break
-                    
-            if last_row is not None:
-                total_prev = last_row['prev_plan']
-                total_curr = last_row['curr_plan']
-                total_maintenance = last_row['maintenance']
-                
-                # 총계 아이템 생성
-                total_item = self.create_total_item(total_prev, total_curr, total_maintenance)
-                self.addTopLevelItem(total_item)
-
-
-    # MaintenanceTreeWidget 클래스에 메서드 추가
-    def update_visibility(self):
-        """모든 아이템이 보이도록 업데이트"""
-        # 모든 상위 레벨 아이템 처리
-        for i in range(self.topLevelItemCount()):
-            item = self.topLevelItem(i)
-            if item:
-                self.ensure_item_visible(item)
-                # 자식 아이템도 처리
-                for j in range(item.childCount()):
-                    child = item.child(j)
-                    if child:
-                        self.ensure_item_visible(child)
-        
-        # 모든 열 너비 최적화
-        for i in range(self.columnCount()):
-            self.resizeColumnToContents(i)
+        # 총계 항목 추가
+        total_item = self.create_total_item(total_prev, total_curr, total_maintenance)
+        self.addTopLevelItem(total_item)
 
 
 

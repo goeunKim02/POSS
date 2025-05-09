@@ -1,5 +1,6 @@
+import os
 import pandas as pd
-from app.models.common.fileStore import DataStore
+from app.models.common.fileStore import DataStore, FilePaths
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.utils.conversion import convert_value
 
@@ -22,16 +23,46 @@ class PlanAdjustmentValidator:
     def __init__(self, result_data):
         self.result_data = result_data
 
-        # DataStore에서 필요한 파일 로드
-        self.organized_dataframes = DataStore.get("organized_dataframes")
-        self.master_data = self.organized_dataframes.get("master", {})
-        self.demand_data = self.organized_dataframes.get("demand", {})
+         # 1. 먼저 DataStore에서 organized_dataframes 조회
+        organized = DataStore.get("organized_dataframes", {})
+
+        # 2. master 데이터 로딩
+        self.master_data = organized.get("master", {})
+        if not self.master_data:  # 없으면 FilePaths로 시도
+            master_path = FilePaths.get("master_excel_file")
+            if master_path and os.path.exists(master_path):
+                try:
+                    self.master_data = {
+                        "capa_qty": pd.read_excel(master_path, sheet_name="capa_qty"),
+                        # 필요한 시트가 더 있다면 여기에 추가
+                    }
+                    print(f"[로드] master 파일에서 데이터 로드: {master_path}")
+                except Exception as e:
+                    print(f"[오류] master 파일 로드 실패: {e}")
+            else:
+                print(f"[경고] master 파일 경로가 유효하지 않음")
+
+        # 3. demand 데이터 로딩
+        self.demand_data = organized.get("demand", {})
+        if not self.demand_data:
+            demand_path = FilePaths.get("demand_excel_file")
+            if demand_path and os.path.exists(demand_path):
+                try:
+                    self.demand_data = {
+                        "demand": pd.read_excel(demand_path, sheet_name="demand"),
+                    }
+                    print(f"[로드] demand 파일에서 데이터 로드: {demand_path}")
+                except Exception as e:
+                    print(f"[오류] demand 파일 로드 실패: {e}")
+            else:
+                print(f"[경고] demand 파일 경로가 유효하지 않음")
 
         self.capa_qty_data = self.master_data.get("capa_qty", pd.DataFrame())
 
         # 제약사항 추출 및 캐싱
         self._extract_constraints()
         self._cache_reference_data()
+
 
     """
     마스터 데이터에서 각종 제약사항 추출하여 메모리에 캐싱
