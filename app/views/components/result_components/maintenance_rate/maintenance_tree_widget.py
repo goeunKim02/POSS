@@ -73,6 +73,9 @@ class MaintenanceTreeWidget(QTreeWidget):
         
     """그룹 아이템 생성"""
     def create_group_item(self, line, shift, prev_sum, curr_sum, maintenance_sum):
+        # line과 shift 로깅
+        print(f"그룹 아이템 생성: line={line}, shift={shift}, prev_sum={prev_sum}, curr_sum={curr_sum}")
+
         group_item = QTreeWidgetItem([
             line,
             shift,
@@ -81,6 +84,10 @@ class MaintenanceTreeWidget(QTreeWidget):
             f"{curr_sum:,.0f}",
             f"{maintenance_sum:,.0f}"
         ])
+
+        # 각 열의 텍스트 로깅
+        for i in range(6):
+            print(f"  열 {i}: '{group_item.text(i)}'")
         
         # 스타일 설정
         for i in range(6):
@@ -93,6 +100,9 @@ class MaintenanceTreeWidget(QTreeWidget):
         group_item.setTextAlignment(3, Qt.AlignRight | Qt.AlignVCenter)
         group_item.setTextAlignment(4, Qt.AlignRight | Qt.AlignVCenter)
         group_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
+
+        # 그룹 아이템 크기 확인
+        print(f"  그룹 아이템 상태: 보이기={group_item.isHidden()}, 높이={group_item.sizeHint(0).height()}")
         
         return group_item
         
@@ -146,6 +156,129 @@ class MaintenanceTreeWidget(QTreeWidget):
         total_item.setTextAlignment(5, Qt.AlignRight | Qt.AlignVCenter)
         
         return total_item
+    
+
+    """
+    트리 위젯에 데이터를 채우는 메서드
+    """
+    def _populate_tree(self, df_data, modified_item_keys, item_field='Item'):
+        # 데이터프레임이 비어있으면 종료
+        if df_data is None or df_data.empty:
+            return
+        
+
+        # 디버깅: 원본 데이터 확인
+        print(f"트리 위젯 데이터 채우기 - 원본 행 수: {len(df_data)}")
+        print(f"고유한 Line 값: {df_data['Line'].unique()}")
+        print(f"고유한 Shift 값: {df_data['Shift'].unique()}")
+        
+        # 트리 위젯 초기화
+        self.clear()
+        
+        # Line, Shift별로 그룹화
+        line_shift_groups = {}
+        
+        for _, row in df_data.iterrows():
+            line = row['Line']
+            shift = row['Shift']
+            
+            # 총계 행은 별도로 처리
+            if line == 'Total':
+                continue
+                
+            # 그룹 키
+            group_key = f"{line}_{shift}"
+            
+            # 그룹이 없으면 새로 생성
+            if group_key not in line_shift_groups:
+                line_shift_groups[group_key] = []
+                
+            # 그룹에 행 추가
+            line_shift_groups[group_key].append(row)
+        
+        # Line-Shift 그룹별로 처리
+        for group_key, rows in line_shift_groups.items():
+            print(f"그룹 처리 중: {group_key}, 행 수: {len(rows)}")
+            # 첫 번째 행에서 기본 정보 가져오기
+            first_row = rows[0]
+            line = first_row['Line']
+            shift = str(first_row['Shift'])
+            
+            # 그룹의 총합 계산
+            prev_sum = sum(row['prev_plan'] for row in rows)
+            curr_sum = sum(row['curr_plan'] for row in rows)
+            maintenance_sum = sum(row['maintenance'] for row in rows)
+            
+            # 그룹 아이템 생성
+            group_item = self.create_group_item(line, shift, prev_sum, curr_sum, maintenance_sum)
+            self.addTopLevelItem(group_item)
+            
+            # 개별 아이템 추가
+            for row in rows:
+                # 그룹 소계 행은 건너뛰기
+                if 'is_group_total' in row and row['is_group_total']:
+                    continue
+                    
+                # 아이템 정보
+                item_text = row[item_field]
+                prev_plan = row['prev_plan']
+                curr_plan = row['curr_plan']
+                maintenance = row['maintenance']
+                
+                # 수정된 아이템인지 확인
+                is_modified = False
+                if modified_item_keys:
+                    # 아이템 키 비교
+                    item_key = f"{line}_{shift}_{item_text}"
+                    is_modified = item_key in modified_item_keys
+
+                    # 디버깅: 수정 여부 확인
+                    if is_modified:
+                        print(f"수정된 아이템 발견: {item_key}")
+                
+                # 자식 아이템 생성
+                child_item = self.create_child_item(item_text, prev_plan, curr_plan, maintenance, is_modified)
+                group_item.addChild(child_item)
+            
+            # 그룹 노드 열기
+            group_item.setExpanded(True)
+        
+        # 총계 행 추가 (마지막 행으로 가정)
+        if not df_data.empty:
+            last_row = None
+            for _, row in df_data.iterrows():
+                if row['Line'] == 'Total':
+                    last_row = row
+                    break
+                    
+            if last_row is not None:
+                total_prev = last_row['prev_plan']
+                total_curr = last_row['curr_plan']
+                total_maintenance = last_row['maintenance']
+                
+                # 총계 아이템 생성
+                total_item = self.create_total_item(total_prev, total_curr, total_maintenance)
+                self.addTopLevelItem(total_item)
+
+
+    # MaintenanceTreeWidget 클래스에 메서드 추가
+    def update_visibility(self):
+        """모든 아이템이 보이도록 업데이트"""
+        # 모든 상위 레벨 아이템 처리
+        for i in range(self.topLevelItemCount()):
+            item = self.topLevelItem(i)
+            if item:
+                self.ensure_item_visible(item)
+                # 자식 아이템도 처리
+                for j in range(item.childCount()):
+                    child = item.child(j)
+                    if child:
+                        self.ensure_item_visible(child)
+        
+        # 모든 열 너비 최적화
+        for i in range(self.columnCount()):
+            self.resizeColumnToContents(i)
+
 
 
 """Item별 유지율 트리 위젯"""
@@ -186,4 +319,6 @@ class RMCMaintenanceTree(MaintenanceTreeWidget):
         
         # Line-Shift별 그룹화 및 데이터 표시 로직
         self._populate_tree(df_data, modified_item_keys, item_field='RMC')
+
+
 

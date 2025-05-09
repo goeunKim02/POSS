@@ -319,9 +319,22 @@ class PlanMaintenanceWidget(QWidget):
         # 선택된 탭에 따라 유지율 레이블 업데이트
         self.update_rate_label(self.tab_widget.currentIndex())
         
-    def update_quantity(self, line, time, item, new_qty, demand=None):
+    def update_quantity(self, line, time, item, new_qty):
+        print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
         """수량 업데이트 및 UI 갱신"""
-        success = self.data_manager.update_quantity(line, time, item, new_qty, demand)
+
+        # 명시적 타입 변환 추가
+        try:
+            if isinstance(time, str) and time.strip().isdigit():
+                time = int(time.strip())
+            if isinstance(new_qty, str) and new_qty.strip().isdigit():
+                new_qty = int(new_qty.strip())
+            
+            print(f"PlanMaintenanceWidget - 변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
+        except (ValueError, TypeError) as e:
+            print(f"타입 변환 실패: {e}")
+            
+        success = self.data_manager.update_quantity(line, time, item, new_qty)
         
         if success:
             print("수량 업데이트 성공, 유지율 재계산 중...")
@@ -330,3 +343,11 @@ class PlanMaintenanceWidget(QWidget):
         else:
             print(f"수량 업데이트 실패: {line}, {time}, {item}, {new_qty}")
             return False
+        
+
+    """조정된 계획 데이터 반환"""
+    def get_adjusted_plan(self):
+        if hasattr(self, 'data_manager') and self.data_manager is not None:
+            if hasattr(self.data_manager, 'plan_analyzer') and self.data_manager.plan_analyzer is not None:
+                return self.data_manager.plan_analyzer.get_adjusted_plan()
+        return None
