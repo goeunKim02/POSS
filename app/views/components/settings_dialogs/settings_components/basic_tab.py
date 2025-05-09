@@ -33,7 +33,7 @@ class BasicTabComponent(BaseTabComponent):
         frame_layout.setSpacing(15)
 
         # 제목 레이블 생성
-        title_label = QLabel("기본 설정")
+        title_label = QLabel("Basic Settings")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
@@ -42,7 +42,7 @@ class BasicTabComponent(BaseTabComponent):
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
-        desc_label = QLabel("최적화 프로세스의 기본 설정을 구성하세요.")
+        desc_label = QLabel("Set up the default configuration for the optimization process.")
         desc_label.setWordWrap(True)
         desc_font = QFont("Arial", 11)
         desc_label.setFont(desc_font)
@@ -61,9 +61,9 @@ class BasicTabComponent(BaseTabComponent):
 
         # 러닝 타임 설정 항목 추가
         running_section.add_setting_item(
-            "수행시간 (초)", "time_limit", "spinbox",
-            min=1, max=86400, default=SettingsStore.get("time_limit", 3600),
-            suffix="초"
+            "Processing Time(s)", "time_limit", "spinbox",
+            min=1, max=86400, default=SettingsStore.get("time_limit", 300),
+            suffix="s"
         )
 
         # 가중치 섹션
@@ -72,31 +72,31 @@ class BasicTabComponent(BaseTabComponent):
 
         # 가중치 설정 항목 추가
         weight_section.add_setting_item(
-            "SOP 가중치", "weight_sop_ox", "doublespinbox",
+            "SOP Weight", "weight_sop_ox", "doublespinbox",
             min=0.0, max=10.0, default=SettingsStore.get("weight_sop_ox", 1.0),
             decimals=2, step=0.1
         )
 
         weight_section.add_setting_item(
-            "자재 가중치", "weight_mat_qty", "doublespinbox",
+            "Weight by Material Quantity", "weight_mat_qty", "doublespinbox",
             min=0.0, max=10.0, default=SettingsStore.get("weight_mat_qty", 1.0),
             decimals=2, step=0.1
         )
 
         weight_section.add_setting_item(
-            "PJT분산 가중치", "weight_linecnt_bypjt", "doublespinbox",
+            "Weight Distributed by Project", "weight_linecnt_bypjt", "doublespinbox",
             min=0.0, max=10.0, default=SettingsStore.get("weight_linecnt_bypjt", 1.0),
             decimals=2, step=0.1
         )
 
         weight_section.add_setting_item(
-            "Item분산 가중치", "weight_linecnt_byitem", "doublespinbox",
+            "Weight Distributed per Item", "weight_linecnt_byitem", "doublespinbox",
             min=0.0, max=10.0, default=SettingsStore.get("weight_linecnt_byitem", 1.0),
             decimals=2, step=0.1
         )
 
         weight_section.add_setting_item(
-            "가동률 가중치", "weight_operation", "doublespinbox",
+            "Operation Rate Weight", "weight_operation", "doublespinbox",
             min=0.0, max=10.0, default=SettingsStore.get("weight_operation", 1.0),
             decimals=2, step=0.1
         )
@@ -106,7 +106,7 @@ class BasicTabComponent(BaseTabComponent):
         sections_layout.addWidget(weight_section)
 
         # 메모 레이블
-        note_label = QLabel("가중치는 최적화 알고리즘이 각 목표의 중요도를 결정하는 데 사용됩니다.")
+        note_label = QLabel("Weights are utilized by the optimization algorithm to assess the priority of each objective.")
         note_label.setStyleSheet(
             "font-style: italic; color: #666; margin-top: 20px; background-color: transparent; border:none;")
 

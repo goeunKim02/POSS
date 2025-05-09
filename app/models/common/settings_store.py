@@ -9,7 +9,7 @@ class SettingsStore:
     """
     _settings = {
         # Basic 설정
-        "time_limit": 3600,  # 수행시간(초)
+        "time_limit": 300,  # 수행시간(초)
         "weight_sop_ox": 1.0,  # SOP 가중치
         "weight_mat_qty": 1.0,  # 자재 가중치
         "weight_linecnt_bypjt": 1.0,  # PJT분산 가중치

@@ -269,7 +269,7 @@ class DataInputPage(QWidget):
         # 메인 스플리터에 왼쪽 사이드바와 오른쪽 영역 추가
         main_splitter.addWidget(self.file_explorer)
         main_splitter.addWidget(right_area)
-        main_splitter.setSizes([200, 800])  # 초기 크기 설정
+        main_splitter.setSizes([150, 850])  # 초기 크기 설정
 
         # 하단 컨테이너에 스플리터 추가
         bottom_container_layout.addWidget(main_splitter)
