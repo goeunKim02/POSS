@@ -456,10 +456,12 @@ class DataInputPage(QWidget):
             failed_items, failed_rmcs = run_maintenance_analysis()
             print(failed_items, failed_rmcs)
 
-            failures["plan_adherence_rate"] = {
-                "item_failures": failed_items,
-                "rmc_failures": failed_rmcs
-            }
+            # item_plan_retention_rate, rmc_plan_retention_rate = calc_plan_retention()
+            
+            # failures["plan_retention_rate"] = {
+            #     "item_plan_retention_rate": item_plan_retention_rate,
+            #     "rmc_plan_retention_rate": rmc_plan_retention_rate
+            # }
 
             try :
                 processed_data = process_data()
