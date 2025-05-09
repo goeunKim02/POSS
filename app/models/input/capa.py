@@ -102,7 +102,9 @@ def process_data():
         raise DataError('A required data file or sheet is missing', {'missing_data' : missing_data})
     
     
-# 이상치 분석을 위한 데이터 전처리
+"""
+이상치 분석을 위한 데이터 전처리
+"""
 @error_handler(
         show_dialog=True,
         default_return=None
