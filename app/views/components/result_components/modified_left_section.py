@@ -1,11 +1,9 @@
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton,
-                             QFileDialog, QMessageBox)
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 import pandas as pd
 from .item_grid_widget import ItemGridWidget
-from .item_position_manager import ItemPositionManager
-
+from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
@@ -104,64 +102,6 @@ class ModifiedLeftSection(QWidget):
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         print(f"이전 데이터: {old_data}")
 
-        # # 조정 제약사항 검증
-        # if hasattr(self, 'validator'):
-        #     print("validator 존재함 - 검증 시작")
-        #     line = new_data.get('Line')
-        #     time = new_data.get('Time')
-        #     item_code = new_data.get('Item')  # parameter item과 구분위해 item_code 사용
-        #     qty = new_data.get('Qty', 0)
-
-        #     print(f"검증 데이터: line={line}, time={time}, item_code={item_code}, qty={qty}")
-
-        #     # 이동 여부 확인
-        #     is_move = False
-        #     source_line = None
-        #     source_time = None
-
-        #     if changed_fields:
-        #         print(f"변경된 필드: {changed_fields}")
-        #         if 'Line' in changed_fields or 'Time' in changed_fields:
-        #             is_move = True
-        #             source_line = old_data.get('Line')
-        #             source_time = old_data.get('Time')
-        #             print(f"이동 감지: source_line={source_line}, source_time={source_time}")
-                    
-        #     # 검증 실행
-        #     print("검증 함수 호출 전")
-        #     valid, message = self.validator.validate_adjustment(
-        #         line, time, item_code, qty, 
-        #         source_line if is_move else None, 
-        #         source_time if is_move else None
-        #     )
-        #     print(f"검증 결과: valid={valid}, message={message}")
-            
-        #     # 검증 실패 시 메시지 표시하고 함수 종료
-        #     if not valid:
-        #         print("검증 실패 - 원래 값으로 복원 시작")
-        #         QMessageBox.warning(self, "조정 불가", message)
-
-                # # 원래 값 가져오기
-                # original_qty = changed_fields['Qty']['from']
-
-                # # 새 데이터에 원래 값 설정
-                # restored_data = new_data.copy()
-                # restored_data['Qty'] = original_qty
-
-                # # 화면 갱신
-                # if hasattr(item, 'update_item_data'):
-                #     item.update_item_data(restored_data)
-                
-                # # 사용자에게 알림
-                # QMessageBox.information(
-                #     self, 
-                #     "원래 값으로 복원됨", 
-                #     f"검증 실패로 인해 수량이 원래 값({original_qty})으로 복원되었습니다."
-                # )
-                
-                # return
-
-
         # 검증 통과 시
         # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
         position_change_needed = False
@@ -258,7 +198,7 @@ class ModifiedLeftSection(QWidget):
                     )
                     
                     if not valid:
-                        QMessageBox.warning(self, "조정 불가", message)
+                        EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", message)
                         return
 
                 # 새 위치에 아이템 추가
@@ -286,7 +226,7 @@ class ModifiedLeftSection(QWidget):
             # 수정: update_item_data 메서드의 반환값 처리
             success, error_message = item.update_item_data(new_data)
             if not success:
-                QMessageBox.warning(self, "조정 불가", error_message)
+                EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
                 return
 
         # 데이터 변경 성공 시
@@ -299,9 +239,8 @@ class ModifiedLeftSection(QWidget):
             self.cell_moved.emit(item, old_data, new_data)
 
         # 변경 알림 메시지 표시
-        QMessageBox.information(self, "데이터 변경됨",
-                                f"아이템 정보가 성공적으로 변경되었습니다.\n{item.text()}",
-                                QMessageBox.Ok)
+        EnhancedMessageBox.show_validation_success(self, "Data Updated",
+                                f"The production schedule has been successfully updated. \n{item.text()}")
 
     """엑셀 파일 로드"""
     def load_excel_file(self):
@@ -316,12 +255,12 @@ class ModifiedLeftSection(QWidget):
                 self.update_table_from_data()
 
                 # 데이터 로드 성공 메시지
-                QMessageBox.information(self, "파일 로드 성공",
-                                        f"파일을 성공적으로 로드했습니다.\n행: {self.data.shape[0]}, 열: {self.data.shape[1]}")
+                EnhancedMessageBox.show_validation_success(self, "File Loaded Successfully",
+                                        f"File has been successfully loaded.\nRows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
 
             except Exception as e:
                 # 에러 메시지 표시
-                QMessageBox.critical(self, "파일 로드 오류", f"파일을 로드하는 중 오류가 발생했습니다.\n{str(e)}")
+                EnhancedMessageBox.show_validation_error(self, "File Loding Error", f"An error occurred while loading the file.\n{str(e)}")
 
     """엑셀 파일에서 데이터를 읽어와 테이블 업데이트"""
     def update_table_from_data(self):
@@ -337,8 +276,8 @@ class ModifiedLeftSection(QWidget):
     """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시 (라인별 셀 병합 형태로)"""
     def group_data(self): 
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
-            QMessageBox.warning(self, "그룹화 불가",
-                                "데이터가 없거나 'Line' 또는 'Time' 컬럼이 없습니다.\n필요한 컬럼이 포함된 데이터를 로드해주세요.")
+            EnhancedMessageBox.show_validation_error(self, "Grouping Failed",
+                                "Data is missing or does not contain 'Line' or 'Time' columns.\nPlease load data with the required columns.")
             return
 
         try:
@@ -425,7 +364,7 @@ class ModifiedLeftSection(QWidget):
 
         except Exception as e:
             # 에러 메시지 표시
-            QMessageBox.critical(self, "그룹화 오류", f"데이터 그룹화 중 오류가 발생했습니다.\n{str(e)}")
+            EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
             # 디버깅을 위한 예외 정보 출력
             import traceback
             traceback.print_exc()

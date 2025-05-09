@@ -1,13 +1,11 @@
 import pandas as pd
 from app.models.common.fileStore import DataStore
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
+from app.utils.conversion import convert_value
 
 """결과 조정 시 제약사항 점검 클래스"""
 class PlanAdjustmentValidator:
     def __init__(self, result_data):
-        # Args:
-        #     result_data (DataFrame): 조정할 결과 데이터
-
         self.result_data = result_data
 
         # DataStore에서 필요한 파일 로드
@@ -82,9 +80,10 @@ class PlanAdjustmentValidator:
                     if 'name' in row and 'lower_limit' in row and 'upper_limit' in row:
                         building = row['name']
                         self.building_constraints[building] = {
-                            'lower_limit': float(row['lower_limit']),
-                            'upper_limit': float(row['upper_limit'])
+                            'lower_limit': convert_value(row['lower_limit'], float, 0.0),
+                            'upper_limit': convert_value(row['upper_limit'], float, 0.0)
                         }
+
 
     """결과에서 참조 정보 추출"""
     def _cache_reference_data(self):
@@ -94,29 +93,12 @@ class PlanAdjustmentValidator:
         # 라인별 시프트별 현재 할당량 계산
         self.line_shift_allocation = {}
 
-        for _, row in self.result_data.iterrows():
-            line = row.get('Line')
-            time = row.get('Time')
-            qty = row.get('Qty', 0)
-            
-            if line and time is not None:
-                key = f"{line}_{time}"
-                if key not in self.line_shift_allocation:
-                    self.line_shift_allocation[key] = 0
-                self.line_shift_allocation[key] += qty
+        grouped_data = self.result_data.groupby(['Line', 'Time'])['Qty'].sum()
+        self.line_shift_allocation = {f"{line}_{time}": qty for (line, time), qty in grouped_data.items()}
                 
         # 라인별 사용 가능한 아이템 목록 캐싱
-        self.line_available_items = {}
+        self.line_available_items = self.result_data.groupby('Line')['Item'].apply(set).to_dict()
         
-        # 결과 데이터에서 라인-아이템 호환성 정보 추출
-        for _, row in self.result_data.iterrows():
-            line = row.get('Line')
-            item = row.get('Item')
-            
-            if line and item:
-                if line not in self.line_available_items:
-                    self.line_available_items[line] = set()
-                self.line_available_items[line].add(item)
 
     """capaValidator에 전달할 데이터"""
     def _prepare_data_for_validator(self):
@@ -184,7 +166,7 @@ class PlanAdjustmentValidator:
         if project in self.line_item_compatibility:
             compatible_lines = self.line_item_compatibility[project]
             if line not in compatible_lines:
-                return False, f"아이템 '{item}'(프로젝트 {project})은(는) 라인 '{line}'에서 생산할 수 없습니다."
+                return False, f"Item '{item}' (Project {project}) cannot be produced on line '{line}'."
             return True, ""
         
         # 마스터 데이터가 없으면 결과 데이터에서 추론
@@ -214,21 +196,21 @@ class PlanAdjustmentValidator:
         
         # 이동인 경우 해당 아이템의 기존 할당량 제외
         if is_move and item:
-            for _, row in self.result_data.iterrows():
-                if row.get('Line') == line and row.get('Time') == time and row.get('Item') == item:
-                    current_allocation -= row.get('Qty', 0)
-                    break
-
+            source_mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time) &
+                (self.result_data['Item'] == item)
+            )
+            if source_mask.any():
+                current_allocation -= self.result_data.loc[source_mask, 'Qty'].iloc[0]
+    
         # 마스터 데이터에서 라인과 시프트 용량 가져오기
         capacity = self.get_line_capacity(line, time)
         
-        # print(f"검증: 라인={line}, 시프트={time}, 현재 할당량={current_allocation}, 신규 수량={new_qty}")
-        # print(f"용량 정보: {capacity}")
-        # print(f"검증 결과: {current_allocation + new_qty} <= {capacity} = {current_allocation + new_qty <= capacity}")
         # 용량 검증
         if capacity is not None:
             if current_allocation + new_qty > capacity:
-                return False, f"라인 '{line}'의 시프트 {time} 용량({capacity})을 초과합니다. 현재 {current_allocation}, 추가 {new_qty}"
+                return False, f"Exceeds capacity for line '{line}' shift {time} ({capacity}). Current: {current_allocation}, Adding: {new_qty}"
         
         return True, ""
     
@@ -247,28 +229,16 @@ class PlanAdjustmentValidator:
             
         # 납기일 검증
         if due_time is not None and time > due_time:
-            return False, f"아이템 '{item}'의 납기일(시프트 {due_time})을 초과했습니다."
+            return False, f"Item '{item}' exceeds due date (shift {due_time})."
             
         return True, ""
     
     """요일별 가동률 제약 검증"""
     def validate_utilization_rate(self, line, time, new_qty):
-        # 시프트별 최대 가동률 설정 (각 시프트마다 다른 값 설정 가능)
+        # 시프트별 최대 가동률 설정 
         max_utilization_by_shift = {
-            1: 110,  # 1번 시프트 최대 가동률
-            2: 110, 
-            3: 110,  
-            4: 110,  
-            5: 110,  
-            6: 110,  
-            7: 110,   
-            8: 110,  
-            9: 110, 
-            10: 110, 
-            11: 110, 
-            12: 110, 
-            13: 110, 
-            14: 110, 
+            1: 110, 2: 110, 3: 110,  4: 110,  5: 110,  6: 110,
+            7: 110,  8: 110,  9: 110, 10: 110, 11: 110, 12: 110, 13: 110, 14: 110, 
         }
 
         # 라인-시프트 키 생성
@@ -282,8 +252,7 @@ class PlanAdjustmentValidator:
 
         # 용량 정보가 없는 경우 처리
         if line_capacity is None or line_capacity <= 0:
-            # 용량 정보가 없으면 다른 방법으로 제약 조건 확인
-            # 예: 해당 라인/시프트의 capacity 값 직접 조회
+            # 용량 정보가 없으면 다른 방법으로 제약 조건 확인 : 해당 라인/시프트의 capacity 값 직접 조회
             capacity = self.get_line_capacity(line, time)
             if capacity is not None and capacity > 0:
                 line_capacity = capacity
@@ -294,7 +263,7 @@ class PlanAdjustmentValidator:
                 return True, ""
     
         new_total = current_allocation + new_qty
-        utilization_rate = (new_total / line_capacity) * 100
+        utilization_rate = (new_total / line_capacity) * 100 if line_capacity > 0 else 0
 
         # 해당 시프트의 최대 가동률 가져오기
         max_rate = max_utilization_by_shift.get(time, 100)  # 기본값 100%
@@ -306,129 +275,57 @@ class PlanAdjustmentValidator:
     
     """모든 검증 로직을 통합 실행"""
     def validate_adjustment(self, line, time, item, new_qty, source_line=None, source_time=None):
-        # print("validate_adjustment 호출됨")
         # 이동 여부 확인
         is_move = source_line is not None and source_time is not None
 
         # 타입 변환 (문자열 -> 숫자)
-        try:
-            if isinstance(time, str):
-                time = int(time)
-            if isinstance(new_qty, str):
-                new_qty = int(float(new_qty))
-            if isinstance(source_time, str) and source_time is not None:
-                source_time = int(source_time)
-        except (ValueError, TypeError) as e:
-            return False, f"입력값 변환 중 오류 발생: {str(e)}"
+        time = convert_value(time, int, None)
+        new_qty = convert_value(new_qty, int, 0, special_values={'ALL'})
+        source_time = convert_value(source_time, int, None) if source_time is not None else None
+
+        # 필수값 검증
+        if line is None or time is None or item is None:
+            return False, "라인, 시프트, 아이템 정보는 필수입니다."
         
-        # 제조동별 검증
-        temp_result_data = self.result_data.copy()
+        if new_qty == 'ALL':
+            # 해당 아이템의 전체 수량 가져오기
+            new_qty = self._get_total_demand_for_item(item)
+            if new_qty <= 0:
+                return False, f"아이템 '{item}'의 Qty를 찾을 수 없습니다."
+            
+        # 각 제약 요소 검증
+        validations = [
+            self.validate_line_item_compatibility(line, item),
+            self.validate_capacity(line, time, new_qty, item, is_move),
+            self.validate_due_date(item, time),
+            self.validate_utilization_rate(line, time, new_qty)
+        ]
 
-        # 디버깅: 업데이트 전 제조동별 비율 - 디버깅깅
-        original_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
-            data_df=temp_result_data,
-            is_initial=True
-        )
-        # print(f"업데이트 전 제조동별 비율: {original_ratios}")
+        # 개별 검증 결과 확인
+        for valid, message in validations:
+            if not valid: 
+                return False, message
         
-        # 각 제조동별 수량 출력 - 디버깅
-        for building in ['I', 'D', 'K', 'M']:
-            building_qty = temp_result_data[temp_result_data['Line'].str.startswith(building)]['Qty'].sum()
-            # print(f"업데이트 전 {building} 제조동 총 수량: {building_qty}")
-
-        # 이동인 경우 원본 위치에서 제거
-        if source_line and source_time:
-            source_mask = (
-                (temp_result_data['Line'] == source_line) & 
-                (temp_result_data['Time'] == source_time) & 
-                (temp_result_data['Item'] == item)
-            )
-            if source_mask.any():
-                # 원본 데이터 삭제
-                temp_result_data = temp_result_data[~source_mask]
-
-        # 새 위치에 할당
-        target_mask = (
-            (temp_result_data['Line'] == line) &
-            (temp_result_data['Time'] == time) &
-            (temp_result_data['Item'] == item)
-        )
-
-        print(f"대상 위치 행 수: {target_mask.sum()}")
-
-        # 대상 위치에 있으면 업데이트, 없으면 추가
-        if target_mask.any():
-            # print(f"업데이트 전 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
-            temp_result_data.loc[target_mask, 'Qty'] = new_qty
-            # print(f"업데이트 후 수량: {temp_result_data.loc[target_mask, 'Qty'].values}")
-        else:
-            # 새 행 데이터 구성
-            new_row = {
-                'Line': line,
-                'Time': time,
-                'Item': item,
-                'Qty': new_qty
-            }
-
-            # 디버깅: 업데이트 후 제조동별 비율
-            updated_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
-                data_df=temp_result_data,
-                is_initial=True
-            )
-            print(f"업데이트 후 제조동별 비율: {updated_ratios}")
-
-            # 프로젝트, rmc 등 필요한 정보 추가
-            if item in self.result_data['Item'].values:
-                item_data = self.result_data[self.result_data['Item'] == item].iloc[0]
-                for col in ['Project', 'RMC', 'To_site', 'SOP', 'MFG', 'Due_LT']:
-                    if col in item_data and pd.notna(item_data[col]):
-                        new_row[col] = item_data[col]
-
-            # 새 행 추가
-            temp_result_data = pd.concat([temp_result_data, pd.DataFrame([new_row])], ignore_index=True)
-
-        # 제조동 비율 검증
-        temp_validator = PlanAdjustmentValidator(temp_result_data)
-        valid, message = temp_validator.validate_building_ratios()
-        if not valid:
-            return False, message
-        
-        # 라인-아이템 호환성 검증
-        valid, message = self.validate_line_item_compatibility(line, item)
-        if not valid:
-            return False, message
-        
-        # 용량 검증
-        valid, message = self.validate_capacity(line, time, new_qty, item, is_move)
-        if not valid:
-            return False, message
-        
-        # 납기일 검증
-        valid, message = self.validate_due_date(item, time)
-        if not valid:
-            return False, message
-        
-        # 가동률 검증
-        valid, message = self.validate_utilization_rate(line, time, new_qty)
+        # 제조동 비율 제약조건 검증 (임시 데이터셋 생성 후 검증)
+        temp_result_data = self._calculate_adjusted_data(line, time, item, new_qty, source_line, source_time)
+        valid, message = self.validate_building_ratios(temp_result_data)
         if not valid:
             return False, message
         
         return True, "조정 가능합니다."
+
     
+    """
+    특정 라인과 시프트의 생산 용량을 반환
+    
+    Args:
+        line (str): 라인 코드 
+        time (int or str): 시프트 번호 
+        
+    Returns:
+        int or None: 해당 라인과 시프트의 생산 용량, 없으면 None
+    """
     def get_line_capacity(self, line, time):
-        """
-        특정 라인과 시프트의 생산 용량을 반환합니다.
-        
-        Args:
-            line (str): 라인 코드 (예: 'I_01')
-            time (int or str): 시프트 번호 (예: 1, 2, ...)
-            
-        Returns:
-            int or None: 해당 라인과 시프트의 생산 용량, 없으면 None
-        """
-        # 숫자형 time 문자열로 변환 (마스터 데이터와 형식 일치를 위해)
-        print(f"디버깅 - get_line_capacity 시작: 라인={line}, 시프트={time}")
-        
         # 이미 캐싱된 capa_qty_data 사용
         if self.capa_qty_data is None or self.capa_qty_data.empty:
             print("capa_qty 데이터가 비어 있습니다.")
@@ -506,17 +403,17 @@ class PlanAdjustmentValidator:
         return None
     
 
-    def get_factory_allocation(self, factory, time):
-        """
-        특정 제조동의 현재 생산 할당량을 계산합니다.
+    """
+    특정 제조동의 현재 생산 할당량을 계산
+    
+    Args:
+        factory (str): 제조동 코드 (예: 'I', 'D', 'K', 'M')
+        time (int or str): 시프트 번호
         
-        Args:
-            factory (str): 제조동 코드 (예: 'I', 'D', 'K', 'M')
-            time (int or str): 시프트 번호
-            
-        Returns:
-            float: 현재 할당된 생산량
-        """
+    Returns:
+        float: 현재 할당된 생산량
+    """
+    def get_factory_allocation(self, factory, time):
         if not hasattr(self, 'result_data') or self.result_data is None:
             return 0
         
@@ -524,37 +421,24 @@ class PlanAdjustmentValidator:
         if isinstance(time, str) and time.isdigit():
             time = int(time)
         
-        # 해당 제조동의 라인만 필터링
-        factory_lines = [line for line in self.result_data['Line'].unique() 
-                        if isinstance(line, str) and line.startswith(f'{factory}_')]
-        
         # 해당 제조동 및 시프트의 할당량 합계
-        allocation = 0
-        for _, row in self.result_data.iterrows():
-            if row.get('Line') in factory_lines and row.get('Time') == time:
-                allocation += row.get('Qty', 0)
+        factoroy_mask = (
+            self.result_data['Line'].str.startswith(f'{factory}_', na=False) &
+            (self.result_data['Time'] == time)
+        )
+
+        allocation = self.result_data[factoroy_mask]['Qty'].sum()
         
         return allocation
     
 
-    def validate_building_ratios(self):
+    def validate_building_ratios(self, result_data=None):
+        data_df = result_data if result_data is not None else self.result_data
+
         building_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
-            data_df=self.result_data,
+            data_df=data_df,
             is_initial=True
         )
-
-        # # 디버깅: 제조동별 총수량 출력
-        # print("\n===== 비율 계산 후 제조동별 수량 확인 =====")
-        # for building in ['I', 'D', 'K', 'M']:
-        #     building_qty = self.result_data[self.result_data['Line'].str.startswith(building)]['Qty'].sum()
-        #     print(f"최종 {building} 제조동 총 수량: {building_qty}")
-        # print("========================================\n")
-
-        # # 각 제조동별 비율 확인
-        # print("\n===== 계산된 비율 =====")
-        # for building, ratio in building_ratios.items():
-        #     print(f"{building}: {ratio}%")
-        # print("=======================\n")
     
         if not building_ratios:
             return True, "생산량이 없거나 제조동별 비율을 계산할 수 없습니다."
@@ -585,6 +469,70 @@ class PlanAdjustmentValidator:
             return True, "제조동별 물량 비율 제약을 만족합니다."
 
 
+    """아이템의 총 수요량(MFG) 반환"""
+    def _get_total_demand_for_item(self, item):
+        if 'demand' in self.demand_data:
+            df_demand = self.demand_data['demand']
+            item_rows = df_demand[df_demand['Item'] == item]
+            if not item_rows.empty and 'MFG' in item_rows.columns:
+                return item_rows['MFG'].sum()
+            
+        # 결과 데이터에서도 확인
+        if self.result_data is not None and not self.result_data.empty:
+            item_rows = self.result_data[self.result_data['Item'] == item]
+            if not item_rows.empty and 'MFG' in item_rows.columns:
+                return item_rows['MFG'].iloc[0]
+            
+        return 0
+    
+
+    """벡터화된 연산으로 조정된 결과 데이터 계산"""
+    def _calculate_adjusted_data(self, line, time, item, new_qty, source_line=None, source_time=None):
+        # 제조동별 검증
+        temp_result_data = self.result_data.copy()
+
+        # 이동인 경우 원본 위치에서 제거
+        if source_line and source_time:
+            mask = (
+                (temp_result_data['Line'] == source_line) & 
+                (temp_result_data['Time'] == source_time) & 
+                (temp_result_data['Item'] == item)
+            )
+            if mask.any():
+                # 원본 데이터 삭제
+                temp_result_data = temp_result_data[~mask].reset_index(drop=True)
+
+        # 새 위치에 할당
+        target_mask = (
+            (temp_result_data['Line'] == line) &
+            (temp_result_data['Time'] == time) &
+            (temp_result_data['Item'] == item)
+        )
+
+        # 대상 위치에 있으면 업데이트, 없으면 추가
+        if target_mask.any():
+            temp_result_data.loc[target_mask, 'Qty'] = new_qty
+        else:
+            # 새 행 생성
+            new_row = {
+                'Line': line,
+                'Time': time,
+                'Item': item,
+                'Qty': new_qty
+            }
+
+            # 프로젝트, rmc 등 필요한 정보 복사
+            item_data = self.result_data[self.result_data['Item'] == item]
+            if not item_data.empty:
+                for col in ['Project', 'RMC', 'To_site', 'SOP', 'MFG', 'Due_LT']:
+                    if col in item_data and item_data[col].notna().any():
+                        new_row[col] = item_data[col].iloc[0]  # 첫 번째 행의 값만 사용
+
+            # 새 행 추가
+            temp_result_data = pd.concat([temp_result_data, pd.DataFrame([new_row])], ignore_index=True)
+
+        return temp_result_data
+    
 
 
 

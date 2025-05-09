@@ -1,10 +1,10 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpacerItem, QSizePolicy, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSpacerItem, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
 from .item_edit_dialog import ItemEditDialog
 import json
-
+from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
 
 class ItemsContainer(QWidget):
     """아이템들을 담는 컨테이너 위젯"""
@@ -320,7 +320,11 @@ class ItemsContainer(QWidget):
 
                                      # 검증 실패 시 드롭 거부하고 함수 종료
                                     if not valid:
-                                        QMessageBox.warning(self, "이동 불가", message)
+                                        EnhancedMessageBox.show_validation_error(
+                                            self,
+                                            "Adjusted Constraint Error",
+                                            message
+                                        )
                                         event.ignore()  # 드롭 거부
                                         self.show_drop_indicator = False
                                         self.update()

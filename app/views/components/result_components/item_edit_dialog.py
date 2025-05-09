@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
-                             QPushButton, QDialogButtonBox, QLabel, QSpinBox,
-                             QComboBox, QHBoxLayout, QMessageBox, QWidget)
+                             QDialogButtonBox, QLabel, QSpinBox,
+                             QComboBox, QHBoxLayout, QWidget)
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont, QIntValidator, QCursor
+from PyQt5.QtGui import QFont, QCursor
 import pandas as pd
+from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
 
 
 class ItemEditDialog(QDialog):
@@ -322,7 +323,7 @@ class ItemEditDialog(QDialog):
 
                     # 검증 실패 시 메시지 표시하고 함수 종료
                     if not valid:
-                        QMessageBox.warning(self, "조정 불가", message)
+                        EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", message)
                         return  # 다이얼로그 유지
                 
                 # 검증 통과 또는 validator 없음 - 변경 사항 적용
@@ -334,4 +335,4 @@ class ItemEditDialog(QDialog):
             self.accept()
 
         except Exception as e:
-            QMessageBox.critical(self, "오류", f"데이터 업데이트 중 오류가 발생했습니다: {str(e)}")
+            EnhancedMessageBox.show_validation_error(self, "Error", f"An error occurred while updating data: {str(e)}")
