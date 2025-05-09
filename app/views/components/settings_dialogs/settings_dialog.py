@@ -188,8 +188,8 @@ class SettingsDialog(QDialog):
         cancel_button.setCursor(QCursor(Qt.PointingHandCursor))
         cancel_button.clicked.connect(self.reject)  # 다이얼로그 취소
 
-        button_layout.addWidget(reset_button)  # 초기화 버튼 추가
         button_layout.addStretch(1)
+        button_layout.addWidget(reset_button)  # 초기화 버튼 추가
         button_layout.addWidget(cancel_button)
         button_layout.addWidget(save_button)
 
