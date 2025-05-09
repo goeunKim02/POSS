@@ -1,9 +1,6 @@
 import pandas as pd
 from app.models.input.material import process_material_satisfaction_data
-from app.utils.error_handler import (
-    error_handler, safe_operation,
-    DataError, CalculationError
-)
+from app.utils.error_handler import (error_handler, safe_operation, CalculationError)
 
 """
 자재 만족률 분석
@@ -448,7 +445,14 @@ def calculate_item_producible_quantity(item_to_materials, material_onhand, mater
     try :
         item_producible = {}
 
-        for item, materials in item_to_materials.items() :
+        all_demand_items = set()
+
+        if 'Item' in demand_df.columns :
+            all_demand_items.update(demand_df['Item'].dropna().unique())
+        else :
+            all_demand_items.update(demand_df.index)
+
+        for item in all_demand_items :
             try :
                 demand = 0
 
@@ -461,47 +465,60 @@ def calculate_item_producible_quantity(item_to_materials, material_onhand, mater
                     if item in demand_df.index :
                         demand = float(demand_df.loc[item, 'MFG']) if pd.notna(demand_df.loc[item, 'MFG']) else 0
 
-                if demand > 0 :
-                    material_producible = []
+                if demand <= 0 :
+                    item_producible[item] = 0
+                    continue
 
-                    for material in materials :
-                        try :
-                            if material in material_to_group :
-                                group_idx = material_to_group[material]
+                materials = item_to_materials.get(item, [])
 
-                                if group_requirements[group_idx] > 0 :
-                                    item_req = demand
-                                    ratio = item_req / group_requirements[group_idx]
+                if not materials :
+                    item_producible[item] = 0
+                    continue
 
-                                    allocated_onhand = group_onhand[group_idx] * ratio
-                                    producible = int(allocated_onhand)
-                                else :
-                                    producible = demand
+                material_producible = []
+
+                for material in materials :
+                    try :
+                        producible = 0
+
+                        if material in material_to_group :
+                            group_idx = material_to_group[material]
+                            group_oh = group_onhand.get(group_idx, 0)
+                            group_req = group_requirements.get(group_idx, 0)
+
+                            if group_oh <= 0 :
+                                producible = 0
+                            elif group_req > 0 :
+                                ratio = demand / group_req
+                                allocated_oh = group_oh * ratio
+                                producible = max(0, int(allocated_oh))
                             else :
-                                if material in material_onhand :
-                                    material_oh = material_onhand[material]
+                                producible = min(demand, int(group_oh))
+                        else :
+                            material_oh = material_onhand.get(material, 0)
+                            material_req = material_requirements.get(material, 0)
 
-                                    if material in material_requirements and material_requirements[material] > 0 :
-                                        ratio = demand / material_requirements[material]
-                                        allocated_onhand = material_oh * ratio
-                                        producible = int(allocated_onhand)
-                                    else :
-                                        producible = demand if material_oh >= demand else int(material_oh)
-                                else :
-                                    producible = 0
-
-                            material_producible.append(producible)
-                        except Exception as e :
-                            material_producible.append(0)
-                            continue
-
-                    if material_producible :
-                        item_producible[item] = min(material_producible)
-                    else :
-                        item_producible[item] = demand
+                            if material_oh <= 0 :
+                                producible = 0
+                            elif material_req > 0 :
+                                ratio = demand / material_req
+                                allocated_oh = material_oh * ratio
+                                producible = max(0, int(allocated_oh))
+                            else :
+                                producible = min(demand, int(material_oh))
+                        material_producible.append(producible)
+                    except Exception as e :
+                        material_producible.append(0)
+                
+                if material_producible :
+                    item_producible[item] = min(material_producible)
                 else :
                     item_producible[item] = 0
             except Exception as e :
+                item_producible[item] = 0
+
+        for item in all_demand_items :
+            if item not in item_producible :
                 item_producible[item] = 0
 
         return item_producible

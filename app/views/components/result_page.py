@@ -13,6 +13,8 @@ from app.analysis.output.daily_capa_utilization import CapaUtilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from ..components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
 from app.utils.export_manager import ExportManager
+from app.core.output.adjustment_validator import PlanAdjustmentValidator
+
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -495,6 +497,16 @@ class ResultPage(QWidget):
             if data is not None and not data.empty:
                 # 데이터 변경 이벤트 카운터 증가
                 self.data_changed_count += 1
+
+                # validator 초기화
+                # master_data = DataStore.get("master_dataframes", {})
+                # demand_data = DataStore.get("demand_dataframes", {})
+                
+                self.validator = PlanAdjustmentValidator(data)
+                
+                # validator를 왼쪽 섹션에 전달 
+                if hasattr(self, 'left_section'):
+                    self.left_section.set_validator(self.validator)
 
                 # Plan 탭의 계획 유지율 위젯 업데이트
                 print("계획 유지율 위젯 업데이트 시작")

@@ -63,15 +63,15 @@ class SettingsSectionComponent(QFrame):
         # 컨테이너 위젯 생성
         container = QWidget()
         container.setStyleSheet("background-color: transparent; border: none;")
-        container_layout = QHBoxLayout(container)
+        container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
-        container_layout.setSpacing(10)
+        container_layout.setSpacing(5)  # 간격 줄임
 
         # 라벨 생성
         label = QLabel(label_text)
         label.setFont(QFont("Arial", 10))
         label.setStyleSheet("color: #333333;")
-        label.setMinimumWidth(150)  # 라벨 최소 너비 설정
+        label.setAlignment(Qt.AlignLeft)
 
         # 위젯 생성
         widget = None
@@ -79,6 +79,7 @@ class SettingsSectionComponent(QFrame):
         # 텍스트 입력
         if widget_type == 'input':
             widget = QLineEdit()
+            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
             if 'default' in kwargs:
                 widget.setText(str(kwargs['default']))
             widget.textChanged.connect(lambda text: self.setting_changed.emit(setting_key, text))
@@ -86,6 +87,7 @@ class SettingsSectionComponent(QFrame):
         # 정수 스핀박스
         elif widget_type == 'spinbox':
             widget = QSpinBox()
+            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
             widget.wheelEvent = lambda event: event.ignore()
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
@@ -100,6 +102,7 @@ class SettingsSectionComponent(QFrame):
         # 실수 스핀박스
         elif widget_type == 'doublespinbox':
             widget = QDoubleSpinBox()
+            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
             widget.wheelEvent = lambda event: event.ignore()
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
@@ -125,6 +128,7 @@ class SettingsSectionComponent(QFrame):
         # 콤보박스
         elif widget_type == 'combobox':
             widget = QComboBox()
+            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
             if 'items' in kwargs:
                 widget.addItems(kwargs['items'])
             if 'default_index' in kwargs:
@@ -137,24 +141,28 @@ class SettingsSectionComponent(QFrame):
         # 파일 경로 선택
         elif widget_type == 'filepath':
             container_file = QWidget()
+            container_file.setStyleSheet("background-color: transparent; border:none;")
             container_file_layout = QHBoxLayout(container_file)
             container_file_layout.setContentsMargins(0, 0, 0, 0)
-            container_file_layout.setSpacing(5)
+            container_file_layout.setSpacing(10)
 
             # 경로 표시 입력창
             path_input = QLineEdit()
+            path_input.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc; ")
             if 'default' in kwargs:
                 path_input.setText(kwargs['default'])
             path_input.setReadOnly(kwargs.get('readonly', True))
 
             # 찾아보기 버튼
-            browse_button = QPushButton("찾아보기")
+            browse_button = QPushButton("Browse")
             browse_button.setStyleSheet("""
                 QPushButton {
                     background-color: #1428A0;
                     color: white;
-                    border-radius: 3px;
+                    border-radius: 5px;
                     padding: 5px;
+                    border: none;
+                    font-family: Arial; 
                 }
                 QPushButton:hover {
                     background-color: #1e429f;
@@ -195,33 +203,38 @@ class SettingsSectionComponent(QFrame):
         # 다중 선택 콤보박스
         elif widget_type == 'multiselect':
             container_multi = QWidget()
+            container_multi.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
             container_multi_layout = QVBoxLayout(container_multi)
             container_multi_layout.setContentsMargins(0, 0, 0, 0)
             container_multi_layout.setSpacing(5)
 
             # 현재 선택된 항목들 표시
-            selected_label = QLabel("선택된 항목: ")
+            selected_label = QLabel("Selected items: ")
             selected_label.setFont(QFont("Arial", 9))
+            selected_label.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
 
             # 콤보박스와 버튼 컨테이너
             combo_container = QWidget()
+            combo_container.setStyleSheet("background-color: #F5F5F5; border:none;")
             combo_layout = QHBoxLayout(combo_container)
             combo_layout.setContentsMargins(0, 0, 0, 0)
             combo_layout.setSpacing(5)
 
             # 콤보박스
             combo = QComboBox()
+            combo.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
             if 'items' in kwargs:
                 combo.addItems(kwargs['items'])
 
             # 선택 버튼
-            add_button = QPushButton("추가")
+            add_button = QPushButton("Add")
             add_button.setStyleSheet("""
                 QPushButton {
                     background-color: #1428A0;
                     color: white;
                     border-radius: 3px;
                     padding: 5px;
+                    font-family: Arial;  
                 }
                 QPushButton:hover {
                     background-color: #1e429f;
@@ -236,9 +249,9 @@ class SettingsSectionComponent(QFrame):
             # 선택된 항목 표시 업데이트
             def update_selected_text():
                 if selected_items:
-                    selected_label.setText("선택된 항목: " + ", ".join(map(str, selected_items)))
+                    selected_label.setText("Selected Items: " + ", ".join(map(str, selected_items)))
                 else:
-                    selected_label.setText("선택된 항목이 없습니다")
+                    selected_label.setText("Please select an item. No item selected.")
                 # 선택 항목 변경 이벤트 발생
                 self.setting_changed.emit(setting_key, selected_items.copy())
 
@@ -255,13 +268,14 @@ class SettingsSectionComponent(QFrame):
             add_button.clicked.connect(add_selected_item)
 
             # 삭제 버튼
-            remove_button = QPushButton("제거")
+            remove_button = QPushButton("Remove")
             remove_button.setStyleSheet("""
                 QPushButton {
                     background-color: #B22222;
                     color: white;
                     border-radius: 3px;
                     padding: 5px;
+                    font-family: Arial;
                 }
                 QPushButton:hover {
                     background-color: #DC143C;
@@ -289,10 +303,20 @@ class SettingsSectionComponent(QFrame):
 
         # 위젯이 생성되었을 경우에만 컨테이너에 추가
         if widget:
+            # 라벨 추가
+            widget.setMinimumWidth(400)
             container_layout.addWidget(label)
-            container_layout.addWidget(widget)
-            container_layout.setStretch(0, 1)  # 라벨 크기 비율
-            container_layout.setStretch(1, 3)  # 위젯 크기 비율
+
+            # 위젯을 담을 컨테이너 생성 - 좌우 여백 적용
+            widget_container = QWidget()
+            widget_container.setStyleSheet("background-color: transparent; border: none;")
+            widget_layout = QHBoxLayout(widget_container)
+            widget_layout.setContentsMargins(30, 0, 30, 0)
+            widget_layout.addWidget(widget)
+            widget_layout.addStretch(1)
+
+            # 위젯 컨테이너 추가
+            container_layout.addWidget(widget_container)
 
             # 설정 레이아웃에 컨테이너 추가
             self.settings_layout.addWidget(container)

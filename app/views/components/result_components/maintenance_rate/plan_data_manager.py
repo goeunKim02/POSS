@@ -78,8 +78,14 @@ class PlanDataManager:
     
     """유지율 계산"""
     def calculate_maintenance_rates(self, compare_with_adjusted=True):
+        print(f"calculate_maintenance_rates 호출됨, compare_with_adjusted={compare_with_adjusted}")
+    
         if self.plan_analyzer is None:
+            print("plan_analyzer가 None입니다")
             return None, None, None, None
+        
+        print(f"현재 계획: {self.current_plan is not None}")
+        print(f"첫 번째 계획 여부: {self.is_first_plan}")
             
         item_df, item_rate = self.plan_analyzer.calculate_items_maintenance_rate(
             compare_with_adjusted=compare_with_adjusted

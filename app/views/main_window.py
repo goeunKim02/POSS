@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QDesktopWidget
+from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QCursor, QIcon, QFont
 import pandas as pd
 import os
@@ -23,7 +23,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Samsung Production Planning Optimization System")
-        self.resize(1920, 980)
 
         # Create a smaller icon
         # app_icon = QIcon('../resources/icon/samsung_icon1.png')
@@ -37,6 +36,7 @@ class MainWindow(QMainWindow):
 
         # UI 초기화
         self.init_ui()
+        QTimer.singleShot(100, self.showMaximized)
 
     def init_ui(self):
         central_widget = QWidget()

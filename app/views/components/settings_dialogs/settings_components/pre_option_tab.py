@@ -33,7 +33,7 @@ class PreOptionTabComponent(BaseTabComponent):
         frame_layout.setSpacing(15)
 
         # 제목 레이블 생성
-        title_label = QLabel("사전 옵션 설정")
+        title_label = QLabel("Pre-Option Settings")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
@@ -42,7 +42,7 @@ class PreOptionTabComponent(BaseTabComponent):
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
-        desc_label = QLabel("계획 유지율 및 사전 할당 옵션을 설정하세요.")
+        desc_label = QLabel("Configure the plan retention rate and pre-assignment settings.")
         desc_label.setWordWrap(True)
         desc_font = QFont("Arial", 11)
         desc_label.setFont(desc_font)
@@ -56,7 +56,7 @@ class PreOptionTabComponent(BaseTabComponent):
         sections_layout.setSpacing(15)  # 섹션간 간격
 
         # 계획 유지율 섹션 1
-        plan_retention1_section = SettingsSectionComponent("계획 유지율 1")
+        plan_retention1_section = SettingsSectionComponent("Plan Retention Rate 1")
         plan_retention1_section.setting_changed.connect(self.on_setting_changed)
 
         # 날짜 선택 옵션 (1~14일)
@@ -64,51 +64,51 @@ class PreOptionTabComponent(BaseTabComponent):
 
         # 계획 유지율 1 설정 항목 추가
         plan_retention1_section.add_setting_item(
-            "계획유지율_1", "op_timeset_1", "multiselect",
+            "Plan Retention Rate 1", "op_timeset_1", "multiselect",
             items=days, default=SettingsStore.get("op_timeset_1", [])
         )
 
         plan_retention1_section.add_setting_item(
-            "SKU_계획유지율_1", "op_SKU_1", "spinbox",
+            "SKU Plan Retention Rate 1", "op_SKU_1", "spinbox",
             min=0, max=100, default=SettingsStore.get("op_SKU_1", 100),
             suffix="%"
         )
 
         plan_retention1_section.add_setting_item(
-            "RMC_계획유지율_1", "op_RMC_1", "spinbox",
+            "RMC Plan Retention Rate 1", "op_RMC_1", "spinbox",
             min=0, max=100, default=SettingsStore.get("op_RMC_1", 100),
             suffix="%"
         )
 
         # 계획 유지율 섹션 2
-        plan_retention2_section = SettingsSectionComponent("계획 유지율 2")
+        plan_retention2_section = SettingsSectionComponent("Plan Retention Rate 2")
         plan_retention2_section.setting_changed.connect(self.on_setting_changed)
 
         # 계획 유지율 2 설정 항목 추가
         plan_retention2_section.add_setting_item(
-            "계획유지율_2", "op_timeset_2", "multiselect",
+            "Plan Retention Rate 2", "op_timeset_2", "multiselect",
             items=days, default=SettingsStore.get("op_timeset_2", [])
         )
 
         plan_retention2_section.add_setting_item(
-            "SKU_계획유지율_2", "op_SKU_2", "spinbox",
+            "SKU Plan Retention Rate 2", "op_SKU_2", "spinbox",
             min=0, max=100, default=SettingsStore.get("op_SKU_2", 100),
             suffix="%"
         )
 
         plan_retention2_section.add_setting_item(
-            "RMC_계획유지율_2", "op_RMC_2", "spinbox",
+            "RMC Plan Retention Rate 2", "op_RMC_2", "spinbox",
             min=0, max=100, default=SettingsStore.get("op_RMC_2", 100),
             suffix="%"
         )
 
         # 사전 할당 섹션
-        pre_allocation_section = SettingsSectionComponent("사전 할당")
+        pre_allocation_section = SettingsSectionComponent("Pre-Assignment")
         pre_allocation_section.setting_changed.connect(self.on_setting_changed)
 
         # 사전 할당 설정 항목 추가
         pre_allocation_section.add_setting_item(
-            "사전할당 비율 반영여부", "max_min_ratio_ox", "checkbox",
+            "Apply Pre-Assignment Ratio", "max_min_ratio_ox", "checkbox",
             default=bool(SettingsStore.get("max_min_ratio_ox", 0))
         )
 
@@ -116,7 +116,7 @@ class PreOptionTabComponent(BaseTabComponent):
         margins = [str(i) for i in range(1, 51)]
 
         pre_allocation_section.add_setting_item(
-            "1차 수행 사전할당 비율", "max_min_margin", "combobox",
+            "Pre-Assignment Ratio for Primary Execution", "max_min_margin", "combobox",
             items=margins,
             default_index=SettingsStore.get("max_min_margin", 10) - 1  # 인덱스는 0부터 시작하므로 -1
         )
@@ -127,7 +127,7 @@ class PreOptionTabComponent(BaseTabComponent):
         sections_layout.addWidget(pre_allocation_section)
 
         # 메모 레이블
-        note_label = QLabel("계획 유지율은 이전 계획과의 연속성을 보장하기 위한 설정입니다.")
+        note_label = QLabel("The plan adherence rate is a configuration that ensures continuity with the prior plan.")
         note_label.setStyleSheet(
             "font-style: italic; color: #666; margin-top: 20px; background-color: transparent; border:none;")
 

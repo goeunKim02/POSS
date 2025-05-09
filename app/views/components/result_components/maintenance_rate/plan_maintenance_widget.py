@@ -34,7 +34,7 @@ class PlanMaintenanceWidget(QWidget):
         
         # 데이터 있을 때 표시할 컨테이너
         self.content_container = QWidget()
-        self.content_container.setStyleSheet("border: none;")  # 테두리 없음 명시
+        self.content_container.setStyleSheet("border: none;")  
         self.content_layout = QVBoxLayout(self.content_container)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.content_layout.setSpacing(10)
