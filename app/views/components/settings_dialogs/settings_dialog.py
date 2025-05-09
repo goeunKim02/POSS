@@ -1,5 +1,6 @@
 # app/views/components/settings_dialogs/settings_dialog.py - 설정 다이얼로그 클래스
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame, QApplication
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame, QApplication, \
+    QMessageBox
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -35,6 +36,9 @@ class SettingsDialog(QDialog):
 
         self.settings_map = {}  # 변경된 설정 추적
         self.init_ui()
+
+        # 초기 설정 상태 저장
+        self.original_settings = self.settings_map.copy()
 
     def init_ui(self):
         # 메인 레이아웃
@@ -115,6 +119,29 @@ class SettingsDialog(QDialog):
         button_layout = QHBoxLayout(button_frame)
         button_layout.setContentsMargins(0, 0, 30, 10)
 
+        # 초기화 버튼
+        reset_button = QPushButton("Reset")
+        reset_button_font = QFont("Arial", 10)
+        reset_button_font.setBold(True)
+        reset_button.setFont(reset_button_font)
+        reset_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF5252;
+                border: none;
+                color: white;
+                border-radius: 10px;
+                width: 130px;
+                height: 50px;
+            }
+            QPushButton:hover {
+                background-color: #FF7676;
+                border: none;
+                color: white;
+            }
+        """)
+        reset_button.setCursor(QCursor(Qt.PointingHandCursor))
+        reset_button.clicked.connect(self.reset_settings)  # 초기화 함수 연결
+
         # 저장 및 닫기 버튼
         save_button = QPushButton("Save")
         save_button_font = QFont("Arial", 10)
@@ -161,6 +188,7 @@ class SettingsDialog(QDialog):
         cancel_button.setCursor(QCursor(Qt.PointingHandCursor))
         cancel_button.clicked.connect(self.reject)  # 다이얼로그 취소
 
+        button_layout.addWidget(reset_button)  # 초기화 버튼 추가
         button_layout.addStretch(1)
         button_layout.addWidget(cancel_button)
         button_layout.addWidget(save_button)
@@ -187,11 +215,67 @@ class SettingsDialog(QDialog):
 
     def save_settings(self):
         """설정 저장 및 다이얼로그 종료"""
-        # 설정 저장소에 일괄 업데이트
-        SettingsStore.update(self.settings_map)
+        try:
+            # 설정 저장소에 일괄 업데이트
+            SettingsStore.update(self.settings_map)
 
-        # 설정 변경 시그널 발생
-        self.settings_changed.emit(self.settings_map)
+            # 파일에 저장
+            SettingsStore.save_settings()
 
-        # 다이얼로그 종료
-        self.accept()
+            # 설정 변경 시그널 발생
+            self.settings_changed.emit(self.settings_map)
+
+            # 성공 메시지 표시
+            QMessageBox.information(self, "Save Settings", "Settings have been saved successfully.")
+
+            # 다이얼로그 종료
+            self.accept()
+
+        except Exception as e:
+            # 에러 메시지 표시
+            QMessageBox.critical(self, "Save Error", f"An error occurred while saving the settings:\n{str(e)}")
+
+    def reset_settings(self):
+        """설정값을 기본값으로 초기화"""
+        # 확인 대화상자 표시
+        reply = QMessageBox.question(
+            self,
+            "Reset Settings",
+            "Reset all settings to default?\nThis action cannot be undone.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply == QMessageBox.Yes:
+            # SettingsStore 초기화하고 기본값 받아오기
+            default_settings = SettingsStore.reset_to_default()
+            self.settings_map = default_settings
+
+            # UI 다시 로드 (탭 위젯 재생성)
+            # 현재 탭 인덱스 저장
+            current_tab = self.tab_widget.currentIndex()
+
+            # 기존 탭 제거
+            while self.tab_widget.count() > 0:
+                self.tab_widget.removeTab(0)
+
+            # 탭 컴포넌트 재생성
+            self.basic_tab = BasicTabComponent()
+            self.pre_option_tab = PreOptionTabComponent()
+            self.detail_tab = DetailTabComponent()
+
+            # 설정 변경 이벤트 다시 연결
+            self.basic_tab.settings_changed.connect(self.on_setting_changed)
+            self.pre_option_tab.settings_changed.connect(self.on_setting_changed)
+            self.detail_tab.settings_changed.connect(self.on_setting_changed)
+
+            # 탭 추가
+            self.tab_widget.addTab(self.basic_tab, "Basic")
+            self.tab_widget.addTab(self.pre_option_tab, "Pre-Option")
+            self.tab_widget.addTab(self.detail_tab, "Detail")
+
+            # 이전에 선택한 탭으로 복원
+            self.tab_widget.setCurrentIndex(current_tab)
+
+            # 메시지 표시
+            QMessageBox.information(self, "Reset Settings", "Settings have been reset to default values.")

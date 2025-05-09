@@ -1,13 +1,13 @@
-# app/models/common/settings_store.py
 import json
 import os
-
+import copy  # 추가해야 함
 
 class SettingsStore:
     """
     설정값을 저장하고 관리하기 위한 중앙 저장소 클래스
     """
-    _settings = {
+    # 기본 설정 값 정의 (불변)
+    _default_settings = {
         # Basic 설정
         "time_limit": 300,  # 수행시간(초)
         "weight_sop_ox": 1.0,  # SOP 가중치
@@ -42,6 +42,12 @@ class SettingsStore:
         "weight_day": [1.0, 1.0, 1.0]  # shift별 가중치 (기본값: 3개 shift)
     }
 
+    # 현재 설정을 별도 변수로 관리
+    _settings = {}
+
+    # 생성자에서 기본값으로 초기화
+    _settings = copy.deepcopy(_default_settings)
+
     _config_file = "settings.json"
 
     @classmethod
@@ -53,18 +59,16 @@ class SettingsStore:
     def set(cls, key, value):
         """설정값 저장"""
         cls._settings[key] = value
-        cls.save_settings()  # 설정 변경시 자동 저장
 
     @classmethod
     def update(cls, settings_dict):
         """여러 설정값 일괄 업데이트"""
         cls._settings.update(settings_dict)
-        cls.save_settings()  # 설정 변경시 자동 저장
 
     @classmethod
     def get_all(cls):
         """모든 설정값 조회"""
-        return cls._settings.copy()
+        return copy.deepcopy(cls._settings)
 
     @classmethod
     def save_settings(cls, file_path=None):
@@ -93,3 +97,12 @@ class SettingsStore:
         except Exception as e:
             print(f"설정 파일 로드 중 오류 발생: {e}")
             return False
+
+    @classmethod
+    def reset_to_default(cls):
+        """설정값을 기본값으로 초기화"""
+        # 기본값의 깊은 복사본을 사용하여 초기화
+        cls._settings = copy.deepcopy(cls._default_settings)
+        # 초기화된 설정을 파일에 저장
+        cls.save_settings()
+        return copy.deepcopy(cls._settings)
