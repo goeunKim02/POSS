@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QCursor
 from app.views.components.result_components.maintenance_rate.plan_data_manager import PlanDataManager
-from app.views.components.result_components.maintenance_rate.maintenance_tree_widget import ItemMaintenanceTree,RMCMaintenanceTree
+from app.views.components.result_components.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
 
 """계획 유지율 표시 위젯"""
 class PlanMaintenanceWidget(QWidget):
@@ -144,17 +144,17 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 24px; 
+                font-size: 14px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 24px;  
+                font-size: 14px;  
             }
             QTabBar::tab {
                 padding: 8px 16px;
-                min-width: 300px;
+                min-width: 150px;
                 margin-left: 7px;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
@@ -162,7 +162,7 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 24px;  
+                font-size: 14px;  
             }
             QTabBar::tab::first { margin-left: 10px; }
         """)
@@ -172,18 +172,18 @@ class PlanMaintenanceWidget(QWidget):
         item_layout = QVBoxLayout(self.item_tab)
         item_layout.setContentsMargins(10, 10, 10, 10)
         
-        # Item별 트리 위젯
-        self.item_tree = ItemMaintenanceTree()
-        item_layout.addWidget(self.item_tree)
+        # Item별 테이블 위젯
+        self.item_table = ItemMaintenanceTable()
+        item_layout.addWidget(self.item_table)
         
         # RMC별 탭
         self.rmc_tab = QWidget()
         rmc_layout = QVBoxLayout(self.rmc_tab)
         rmc_layout.setContentsMargins(10, 10, 10, 10)
         
-        # RMC별 트리 위젯
-        self.rmc_tree = RMCMaintenanceTree()
-        rmc_layout.addWidget(self.rmc_tree)
+        # RMC별 테이블 위젯
+        self.rmc_table = RMCMaintenanceTable()
+        rmc_layout.addWidget(self.rmc_table)
         
         # 탭 추가
         self.tab_widget.addTab(self.item_tab, "Item Maintenance Rate")
@@ -197,7 +197,7 @@ class PlanMaintenanceWidget(QWidget):
         # 탭 변경 시 유지율 레이블 업데이트
         self.tab_widget.currentChanged.connect(self.update_rate_label)
         
-    # 이하 이벤트 핸들러와 비즈니스 로직
+    # 이하 이벤트 핸들러와 비즈니스 로직 - 수정 필요
     
     def select_previous_plan(self):
         """이전 계획 선택"""
@@ -305,21 +305,21 @@ class PlanMaintenanceWidget(QWidget):
         rmc_rate_str = f"{self.rmc_maintenance_rate:.2f}%" if self.rmc_maintenance_rate is not None else "N/A"
         print(f"계산된 유지율 - Item: {item_rate_str}, RMC: {rmc_rate_str}")
         
-        # 트리 위젯 데이터 설정
+        # 테이블 위젯 데이터 설정
         if item_df is not None and not item_df.empty:
-            self.item_tree.populate_data(item_df, self.data_manager.modified_item_keys)
+            self.item_table.populate_data(item_df, self.data_manager.modified_item_keys)
         else:
             print("Item별 유지율 데이터가 없습니다.")
             
         if rmc_df is not None and not rmc_df.empty:
-            self.rmc_tree.populate_data(rmc_df, self.data_manager.modified_item_keys)
+            self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys)
         else:
             print("RMC별 유지율 데이터가 없습니다.")
             
         # 선택된 탭에 따라 유지율 레이블 업데이트
         self.update_rate_label(self.tab_widget.currentIndex())
         
-    def update_quantity(self, line, time, item, new_qty):
+    def update_quantity(self, line, time, item, new_qty, demand=None):
         print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
         """수량 업데이트 및 UI 갱신"""
 

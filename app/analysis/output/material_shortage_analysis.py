@@ -448,19 +448,19 @@ class MaterialShortageAnalyzer:
         # 결과 저장
         self.shortage_results = shortage_results
         
-        # 요약 출력
-        if shortage_results:
-            print(f"\n자재 부족 모델 {len(shortage_results)}개 발견")
-            print("\n=== 자재 부족 요약 ===")
-            for item, shortages in shortage_results.items():
-                print(f"\n아이템: {item}")
-                for shortage in shortages:
-                    print(f"  - 자재: {shortage['Material']}")
-                    print(f"    * 필요량(MFG 총합): {shortage['Required']:,}")
-                    print(f"    * 가용량: {shortage['Available']:,}")
-                    print(f"    * 부족량: {shortage['Shortage']:,}")
-        else:
-            print("자재 부족 모델 없음")
+        # # 요약 출력
+        # if shortage_results:
+        #     print(f"\n자재 부족 모델 {len(shortage_results)}개 발견")
+        #     print("\n=== 자재 부족 요약 ===")
+        #     for item, shortages in shortage_results.items():
+        #         print(f"\n아이템: {item}")
+        #         for shortage in shortages:
+        #             print(f"  - 자재: {shortage['Material']}")
+        #             print(f"    * 필요량(MFG 총합): {shortage['Required']:,}")
+        #             print(f"    * 가용량: {shortage['Available']:,}")
+        #             print(f"    * 부족량: {shortage['Shortage']:,}")
+        # else:
+        #     print("자재 부족 모델 없음")
             
         return shortage_results
 
