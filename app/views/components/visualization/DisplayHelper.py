@@ -42,9 +42,9 @@ class DisplayHelper:
         # 데이터 유효성 확인
         has_data_func = chart_config.get('has_data_check', lambda x:x is not None and len(x) > 0)
 
-        print(f"차트 타입 (처리 전): {chart_config.get('chart_type')}")
-        print(f"비교 데이터 여부: {is_comparison_data}")
-        print(f"차트 타입 (처리 후): {chart_type}")
+        # print(f"차트 타입 (처리 전): {chart_config.get('chart_type')}")
+        # print(f"비교 데이터 여부: {is_comparison_data}")
+        # print(f"차트 타입 (처리 후): {chart_type}")
 
         # 비교 차트 데이터의 유효성 확인
         if is_comparison_data:

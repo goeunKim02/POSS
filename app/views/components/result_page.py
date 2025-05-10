@@ -392,7 +392,6 @@ class ResultPage(QWidget):
             time = new_data.get('Time')
             item = new_data.get('Item')
             new_qty = new_data.get('Qty')
-            demand = new_data.get('Demand', None)  # 선택적 필드
 
             # 값 변환 및 검증
             try:
@@ -407,7 +406,7 @@ class ResultPage(QWidget):
                     if hasattr(self, 'plan_maintenance_widget'):
                         # 수량 직접 업데이트
                         print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
-                        self.plan_maintenance_widget.update_quantity(line, time, item, new_qty, demand)
+                        self.plan_maintenance_widget.update_quantity(line, time, item, new_qty)
                         
                         
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
@@ -497,10 +496,6 @@ class ResultPage(QWidget):
             if data is not None and not data.empty:
                 # 데이터 변경 이벤트 카운터 증가
                 self.data_changed_count += 1
-
-                # validator 초기화
-                # master_data = DataStore.get("master_dataframes", {})
-                # demand_data = DataStore.get("demand_dataframes", {})
                 
                 self.validator = PlanAdjustmentValidator(data)
                 
@@ -604,11 +599,10 @@ class ResultPage(QWidget):
                         time = new_data.get('Time')
                         item = new_data.get('Item')
                         qty = new_data.get('Qty')
-                        demand = new_data.get('Demand', None)
                         
                         # 값이 있으면 수량 업데이트
                         if line and time is not None and item and qty is not None:
-                            self.plan_maintenance_widget.update_quantity(line, time, item, qty, demand)
+                            self.plan_maintenance_widget.update_quantity(line, time, item, qty)
         
         except Exception as e:
             print(f"셀 이동 처리 중 오류 발생: {e}")
@@ -812,8 +806,8 @@ class ResultPage(QWidget):
             print("자재 부족 항목 데이터가 비어있습니다.")
             return
                 
-        print(f"자재 부족 항목 데이터 크기: {shortage_df.shape}")
-        print(f"데이터 샘플:\n{shortage_df.head()}")
+        # print(f"자재 부족 항목 데이터 크기: {shortage_df.shape}")
+        # print(f"데이터 샘플:\n{shortage_df.head()}")
                 
         # 부족률 계산 및 정렬 (부족률 높은 순)
         shortage_df['Shortage_Pct'] = (shortage_df['Shortage'] / shortage_df['Required']) * 100
