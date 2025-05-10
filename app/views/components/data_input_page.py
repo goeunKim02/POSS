@@ -18,6 +18,7 @@ from app.views.components.data_upload_components.file_explorer_sidebar import Fi
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
+from app.views.components.data_upload_components.right_parameter_component import RightParameterComponent
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
@@ -254,7 +255,7 @@ class DataInputPage(QWidget):
         right_parameter_layout.setContentsMargins(5, 5, 5, 5)
 
         # 기존 ParameterComponent 추가
-        self.parameter_component = ParameterComponent()
+        self.parameter_component = RightParameterComponent()
         right_parameter_layout.addWidget(self.parameter_component)
 
         # 스플리터에 왼쪽/오른쪽 영역 추가
@@ -490,11 +491,8 @@ class DataInputPage(QWidget):
                 traceback.print_exc()
 
             self.parameter_component.show_failures.emit(failures)
+            print(str(failures))
 
-            if self.parameter_component.current_metric == 'Production Capacity':
-                self.left_parameter_component.setVisible(True)
-            else:
-                self.left_parameter_component.setVisible(False)
         except Exception as e:
             print(f"[preAssign 분석] 오류 발생: {e}")
 
