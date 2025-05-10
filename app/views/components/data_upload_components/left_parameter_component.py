@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QLabel, QFrame, QTabWidget
+    QLabel, QTabWidget
 )
 from app.utils.error_handler import error_handler, safe_operation
 
@@ -27,13 +27,13 @@ class LeftParameterComponent(QWidget):
         default_return=None
     )
     def _initialize_all_tabs(self) :
-        for metric in self.matrics :
+        for metric in self.metrics :
             if metric in self.pages :
                 page = self.pages[metric]
                 table = page['table']
                 table.clear()
                 table.setColumnCount(0)
-                page['summary_label'].setText('분석 데이터 없음')
+                page['summary_label'].setText('No analysis data')
 
     @error_handler(
         show_dialog=False,
@@ -65,7 +65,7 @@ class LeftParameterComponent(QWidget):
                 "QHeaderView::section { background-color: #1428A0; color: white; border: none; padding: 6px; }"
             )
 
-            summary_label = QLabel("분석 요약")
+            summary_label = QLabel("analysis summary")
             summary_label.setStyleSheet("font-weight: bold; font-size: 12px;")
             summary_label.setAlignment(Qt.AlignTop)
 
@@ -97,7 +97,7 @@ class LeftParameterComponent(QWidget):
                 table.setColumnCount(0)
                 table.setHeaderHidden(True)
                 
-                page_widgets["summary_label"].setText("분석 요약")
+                page_widgets["summary_label"].setText("analysis summary")
             return
 
         display_df = data.get('display_df')
@@ -109,7 +109,7 @@ class LeftParameterComponent(QWidget):
         if display_df is None or (hasattr(display_df, 'empty') and display_df.empty) :
             table.setColumnCount(0)
             table.setHeaderHidden(True)
-            page_widgets['summary_label'].setText('분석 데이터 없음')
+            page_widgets['summary_label'].setText('No analysis data')
             return
         table.setHeaderHidden(False)
 
@@ -117,8 +117,8 @@ class LeftParameterComponent(QWidget):
             table.setColumnCount(0)
         else:
             headers = ["PJT Group", "PJT", "MFG", "SOP", "CAPA", "MFG/CAPA", "SOP/CAPA"]
-            if 'status' in display_df.columns:
-                headers.append('Status')
+            # if 'status' in display_df.columns:
+            #     headers.append('Status')
             table.setColumnCount(len(headers))
             table.setHeaderLabels(headers)
 
@@ -132,7 +132,7 @@ class LeftParameterComponent(QWidget):
                 if str(row.get('PJT', '')) == 'Total':
                     for col in range(len(headers)):
                         item.setFont(col, bold_font)
-                    if row.get('status', '') == '이상':
+                    if row.get('status', '') == 'Error':
                         for col in range(len(headers)):
                             item.setForeground(col, red_brush)
                 table.addTopLevelItem(item)
@@ -140,20 +140,18 @@ class LeftParameterComponent(QWidget):
             for i in range(len(headers)):
                 table.resizeColumnToContents(i)
 
-        # 요약 업데이트
         summary_label = page_widgets["summary_label"]
-        # summary 객체가 None이 아닌지 명시적으로 확인하여 오류 방지
-        if summary is not None:
+
+        if summary is not None :
             text = (
-                f"<b>분석 요약:</b><br>"
-                f"총 그룹 수: {summary.get('총 그룹 수', 0)}<br>"
-                f"이상 그룹 수: {summary.get('이상 그룹 수', 0)}<br>"
-                f"전체 MFG: {summary.get('전체 MFG', 0):,}<br>"
-                f"전체 SOP: {summary.get('전체 SOP', 0):,}<br>"
-                f"전체 CAPA: {summary.get('전체 CAPA', 0):,}<br>"
-                f"전체 MFG/CAPA 비율: {summary.get('전체 MFG/CAPA 비율', '0%')}<br>"
-                f"전체 SOP/CAPA 비율: {summary.get('전체 SOP/CAPA 비율', '0%')}"
+                f"Total number of groups : {summary.get('Total number of groups', 0)}<br>"
+                f"Number of error groups : {summary.get('Number of error groups', 0)}<br>"
+                f"Total MFG : {summary.get('Total MFG', 0):,}<br>"
+                f"Total SOP : {summary.get('Total SOP', 0):,}<br>"
+                f"Total CAPA : {summary.get('Total CAPA', 0):,}<br>"
+                f"Total MFG/CAPA ratio : {summary.get('Total MFG/CAPA ratio', '0%')}<br>"
+                f"Total SOP/CAPA ratio : {summary.get('Total SOP/CAPA ratio', '0%')}"
             )
             summary_label.setText(text)
         else:
-            summary_label.setText("분석 요약")
+            summary_label.setText("Analysis summary")

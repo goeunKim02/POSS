@@ -277,7 +277,7 @@ class ParameterComponent(QWidget):
 
             try :
                 for _, row in display_df.iterrows():
-                    if row.get('PJT') == 'Total' and row.get('status') == '이상':
+                    if row.get('PJT') == 'Total' and row.get('status') == 'Error':
                         has_issues = True
                         break
             except Exception :
@@ -288,7 +288,7 @@ class ParameterComponent(QWidget):
 
                 try :
                     for _, row in display_df.iterrows() :
-                        if row.get('PJT') == 'Total' and row.get('status') == '이상' :
+                        if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
                             issues.append({
                                 'line': row.get('PJT Group', ''),
                                 'reason': '용량 초과',
