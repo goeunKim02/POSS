@@ -19,6 +19,7 @@ from app.views.components.data_upload_components.file_explorer_sidebar import Fi
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
+from app.views.components.data_upload_components.right_parameter_component import RightParameterComponent
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
@@ -212,7 +213,8 @@ class DataInputPage(QWidget) :
         right_parameter_layout = QVBoxLayout(right_parameter_area)
         right_parameter_layout.setContentsMargins(5, 5, 5, 5)
 
-        self.parameter_component = ParameterComponent()
+        # 기존 ParameterComponent 추가
+        self.parameter_component = RightParameterComponent()
         right_parameter_layout.addWidget(self.parameter_component)
 
         parameter_splitter.addWidget(left_parameter_area)
@@ -395,10 +397,12 @@ class DataInputPage(QWidget) :
             failed_items, failed_rmcs = run_maintenance_analysis()
             print(failed_items, failed_rmcs)
 
-            failures["plan_adherence_rate"] = {
-                "item_failures": failed_items,
-                "rmc_failures": failed_rmcs
-            }
+            # item_plan_retention_rate, rmc_plan_retention_rate = calc_plan_retention()
+            
+            # failures["plan_retention_rate"] = {
+            #     "item_plan_retention_rate": item_plan_retention_rate,
+            #     "rmc_plan_retention_rate": rmc_plan_retention_rate
+            # }
 
             try :
                 processed_data = process_data()
