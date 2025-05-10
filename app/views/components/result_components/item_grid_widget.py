@@ -227,7 +227,7 @@ class ItemGridWidget(QWidget):
         # 상위 위젯에 데이터 변경 이벤트 전달 (변경된 필드 정보 포함)
         self.itemDataChanged.emit(item, new_data, changed_fields)
 
-    def addItemAt(self, row, col, item_text, item_data=None):
+    def addItemAt(self, row, col, item_text, item_data=None, index=-1):
         """
         특정 위치에 아이템 추가
 
@@ -238,7 +238,11 @@ class ItemGridWidget(QWidget):
         - item_data: 아이템 관련 데이터 (툴팁에 표시할 전체 정보)
         """
         if 0 <= row < len(self.containers) and 0 <= col < len(self.containers[row]):
-            return self.containers[row][col].addItem(item_text, -1, item_data)
+            if item_data and '_drop_pos_x' in item_data:
+                # 내부 사용 후 삭제
+                item_data.pop('_drop_pos_x', None)
+                item_data.pop('_drop_pos_y', None)
+            return self.containers[row][col].addItem(item_text, index, item_data)
         return None
 
     def clearAllItems(self):
