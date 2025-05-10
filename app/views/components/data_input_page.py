@@ -7,9 +7,10 @@ import os
 import re
 
 from app.core.input.pre_assign import run_allocation
-from app.core.input.maintenance import run_maintenance_analysis
+from app.core.input.maintenance import calc_plan_retention, run_maintenance_analysis
 from app.models.common.fileStore import FilePaths, DataStore
 
+from app.utils.week_plan_manager import WeeklyPlanManager
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.parameter_component import ParameterComponent
@@ -273,7 +274,8 @@ class DataInputPage(QWidget) :
         self.update_status_message(success, message)
 
         self.register_file_path(file_path)
-        self.run_combined_analysis()
+        if FilePaths.get("demand_excel_file") and FilePaths.get("dynamic_excel_file") and FilePaths.get("master_excel_file"):
+            self.run_combined_analysis()
 
     """
     파일이 삭제되면 사이드바에서도 제거하고 관련된 모든 탭 닫기
@@ -381,6 +383,8 @@ class DataInputPage(QWidget) :
             FilePaths.set("dynamic_excel_file", file_path)
         elif "master" in fn:
             FilePaths.set("master_excel_file", file_path)
+        elif "result" in fn:
+            FilePaths.set("result_file", file_path)
         elif "pre_assign" in fn:
             FilePaths.set("pre_assign_excel_file", file_path)
         else:
@@ -390,64 +394,63 @@ class DataInputPage(QWidget) :
     파일 분석 실행
     """
     def run_combined_analysis(self) :
-        try:
-            solution, failures = run_allocation()
-            print(failures)
+        # try:
+        solution, failures = run_allocation()
 
-            failed_items, failed_rmcs = run_maintenance_analysis()
-            print(failed_items, failed_rmcs)
+        item_plan_retention, rmc_plan_retention = calc_plan_retention()
+        print("[input 분석] item_plan_retention : ",item_plan_retention,", rmc_plan_retention : ", rmc_plan_retention)
+        
+        failures["plan_retention"] = {
+            "item_plan_retention": item_plan_retention,
+            "rmc_plan_retention": rmc_plan_retention
+        }
 
-            # item_plan_retention_rate, rmc_plan_retention_rate = calc_plan_retention()
-            
-            # failures["plan_retention_rate"] = {
-            #     "item_plan_retention_rate": item_plan_retention_rate,
-            #     "rmc_plan_retention_rate": rmc_plan_retention_rate
-            # }
+        print("[input 분석] failures : ",failures)
 
-            try :
-                processed_data = process_data()
+        try :
+            processed_data = process_data()
 
-                if processed_data :
-                    pjt_analyzer = PjtGroupAnalyzer(processed_data)
-                    project_analysis_results = pjt_analyzer.analyze()
+            if processed_data :
+                pjt_analyzer = PjtGroupAnalyzer(processed_data)
+                project_analysis_results = pjt_analyzer.analyze()
 
-                    if project_analysis_results and 'display_df' in project_analysis_results :
-                        result = {'Production Capacity': project_analysis_results}
-                        self.left_parameter_component.set_project_analysis_data(result)
+                if project_analysis_results and 'display_df' in project_analysis_results :
+                    result = {'Production Capacity': project_analysis_results}
+                    self.left_parameter_component.set_project_analysis_data(result)
 
-                        if 'display_df' in project_analysis_results :
-                            display_df = project_analysis_results['display_df']
-                            has_issues = False
+                    if 'display_df' in project_analysis_results :
+                        display_df = project_analysis_results['display_df']
+                        has_issues = False
+
+                        for _, row in display_df.iterrows() :
+                            if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
+                                has_issues = True
+                                break
+
+                        if has_issues :
+                            issues = []
 
                             for _, row in display_df.iterrows() :
                                 if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
-                                    has_issues = True
-                                    break
+                                    issues.append({
+                                        'line': row.get('PJT Group', ''),
+                                        'reason': '용량 초과',
+                                        'available': row.get('CAPA', 0),
+                                        'excess': self.extract_number(row.get('MFG', 0)) - self.extract_number(row.get('CAPA, 0')) if row.get('MFG') and row.get('CAPA') else 0,
+                                        'cap_limit': row.get('CAPA', 0),
+                                        'center': row.get('PJT Group', '').split('_')[0] if isinstance(row.get('PJT Group', ''), str) and '_' in row.get('PJT Group', '') else ''
+                                    })
+                            failures['production_capacity'] = issues if issues else None
+                            # self.parameter_component.set_project_analysis_data(project_analysis_results)
+                        else :
+                            failures['production_capacity'] = None
+        except Exception as e :
+            import traceback
+            traceback.print_exc()
 
-                            if has_issues :
-                                issues = []
-
-                                for _, row in display_df.iterrows() :
-                                    if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
-                                        issues.append({
-                                            'line': row.get('PJT Group', ''),
-                                            'reason': '용량 초과',
-                                            'available': row.get('CAPA', 0),
-                                            'excess': self.extract_number(row.get('MFG', 0)) - self.extract_number(row.get('CAPA, 0')) if row.get('MFG') and row.get('CAPA') else 0,
-                                            'cap_limit': row.get('CAPA', 0),
-                                            'center': row.get('PJT Group', '').split('_')[0] if isinstance(row.get('PJT Group', ''), str) and '_' in row.get('PJT Group', '') else ''
-                                        })
-                                failures['production_capacity'] = issues if issues else None
-                                self.parameter_component.set_project_analysis_data(project_analysis_results)
-                            else :
-                                failures['production_capacity'] = None
-            except Exception as e :
-                import traceback
-                traceback.print_exc()
-
-            self.parameter_component.show_failures.emit(failures)
-        except Exception as e:
-            print(f"[preAssign 분석] 오류 발생: {e}")
+        self.parameter_component.show_failures.emit(failures)
+        # except Exception as e:
+        #     print(f"[preAssign 분석] 오류 발생: {e}")
 
     """
     Save 버튼 클릭 시 현재 데이터를 원본 파일에 저장

@@ -31,8 +31,15 @@ class RightParameterComponent(QWidget):
 
     def _on_failures(self, failures: dict):
         self.list_widget.clear()
+        if failures.get('plan_retention') is not None:
+            item_plan_retention_rate = failures.get('plan_retention').get('item_plan_retention')
+            rmc_plan_retention = failures.get('plan_retention').get('rmc_plan_retention')
+            self.list_widget.addItem(QListWidgetItem(f"최대 Item 계획유지율 : {item_plan_retention_rate}"))
+            self.list_widget.addItem(QListWidgetItem(f"최대 RMC 계획유지율 : {rmc_plan_retention}"))
+
         for error in failures.get('preassign'):
             line = error.get('line')
             reason = error.get('reason')
             excess = error.get('excess')
             self.list_widget.addItem(QListWidgetItem(f"{line} 라인이 {reason} 을 {excess} 초과했습니다"))
+
