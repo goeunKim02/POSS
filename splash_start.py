@@ -1,9 +1,8 @@
 # splash_start.py
 import sys
 import os
-import subprocess
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QProgressBar
-from PyQt5.QtCore import Qt, QTimer, QSize
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QProgressBar, QMessageBox
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QFont, QColor, QPainter, QPen, QBrush, QLinearGradient
 
 
@@ -97,6 +96,9 @@ class SamsungSplashScreen(QWidget):
         ]
         self.current_stage = 0
 
+        # MainWindow 참조 저장
+        self.main_window = None
+
     def center(self):
         """창을 화면 중앙에 배치"""
         screen = QApplication.primaryScreen().geometry()
@@ -116,56 +118,42 @@ class SamsungSplashScreen(QWidget):
             self.current_stage += 1
 
         # 로딩 완료 시 메인 앱 실행 및 스플래시 숨기기
-        if self.progress_value >= 100:
+        if self.progress_value >= 90:
             self.timer.stop()
 
-            # 가상 환경 Python 실행 파일 경로
-            python_exe = sys.executable
-
-            # main.py 경로 설정 (PyInstaller 패키징 환경 고려)
-            if hasattr(sys, '_MEIPASS'):
-                # PyInstaller 환경에서는 임시 폴더에 압축이 풀린 파일이 위치함
-                main_path = os.path.join(sys._MEIPASS, 'main.py')
-                if not os.path.exists(main_path):
-                    # main.py가 없으면 직접 main 모듈을 임포트하여 실행
-                    self.hide()
-                    try:
-                        import main
-                        # main 모듈의 main 함수 실행 (있다면)
-                        if hasattr(main, 'main'):
-                            main.main()
-                    except Exception as e:
-                        print(f"메인 애플리케이션 실행 오류: {e}")
-                    finally:
-                        self.close()
-                        QApplication.quit()
-                    return
-            else:
-                # 일반 실행 환경에서는 현재 디렉토리에서 main.py 찾기
-                main_path = 'main.py'
-
-            # 스플래시 화면 숨기기 (아직 종료하지 않음)
+            # 스플래시 화면 숨기기
             self.hide()
 
-            # 메인 애플리케이션 실행 및 완료 대기
-            print(f"메인 애플리케이션 시작: {python_exe} {main_path}")
+            try:
+                # 직접 MainWindow 클래스 가져오기
+                print("app.views.main_window에서 MainWindow 로드 시도...")
+                from app.views.main_window import MainWindow
 
-            # 개발 환경에서는 subprocess.run, 배포 환경에서는 import 사용
-            if hasattr(sys, '_MEIPASS'):
-                # PyInstaller 환경에서는 import 사용
-                try:
-                    import main
-                    if hasattr(main, 'main'):
-                        main.main()
-                except Exception as e:
-                    print(f"메인 애플리케이션 실행 오류: {e}")
-            else:
-                # 개발 환경에서는 subprocess 사용
-                subprocess.run([python_exe, main_path])
+                # MainWindow 인스턴스 생성 및 표시
+                self.main_window = MainWindow()
+                self.main_window.show()
 
-            # 메인 애플리케이션이 종료되면 스플래시도 종료
-            self.close()
-            QApplication.quit()
+                # 스플래시 창만 닫기 (애플리케이션은 계속 실행)
+                self.close()
+                print("MainWindow 성공적으로 로드되어 표시됨")
+
+            except Exception as e:
+                print(f"메인 애플리케이션 실행 오류: {e}")
+                import traceback
+                traceback.print_exc()
+
+                # 사용자에게 오류 메시지 표시
+                error_box = QMessageBox()
+                error_box.setIcon(QMessageBox.Critical)
+                error_box.setText("애플리케이션 시작 실패")
+                error_box.setInformativeText(f"오류 발생: {str(e)}")
+                error_box.setDetailedText(traceback.format_exc())
+                error_box.setWindowTitle("시작 오류")
+                error_box.exec_()
+
+                # 오류 발생시 애플리케이션 종료
+                self.close()
+                QApplication.instance().quit()
 
     def paintEvent(self, event):
         """배경 그라데이션 및 테두리 그리기"""
@@ -187,6 +175,7 @@ class SamsungSplashScreen(QWidget):
         painter.drawRoundedRect(0, 0, self.width() - 1, self.height() - 1, 15, 15)
 
 
+# 직접 실행할 경우 (테스트용)
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     splash = SamsungSplashScreen()
