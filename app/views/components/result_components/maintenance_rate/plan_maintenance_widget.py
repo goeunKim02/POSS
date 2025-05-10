@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                           QTabWidget, QPushButton, QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QCursor
+from PyQt5.QtGui import QFont, QCursor, QFontMetrics
 from app.views.components.result_components.maintenance_rate.plan_data_manager import PlanDataManager
 from app.views.components.result_components.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
 
@@ -144,17 +144,16 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 14px; 
+                font-size: 22px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 14px;  
+                font-size: 22px;  
             }
             QTabBar::tab {
                 padding: 8px 16px;
-                min-width: 150px;
                 margin-left: 7px;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
@@ -162,11 +161,16 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 14px;  
+                font-size: 22px;  
             }
             QTabBar::tab::first { margin-left: 10px; }
         """)
-        
+
+
+        tab_bar = self.tab_widget.tabBar()
+        tab_bar.setElideMode(Qt.ElideNone)  # 텍스트 생략 방지
+        tab_bar.setExpanding(True)  # 탭이 전체 너비를 차지하지 않도록
+
         # Item별 탭
         self.item_tab = QWidget()
         item_layout = QVBoxLayout(self.item_tab)
@@ -188,6 +192,21 @@ class PlanMaintenanceWidget(QWidget):
         # 탭 추가
         self.tab_widget.addTab(self.item_tab, "Item Maintenance Rate")
         self.tab_widget.addTab(self.rmc_tab, "RMC Maintenance Rate")
+
+        # 탭 바 설정 - 자동 크기 조정을 위한 커스텀 탭바 설정
+        tab_bar = self.tab_widget.tabBar()
+        tab_bar.setExpanding(False)
+        
+        # 폰트 설정
+        font = tab_bar.font()
+        font.setPointSize(16)
+        tab_bar.setFont(font)
+        
+        # 동적으로 탭 크기 조정
+        font_metrics = QFontMetrics(font)
+        
+        # 각 탭의 너비를 텍스트에 맞게 조정
+        tab_bar.setTabSizeHint = lambda index: self.get_tab_size_hint(index, font_metrics)
         
         content_layout.addWidget(self.tab_widget)
         
