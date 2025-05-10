@@ -46,9 +46,15 @@ class PlanDataManager:
             
         try:
             plan_manager = WeeklyPlanManager()
+            print(f"WeeklyPlanManager 생성됨, output_dir: {plan_manager.output_dir}")
             is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
                 start_date, end_date
             )
+
+            print(f"detect_previous_plan 결과:")
+            print(f"  - is_first_plan: {is_first_plan}")
+            print(f"  - previous_plan_path: {previous_plan_path}")
+            print(f"  - message: {message}")
             
             self.is_first_plan = is_first_plan
             self.previous_plan_path = previous_plan_path
@@ -56,6 +62,7 @@ class PlanDataManager:
             
             if not is_first_plan and previous_plan_path and os.path.exists(previous_plan_path):
                 success, message = self.load_previous_plan(previous_plan_path)
+                print(f"이전 계획 로드 결과: success={success}, message={message}")
                 return success, message
             else:
                 # 첫 번째 계획인 경우 현재 계획을 이전 계획으로 설정
@@ -63,11 +70,12 @@ class PlanDataManager:
                     self.plan_analyzer.set_prev_plan(self.current_plan)
                 return False, message
         except Exception as e:
+            print(f"detect_previous_plan 오류: {str(e)}")
             return False, str(e)
     
     """수량 업데이트"""
     def update_quantity(self, line, time, item, new_qty):
-        print(f"DataManager - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
+        # print(f"DataManager - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
         if self.plan_analyzer is None:
             return False
             

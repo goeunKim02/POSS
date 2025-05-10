@@ -197,10 +197,9 @@ class PlanMaintenanceWidget(QWidget):
         # 탭 변경 시 유지율 레이블 업데이트
         self.tab_widget.currentChanged.connect(self.update_rate_label)
         
-    # 이하 이벤트 핸들러와 비즈니스 로직 - 수정 필요
     
+    """이전 계획 선택"""
     def select_previous_plan(self):
-        """이전 계획 선택"""
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
@@ -233,8 +232,8 @@ class PlanMaintenanceWidget(QWidget):
                     f"Failed to load previous plan: {message}"
                 )
                 
+    """탭 인덱스에 따라 유지율 레이블 업데이트"""
     def update_rate_label(self, index):
-        """탭 인덱스에 따라 유지율 레이블 업데이트"""
         if index == 0:  # Item별 탭
             self.rate_title_label.setText("Item Maintenance Rate :")
             rate_value = getattr(self, 'item_maintenance_rate', None)
@@ -277,6 +276,12 @@ class PlanMaintenanceWidget(QWidget):
         # 이전 계획 자동 탐색
         if start_date is not None and end_date is not None:
             success, message = self.data_manager.detect_previous_plan(start_date, end_date)
+            print(f"이전 계획 감지 결과: success={success}, message={message}")
+
+
+            # 이전 계획 감지 상태 확인
+            print(f"plan_manager.is_first_plan: {self.data_manager.is_first_plan}")
+            print(f"plan_manager.previous_plan_path: {self.data_manager.previous_plan_path}")
             
             # 상태 레이블 업데이트
             if success:
@@ -295,15 +300,10 @@ class PlanMaintenanceWidget(QWidget):
         """유지율 다시 계산하고 UI 업데이트"""
         # 유지율 계산
         item_df, item_rate, rmc_df, rmc_rate = self.data_manager.calculate_maintenance_rates()
-        
+
         # 계산된 유지율 저장
         self.item_maintenance_rate = item_rate if item_rate is not None else 0.0
         self.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
-        
-        # 로그 출력
-        item_rate_str = f"{self.item_maintenance_rate:.2f}%" if self.item_maintenance_rate is not None else "N/A"
-        rmc_rate_str = f"{self.rmc_maintenance_rate:.2f}%" if self.rmc_maintenance_rate is not None else "N/A"
-        print(f"계산된 유지율 - Item: {item_rate_str}, RMC: {rmc_rate_str}")
         
         # 테이블 위젯 데이터 설정
         if item_df is not None and not item_df.empty:
@@ -319,9 +319,10 @@ class PlanMaintenanceWidget(QWidget):
         # 선택된 탭에 따라 유지율 레이블 업데이트
         self.update_rate_label(self.tab_widget.currentIndex())
         
-    def update_quantity(self, line, time, item, new_qty, demand=None):
-        print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
-        """수량 업데이트 및 UI 갱신"""
+
+    """수량 업데이트 및 UI 갱신"""
+    def update_quantity(self, line, time, item, new_qty):
+        # print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
 
         # 명시적 타입 변환 추가
         try:

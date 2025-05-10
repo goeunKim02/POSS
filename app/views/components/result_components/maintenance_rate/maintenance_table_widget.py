@@ -345,8 +345,7 @@ class ItemMaintenanceTable(MaintenanceTableWidget):
         if df is None or df.empty:
             return
             
-        # 데이터 필터링 - 총계 행 제외
-        df_data = df[:-2]
+        df_data = df[df['Line'] != 'Total']  # Total 행만 필터링
         
         # 테이블에 데이터 표시
         self._populate_table(df_data, modified_item_keys, item_field='Item')
@@ -363,8 +362,7 @@ class RMCMaintenanceTable(MaintenanceTableWidget):
         if df is None or df.empty:
             return
             
-        # 데이터 필터링 - 총계 행 제외
-        df_data = df[:-2]
+        df_data = df[df['Line'] != 'Total']  # Total 행만 필터링
         
         # 테이블에 데이터 표시
         self._populate_table(df_data, modified_item_keys, item_field='RMC')
