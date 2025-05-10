@@ -117,8 +117,7 @@ class LeftParameterComponent(QWidget):
             table.setColumnCount(0)
         else:
             headers = ["PJT Group", "PJT", "MFG", "SOP", "CAPA", "MFG/CAPA", "SOP/CAPA"]
-            # if 'status' in display_df.columns:
-            #     headers.append('Status')
+            
             table.setColumnCount(len(headers))
             table.setHeaderLabels(headers)
 
