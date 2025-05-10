@@ -88,6 +88,7 @@ class ModifiedLeftSection(QWidget):
         self.item_selected.emit(selected_item, container)
 
     """아이템 데이터가 변경되면 호출되는 함수"""
+
     def on_item_data_changed(self, item, new_data, changed_fields=None):
         print("===== on_item_data_changed 함수 호출 시작 =====")
         print(f"아이템 타입: {type(item)}")
@@ -196,13 +197,32 @@ class ModifiedLeftSection(QWidget):
                         old_data.get('Line'),
                         old_data.get('Time')
                     )
-                    
+
                     if not valid:
                         EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", message)
                         return
 
+                # 드롭 위치 정보 가져오기 (changed_fields에서)
+                drop_index = 0
+                if changed_fields and '_drop_pos' in changed_fields:
+                    try:
+                        drop_pos_info = changed_fields['_drop_pos']
+                        x = int(drop_pos_info['x'])
+                        y = int(drop_pos_info['y'])
+
+                        # 새 컨테이너 가져오기
+                        target_container = self.grid_widget.containers[new_row_idx][new_col_idx]
+
+                        # 로컬 위치로 변환하여 드롭 인덱스 계산
+                        from PyQt5.QtCore import QPoint
+                        drop_index = target_container.findDropIndex(QPoint(x, y))
+                        print(f"계산된 드롭 인덱스: {drop_index}, 위치: ({x}, {y})")
+                    except Exception as e:
+                        print(f"드롭 위치 계산 오류: {e}")
+                        drop_index = 0  # 오류 시 첫 번째 위치
+
                 # 새 위치에 아이템 추가
-                new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data)
+                new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data,drop_index)
 
                 if new_item:
                     # print("새 아이템 생성 성공")
@@ -220,7 +240,7 @@ class ModifiedLeftSection(QWidget):
                 print(
                     f"유효하지 않은 인덱스: old_row_idx={old_row_idx}, old_col_idx={old_col_idx}, new_row_idx={new_row_idx}, new_col_idx={new_col_idx}")
                 return
-            
+
         # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
         if hasattr(item, 'update_item_data'):
             # 수정: update_item_data 메서드의 반환값 처리

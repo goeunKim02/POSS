@@ -1,5 +1,6 @@
+import os
 import pandas as pd
-from app.models.common.fileStore import DataStore
+from app.models.common.fileStore import DataStore, FilePaths
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.utils.conversion import convert_value
 
@@ -22,16 +23,46 @@ class PlanAdjustmentValidator:
     def __init__(self, result_data):
         self.result_data = result_data
 
-        # DataStore에서 필요한 파일 로드
-        self.organized_dataframes = DataStore.get("organized_dataframes")
-        self.master_data = self.organized_dataframes.get("master", {})
-        self.demand_data = self.organized_dataframes.get("demand", {})
+         # 1. 먼저 DataStore에서 organized_dataframes 조회
+        organized = DataStore.get("organized_dataframes", {})
+
+        # 2. master 데이터 로딩
+        self.master_data = organized.get("master", {})
+        if not self.master_data:  # 없으면 FilePaths로 시도
+            master_path = FilePaths.get("master_excel_file")
+            if master_path and os.path.exists(master_path):
+                try:
+                    self.master_data = {
+                        "capa_qty": pd.read_excel(master_path, sheet_name="capa_qty"),
+                        # 필요한 시트가 더 있다면 여기에 추가
+                    }
+                    print(f"[로드] master 파일에서 데이터 로드: {master_path}")
+                except Exception as e:
+                    print(f"[오류] master 파일 로드 실패: {e}")
+            else:
+                print(f"[경고] master 파일 경로가 유효하지 않음")
+
+        # 3. demand 데이터 로딩
+        self.demand_data = organized.get("demand", {})
+        if not self.demand_data:
+            demand_path = FilePaths.get("demand_excel_file")
+            if demand_path and os.path.exists(demand_path):
+                try:
+                    self.demand_data = {
+                        "demand": pd.read_excel(demand_path, sheet_name="demand"),
+                    }
+                    print(f"[로드] demand 파일에서 데이터 로드: {demand_path}")
+                except Exception as e:
+                    print(f"[오류] demand 파일 로드 실패: {e}")
+            else:
+                print(f"[경고] demand 파일 경로가 유효하지 않음")
 
         self.capa_qty_data = self.master_data.get("capa_qty", pd.DataFrame())
 
         # 제약사항 추출 및 캐싱
         self._extract_constraints()
         self._cache_reference_data()
+
 
     """
     마스터 데이터에서 각종 제약사항 추출하여 메모리에 캐싱
@@ -239,7 +270,42 @@ class PlanAdjustmentValidator:
         tuple: (성공 여부, 오류 메시지)
     """
     def validate_capacity(self, line, time, new_qty, item=None, is_move=False):
+        # 시간과 수량을 숫자로 확실히 변환
+        try:
+            # 명시적 타입 변환
+            time = int(time) if isinstance(time, str) else time
+            new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
+            print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
+        except (ValueError, TypeError) as e:
+            print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
+            return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
         
+
+        # 직접 capa_qty_data에서 용량 정보 확인
+        print("\n===== 용량 정보 직접 확인 =====")
+        if self.capa_qty_data is not None and not self.capa_qty_data.empty:
+            print(f"capa_qty_data 열 목록: {self.capa_qty_data.columns.tolist()}")
+            
+            # 해당 라인 찾기
+            line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == line]
+            if not line_rows.empty:
+                print(f"{line} 라인 데이터: {line_rows.iloc[0].to_dict()}")
+                
+                # 해당 시프트 용량 확인
+                if time in line_rows.columns:
+                    capacity_val = line_rows.iloc[0][time]
+                    print(f"시프트 {time} 용량: {capacity_val}")
+                elif str(time) in line_rows.columns:
+                    capacity_val = line_rows.iloc[0][str(time)]
+                    print(f"시프트 {time} (문자열) 용량: {capacity_val}")
+                else:
+                    print(f"시프트 {time}에 대한 용량 정보가 없습니다.")
+            else:
+                print(f"{line} 라인을 찾을 수 없습니다.")
+        else:
+            print("capa_qty_data가 비어있거나, 없습니다.")
+        print("===========================\n")
+            
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
 
@@ -324,10 +390,10 @@ class PlanAdjustmentValidator:
             line_capacity = self.line_capacities[line][time]
 
         # 용량 정보가 없는 경우 처리
-        if line_capacity is None or line_capacity <= 0:
+        if line_capacity is None or line_capacity < 0:
             # 용량 정보가 없으면 다른 방법으로 제약 조건 확인 : 해당 라인/시프트의 capacity 값 직접 조회
             capacity = self.get_line_capacity(line, time)
-            if capacity is not None and capacity > 0:
+            if capacity is not None and capacity >= 0:
                 line_capacity = capacity
             else:
                 # 용량 정보를 찾을 수 없는 경우
