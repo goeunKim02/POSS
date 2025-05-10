@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, 
                              QSplitter, QStackedWidget, QTabBar)
 from PyQt5.QtGui import QCursor, QFont
 import os
+import re
 
 from app.core.input.pre_assign import run_allocation
 from app.core.input.maintenance import run_maintenance_analysis
@@ -32,7 +33,7 @@ class DataInputPage(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.loaded_files = {}  # 로드된 파일과 해당 데이터프레임을 저장
+        self.loaded_files = {}
         self.current_file = None
         self.current_sheet = None
 
@@ -447,8 +448,10 @@ class DataInputPage(QWidget):
         else:
             FilePaths.set("etc_excel_file", file_path)
 
-    def run_combined_analysis(self):
-        """파일 분석 실행"""
+    """
+    파일 분석 실행
+    """
+    def run_combined_analysis(self) :
         try:
             solution, failures = run_allocation()
             print(failures)
@@ -482,8 +485,22 @@ class DataInputPage(QWidget):
                                     break
 
                             if has_issues :
-                                failures['production_capacity'] = []
+                                issues = []
+
+                                for _, row in display_df.iterrows() :
+                                    if row.get('PJT') == 'Total' and row.get('status') == '이상' :
+                                        issues.append({
+                                            'line': row.get('PJT Group', ''),
+                                            'reason': '용량 초과',
+                                            'available': row.get('CAPA', 0),
+                                            'excess': self.extract_number(row.get('MFG', 0)) - self.extract_number(row.get('CAPA, 0')) if row.get('MFG') and row.get('CAPA') else 0,
+                                            'cap_limit': row.get('CAPA', 0),
+                                            'center': row.get('PJT Group', '').split('_')[0] if isinstance(row.get('PJT Group', ''), str) and '_' in row.get('PJT Group', '') else ''
+                                        })
+                                failures['production_capacity'] = issues if issues else None
                                 self.parameter_component.set_project_analysis_data(project_analysis_results)
+                            else :
+                                failures['production_capacity'] = None
             except Exception as e :
                 import traceback
                 traceback.print_exc()
@@ -548,9 +565,14 @@ class DataInputPage(QWidget):
         else:
             self.update_status_message(False, f"{success_count}개 파일 저장 완료, {error_count}개 파일 저장 실패")
 
-    # """
-    # 프로젝트 분석 결과 패널 표시/숨김 전환
-    # """
-    # def toggle_project_analysis_visibility(self, show=True) :
-    #     if hasattr(self, 'left_parameter_component') :
-    #         self.left_parameter_component.setVisible(show)
+    """
+    문자열에서 숫자 추출 후 정수 변환
+    """
+    def extract_number(self, value) :
+        if isinstance(value, (int, float)) :
+            return int(value)
+        elif isinstance(value, str) :
+            num_str = re.sub(r'[^\d]', '', value.split()[0])
+            
+            return int(num_str) if num_str else 0
+        return 0

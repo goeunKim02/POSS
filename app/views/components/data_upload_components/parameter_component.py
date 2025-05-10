@@ -220,14 +220,16 @@ class ParameterComponent(QWidget):
         selected_no_data_color = '#0f196e'
         selected_no_data_hover = '#0c1155'
 
-        for label, btn in self.buttons.items():
+        for label, btn in self.buttons.items() :
             key = self.metric_key_map[label]
-            has_data = bool(self.failures.get(key))
-            if label == self.current_metric and has_data:
+            failure_data = self.failures.get(key)
+            has_data = failure_data is not None and (not isinstance(failure_data, list) or len(failure_data) > 0)
+
+            if label == self.current_metric and has_data :
                 color, hover = selected_data_color, selected_data_hover
-            elif label == self.current_metric:
+            elif label == self.current_metric :
                 color, hover = selected_no_data_color, selected_no_data_hover
-            elif has_data:
+            elif has_data :
                 color, hover = data_color, data_hover
             else:
                 color, hover = default_color, default_hover
@@ -258,18 +260,54 @@ class ParameterComponent(QWidget):
     def set_project_analysis_data(self, data) :
         self.project_analysis_data = data
 
-        if data and isinstance(data, dict) and 'display_df' in data:
-            display_df = data['display_df']
+        if not data :
+            self.failures['production_capacity'] = None
+            self._update_button_styles()
+            return
+        
+        if isinstance(data, dict) and 'display_df' in data :
+            display_df = data.get('display_df')
+
+            if display_df is None or (hasattr(display_df, 'empty') and display_df.empty) :
+                self.failures['production_capacity'] = None
+                self._update_button_styles()
+                return
+        
             has_issues = False
 
-            for _, row in display_df.iterrows():
-                if row.get('PJT') == 'Total' and row.get('status') == '이상':
-                    has_issues = True
-                    break
+            try :
+                for _, row in display_df.iterrows():
+                    if row.get('PJT') == 'Total' and row.get('status') == '이상':
+                        has_issues = True
+                        break
+            except Exception :
+                has_issues = False
 
-            if has_issues:
-                self.failures['production_capacity'] = []
-                self._update_button_styles()
+            if has_issues :
+                issues = []
+
+                try :
+                    for _, row in display_df.iterrows() :
+                        if row.get('PJT') == 'Total' and row.get('status') == '이상' :
+                            issues.append({
+                                'line': row.get('PJT Group', ''),
+                                'reason': '용량 초과',
+                                'available': row.get('CAPA', 0),
+                                'excess': int(row.get('MFG', 0)) - int(row.get('CAPA', 0)) if row.get('MFG') and row.get('CAPA') else 0,
+                                'cap_limit': row.get('CAPA', 0),
+                                'center': row.get('PJT Group', '').split('_')[0] if isinstance(row.get('PJT Group', ''), str) and '_' in row.get('PJT Group', '') else ''
+                            })
+                except Exception :
+                    pass
+
+                self.failures['production_capacity'] = issues if issues else None
+            else :
+                self.failures['production_capacity'] = None
+
+            self._update_button_styles()
+        else :
+            self.failures['production_capacity'] = None
+            self._update_button_styles()
 
         # if self.current_metric == 'Production Capacity':
         #     self._populate_project_analysis_table()

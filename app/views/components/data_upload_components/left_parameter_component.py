@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QLabel, QFrame, QTabWidget
 )
+from app.utils.error_handler import error_handler, safe_operation
 
 """
 좌측 파라미터 영역에 프로젝트 분석 결과 표시
@@ -11,33 +12,52 @@ from PyQt5.QtWidgets import (
 class LeftParameterComponent(QWidget):
     def __init__(self):
         super().__init__()
-        # 메트릭별 분석 데이터를 저장할 딕셔너리
+
         self.all_project_analysis_data = {}
-        # 각 탭 페이지 위젯 참조를 저장
         self.pages = {}
         self._init_ui()
 
+        self._initialize_all_tabs()
+
+    """
+    모든 탭의 컨텐츠 초기화
+    """
+    @error_handler(
+        show_dialog=False,
+        default_return=None
+    )
+    def _initialize_all_tabs(self) :
+        for metric in self.matrics :
+            if metric in self.pages :
+                page = self.pages[metric]
+                table = page['table']
+                table.clear()
+                table.setColumnCount(0)
+                page['summary_label'].setText('분석 데이터 없음')
+
+    @error_handler(
+        show_dialog=False,
+        default_return=None
+    )
     def _init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # 탭 위젯: 메트릭 선택용
         self.tab_widget = QTabWidget()
-        # 필요한 세 개의 탭만 설정
         self.metrics = [
             "Production Capacity",
             "Materials",
             "Current Shipment"
         ]
-        for metric in self.metrics:
+        for metric in self.metrics :
             page = QWidget()
             page_layout = QVBoxLayout(page)
             page_layout.setContentsMargins(0, 0, 0, 0)
 
-            # 테이블
             table = QTreeWidget()
             table.setRootIsDecorated(False)
             table.setSortingEnabled(True)
+            table.setHeaderHidden(True)
             table.setStyleSheet(
                 "QTreeWidget { border: none; outline: none; }"
                 "QTreeView::branch { background: none; }"
@@ -45,7 +65,6 @@ class LeftParameterComponent(QWidget):
                 "QHeaderView::section { background-color: #1428A0; color: white; border: none; padding: 6px; }"
             )
 
-            # 요약 레이블
             summary_label = QLabel("분석 요약")
             summary_label.setStyleSheet("font-weight: bold; font-size: 12px;")
             summary_label.setAlignment(Qt.AlignTop)
@@ -54,38 +73,46 @@ class LeftParameterComponent(QWidget):
             page_layout.addWidget(summary_label)
             self.tab_widget.addTab(page, metric)
 
-            # 페이지 참조 저장
             self.pages[metric] = {"table": table, "summary_label": summary_label}
 
         self.tab_widget.currentChanged.connect(self._on_tab_changed)
         layout.addWidget(self.tab_widget)
 
-    def set_project_analysis_data(self, data_dict):
-        # 모든 메트릭 데이터 저장
+    def set_project_analysis_data(self, data_dict) :
         self.all_project_analysis_data = data_dict
-        # 첫 번째 메트릭 데이터로 초기 표시
         self._update_tab_content(self.metrics[0])
 
     def _on_tab_changed(self, index):
         metric = self.metrics[index]
         self._update_tab_content(metric)
 
-    def _update_tab_content(self, metric):
+    def _update_tab_content(self, metric) :
         data = self.all_project_analysis_data.get(metric)
         page_widgets = self.pages.get(metric)
-        # 페이지 혹은 데이터가 없으면 초기화 표시
-        if data is None or page_widgets is None:
-            if page_widgets:
-                page_widgets["table"].clear()
+        
+        if data is None or page_widgets is None :
+            if page_widgets :
+                table = page_widgets['table']
+                table.clear()
+                table.setColumnCount(0)
+                table.setHeaderHidden(True)
+                
                 page_widgets["summary_label"].setText("분석 요약")
             return
 
         display_df = data.get('display_df')
         summary = data.get('summary')
 
-        # 테이블 업데이트
         table = page_widgets["table"]
         table.clear()
+
+        if display_df is None or (hasattr(display_df, 'empty') and display_df.empty) :
+            table.setColumnCount(0)
+            table.setHeaderHidden(True)
+            page_widgets['summary_label'].setText('분석 데이터 없음')
+            return
+        table.setHeaderHidden(False)
+
         if display_df is None or display_df.empty:
             table.setColumnCount(0)
         else:
