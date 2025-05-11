@@ -275,9 +275,9 @@ class PlanAdjustmentValidator:
             # 명시적 타입 변환
             time = int(time) if isinstance(time, str) else time
             new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
-            print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
+            # print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
         except (ValueError, TypeError) as e:
-            print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
+            # print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
             return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
         
 
@@ -408,7 +408,7 @@ class PlanAdjustmentValidator:
         max_rate = max_utilization_by_shift.get(time, 100)  # 기본값 100%
         
         if utilization_rate > max_rate:
-            return False, f"시프트 {time}의 최대 가동률({max_rate}%)을 초과합니다. 현재 계획: {utilization_rate:.1f}%"
+            return False, f"Maximum utilization rate for shift {time} exceeded ({max_rate}%).\nCurrent: {utilization_rate:.1f}%"
     
         return True, ""
     
@@ -604,7 +604,7 @@ class PlanAdjustmentValidator:
         )
     
         if not building_ratios:
-            return True, "생산량이 없거나 제조동별 비율을 계산할 수 없습니다."
+            return True, "No production volume or unable to calculate plant capacity ratios."
         
         violations = []
 
@@ -616,20 +616,20 @@ class PlanAdjustmentValidator:
 
             if ratio < lower_limit:
                 violations.append(
-                    f"제조동 '{building}'의 생산비율{ratio:.2f}% 이"
-                    f"최소 비율({lower_limit:.2f}%)보다 작습니다."
+                    f"Plant '{building}' production ratio {ratio:.2f}% is below "
+                    f"minimum limit ({lower_limit:.2f}%)."
                 )
             elif ratio > upper_limit:
                 violations.append(
-                    f"제조동 '{building}'의 생산 비율({ratio:.2f}%)이 "
-                    f"최대 비율({upper_limit:.2f}%)보다 큽니다."
+                    f"Plant '{building}' production ratio {ratio:.2f}% exceeds "
+                    f"maximum limit ({upper_limit:.2f}%)."
                 )
 
         # 위반 사항이 있는지 확인
         if violations:
             return False, "\n".join(violations)
         else:
-            return True, "제조동별 물량 비율 제약을 만족합니다."
+            return True, "Plant production capacity ratio constraints are satisfied."
 
 
     

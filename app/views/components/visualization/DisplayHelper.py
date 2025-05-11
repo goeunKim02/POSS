@@ -2,20 +2,23 @@ from app.views.components.visualization.visualizaiton_manager import Visualizati
 
 """시각화 헬퍼 클래스"""
 class DisplayHelper:
-    """차트를 표시하거나 데이터가 없으면 메세지 표시"""
+    """
+    차트를 표시하거나 데이터가 없으면 메세지 표시
+    
+    Args:
+        canvas: Matplotlib 캔버스 객체
+        data: 차트 데이터 (딕셔너리 또는 DataFrame)
+        chart_config: 차트 설정 딕셔너리
+            - has_data_check: 데이터 유효성 확인 함수
+            - chart_type: 차트 유형 ('bar', 'line' 등)
+            - title: 차트 제목
+            - xlabel: X축 레이블
+            - ylabel: Y축 레이블
+            - transform_data: 데이터 변환 함수 
+            - extra_params: 추가 차트 파라미터
+    """
     @staticmethod
     def show_chart_or_message(canvas, data, chart_config):
-        # Args:
-        #     canvas: Matplotlib 캔버스 객체
-        #     data: 차트 데이터 (딕셔너리 또는 DataFrame)
-        #     chart_config: 차트 설정 딕셔너리
-        #         - has_data_check: 데이터 유효성 확인 함수
-        #         - chart_type: 차트 유형 ('bar', 'line' 등)
-        #         - title: 차트 제목
-        #         - xlabel: X축 레이블
-        #         - ylabel: Y축 레이블
-        #         - transform_data: 데이터 변환 함수 
-        #         - extra_params: 추가 차트 파라미터
 
         # 캔버스 초기화
         canvas.axes.clear()
@@ -66,7 +69,6 @@ class DisplayHelper:
             if 'transform_data' in chart_config and chart_config['transform_data']:
                 display_data = chart_config['transform_data'](data)
 
-
             # 기본 파라미터 설정
             chart_params = {
                 'chart_type': chart_type,
@@ -93,9 +95,10 @@ class DisplayHelper:
         # 캔버스 갱신
         canvas.draw()
 
+
+    """자재 부족량 차트 전용 표시 메서드"""
     @staticmethod
     def show_material_shortage_chart(canvas, data, max_items=20):
-        """자재 부족량 차트 전용 표시 메서드"""
         canvas.axes.clear()
         
         if not data or len(data) == 0:
@@ -140,7 +143,7 @@ class DisplayHelper:
         canvas.axes.set_title('Material Shortage Analysis', fontsize=20)
         canvas.axes.set_xlabel('Model', fontsize=10)
         canvas.axes.set_ylabel('Shortage (%)', fontsize=14)
-        canvas.axes.tick_params(axis='both', which='major', labelsize=8)
+        canvas.axes.tick_params(axis='both', which='major', labelsize=6)
         canvas.axes.set_ylim(0, max(sorted_data.values()) * 1.5)
         
         
@@ -150,5 +153,8 @@ class DisplayHelper:
         
         # 그리드 추가
         canvas.axes.grid(alpha=0.3, linestyle='--')
+
+        # 여백 조정으로 라벨이 잘리지 않도록
+        canvas.fig.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.2)
         
         canvas.draw()

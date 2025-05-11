@@ -149,8 +149,8 @@ class VisualizationManager:
 
         # 필요한 경우 X축 레이블 회전 (레이블이 길거나 요청된 경우)
         if kwargs.get('rotate_xlabels', False) or (len(x_data) > 0 and any(len(str(x)) > 5 for x in x_data)):
-            plt.setp(ax.get_xticklabels(), rotation=kwargs.get('xlabels_rotation', 45), 
-                ha=kwargs.get('xlabels_ha', 'right'))
+            plt.setp(ax.get_xticklabels(), rotation=kwargs.get('xlabels_rotation', 30), 
+                ha=kwargs.get('xlabels_ha', 'right'), rotation_mode='anchor')
         
         # Y축 범위 사용자 정의 (제공된 경우)
         if 'ylim' in kwargs:
@@ -158,8 +158,9 @@ class VisualizationManager:
 
         # 그림 레이아웃 조정
         if ax.figure:
-            # ax.figure.tight_layout()
-            ax.figure.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.15)
+            ax.figure.tight_layout()  
+            # bottom_margin = 0.25 if any(len(str(x)) > 10 for x in x_data) else 0.2
+            # ax.figure.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.3)
 
         return ax
     
