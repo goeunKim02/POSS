@@ -5,8 +5,8 @@ import pandas as pd
 import json
 
 
+"""드래그 가능한 아이템 라벨"""
 class DraggableItemLabel(QLabel):
-    """드래그 가능한 아이템 라벨"""
 
     # 아이템 선택 이벤트를 위한 시그널 추가
     itemSelected = pyqtSignal(object)  # 선택된 아이템 참조를 전달
@@ -69,6 +69,56 @@ class DraggableItemLabel(QLabel):
             margin: 2px;
         """
 
+        # 사전할당 스타일
+        self.pre_assigned_style = """
+            background-color: #E8F5E9;
+            border: 2px solid #4CAF50;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+
+        self.pre_assigned_selected_style = """
+            background-color: #C8E6C9;
+            border: 2px solid #0078D7;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+        
+        self.pre_assigned_hover_style = """
+            background-color: #DCEDC8;
+            border: 2px solid #388E3C;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+
+        # 복합 상태 스타일들
+        self.pre_assigned_shortage_style = """
+            background-color: #FFF8E1;
+            border: 2px solid #FF9800;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+
+        self.pre_assigned_shortage_selected_style = """
+            background-color: #FFE0B2;
+            border: 2px solid #0078D7;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+
+        self.pre_assigned_shortage_hover_style = """
+            background-color: #FFE0B2;
+            border: 2px solid #FFA726;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+
         self.setStyleSheet(self.default_style)
         self.setAlignment(Qt.AlignCenter)
         self.setCursor(Qt.OpenHandCursor)
@@ -77,6 +127,9 @@ class DraggableItemLabel(QLabel):
         self.setWordWrap(True)
         self.setMinimumHeight(25)
         self.adjustSize()
+
+        # 사전할당 상태 관련 속성 
+        self.is_pre_assigned = False
 
         # 선택 상태 추가
         self.is_selected = False
@@ -100,8 +153,8 @@ class DraggableItemLabel(QLabel):
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
 
+    """아이템 데이터에서 툴팁 텍스트 생성"""
     def _create_tooltip_text(self):
-        """아이템 데이터에서 툴팁 텍스트 생성"""
         if self.item_data is None:
             return self.text()
 
@@ -112,6 +165,10 @@ class DraggableItemLabel(QLabel):
         for key, value in self.item_data.items():
             if pd.notna(value):  # NaN 값이 아닌 경우만 표시
                 tooltip += f"<tr><td><b>{key}:</b></td><td>{value}</td></tr>"
+
+        # 사전할당 상태 표시
+        if self.is_pre_assigned:
+            tooltip += "<tr><td><b>Pre-Assigned:</b></td><td style='color:green;'>Yes</td></tr>"
 
         tooltip += "</table>"
         return tooltip
@@ -131,24 +188,28 @@ class DraggableItemLabel(QLabel):
         if event.button() == Qt.LeftButton:
             self.setCursor(Qt.OpenHandCursor)  # 마우스 놓을 때 커서 원래대로
 
+    """더블클릭 이벤트 처리"""
     def mouseDoubleClickEvent(self, event):
-        """더블클릭 이벤트 처리"""
         if event.button() == Qt.LeftButton:
             # 더블클릭 이벤트 발생
             self.itemDoubleClicked.emit(self)
             event.accept()
 
+    """마우스가 위젯 위에 올라갔을 때 호출됨"""
     def enterEvent(self, event):
-        """마우스가 위젯 위에 올라갔을 때 호출됨"""
         if not self.is_selected:
-            if self.is_shortage:
+            if self.is_pre_assigned and self.is_shortage:
+                self.setStyleSheet(self.pre_assigned_shortage_hover_style)
+            elif self.is_pre_assigned:
+                self.setStyleSheet(self.pre_assigned_hover_style)
+            elif self.is_shortage:
                 self.setStyleSheet(self.shortage_hover_style)
             else:
                 self.setStyleSheet(self.hover_style)
         super().enterEvent(event)
 
+    """마우스가 위젯을 벗어났을 때 호출됨"""
     def leaveEvent(self, event):
-        """마우스가 위젯을 벗어났을 때 호출됨"""
         if not self.is_selected:
             self.update_style()
         super().leaveEvent(event)
@@ -174,6 +235,8 @@ class DraggableItemLabel(QLabel):
             for k, v in self.item_data.items():
                 if pd.isna(v):  # NaN 값은 None으로 변환
                     serializable_data[k] = None
+                elif isinstance(v, (int, float, bool)):  #  숫자타입은 그대로 유지
+                    serializable_data[k] = v
                 else:
                     serializable_data[k] = str(v)
 
@@ -206,18 +269,27 @@ class DraggableItemLabel(QLabel):
         # 드래그 액션 실행
         drag.exec_(Qt.MoveAction)
 
+    """선택 상태 토글 및 스타일 적용"""
     def toggle_selected(self):
-        """선택 상태 토글 및 스타일 적용"""
         self.is_selected = not self.is_selected
         self.update_style()
 
+    """선택 상태 직접 설정"""
     def set_selected(self, selected):
-        """선택 상태 직접 설정"""
         if self.is_selected != selected:
             self.is_selected = selected
             self.update_style()
 
-    # 자재 부족 상태 설정 메서드 추가
+    """ 사전할당 상태 설정 메서드 """
+    def set_pre_assigned_status(self, is_pre_assigned):
+        self.is_pre_assigned = is_pre_assigned
+        self.update_style()
+
+        # 툴팁에도 사전할당 정보 표시
+        if self.item_data is not None:
+            self.setToolTip(self._create_tooltip_text())
+
+    """ 자재 부족 상태 설정 메서드 """
     def set_shortage_status(self, is_shortage, shortage_data=None):
         """자재 부족 상태 설정"""
         self.is_shortage = is_shortage
@@ -259,12 +331,20 @@ class DraggableItemLabel(QLabel):
     def update_style(self):
         """현재 상태에 맞게 스타일 업데이트"""
         if self.is_selected:
-            if self.is_shortage:
+            if self.is_pre_assigned and self.is_shortage:
+                self.setStyleSheet(self.pre_assigned_shortage_selected_style)
+            elif self.is_pre_assigned:
+                self.setStyleSheet(self.pre_assigned_selected_style)
+            elif self.is_shortage:
                 self.setStyleSheet(self.shortage_selected_style)
             else:
                 self.setStyleSheet(self.selected_style)
         else:
-            if self.is_shortage:
+            if self.is_pre_assigned and self.is_shortage:
+                self.setStyleSheet(self.pre_assigned_shortage_style)
+            elif self.is_pre_assigned:
+                self.setStyleSheet(self.pre_assigned_style)
+            elif self.is_shortage:
                 self.setStyleSheet(self.shortage_style)
             else:
                 self.setStyleSheet(self.default_style)

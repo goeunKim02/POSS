@@ -5,7 +5,9 @@ from app.utils.error_handler import (
     DataError, CalculationError
 )
 
-# 분석 테이블 생성
+"""
+분석 테이블 생성
+"""
 class PjtGroupAnalyzer:
 
     @error_handler(
@@ -36,7 +38,9 @@ class PjtGroupAnalyzer:
         
         self.group_manager = ProjectGroupManager()
 
-    # 그룹 내의 프로젝트들이 사용할 수 있는 라인의 총 용량 계산
+    """
+    그룹 내의 프로젝트들이 사용할 수 있는 라인의 총 용량 계산
+    """
     @error_handler(
         show_dialog=True,
         default_return=0
@@ -83,7 +87,9 @@ class PjtGroupAnalyzer:
 
         return total_capa
 
-    # 분석 테이블 생성
+    """
+    분석 테이블 생성
+    """
     @error_handler(
         show_dialog=True,
         default_return=pd.DataFrame()
@@ -201,7 +207,7 @@ class PjtGroupAnalyzer:
                 try :
                     if final_df.loc[idx, 'PJT'] == 'Total' and 'isOverMFG' in final_df.columns:
                         if final_df.loc[idx, 'isOverMFG']:
-                            final_df.loc[idx, 'status'] = '이상'
+                            final_df.loc[idx, 'status'] = 'Error'
                 except Exception as e :
                     continue
             
@@ -209,7 +215,9 @@ class PjtGroupAnalyzer:
         except Exception as e :
             raise CalculationError(f'Error creating analysis table : {str(e)}')
 
-    # 요약 정보 생성
+    """
+    요약 정보 생성
+    """
     @error_handler(
         show_dialog=True,
         default_return=pd.Series()
@@ -225,14 +233,14 @@ class PjtGroupAnalyzer:
                 raise DataError('No \'Total\' rows found in analysis data')
             
             summary = {
-                '총 그룹 수': len(total_rows),
-                '이상 그룹 수': len(total_rows[total_rows['status'] == '이상']),
-                '전체 MFG': total_rows['MFG'].sum(),
-                '전체 SOP': total_rows['SOP'].sum(),
-                '전체 CAPA': total_rows['CAPA'].sum(),
-                '전체 MFG/CAPA 비율': f"{total_rows['MFG'].sum() / total_rows['CAPA'].sum():.1%}"
+                'Total number of groups': len(total_rows),
+                'Number of error groups': len(total_rows[total_rows['status'] == 'Error']),
+                'Total MFG': total_rows['MFG'].sum(),
+                'Total SOP': total_rows['SOP'].sum(),
+                'Total CAPA': total_rows['CAPA'].sum(),
+                'Total MFG/CAPA ratio': f"{total_rows['MFG'].sum() / total_rows['CAPA'].sum():.1%}"
                     if total_rows['CAPA'].sum() > 0 else '0%',
-                '전체 SOP/CAPA 비율': f"{total_rows['SOP'].sum() / total_rows['CAPA'].sum():.1%}"
+                'Total SOP/CAPA ratio': f"{total_rows['SOP'].sum() / total_rows['CAPA'].sum():.1%}"
                     if total_rows['CAPA'].sum() > 0 else '0%'
             }
             return pd.Series(summary)
@@ -241,12 +249,14 @@ class PjtGroupAnalyzer:
                 raise CalculationError(f'Error creating summary : {str(e)}')
             raise
 
-    # 결과를 데이터프레임 형식으로 출력
+    """
+    결과를 데이터프레임 형식으로 출력
+    """
     @error_handler(
         show_dialog=True,
         default_return=pd.DataFrame()
     )
-    def format_results_for_display(self, analysis_df):
+    def format_results_for_display(self, analysis_df) :
         if analysis_df is None or analysis_df.empty :
             raise DataError('Analysis DataFrame is empty or None')
         
@@ -273,14 +283,14 @@ class PjtGroupAnalyzer:
                         display_df.loc[idx, 'MFG'] = f"{mfg_value:,}"
                         if display_df.loc[idx, 'PJT'] == 'Total' and 'isOverMFG' in analysis_df.columns:
                             if analysis_df.loc[idx, 'isOverMFG']:
-                                display_df.loc[idx, 'MFG'] += " (초과)"
+                                display_df.loc[idx, 'MFG'] += " (Exceeded)"
                     
                     if pd.notna(display_df.loc[idx, 'SOP']):
                         sop_value = int(display_df.loc[idx, 'SOP'])
                         display_df.loc[idx, 'SOP'] = f"{sop_value:,}"
                         if display_df.loc[idx, 'PJT'] == 'Total' and 'isOverSOP' in analysis_df.columns:
                             if analysis_df.loc[idx, 'isOverSOP']:
-                                display_df.loc[idx, 'SOP'] += " (초과)"
+                                display_df.loc[idx, 'SOP'] += " (Exceeded)"
                 except Exception as e :
                     continue
             
@@ -296,14 +306,17 @@ class PjtGroupAnalyzer:
             
             result_cols = ['PJT Group', 'PJT', 'MFG', 'SOP', 'CAPA', 'MFG/CAPA', 'SOP/CAPA']
             
-            if 'status' in display_df.columns:
+            if 'status' in display_df.columns :
+                display_df.loc[display_df['status'] == '이상', 'status'] = 'Error'
                 result_cols.append('status')
             
             return display_df[result_cols]
         except Exception as e :
             raise CalculationError(f'Error formatting results for display : {str(e)}')
 
-    # 분석 결과를 로그로 출력
+    """
+    분석 결과를 로그로 출력
+    """
     @error_handler(
         show_dialog=True,
         default_return={}
@@ -350,7 +363,7 @@ class PjtGroupAnalyzer:
             print(summary.to_string())
             
             try :
-                anomaly_groups = display_df[(display_df['PJT'] == 'Total') & (display_df['status'] == '이상')]
+                anomaly_groups = display_df[(display_df['PJT'] == 'Total') & (display_df['status'] == 'Error')]
                 if not anomaly_groups.empty :
                     print('\n===== 이상 그룹 =====')
 
@@ -382,7 +395,9 @@ class PjtGroupAnalyzer:
         except Exception as e :
             raise CalculationError(f'Error printing analysis results : {str(e)}')
 
-    # 전체 분석 수행 및 결과 반환
+    """
+    전체 분석 수행 및 결과 반환
+    """
     @error_handler(
         show_dialog=True,
         default_return={}

@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+from app.utils.conversion import convert_value
 
 """
 생산 계획의 유지율을 계산하는 클래스
@@ -62,74 +62,93 @@ class PlanMaintenanceRate:
         time (str): 시프트 번호
         item (str): 제품 코드
         new_qty (str): 새로운 수량
-        demand (str, optional): 수요 항목
         
     Returns:
         bool: 업데이트 성공 여부
     """
-    def update_quantity(self, line, time, item, new_qty, demand=None):
+    def update_quantity(self, line, time, item, new_qty):
+        print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
         
+        # modified_items 딕셔너리가 없으면 초기화 - 이 부분 추가
+        if not hasattr(self, 'modified_items'):
+            self.modified_items = {}
+            
         if self.adjusted_plan is None:
             # 아직 조정하지 않았다면, 현재 계획으로 초기화
+            print("adjusted_plan이 초기화되지 않았습니다.")
             if self.current_plan is not None:
                 self.adjusted_plan = self.current_plan.copy()
             else:
+                print("current_plan도 없습니다.")
                 return False
             
-        # 입력 값 문자열로 변환
-        line = str(line)
-        time = int(time)
-        item = str(item)
-        new_qty = int(new_qty)
-        if demand is not None:
-            demand = str(demand)
-        
-        # print(f"시도 중인 업데이트: line={line}, time={time}, item={item}, qty={new_qty}, demand={demand}")
-        
-        # 조건에 맞는 행 찾기
-        mask = (
-            (self.adjusted_plan['Line'] == line) &
-            (self.adjusted_plan['Time'] == time) &
-            (self.adjusted_plan['Item'] == item)
-        )
+        try :
+            # 타입 변환 - 수정된 부분
+            print(f"변환 전: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
 
-        # demand 조건 추가
-        if demand is not None and 'Demand' in self.adjusted_plan.columns:
-            mask = mask & (self.adjusted_plan['Demand'] == demand)
+            # 타입 변환
+            time = convert_value(time, int, default=None)
+            new_qty = convert_value(new_qty, int, default=None)
+            print(f"변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
 
-        # 일치하는 행이 있으면 수량 업데이트
-        if mask.any():
-            affected_rows = mask.sum()
-            print(f"업데이트 할 행 수: {affected_rows}")
-
-            self.adjusted_plan.loc[mask, 'Qty'] = new_qty
-            return True
-        else:
-            # 동일한 아이템의 다른 위치 행 찾기
-            same_item_mask = self.adjusted_plan['Item'] == item
+            if time == 0 or new_qty == 0:
+                print(f"변환 실패: time={time}, new_qty={new_qty}")
+                return False
             
-            if same_item_mask.any():
-                # 기존 행 찾기
-                old_row = self.adjusted_plan[same_item_mask].iloc[0].copy()
-
-                # 새 위치와 수량 정보로 복사본 생성
-                new_row = old_row.copy()
-                new_row['Line'] = line
-                new_row['Time'] = time
-                new_row['Qty'] = new_qty
-
-                # 기존 행 삭제
-                self.adjusted_plan = self.adjusted_plan[~same_item_mask]
-
-                # 새 행 추가
-                self.adjusted_plan = pd.concat([self.adjusted_plan, pd.DataFrame([new_row], index=[0])], ignore_index=True)
                 
-                # print(f"아이템 이동 완료: {item}을(를) 삭제 후 {line},{time}에 추가")
+            # 조건에 맞는 행 찾기
+            mask = (
+                (self.adjusted_plan['Line'] == line) &
+                (self.adjusted_plan['Time'] == time) &
+                (self.adjusted_plan['Item'] == item)
+            )
+
+            # 일치하는 행이 있으면 수량 업데이트
+            if mask.any():
+                self.adjusted_plan.loc[mask, 'Qty'] = new_qty
+
+                # 수정된 아이템 기록  - 디버깅
+                key = (line, time, item)
+                self.modified_items[key] = new_qty
+                
+                print(f"수량 업데이트 성공: {line}, {time}, {item} -> {new_qty}")
                 return True
+            else:
+                # 동일한 아이템의 다른 위치 행 찾기
+                same_item_mask = self.adjusted_plan['Item'] == item
+                
+                if same_item_mask.any():
+                    # 기존 행 찾기
+                    old_row = self.adjusted_plan[same_item_mask].iloc[0].copy()
+
+                    # 새 위치와 수량 정보로 복사본 생성
+                    new_row = old_row.copy()
+                    new_row['Line'] = line
+                    new_row['Time'] = time
+                    new_row['Qty'] = new_qty
+
+                    # 기존 행 삭제
+                    self.adjusted_plan = self.adjusted_plan[~same_item_mask]
+
+                    # 새 행 추가
+                    self.adjusted_plan = pd.concat([self.adjusted_plan, pd.DataFrame([new_row], index=[0])], ignore_index=True)
+                    
+                    # 수정된 아이템 기록  - 디버깅
+                    key = (line, time, item)
+                    self.modified_items[key] = new_qty
+                    
+                    print(f"아이템 이동 완료: {item}을(를) 새 위치({line},{time})로 이동하고 수량을 {new_qty}로 변경")
+                    return True
             
-        # print(f"매칭되는 행을 찾을 수 없습니다.: {line}, {time}, {item}, Demand={demand}")
-        return False
+        except Exception as e:
+            print(f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}")
+            return False
         
+        # 수량 업데이트 성공 시
+        print(f"PlanMaintenanceWidget - 수량 업데이트 성공: line={line}, time={time}, item={item}, new_qty={new_qty}")
+        return True
+            
+
     """
     item별 유지율 계산 및 테이블 생성
     

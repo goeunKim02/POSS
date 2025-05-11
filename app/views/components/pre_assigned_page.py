@@ -2,6 +2,7 @@ import threading
 import time
 import os
 import pandas as pd
+from datetime import datetime 
 
 from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory
@@ -257,17 +258,19 @@ class PlanningPage(QWidget):
             
             # 새로운 메서드 호출
             self.main_window.result_page.set_optimization_result({
-                'assignment_result': result_df,
-                'pre_assigned_items': pre_assigned_items,
+                'assignment_result':      result_df,
+                'pre_assigned_items':     pre_assigned_items,
                 'optimization_metadata': {
-                    'execution_time': datetime.now(),
-                    'selected_projects': self.selected_projects
+                    'execution_time':     datetime.now(),
+                    'selected_projects':  self.selected_projects
                 }
             })
             # 페이지 전환
             self.main_window.navigate_to_page(2)
         else:
-            self.optimization_requested.emit({'assignment_result': result_df})
+            self.optimization_requested.emit({
+                'assignment_result': result_df
+            })
 
         self.progress_bar.hide()
         self.btn_run.setEnabled(True)
