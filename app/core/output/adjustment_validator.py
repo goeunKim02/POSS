@@ -281,30 +281,30 @@ class PlanAdjustmentValidator:
             return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
         
 
-        # 직접 capa_qty_data에서 용량 정보 확인
-        print("\n===== 용량 정보 직접 확인 =====")
-        if self.capa_qty_data is not None and not self.capa_qty_data.empty:
-            print(f"capa_qty_data 열 목록: {self.capa_qty_data.columns.tolist()}")
+        # # 직접 capa_qty_data에서 용량 정보 확인
+        # print("\n===== 용량 정보 직접 확인 =====")
+        # if self.capa_qty_data is not None and not self.capa_qty_data.empty:
+        #     print(f"capa_qty_data 열 목록: {self.capa_qty_data.columns.tolist()}")
             
-            # 해당 라인 찾기
-            line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == line]
-            if not line_rows.empty:
-                print(f"{line} 라인 데이터: {line_rows.iloc[0].to_dict()}")
+        #     # 해당 라인 찾기
+        #     line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == line]
+        #     if not line_rows.empty:
+        #         print(f"{line} 라인 데이터: {line_rows.iloc[0].to_dict()}")
                 
-                # 해당 시프트 용량 확인
-                if time in line_rows.columns:
-                    capacity_val = line_rows.iloc[0][time]
-                    print(f"시프트 {time} 용량: {capacity_val}")
-                elif str(time) in line_rows.columns:
-                    capacity_val = line_rows.iloc[0][str(time)]
-                    print(f"시프트 {time} (문자열) 용량: {capacity_val}")
-                else:
-                    print(f"시프트 {time}에 대한 용량 정보가 없습니다.")
-            else:
-                print(f"{line} 라인을 찾을 수 없습니다.")
-        else:
-            print("capa_qty_data가 비어있거나, 없습니다.")
-        print("===========================\n")
+        #         # 해당 시프트 용량 확인
+        #         if time in line_rows.columns:
+        #             capacity_val = line_rows.iloc[0][time]
+        #             print(f"시프트 {time} 용량: {capacity_val}")
+        #         elif str(time) in line_rows.columns:
+        #             capacity_val = line_rows.iloc[0][str(time)]
+        #             print(f"시프트 {time} (문자열) 용량: {capacity_val}")
+        #         else:
+        #             print(f"시프트 {time}에 대한 용량 정보가 없습니다.")
+        #     else:
+        #         print(f"{line} 라인을 찾을 수 없습니다.")
+        # else:
+        #     print("capa_qty_data가 비어있거나, 없습니다.")
+        # print("===========================\n")
             
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
