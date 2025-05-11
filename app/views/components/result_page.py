@@ -14,7 +14,7 @@ from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from ..components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
-
+from app.views.components.result_components.shipment_widget import ShipmentWidget
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -28,6 +28,7 @@ class ResultPage(QWidget):
         self.result_data = None # 결과 데이터 저장 변수
         self.material_analyzer = None  # 자재 부족량 분석기 추가
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
+        self.shipment_widget = None # 당주 출하 위젯 저장 변수
         self.init_ui()
 
         self.connect_signals()
@@ -153,7 +154,7 @@ class ResultPage(QWidget):
         button_group_layout.setContentsMargins(10, 10, 10, 5)
 
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan"]
+        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment"]
         active_button_style = """
             QPushButton {
                 background-color: #1428A0; 
@@ -326,6 +327,11 @@ class ResultPage(QWidget):
                 portcapa_canvas = MplCanvas(width=6, height=4, dpi=100)
                 page_layout.addWidget(portcapa_canvas)
                 self.viz_canvases.append(portcapa_canvas)
+            elif btn_text == 'Shipment':
+                # 당주 출하 위젯
+                self.shipment_widget = ShipmentWidget()
+                self.shipment_widget.shipment_status_updated.connect(self.on_shipment_status_updated)
+                page_layout.addWidget(self.shipment_widget)
             else:
                 # 시각화 캔버스 추가 (Capa, Utilization)
                 canvas = MplCanvas(width=6, height=4, dpi=100)
@@ -412,6 +418,11 @@ class ResultPage(QWidget):
                         
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
+        # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
+        if self.viz_stack.currentIndex() == 5 and self.shipment_widget and index != 5:
+            # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
+            self.shipment_widget.reset_state()
+
         self.viz_stack.setCurrentIndex(index)
 
          # Update button style 
@@ -440,14 +451,17 @@ class ResultPage(QWidget):
         for i, btn in enumerate(self.viz_buttons):
             btn.setStyleSheet(active_style if i == index else inactive_style)
 
+
         if index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
             self.update_material_shortage_analysis()
+        elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
+            self.shipment_widget.run_analysis(self.result_data)
         else:
             # 다른 탭으로 전환 시 자재 부족 상태 초기화
             self.clear_left_widget_shortage_status()
 
-    def clear_left_widget_shortage_status(self):
-        """왼쪽 위젯의 모든 아이템들의 자재 부족 상태 초기화"""
+    """왼쪽 위젯의 모든 아이템들의 자재 부족 상태 초기화"""
+    def clear_left_widget_shortage_status(self):    
         if not hasattr(self, 'left_section') or not hasattr(self.left_section, 'grid_widget'):
             return
         
@@ -461,6 +475,18 @@ class ResultPage(QWidget):
                         # 자재 부족 상태 초기화
                         item.set_shortage_status(False)
                         cleared_count += 1
+    
+    """출하 상태가 업데이트될 때 호출되는 함수"""
+    def on_shipment_status_updated(self, failure_items):
+        """
+        출하 실패 정보가 업데이트되면 왼쪽 섹션의 아이템에 표시
+        
+        Args:
+            failure_items (dict): 아이템 코드를 키로, 실패 정보를 값으로 가진 딕셔너리
+        """
+        # 왼쪽 섹션에 출하 실패 정보 전달
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'set_shipment_failure_items'):
+            self.left_section.set_shipment_failure_items(failure_items)
         
 
     """각 지표별 초기 시각화 생성"""
@@ -910,6 +936,9 @@ class ResultPage(QWidget):
         self.optimization_metadata = optimization_metadata
 
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
+
+        if hasattr(self, 'shipment_widget') and assignment_result is not None:
+            self.shipment_widget.run_analysis(assignment_result)
 
 
     """왼쪽 위젯에 사전할당 상태 적용"""

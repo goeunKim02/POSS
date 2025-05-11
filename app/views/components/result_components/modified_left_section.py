@@ -19,6 +19,7 @@ class ModifiedLeftSection(QWidget):
         self.days = ['월', '화', '수', '목', '금', '토', '일']
         self.time_periods = ['주간', '야간']
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
+        self.shipment_failure_items = {}  # 출하 실패 아이템 저장 (추가됨)
         self.init_ui()
 
         # 아이템 이동을 위한 정보 저장
@@ -91,7 +92,6 @@ class ModifiedLeftSection(QWidget):
         self.item_selected.emit(selected_item, container)
 
     """아이템 데이터가 변경되면 호출되는 함수"""
-
     def on_item_data_changed(self, item, new_data, changed_fields=None):
         print("===== on_item_data_changed 함수 호출 시작 =====")
         print(f"아이템 타입: {type(item)}")
@@ -232,6 +232,15 @@ class ModifiedLeftSection(QWidget):
 
                     # 복원 버튼 활성화
                     self.mark_as_modified()
+
+                    # 아이템이 사전할당된 경우 상태 적용
+                    if 'Item' in new_data and new_data['Item'] in self.pre_assigned_items:
+                        new_item.set_pre_assigned_status(True)
+                        
+                    # 아이템이 출하 실패인 경우 상태 적용
+                    if 'Item' in new_data and new_data['Item'] in self.shipment_failure_items:
+                        failure_info = self.shipment_failure_items[new_data['Item']]
+                        new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
 
                     # 셀 이동 이벤트 발생 (시각화 차트 업데이트)
                     self.cell_moved.emit(new_item, old_data, new_data)
@@ -382,6 +391,12 @@ class ModifiedLeftSection(QWidget):
                         # 사전할당 아이템인 경우 스타일 적용
                         if new_item and item_full_data.get('Item') in self.pre_assigned_items:
                             new_item.set_pre_assigned_status(True)
+                            
+                        # 출하 실패 아이템인 경우 스타일 적용 (추가)
+                        if new_item and item_full_data.get('Item') in self.shipment_failure_items:
+                            item_code = item_full_data.get('Item')
+                            failure_info = self.shipment_failure_items[item_code]
+                            new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
 
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
@@ -448,8 +463,47 @@ class ModifiedLeftSection(QWidget):
                         item_code = item.item_data['Item']
                         if item_code in self.pre_assigned_items:
                             item.set_pre_assigned_status(True)
-
     
+    """출하 실패 아이템 정보 설정"""
+    def set_shipment_failure_items(self, failure_items):
+        # 이전 출하 실패 정보 초기화
+        self.clear_shipment_failure_status()
+        
+        # 새 출하 실패 정보 저장
+        self.shipment_failure_items = failure_items
+        
+        # 이미 데이터가 있다면 적용
+        if hasattr(self, 'data') and self.data is not None:
+            self.apply_shipment_failure_status()
+    
+    """출하 실패 상태 클리어"""
+    def clear_shipment_failure_status(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+            
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if hasattr(item, 'set_shipment_failure'):
+                        item.set_shipment_failure(False)
+        
+        # 출하 실패 정보 초기화
+        self.shipment_failure_items = {}
+    
+    """출하 실패 상태 적용"""
+    def apply_shipment_failure_status(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+            
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
+                        item_code = item.item_data['Item']
+                        if item_code in self.shipment_failure_items:
+                            failure_info = self.shipment_failure_items[item_code]
+                            item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
+
     """원본 데이터로 되돌리기"""
     def reset_to_original(self):
         if self.original_data is None:
@@ -479,4 +533,3 @@ class ModifiedLeftSection(QWidget):
     """데이터가 수정되었음을 표시하는 메서드"""
     def mark_as_modified(self):
         self.reset_button.setEnabled(True)
-

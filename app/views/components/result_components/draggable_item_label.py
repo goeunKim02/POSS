@@ -119,6 +119,35 @@ class DraggableItemLabel(QLabel):
             margin: 2px;
         """
 
+        # 출하 실패 스타일
+        self.shipment_failure_style = """
+            background-color: #FFE6E6;
+            border: 1px solid #FFCCCC;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+        
+        self.shipment_failure_selected_style = """
+            background-color: #FFCCCC;
+            border: 1px solid #0078D7;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+        
+        self.shipment_failure_hover_style = """
+            background-color: #FFD9D9;
+            border: 1px solid #FFAAAA;
+            border-radius: 4px;
+            padding: 5px;
+            margin: 2px;
+        """
+        
+        # 출하 실패 상태 변수
+        self.is_shipment_failure = False
+        self.shipment_failure_reason = None
+
         self.setStyleSheet(self.default_style)
         self.setAlignment(Qt.AlignCenter)
         self.setCursor(Qt.OpenHandCursor)
@@ -135,7 +164,7 @@ class DraggableItemLabel(QLabel):
         self.is_selected = False
 
         # 툴팁 관련 설정
-        QToolTip.setFont(QFont('SansSerif', 10))
+        QToolTip.setFont(QFont('Arial', 10))
 
         # 자재 부족 상태 관련 속성 추가
         self.is_shortage = False
@@ -153,25 +182,96 @@ class DraggableItemLabel(QLabel):
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
 
-    """아이템 데이터에서 툴팁 텍스트 생성"""
     def _create_tooltip_text(self):
         if self.item_data is None:
             return self.text()
 
-        # 아이템 데이터에서 모든 정보를 포함한 툴팁 생성
-        tooltip = "<table border='0' cellspacing='2' cellpadding='2'>"
+        # 통일된 테이블 스타일
+        tooltip = """
+        <style>
+            table.tooltip-table {
+                border-collapse: collapse;
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+            }
+            table.tooltip-table th {
+                background-color: #1428A0;
+                color: white;
+                padding: 4px 8px;
+            }
+            table.tooltip-table td {
+                background-color: #F5F5F5;
+                padding: 4px 8px;
+                border-bottom: 1px solid #E0E0E0;
+            }
+            table.tooltip-table tr:last-child td {
+                border-bottom: none;
+            }
+        </style>
+        <table class='tooltip-table'>
+            <tr><th colspan='2'>Item Information</th></tr>
+        """
 
-        # 모든 열에 대해 키-값 쌍으로 테이블 생성
         for key, value in self.item_data.items():
-            if pd.notna(value):  # NaN 값이 아닌 경우만 표시
-                tooltip += f"<tr><td><b>{key}:</b></td><td>{value}</td></tr>"
+            if pd.notna(value):
+                tooltip += f"<tr><td><b>{key}</b></td><td>{value}</td></tr>"
 
-        # 사전할당 상태 표시
         if self.is_pre_assigned:
-            tooltip += "<tr><td><b>Pre-Assigned:</b></td><td style='color:green;'>Yes</td></tr>"
+            tooltip += "<tr><td><b>Pre-Assigned</b></td><td style='color:green;'>Yes</td></tr>"
+        if self.is_shortage:
+            tooltip += "<tr><td><b>Material Shortage</b></td><td style='color:red;'>Yes</td></tr>"
+        if self.is_shipment_failure:
+            tooltip += "<tr><td><b>Shipment Status</b></td><td style='color:red;'>Failure</td></tr>"
+            if self.shipment_failure_reason:
+                tooltip += f"<tr><td><b>Failure Reason</b></td><td>{self.shipment_failure_reason}</td></tr>"
 
         tooltip += "</table>"
         return tooltip
+
+
+    def _create_shortage_tooltip(self):
+        if not self.shortage_data:
+            return self._create_tooltip_text()
+        item_code = self.item_data.get('Item', 'Unknown Item') if self.item_data else 'Unknown Item'
+        tooltip = """
+        <style>
+            table.tooltip-table {
+                border-collapse: collapse;
+                font-family: Arial, sans-serif;
+                font-size: 10pt;
+            }
+            table.tooltip-table th {
+                background-color: #1428A0;
+                color: white;
+                padding: 4px 8px;
+            }
+            table.tooltip-table td {
+                background-color: #F5F5F5;
+                padding: 4px 8px;
+                border-bottom: 1px solid #E0E0E0;
+            }
+            table.tooltip-table tr:last-child td {
+                border-bottom: none;
+            }
+        </style>
+        <table class='tooltip-table'>
+            <tr><th colspan='4'>{item_code} Material Shortage Details</th></tr>
+            <tr>
+                <th>Material</th>
+                <th>Required</th>
+                <th>Available</th>
+                <th>Shortage</th>
+            </tr>
+        """
+        for shortage in self.shortage_data:
+            tooltip += f"<tr><td>{shortage['Material']}</td>"
+            tooltip += f"<td align='right'>{int(shortage['Required']):,}</td>"
+            tooltip += f"<td align='right'>{int(shortage['Available']):,}</td>"
+            tooltip += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td></tr>"
+        tooltip += "</table><br/>"
+        tooltip += self._create_tooltip_text()
+        return tooltip
+
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -200,10 +300,16 @@ class DraggableItemLabel(QLabel):
         if not self.is_selected:
             if self.is_pre_assigned and self.is_shortage:
                 self.setStyleSheet(self.pre_assigned_shortage_hover_style)
+            elif self.is_pre_assigned and self.is_shipment_failure:
+                self.setStyleSheet(self.pre_assigned_hover_style)  # 사전할당 우선
+            elif self.is_shortage and self.is_shipment_failure:
+                self.setStyleSheet(self.shortage_hover_style)  # 자재 부족 우선
             elif self.is_pre_assigned:
                 self.setStyleSheet(self.pre_assigned_hover_style)
             elif self.is_shortage:
                 self.setStyleSheet(self.shortage_hover_style)
+            elif self.is_shipment_failure:
+                self.setStyleSheet(self.shipment_failure_hover_style)
             else:
                 self.setStyleSheet(self.hover_style)
         super().enterEvent(event)
@@ -331,21 +437,38 @@ class DraggableItemLabel(QLabel):
     def update_style(self):
         """현재 상태에 맞게 스타일 업데이트"""
         if self.is_selected:
-            if self.is_pre_assigned and self.is_shortage:
+            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
+                # 모든 상태 겹침 (사전할당 + 부족 + 출하실패) - 복합 스타일
                 self.setStyleSheet(self.pre_assigned_shortage_selected_style)
+            elif self.is_pre_assigned and self.is_shortage:
+                self.setStyleSheet(self.pre_assigned_shortage_selected_style)
+            elif self.is_pre_assigned and self.is_shipment_failure:
+                self.setStyleSheet(self.pre_assigned_selected_style)
+            elif self.is_shortage and self.is_shipment_failure:
+                self.setStyleSheet(self.shortage_selected_style)  # 자재 부족이 우선
             elif self.is_pre_assigned:
                 self.setStyleSheet(self.pre_assigned_selected_style)
             elif self.is_shortage:
                 self.setStyleSheet(self.shortage_selected_style)
+            elif self.is_shipment_failure:
+                self.setStyleSheet(self.shipment_failure_selected_style)
             else:
                 self.setStyleSheet(self.selected_style)
         else:
-            if self.is_pre_assigned and self.is_shortage:
+            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
                 self.setStyleSheet(self.pre_assigned_shortage_style)
+            elif self.is_pre_assigned and self.is_shortage:
+                self.setStyleSheet(self.pre_assigned_shortage_style)
+            elif self.is_pre_assigned and self.is_shipment_failure:
+                self.setStyleSheet(self.pre_assigned_style)
+            elif self.is_shortage and self.is_shipment_failure:
+                self.setStyleSheet(self.shortage_style)  # 자재 부족이 우선
             elif self.is_pre_assigned:
                 self.setStyleSheet(self.pre_assigned_style)
             elif self.is_shortage:
                 self.setStyleSheet(self.shortage_style)
+            elif self.is_shipment_failure:
+                self.setStyleSheet(self.shipment_failure_style)
             else:
                 self.setStyleSheet(self.default_style)
 
@@ -415,3 +538,25 @@ class DraggableItemLabel(QLabel):
             self.setToolTip(self._create_tooltip_text())
             return True, ""
         return False, "데이터가 없습니다."
+    
+    def set_shipment_failure(self, is_failure, reason=None):
+        """출하 실패 상태 설정"""
+        self.is_shipment_failure = is_failure
+        self.shipment_failure_reason = reason if is_failure else None
+        self.update_style()  # 스타일 업데이트
+        
+        # 툴팁 업데이트 - 전체 툴팁 다시 생성
+        self.setToolTip(self._create_tooltip_text())
+        
+        # 툴팁 업데이트
+        if is_failure and reason:
+            # 기존 툴팁에 출하 실패 정보 추가
+            base_tooltip = self._create_tooltip_text()
+            # failure_info = f"<tr><td colspan='2' style='background-color:#FFCCCC; color:red;'><b>Shipment Failure:</b> {reason}</td></tr>"
+            
+            # 테이블 닫기 태그 앞에 실패 정보 삽입
+            # new_tooltip = base_tooltip.replace("</table>", failure_info + "</table>")
+            # self.setToolTip(new_tooltip)
+        else:
+            # 기본 툴팁으로 복원
+            self.setToolTip(self._create_tooltip_text())
