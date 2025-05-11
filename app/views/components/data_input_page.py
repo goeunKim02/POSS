@@ -25,7 +25,9 @@ from app.views.components.data_upload_components.save_confirmation_dialog import
 
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.core.input.materialAnalyzer import MaterialAnalyzer
+from app.core.input.shipmentAnalysis import calculate_fulfillment_rate, get_fulfillment_summary
 from app.models.input.capa import process_data
+from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 
 class DataInputPage(QWidget) :
     file_selected = pyqtSignal(str)
@@ -403,6 +405,91 @@ class DataInputPage(QWidget) :
         }
 
         try :
+            shipment_data = preprocess_data_for_fulfillment_rate()
+
+            if shipment_data :
+                fulfillment_result = calculate_fulfillment_rate(shipment_data)
+
+                if fulfillment_result :
+                    summary = {
+                        'Total demand(SOP)': fulfillment_result['total_sop'],
+                        'Total production': fulfillment_result['total_production'],
+                        'Overall fulfillment rate': f"{fulfillment_result['overall_rate']:.2f}%",
+                        'Project count': len(fulfillment_result['project_fulfillment']),
+                        'Site count': len(fulfillment_result['site_fulfillment']),
+                        'Bottleneck items': len([r for _, r in fulfillment_result['detailed_results'].iterrows() 
+                                                if not r['Is_Fulfilled'] and r['SOP'] > 0])
+                    }
+
+                    display_df = pd.DataFrame()
+
+                    project_rows = []
+
+                    for project, data in fulfillment_result['project_fulfillment'].items() :
+                        project_rows.append({
+                            'Category': 'Project',
+                            'Name': project,
+                            'SOP': data['sop'],
+                            'Production': data['production'],
+                            'Fulfillment Rate': f"{data['rate']:.2f}%",
+                            'Status': 'OK' if data['rate'] >= 95 else 'Warning' if data['rate'] >= 80 else 'Error'
+                        })
+
+                    site_rows = []
+
+                    for site, data in fulfillment_result['site_fulfillment'].items() :
+                        site_rows.append({
+                            'Category': 'Site',
+                            'Name': site,
+                            'SOP': data['sop'],
+                            'Production': data['production'],
+                            'Fulfillment Rate': f"{data['rate']:.2f}%",
+                            'Status': 'OK' if data['rate'] >= 95 else 'Warning' if data['rate'] >= 80 else 'Error'
+                        })
+
+                    total_row = {
+                        'Category': 'Total',
+                        'Name': 'Overall',
+                        'SOP': fulfillment_result['total_sop'],
+                        'Production': fulfillment_result['total_production'],
+                        'Fulfillment Rate': f"{fulfillment_result['overall_rate']:.2f}%",
+                        'Status': 'OK' if fulfillment_result['overall_rate'] >= 95 else 'Warning' if fulfillment_result['overall_rate'] >= 80 else 'Error'
+                    }
+
+                    display_df = pd.DataFrame(project_rows + site_rows + [total_row])
+
+                    current_data = self.left_parameter_component.all_project_analysis_data.copy()
+                    current_data['Current Shipment'] = {
+                        'display_df' : display_df,
+                        'summary' : summary
+                    }
+
+                    self.left_parameter_component.set_project_analysis_data(current_data)
+
+                    if fulfillment_result['overall_rate'] < 70 :
+                        shipment_failures = []
+
+                        unfulfilled_items = fulfillment_result['detailed_results'][
+                            (fulfillment_result['detailed_results']['Is_Fulfilled'] == False) &
+                            (fulfillment_result['detailed_results']['SOP'] > 0)
+                        ]
+
+                        for _, row in unfulfilled_items.iterrows() :
+                            shipment_failures.append({
+                                'item': row.get('Item', 'Unknown'),
+                                'project': row.get('Project', ''),
+                                'tosite': row.get('Tosite_group', ''),
+                                'reason': row.get('Constraint_Type', 'Unknown'),
+                                'sop': row.get('SOP', 0),
+                                'production': row.get('Production_Qty', 0),
+                                'shortage': row.get('SOP', 0) - row.get('Production_Qty', 0)
+                            })
+
+                        failures['shipment'] = shipment_failures
+        except Exception as e :
+            print(f'shipment analysis failed : {str(e)}')
+
+        try :
             material_analyzer = MaterialAnalyzer()
 
             if material_analyzer.analyze() :
@@ -490,8 +577,7 @@ class DataInputPage(QWidget) :
                         else :
                             failures['production_capacity'] = None
         except Exception as e :
-            import traceback
-            traceback.print_exc()
+            print(f'Error : {str(e)}')
 
             if has_issues :
                 issues = []
