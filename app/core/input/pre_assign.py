@@ -57,7 +57,7 @@ def process_all_qty(fixed_opt: pd.DataFrame, demand: pd.DataFrame) -> pd.DataFra
     """Qty == 'ALL'일 때 demand 합계로 대체"""
     def resolve_qty(row):
         q = row['Qty']
-        if q == 'ALL':
+        if isinstance(q,str) and q.lower() == 'all':
             pat = row['Fixed_Group'].replace('*','?')
             return demand.loc[
                 demand['Item'].apply(lambda s: fnmatch.fnmatch(s, pat)),
