@@ -101,6 +101,51 @@ class ModifiedLeftSection(QWidget):
         if not item or not new_data or not hasattr(item, 'item_data'):
             print("아이템 또는 데이터가 없음")
             return
+        
+        # 수량만 변경된 경우 체크  - 디버깅
+        if changed_fields and len(changed_fields) == 1 and 'Qty' in changed_fields:
+            # 수량만 변경 - 단일 셀 업데이트만 수행
+            line = new_data.get('Line')
+            time = new_data.get('Time')
+            item_code = new_data.get('Item')
+            new_qty = new_data.get('Qty')
+            
+            # 실제 데이터 업데이트 (단일 셀)
+            idx = self.data[(self.data['Line'] == line) & 
+                        (self.data['Time'] == time) & 
+                        (self.data['Item'] == item_code)].index
+            if len(idx) > 0:
+                self.data.loc[idx[0], 'Qty'] = new_qty
+            
+            # 시각화만 업데이트 (비율 재계산)
+            self.data_changed.emit(self.data)
+            return  # 다른 로직 실행 방지
+        
+        # === 여기에 디버깅 코드 추가 ===
+        print("\n=== 가동률 변경 디버깅 ===")
+        line = new_data.get('Line')
+        time = int(new_data.get('Time', 0))
+        item_code = new_data.get('Item', '')
+        
+        # 요일 확인
+        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        day_index = (time - 1) // 2
+        day = day_names[day_index] if 0 <= day_index < len(day_names) else 'Unknown'
+
+        # 다음 코드를 추가로 넣어주세요
+        print(f"\n=== 요일 매핑 검증 ===")
+        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        day_index = (time - 1) // 2
+        day = day_names[day_index] if 0 <= day_index < len(day_names) else 'Unknown'
+        
+        print(f"계산 과정: ({time} - 1) // 2 = {time-1} // 2 = {day_index}")
+        print(f"변경 아이템: {item_code}")
+        print(f"라인/시프트: {line}/{time}")
+        print(f"계산된 요일: {day}")
+        
+        print(f"변경 아이템: {item_code}")
+        print(f"라인/시프트: {line}/{time}")
+        print(f"요일: {day}")
 
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
@@ -244,6 +289,10 @@ class ModifiedLeftSection(QWidget):
 
                     # 셀 이동 이벤트 발생 (시각화 차트 업데이트)
                     self.cell_moved.emit(new_item, old_data, new_data)
+
+                    print(f"\n=== cell_moved 시그널 발생 ===")
+                    print(f"이전 데이터: {old_data}")
+                    print(f"새 데이터: {new_data}")
 
                     # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
                     self.item_data_changed.emit(new_item, new_data)

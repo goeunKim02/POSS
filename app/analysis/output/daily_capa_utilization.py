@@ -59,6 +59,12 @@ class CapaUtilization:
                 13: 'Sun', 14: 'Sun',
             }
 
+            # 여기에 디버깅 코드 추가
+            print("\n=== CapaUtilization.analyze_utilization ===")
+            print("shift_to_day 매핑:")
+            for shift, day in shift_to_day.items():
+                print(f"  시프트 {shift}: {day}")
+
             # 일별 생산능력 계산
             day_capacity = {}
             for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']:
@@ -107,7 +113,19 @@ class CapaUtilization:
             
             # 수요 수량에 기반한 일별 생산량 계산
             df_demand['Day'] = df_demand['Time'].map(shift_to_day)
+
+            # 여기에 디버깅 코드 추가
+            print("\n타임 매핑 결과:")
+            for i, row in df_demand.iterrows():
+                print(f"  Time {row['Time']} → Day {row['Day']}")
+                if i >= 5:  # 처음 5개만 출력
+                    break
+
             day_production = df_demand.groupby('Day')['Qty'].sum()
+            # 여기에 디버깅 코드 추가
+            print("\n요일별 생산량:")
+            for day, qty in day_production.items():
+                print(f"  {day}: {qty}")
 
             # 일별 가동률 계산
             utilization_rate = {}

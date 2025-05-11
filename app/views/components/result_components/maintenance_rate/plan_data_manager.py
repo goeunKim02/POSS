@@ -75,7 +75,7 @@ class PlanDataManager:
     
     """수량 업데이트"""
     def update_quantity(self, line, time, item, new_qty):
-        # print(f"DataManager - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
+        print(f"DataManager - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
         if self.plan_analyzer is None:
             return False
             
