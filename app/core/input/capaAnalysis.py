@@ -261,7 +261,7 @@ class PjtGroupAnalyzer:
             raise DataError('Analysis DataFrame is empty or None')
         
         try :
-            display_df = analysis_df.copy()
+            display_df = analysis_df.copy().astype(object)
             
             for idx in display_df.index :
                 try :
@@ -315,7 +315,7 @@ class PjtGroupAnalyzer:
             raise CalculationError(f'Error formatting results for display : {str(e)}')
 
     """
-    분석 결과를 로그로 출력
+    분석 결과 저장
     """
     @error_handler(
         show_dialog=True,
@@ -356,16 +356,9 @@ class PjtGroupAnalyzer:
             pd.set_option('display.max_columns', None)
             pd.set_option('display.width', 1000)
             
-            print("\n===== PJT Group / PJT별 MFG, SOP, CAPA 분석 테이블 =====")
-            print(display_df.to_string(index=False))
-            
-            print("\n===== 요약 =====")
-            print(summary.to_string())
-            
             try :
                 anomaly_groups = display_df[(display_df['PJT'] == 'Total') & (display_df['status'] == 'Error')]
                 if not anomaly_groups.empty :
-                    print('\n===== 이상 그룹 =====')
 
                     for idx, row in anomaly_groups.iterrows() :
                         try :
@@ -379,11 +372,8 @@ class PjtGroupAnalyzer:
                                 capa = analysis_df.loc[original_idx, 'CAPA']
                             
                                 shortage = mfg - capa
-                                print(f"그룹: {row['PJT Group']}, MFG: {int(mfg):,}, CAPA: {int(capa):,}, 부족량: {int(shortage):,} (MFG-CAPA)")
                         except Exception as e :
                             continue
-                    
-                    print(anomaly_groups.to_string(index=False))
             except Exception as e :
                 pass
             
