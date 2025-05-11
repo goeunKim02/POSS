@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QPushButton, QFrame, QSizePolicy, QScrollArea, QWidget
+    QLabel, QPushButton, QFrame, QSizePolicy, QScrollArea, QWidget, QTabWidget
 )
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt
@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt
 class DetailDialog(QDialog):
     def __init__(self, row: dict, time_map: dict, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Item Detail")
+        self.setWindowTitle("Project Detail")
         # 도움말 아이콘(물음표) 제거 - 윈도우 플래그 설정
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
@@ -34,7 +34,7 @@ class DetailDialog(QDialog):
         title_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         # 제목 레이블
-        title_label = QLabel("Item Detail")
+        title_label = QLabel("Project Detail")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
@@ -100,14 +100,7 @@ class DetailDialog(QDialog):
             ("Line", safe_get("line")),
             ("Time", safe_get("time")),
             ("Project", safe_get("project")),
-            ("Item", safe_get("item")),
             ("Qty", safe_get("qty")),
-            ("Demand", safe_get("demand")),
-            ("To Site", safe_get("to_site")),
-            ("SOP", safe_get("sop")),
-            ("MFG", safe_get("mfg")),
-            ("RMC", safe_get("rmc")),
-            ("Due LT", safe_get("due_LT")),
         ]
 
         # 필드 스타일 정의
@@ -152,9 +145,43 @@ class DetailDialog(QDialog):
             grid.addWidget(lbl_val, row_idx, col_idx + 1, Qt.AlignLeft)
 
         data_layout.addLayout(grid)
-        content_layout.addWidget(data_frame)
-        content_layout.addStretch(1)  # 남은 공간 채우기
 
+        details_list = row.get('details', [])
+        if details_list:
+            tab_widget = QTabWidget()
+            tab_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+            keys = ["Demand","Item","Qty","To_site","SOP","MFG","RMC","Due_LT"]
+            for rec in details_list:
+                tab = QWidget()
+                tab_layout = QGridLayout(tab)
+                tab_layout.setContentsMargins(30, 10, 30, 10)
+                tab_layout.setHorizontalSpacing(12)
+                tab_layout.setVerticalSpacing(6)
+
+                for i, key in enumerate(keys):
+                    value = rec.get(key, "-")
+                    name_lbl = QLabel(f"{key}:")
+                    name_lbl.setFont(QFont("Arial", 9, QFont.Bold))
+                    name_lbl.setStyleSheet("border: none;")
+                    name_lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                    val_lbl = QLabel(str(value))
+                    val_lbl.setStyleSheet("border: none;")
+                    val_lbl.setFont(QFont("Arial", 9))
+
+                    row_idx = i // 2
+                    col_idx = (i % 2) * 2
+                    tab_layout.addWidget(name_lbl, row_idx, col_idx, Qt.AlignLeft)
+                    tab_layout.addWidget(val_lbl, row_idx, col_idx + 1, Qt.AlignLeft)
+
+                # 탭 라벨
+                demand_label = str(rec.get("Demand", "-"))
+                tab_widget.addTab(tab, demand_label)
+
+            data_layout.addWidget(tab_widget)
+
+        content_layout.addWidget(data_frame)
+        content_layout.addStretch(1)
         # 버튼 프레임
         button_frame = QFrame()
         button_frame.setStyleSheet("background-color: #F0F0F0; border: none;")

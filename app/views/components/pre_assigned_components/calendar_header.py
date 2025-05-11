@@ -5,8 +5,10 @@ from PyQt5.QtCore import Qt
 from ....resources.styles.pre_assigned_style import WEEKDAY_HEADER_STYLE, SEPARATOR_STYLE
 
 class CalendarHeader(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, present_times:set, parent=None):
         super().__init__(parent)
+        self.present = present_times
+
         layout = QGridLayout(self)
 
         layout.setColumnMinimumWidth(0, 60)
@@ -15,6 +17,14 @@ class CalendarHeader(QWidget):
         layout.setColumnStretch(1, 0)
         for c in range(2, 9):
             layout.setColumnStretch(c, 1)
+
+        # 주말 헤더 칼럼은 비어있으면
+        present = set(self.present)
+        if not any(t in present for t in (11, 12, 13, 14)):
+            layout.setColumnStretch(7, 0)
+            layout.setColumnMinimumWidth(7, 80)
+            layout.setColumnStretch(8, 0)
+            layout.setColumnMinimumWidth(8, 80)    
 
         layout.setSpacing(6)
 

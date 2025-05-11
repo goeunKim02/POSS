@@ -68,50 +68,6 @@ font-weight: bold;
 padding: 6px;
 """
 
-# Day/Night 카드 프레임 스타일
-CARD_DAY_FRAME_STYLE = """
-QFrame#cardFrameDay {
-    background-color: #E8F5E9;
-    border: 1px solid #A5D6A7;
-    border-radius: 4px;
-}
-QFrame#cardFrameDay:hover {
-    background-color: #C8E6C9;
-    border: 1px solid #81C784;
-}
-QFrame#cardFrameDay:pressed {
-    background-color: #A5D6A7;
-    border: 1px solid #4CAF50;
-}
-QFrame#cardFrameDay QLabel {
-    background-color: transparent;
-}
-"""
-
-CARD_NIGHT_FRAME_STYLE = """
-QFrame#cardFrameNight {
-    background-color: #FFEBEE;
-    border: 1px solid #EF9A9A;
-    border-radius: 4px;
-}
-QFrame#cardFrameNight:hover {
-    background-color: #FFCDD2;
-    border: 1px solid #E57373;
-}
-QFrame#cardFrameNight:pressed {
-    background-color: #EF9A9A;
-    border: 1px solid #F44336;
-}
-QFrame#cardFrameNight QLabel {
-    background-color: transparent;
-}
-"""
-
-# 선택된 카드 스타일(테두리 강조)
-CARD_DAY_SELECTED_STYLE = CARD_DAY_FRAME_STYLE + "\nQFrame#cardFrameDay { border: 2px solid #4CAF50; }\n"""
-
-CARD_NIGHT_SELECTED_STYLE = CARD_NIGHT_FRAME_STYLE + "\nQFrame#cardFrameNight { border: 2px solid #F44336; }\n"""
-
 # 상세정보 스타일
 DETAIL_DIALOG_STYLE = """
 QDialog {

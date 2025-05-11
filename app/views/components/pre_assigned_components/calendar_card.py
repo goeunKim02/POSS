@@ -1,8 +1,8 @@
+import hashlib
+import colorsys
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal
-
-from ....resources.styles.pre_assigned_style import CARD_DAY_FRAME_STYLE, CARD_NIGHT_FRAME_STYLE, CARD_DAY_SELECTED_STYLE, CARD_NIGHT_SELECTED_STYLE
 
 class CalendarCard(QFrame):
     clicked = pyqtSignal(object, dict)
@@ -11,8 +11,34 @@ class CalendarCard(QFrame):
         super().__init__(*args, **kwargs)
         self._row = row_data
 
-        self.base_style = CARD_DAY_FRAME_STYLE if is_day else CARD_NIGHT_FRAME_STYLE
-        self.selected_style = CARD_DAY_SELECTED_STYLE if is_day else CARD_NIGHT_SELECTED_STYLE
+        proj = self._row.get('project', '')
+        # 프로젝트명을 MD5 해시 → 앞 두 글자로 hue 결정
+        digest = hashlib.md5(proj.encode('utf-8')).hexdigest()
+        hue = (int(digest[:2], 16) / 255) * 360
+
+        # HSL → RGB (파스텔 베이스, 선택 시 조금 어둡게)
+        def hsl_to_hex(h, l, s):
+            r, g, b = colorsys.hls_to_rgb(h/360, l, s)
+            return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
+
+        base_color = hsl_to_hex(hue, 0.8, 0.6)    # 밝기 80%, 채도 60%
+        sel_color  = hsl_to_hex(hue, 0.6, 0.6)    # 밝기 60%, 채도 60%
+
+        # 스타일 문자열
+        self.base_style = f"""
+            QFrame {{
+                background-color: {base_color};
+                border: 1px solid {base_color};
+                border-radius: 6px;
+            }}
+        """
+        self.selected_style = f"""
+            QFrame {{
+                background-color: {sel_color};
+                border: 2px solid {sel_color};
+                border-radius: 6px;
+            }}
+        """
 
         self.setStyleSheet(self.base_style)
         self._is_selected = False
