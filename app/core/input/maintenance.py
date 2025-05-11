@@ -2,7 +2,8 @@ import pandas as pd
 import numpy as np
 from typing import List, Tuple
 from app.models.input.maintenance import ItemMaintenance, RMCMaintenance, DataLoader
-from app.models.common.fileStore import DataStore
+from app.models.common.fileStore import DataStore, FilePaths
+from app.utils.fileHandler import load_file
 
 def melt_plan(df: pd.DataFrame) -> pd.DataFrame:
     if df.empty:
@@ -97,3 +98,79 @@ def run_maintenance_analysis() -> Tuple[List[ItemMaintenance], List[RMCMaintenan
     failed_items = [i for i in items if i.below_thresh]
     failed_rmcs  = [r for r in rmcs  if r.below_thresh]
     return failed_items, failed_rmcs
+
+""" Item 계획 유지율 계산 함수"""
+def calc_item_plan_retention(df_result: pd.DataFrame, df_demand: pd.DataFrame) -> float:
+    """
+    Parameter:
+        df_result: result 시트 데이터프레임
+        df_demand: demand 시트 데이터프레임
+    Return: 
+        int: item 계획 유지율 
+    """
+    df_demand_mfg = df_demand.groupby('Item')['MFG'].sum()
+    df_result['Next MFG'] = 0
+    for idx,row in df_result.iterrows():
+        max_mfg = min(row['Qty'],df_demand_mfg[row['Item']])
+        df_result.loc[idx,'Next MFG'] = max_mfg
+        df_demand_mfg[row['Item']] -= max_mfg
+    return df_result['Next MFG'].sum()/df_result['Qty'].sum()
+
+""" RMC 계획 유지율 계산 함수"""
+def calc_rmc_plan_retention(df_result: pd.DataFrame, df_demand: pd.DataFrame) -> float:
+    """
+    Parameter:
+        df_result: result 시트 데이터프레임
+        df_demand: demand 시트 데이터프레임
+    Return: 
+        int: RMC 계획 유지율 
+    """
+    df_demand['RMC'] = df_demand['Item'].str[3:11]
+    df_demand_mfg = df_demand.groupby('RMC')['MFG'].sum()
+    df_result['Next MFG'] = 0
+    for idx,row in df_result.iterrows():
+        rmc = row['Item'][3:11]
+        max_mfg = min(row['Qty'],df_demand_mfg[rmc])
+        df_result.loc[idx,'Next MFG'] = max_mfg
+        df_demand_mfg[rmc] -= max_mfg
+    return df_result['Next MFG'].sum()/df_result['Qty'].sum()
+
+"""계획 유지율 계산 함수"""
+def calc_plan_retention():
+    """
+    Parameter:
+        df_result: result 시트 데이터프레임
+        df_demand: demand 시트 데이터프레임
+    Return: 
+        (int,int): item 계획 유지율 , RMC 계획 유지율
+    """
+    demand_path = FilePaths.get("demand_excel_file")
+    result_path = FilePaths.get("result_file")
+    if (not demand_path) or  (not result_path):
+        return (None,None)
+    demand_file = load_file(demand_path)
+    df_demand = demand_file.get('demand', pd.DataFrame())
+    df_result = pd.read_excel(result_path,sheet_name=0)
+
+
+    df_demand_item_mfg = df_demand.groupby('Item')['MFG'].sum()
+    df_result['Next item MFG'] = 0
+    for idx,row in df_result.iterrows():
+        max_mfg = min(row['Qty'],df_demand_item_mfg[row['Item']])
+        df_result.loc[idx,'Next item MFG'] = max_mfg
+        df_demand_item_mfg[row['Item']] -= max_mfg
+
+    item_plan_retention = df_result['Next item MFG'].sum()/df_result['Qty'].sum()
+
+    df_demand['RMC'] = df_demand['Item'].str[3:11]
+    df_demand_rmc_mfg = df_demand.groupby('RMC')['MFG'].sum()
+    df_result['Next RMC MFG'] = 0
+    for idx,row in df_result.iterrows():
+        rmc = row['Item'][3:11]
+        max_mfg = min(row['Qty'],df_demand_rmc_mfg[rmc])
+        df_result.loc[idx,'Next RMC MFG'] = max_mfg
+        df_demand_rmc_mfg[rmc] -= max_mfg
+
+    rmc_plan_retention = df_result['Next RMC MFG'].sum()/df_result['Qty'].sum()
+
+    return (item_plan_retention, rmc_plan_retention)

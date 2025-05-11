@@ -1,7 +1,8 @@
+# main.py
 import sys
 import traceback
 from PyQt5.QtWidgets import QApplication, QMessageBox
-from app.views.main_window import MainWindow
+from splash_start import SamsungSplashScreen  # 스플래시 스크린 클래스 임포트
 
 
 def exception_hook(exctype, value, traceback_obj):
@@ -25,6 +26,9 @@ if __name__ == "__main__":
     # 글로벌 예외 처리기 설정
     sys.excepthook = exception_hook
 
-    window = MainWindow()
-    window.show()
+    # 스플래시 스크린 생성 및 표시
+    splash = SamsungSplashScreen()
+    splash.show()
+
+    # 이벤트 루프 시작
     sys.exit(app.exec_())

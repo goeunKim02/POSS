@@ -14,9 +14,11 @@ class ModifiedLeftSection(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.data = None
+        self.original_data = None
         self.grouped_data = None
         self.days = ['월', '화', '수', '목', '금', '토', '일']
         self.time_periods = ['주간', '야간']
+        self.pre_assigned_items = set()  # 사전할당된 아이템 저장
         self.init_ui()
 
         # 아이템 이동을 위한 정보 저장
@@ -50,26 +52,27 @@ class ModifiedLeftSection(QWidget):
         self.load_button.clicked.connect(self.load_excel_file)
         control_layout.addWidget(self.load_button)
 
-        # # 테이블 초기화 버튼
-        # self.clear_button = QPushButton("테이블 초기화")
-        # self.clear_button.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #808080;
-        #         color: white;
-        #         font-weight: bold;
-        #         padding: 8px 15px;
-        #         border-radius: 4px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #606060;
-        #     }
-        #     QPushButton:pressed {
-        #         background-color: #404040;
-        #     }
-        # """)
-        # self.clear_button.setCursor(QCursor(Qt.PointingHandCursor))
-        # self.clear_button.clicked.connect(self.clear_table)
-        # control_layout.addWidget(self.clear_button)
+        # 원본 복원 버튼 
+        self.reset_button = QPushButton("Reset to Original")
+        self.reset_button.setStyleSheet("""
+            QPushButton {
+                background-color: #808080;
+                color: white;
+                font-weight: bold;
+                padding: 8px 15px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #606060;
+            }
+            QPushButton:pressed {
+                background-color: #404040;
+            }
+        """)
+        self.reset_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.reset_button.clicked.connect(self.reset_to_original)
+        self.reset_button.setEnabled(False)  # 초기에는 비활성화
+        control_layout.addWidget(self.reset_button)
 
         # 나머지 공간 채우기
         control_layout.addStretch(1)
@@ -88,6 +91,7 @@ class ModifiedLeftSection(QWidget):
         self.item_selected.emit(selected_item, container)
 
     """아이템 데이터가 변경되면 호출되는 함수"""
+
     def on_item_data_changed(self, item, new_data, changed_fields=None):
         print("===== on_item_data_changed 함수 호출 시작 =====")
         print(f"아이템 타입: {type(item)}")
@@ -196,16 +200,38 @@ class ModifiedLeftSection(QWidget):
                         old_data.get('Line'),
                         old_data.get('Time')
                     )
-                    
+
                     if not valid:
                         EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", message)
                         return
 
+                # 드롭 위치 정보 가져오기 (changed_fields에서)
+                drop_index = 0
+                if changed_fields and '_drop_pos' in changed_fields:
+                    try:
+                        drop_pos_info = changed_fields['_drop_pos']
+                        x = int(drop_pos_info['x'])
+                        y = int(drop_pos_info['y'])
+
+                        # 새 컨테이너 가져오기
+                        target_container = self.grid_widget.containers[new_row_idx][new_col_idx]
+
+                        # 로컬 위치로 변환하여 드롭 인덱스 계산
+                        from PyQt5.QtCore import QPoint
+                        drop_index = target_container.findDropIndex(QPoint(x, y))
+                        print(f"계산된 드롭 인덱스: {drop_index}, 위치: ({x}, {y})")
+                    except Exception as e:
+                        print(f"드롭 위치 계산 오류: {e}")
+                        drop_index = 0  # 오류 시 첫 번째 위치
+
                 # 새 위치에 아이템 추가
-                new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data)
+                new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data,drop_index)
 
                 if new_item:
                     # print("새 아이템 생성 성공")
+
+                    # 복원 버튼 활성화
+                    self.mark_as_modified()
 
                     # 셀 이동 이벤트 발생 (시각화 차트 업데이트)
                     self.cell_moved.emit(new_item, old_data, new_data)
@@ -220,7 +246,7 @@ class ModifiedLeftSection(QWidget):
                 print(
                     f"유효하지 않은 인덱스: old_row_idx={old_row_idx}, old_col_idx={old_col_idx}, new_row_idx={new_row_idx}, new_col_idx={new_col_idx}")
                 return
-            
+
         # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
         if hasattr(item, 'update_item_data'):
             # 수정: update_item_data 메서드의 반환값 처리
@@ -230,6 +256,8 @@ class ModifiedLeftSection(QWidget):
                 return
 
         # 데이터 변경 성공 시
+        self.mark_as_modified()
+        
         # 상위 위젯에 이벤트 전달
         self.item_data_changed.emit(item, new_data)
 
@@ -349,7 +377,12 @@ class ModifiedLeftSection(QWidget):
                         # 전체 행 데이터를 아이템 데이터로 전달
                         # pandas Series를 딕셔너리로 변환하여 전달
                         item_full_data = row_data.to_dict()
-                        self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
+                        new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
+
+                        # 사전할당 아이템인 경우 스타일 적용
+                        if new_item and item_full_data.get('Item') in self.pre_assigned_items:
+                            new_item.set_pre_assigned_status(True)
+
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
 
@@ -369,24 +402,6 @@ class ModifiedLeftSection(QWidget):
             import traceback
             traceback.print_exc()
 
-    # """테이블 초기화"""
-    # def clear_table(self):
-    #     reply = QMessageBox.question(
-    #         self, '테이블 초기화',
-    #         "정말로 테이블을 초기화하시겠습니까?",
-    #         QMessageBox.Yes | QMessageBox.No,
-    #         QMessageBox.No
-    #     )
-
-    #     if reply == QMessageBox.Yes:
-    #         self.grid_widget.clearAllItems()
-    #         self.data = None
-    #         self.grouped_data = None
-    #         self.row_headers = []
-
-    #         # 빈 데이터프레임 신호 발생
-    #         self.data_changed.emit(pd.DataFrame())
-
 
     """외부에서 데이터 설정"""
     def set_data_from_external(self, new_data):
@@ -403,9 +418,65 @@ class ModifiedLeftSection(QWidget):
             print(f"Qty 열 타입: {new_data['Qty'].dtype}")
         
         self.data = new_data
+        self.original_data = self.data.copy()
         self.update_table_from_data()
 
 
     def set_validator(self, validator):
         self.validator = validator
         self.grid_widget.set_validator(validator)
+        
+
+    """사전할당 아이템 정보 설정"""
+    def set_pre_assigned_items(self, pre_assigned_items):
+        self.pre_assigned_items = pre_assigned_items
+
+        # 이미 데이터가 있다면 적용
+        if hasattr(self, 'data') and self.data is not None:
+            self.apply_pre_assigned_status()
+
+
+    """사전할당 아이템 상태 적용"""
+    def apply_pre_assigned_status(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
+                        item_code = item.item_data['Item']
+                        if item_code in self.pre_assigned_items:
+                            item.set_pre_assigned_status(True)
+
+    
+    """원본 데이터로 되돌리기"""
+    def reset_to_original(self):
+        if self.original_data is None:
+            EnhancedMessageBox.show_validation_error(self, "Reset Failed", 
+                                "No original data to reset to.")
+            return
+        
+        # 사용자 확인 Dialog
+        reply = EnhancedMessageBox.show_confirmation(
+            self, "Reset to Original", "Are you sure you want to reset all changes and return to the original data?\nAll modifications will be lost."
+        )
+
+        if reply:
+            # 원본 데이터로 복원
+            self.data = self.original_data.copy()
+            self.update_table_from_data()
+
+            # Reset 버튼 비활성화
+            self.reset_button.setEnabled(False)
+
+            # 성공 메세지
+            EnhancedMessageBox.show_validation_success(
+                self, "Reset Complete", "Data has been successfully reset to the original values."
+            )
+
+    
+    """데이터가 수정되었음을 표시하는 메서드"""
+    def mark_as_modified(self):
+        self.reset_button.setEnabled(True)
+

@@ -1,9 +1,9 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                           QTabWidget, QPushButton, QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QCursor
+from PyQt5.QtGui import QFont, QCursor, QFontMetrics
 from app.views.components.result_components.maintenance_rate.plan_data_manager import PlanDataManager
-from app.views.components.result_components.maintenance_rate.maintenance_tree_widget import ItemMaintenanceTree,RMCMaintenanceTree
+from app.views.components.result_components.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
 
 """계획 유지율 표시 위젯"""
 class PlanMaintenanceWidget(QWidget):
@@ -144,17 +144,16 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 24px; 
+                font-size: 22px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 24px;  
+                font-size: 22px;  
             }
             QTabBar::tab {
                 padding: 8px 16px;
-                min-width: 300px;
                 margin-left: 7px;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
@@ -162,32 +161,52 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 24px;  
+                font-size: 22px;  
             }
             QTabBar::tab::first { margin-left: 10px; }
         """)
-        
+
+
+        tab_bar = self.tab_widget.tabBar()
+        tab_bar.setElideMode(Qt.ElideNone)  # 텍스트 생략 방지
+        tab_bar.setExpanding(True)  # 탭이 전체 너비를 차지하지 않도록
+
         # Item별 탭
         self.item_tab = QWidget()
         item_layout = QVBoxLayout(self.item_tab)
         item_layout.setContentsMargins(10, 10, 10, 10)
         
-        # Item별 트리 위젯
-        self.item_tree = ItemMaintenanceTree()
-        item_layout.addWidget(self.item_tree)
+        # Item별 테이블 위젯
+        self.item_table = ItemMaintenanceTable()
+        item_layout.addWidget(self.item_table)
         
         # RMC별 탭
         self.rmc_tab = QWidget()
         rmc_layout = QVBoxLayout(self.rmc_tab)
         rmc_layout.setContentsMargins(10, 10, 10, 10)
         
-        # RMC별 트리 위젯
-        self.rmc_tree = RMCMaintenanceTree()
-        rmc_layout.addWidget(self.rmc_tree)
+        # RMC별 테이블 위젯
+        self.rmc_table = RMCMaintenanceTable()
+        rmc_layout.addWidget(self.rmc_table)
         
         # 탭 추가
         self.tab_widget.addTab(self.item_tab, "Item Maintenance Rate")
         self.tab_widget.addTab(self.rmc_tab, "RMC Maintenance Rate")
+
+        # 탭 바 설정 - 자동 크기 조정을 위한 커스텀 탭바 설정
+        tab_bar = self.tab_widget.tabBar()
+        tab_bar.setExpanding(False)
+        
+        # 폰트 설정
+        font = tab_bar.font()
+        font.setPointSize(16)
+        tab_bar.setFont(font)
+        
+        # 동적으로 탭 크기 조정
+        font_metrics = QFontMetrics(font)
+        
+        # 각 탭의 너비를 텍스트에 맞게 조정
+        tab_bar.setTabSizeHint = lambda index: self.get_tab_size_hint(index, font_metrics)
         
         content_layout.addWidget(self.tab_widget)
         
@@ -197,10 +216,9 @@ class PlanMaintenanceWidget(QWidget):
         # 탭 변경 시 유지율 레이블 업데이트
         self.tab_widget.currentChanged.connect(self.update_rate_label)
         
-    # 이하 이벤트 핸들러와 비즈니스 로직
     
+    """이전 계획 선택"""
     def select_previous_plan(self):
-        """이전 계획 선택"""
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self, 
@@ -233,8 +251,8 @@ class PlanMaintenanceWidget(QWidget):
                     f"Failed to load previous plan: {message}"
                 )
                 
+    """탭 인덱스에 따라 유지율 레이블 업데이트"""
     def update_rate_label(self, index):
-        """탭 인덱스에 따라 유지율 레이블 업데이트"""
         if index == 0:  # Item별 탭
             self.rate_title_label.setText("Item Maintenance Rate :")
             rate_value = getattr(self, 'item_maintenance_rate', None)
@@ -277,6 +295,12 @@ class PlanMaintenanceWidget(QWidget):
         # 이전 계획 자동 탐색
         if start_date is not None and end_date is not None:
             success, message = self.data_manager.detect_previous_plan(start_date, end_date)
+            print(f"이전 계획 감지 결과: success={success}, message={message}")
+
+
+            # 이전 계획 감지 상태 확인
+            print(f"plan_manager.is_first_plan: {self.data_manager.is_first_plan}")
+            print(f"plan_manager.previous_plan_path: {self.data_manager.previous_plan_path}")
             
             # 상태 레이블 업데이트
             if success:
@@ -295,33 +319,42 @@ class PlanMaintenanceWidget(QWidget):
         """유지율 다시 계산하고 UI 업데이트"""
         # 유지율 계산
         item_df, item_rate, rmc_df, rmc_rate = self.data_manager.calculate_maintenance_rates()
-        
+
         # 계산된 유지율 저장
         self.item_maintenance_rate = item_rate if item_rate is not None else 0.0
         self.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
         
-        # 로그 출력
-        item_rate_str = f"{self.item_maintenance_rate:.2f}%" if self.item_maintenance_rate is not None else "N/A"
-        rmc_rate_str = f"{self.rmc_maintenance_rate:.2f}%" if self.rmc_maintenance_rate is not None else "N/A"
-        print(f"계산된 유지율 - Item: {item_rate_str}, RMC: {rmc_rate_str}")
-        
-        # 트리 위젯 데이터 설정
+        # 테이블 위젯 데이터 설정
         if item_df is not None and not item_df.empty:
-            self.item_tree.populate_data(item_df, self.data_manager.modified_item_keys)
+            self.item_table.populate_data(item_df, self.data_manager.modified_item_keys)
         else:
             print("Item별 유지율 데이터가 없습니다.")
             
         if rmc_df is not None and not rmc_df.empty:
-            self.rmc_tree.populate_data(rmc_df, self.data_manager.modified_item_keys)
+            self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys)
         else:
             print("RMC별 유지율 데이터가 없습니다.")
             
         # 선택된 탭에 따라 유지율 레이블 업데이트
         self.update_rate_label(self.tab_widget.currentIndex())
         
-    def update_quantity(self, line, time, item, new_qty, demand=None):
-        """수량 업데이트 및 UI 갱신"""
-        success = self.data_manager.update_quantity(line, time, item, new_qty, demand)
+
+    """수량 업데이트 및 UI 갱신"""
+    def update_quantity(self, line, time, item, new_qty):
+        # print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
+
+        # 명시적 타입 변환 추가
+        try:
+            if isinstance(time, str) and time.strip().isdigit():
+                time = int(time.strip())
+            if isinstance(new_qty, str) and new_qty.strip().isdigit():
+                new_qty = int(new_qty.strip())
+            
+            print(f"PlanMaintenanceWidget - 변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
+        except (ValueError, TypeError) as e:
+            print(f"타입 변환 실패: {e}")
+            
+        success = self.data_manager.update_quantity(line, time, item, new_qty)
         
         if success:
             print("수량 업데이트 성공, 유지율 재계산 중...")
@@ -330,3 +363,11 @@ class PlanMaintenanceWidget(QWidget):
         else:
             print(f"수량 업데이트 실패: {line}, {time}, {item}, {new_qty}")
             return False
+        
+
+    """조정된 계획 데이터 반환"""
+    def get_adjusted_plan(self):
+        if hasattr(self, 'data_manager') and self.data_manager is not None:
+            if hasattr(self.data_manager, 'plan_analyzer') and self.data_manager.plan_analyzer is not None:
+                return self.data_manager.plan_analyzer.get_adjusted_plan()
+        return None

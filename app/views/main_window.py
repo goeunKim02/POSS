@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QDesktopWidget
+from PyQt5.QtWidgets import QMainWindow, QTabWidget, QWidget, QVBoxLayout, QDesktopWidget, QMessageBox
 from PyQt5.QtCore import Qt, QDate, QTimer
 from PyQt5.QtGui import QCursor, QIcon, QFont
 import pandas as pd
@@ -133,19 +133,19 @@ class MainWindow(QMainWindow):
 
     def on_settings_changed(self, settings):
         """설정 변경 시 호출되는 콜백"""
-        # 설정 변경 시 필요한 작업 수행
-        print("설정이 변경되었습니다.")
+        # try:
+            # DataModel에 update_settings 메서드가 없으므로 주석 처리하거나 제거
+            # self.data_model.update_settings(settings)
 
-        # 예: 최적화 파라미터 업데이트
-        if hasattr(self, 'optimization') and self.optimization:
-            self.optimization.update_parameters(settings)
-
-        # 예: UI 업데이트
-        # self.update_ui_based_on_settings(settings)
-
-        # 예: 데이터 모델에 설정 전달
-        if hasattr(self, 'data_model'):
-            self.data_model.update_settings(settings)
+            # 대신 필요한 처리를 여기에 구현
+            # 예: 설정 변경 사항을 로그로 남김
+        #     print("Settings have been changed:", settings)
+        #
+        #     # 사용자에게 알림
+        #     QMessageBox.information(self, "Change Settings", "Settings have been saved.")
+        # except Exception as e:
+        #     print(f"Error applying settings: {e}")
+        pass
 
     def on_file_selected(self, file_path):
         # 파일 경로를 데이터 모델에 저장
@@ -166,23 +166,6 @@ class MainWindow(QMainWindow):
         processed_data = process_data()
         
         if processed_data :
-            # 제조동별 capa 검증
-
-            validation_results = validate_distribution_ratios(processed_data)
-            print(validation_results)
-            # self.display_validation_results(validation_results)
-
-            # PJT Group 분석
-            try:
-                analyzer = PjtGroupAnalyzer(processed_data)
-                results = analyzer.analyze()
-                self.data_model.analysis_results = results
-
-            except Exception as e:
-                print(f"프로젝트 그룹 분석 중 오류 발생: {e}")
-                import traceback
-                print(traceback.format_exc())
-
             # 0 미만 자재 분석
             try :
                 shortage_results = MaterialAnalyzer.analyze_material_shortage()
@@ -191,18 +174,6 @@ class MainWindow(QMainWindow):
                     self.data_model.material_shortage_results = shortage_results
             except Exception as e :
                 print(f'자재 부족 분석 중 오류 발생 : {e}')
-
-            # 자재만족률 분석
-            try :
-                # threshold의 값에 따라 기준 비율 바뀜
-                satisfaction_results = analyze_material_satisfaction_all(threshold=80)
-
-                if satisfaction_results and 'error' not in satisfaction_results :
-                    self.data_model.material_satisfaction_results = satisfaction_results
-            except Exception as e :
-                print(f'자재만족률 분석 중 오류 발생 : {e}')
-                import traceback
-                print(traceback.format_exc())
 
             # 당주 출하 만족률 분석
             try :
