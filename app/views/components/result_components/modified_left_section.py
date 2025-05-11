@@ -102,51 +102,6 @@ class ModifiedLeftSection(QWidget):
             print("아이템 또는 데이터가 없음")
             return
         
-        # 수량만 변경된 경우 체크  - 디버깅
-        if changed_fields and len(changed_fields) == 1 and 'Qty' in changed_fields:
-            # 수량만 변경 - 단일 셀 업데이트만 수행
-            line = new_data.get('Line')
-            time = new_data.get('Time')
-            item_code = new_data.get('Item')
-            new_qty = new_data.get('Qty')
-            
-            # 실제 데이터 업데이트 (단일 셀)
-            idx = self.data[(self.data['Line'] == line) & 
-                        (self.data['Time'] == time) & 
-                        (self.data['Item'] == item_code)].index
-            if len(idx) > 0:
-                self.data.loc[idx[0], 'Qty'] = new_qty
-            
-            # 시각화만 업데이트 (비율 재계산)
-            self.data_changed.emit(self.data)
-            return  # 다른 로직 실행 방지
-        
-        # === 여기에 디버깅 코드 추가 ===
-        print("\n=== 가동률 변경 디버깅 ===")
-        line = new_data.get('Line')
-        time = int(new_data.get('Time', 0))
-        item_code = new_data.get('Item', '')
-        
-        # 요일 확인
-        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        day_index = (time - 1) // 2
-        day = day_names[day_index] if 0 <= day_index < len(day_names) else 'Unknown'
-
-        # 다음 코드를 추가로 넣어주세요
-        print(f"\n=== 요일 매핑 검증 ===")
-        day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        day_index = (time - 1) // 2
-        day = day_names[day_index] if 0 <= day_index < len(day_names) else 'Unknown'
-        
-        print(f"계산 과정: ({time} - 1) // 2 = {time-1} // 2 = {day_index}")
-        print(f"변경 아이템: {item_code}")
-        print(f"라인/시프트: {line}/{time}")
-        print(f"계산된 요일: {day}")
-        
-        print(f"변경 아이템: {item_code}")
-        print(f"라인/시프트: {line}/{time}")
-        print(f"요일: {day}")
-
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         print(f"이전 데이터: {old_data}")
@@ -322,8 +277,19 @@ class ModifiedLeftSection(QWidget):
         # 셀 이동 이벤트 발생 (시각화 차트 업데이트) 추가
         if not position_change_needed:
             # 위치 변경이 없는 데이터 수정의 경우에도 시각화 업데이트
-            self.cell_moved.emit(item, old_data, new_data)
-
+            print(f"\n=== 수량만 변경 시 시각화 업데이트 ===")
+            print(f"아이템: {old_data.get('Item')}")
+            print(f"이전 위치: Line={old_data.get('Line')}, Time={old_data.get('Time')}")
+            print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}")
+            print(f"이전 수량: {old_data.get('Qty')}")
+            print(f"새 수량: {new_data.get('Qty')}")
+            
+            # 수정: 정확한 위치 정보를 포함하여 전달
+            corrected_new_data = new_data.copy()
+            corrected_new_data['Line'] = old_data.get('Line')  # 기존 위치 유지
+            corrected_new_data['Time'] = old_data.get('Time')  # 기존 위치 유지
+            
+            self.cell_moved.emit(item, old_data, corrected_new_data)
         # # 변경 알림 메시지 표시
         # EnhancedMessageBox.show_validation_success(self, "Data Updated",
         #                         f"The production schedule has been successfully updated. \n{item.text()}")
@@ -462,9 +428,6 @@ class ModifiedLeftSection(QWidget):
         except Exception as e:
             # 에러 메시지 표시
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
-            # 디버깅을 위한 예외 정보 출력
-            import traceback
-            traceback.print_exc()
 
 
     """외부에서 데이터 설정"""

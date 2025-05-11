@@ -68,23 +68,6 @@ class VisualizationUpdater:
     def update_utilization_chart(canvas, utilization_data):
          # 비교 데이터 형식 감지
         is_comparison = isinstance(utilization_data, dict) and 'original' in utilization_data and 'adjusted' in utilization_data
-
-        # 여기에 디버깅 코드 추가
-        print("\n=== update_utilization_chart 디버깅 ===")
-        print(f"비교 데이터 여부: {is_comparison}")
-
-        if is_comparison:
-            print("원본 데이터:")
-            for day, val in utilization_data['original'].items():
-                print(f"  {day}: {val}")
-            print("조정 데이터:")
-            for day, val in utilization_data['adjusted'].items():
-                print(f"  {day}: {val}")
-        else:
-            print("단일 데이터:")
-            for day, val in utilization_data.items():
-                print(f"  {day}: {val}")
-        
         
         chart_config = {
             'has_data_check': VisualizationUpdater._is_utilization_data_valid,

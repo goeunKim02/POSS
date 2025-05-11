@@ -549,11 +549,44 @@ class ResultPage(QWidget):
     변경된 항목에 따라 시각화 업데이트
     """
     def on_cell_moved(self, item, old_data, new_data):
-        # print(f"셀 이동 감지: {old_data.get('Item', '알 수 없음')} -> {new_data.get('Item', '알 수 없음')}")
-        
         try:
             # 결과 데이터가 있을 때만 처리
             if self.result_data is not None and not self.result_data.empty:
+                # 수량만 변경된 경우 (위치는 동일)
+                is_quantity_only_change = (
+                    old_data.get('Line') == new_data.get('Line') and
+                    old_data.get('Time') == new_data.get('Time') and
+                    old_data.get('Item') == new_data.get('Item') and
+                    old_data.get('Qty') != new_data.get('Qty')
+                )
+
+                # 수량만 변경된 경우
+                if is_quantity_only_change:
+                    # 결과 데이터에서 정확한 아이템만 업데이트
+                    mask = (
+                        (self.result_data['Line'] == new_data.get('Line')) &
+                        (self.result_data['Time'] == int(new_data.get('Time'))) &
+                        (self.result_data['Item'] == new_data.get('Item'))
+                    )
+                    
+                    matched_rows = self.result_data[mask]
+                    
+                    if len(matched_rows) > 0:
+                        # 기존 수량 확인
+                        old_qty_actual = matched_rows['Qty'].iloc[0]
+                        
+                        # 업데이트 전 총 수량 확인
+                        total_before = self.result_data['Qty'].sum()
+                        
+                        # 수량 업데이트
+                        self.result_data.loc[mask, 'Qty'] = float(new_data.get('Qty'))
+        
+                else:
+                    # 위치 변경인 경우: 기존 처리 방식 유지
+                    print(f"\n=== 위치 변경 처리 ===")
+                    print(f"기존 처리 방식으로 진행")
+
+
                 # 셀 이동에 따른 제조동별 생산량 비율 업데이트
                 updated_ratio = CapaRatioAnalyzer.update_capa_ratio_for_cell_move(
                     self.result_data, old_data, new_data, is_initial=False  # 셀 이동 시 결과 표시
@@ -611,8 +644,7 @@ class ResultPage(QWidget):
         
         except Exception as e:
             print(f"셀 이동 처리 중 오류 발생: {e}")
-            import traceback
-            traceback.print_exc()
+            
     
     """모든 시각화 차트 업데이트"""
     def update_all_visualizations(self):

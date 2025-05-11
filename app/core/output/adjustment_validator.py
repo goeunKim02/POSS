@@ -271,14 +271,14 @@ class PlanAdjustmentValidator:
     """
     def validate_capacity(self, line, time, new_qty, item=None, is_move=False):
         # 시간과 수량을 숫자로 확실히 변환
-        try:
-            # 명시적 타입 변환
-            time = int(time) if isinstance(time, str) else time
-            new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
-            print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
-        except (ValueError, TypeError) as e:
-            print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
-            return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
+        # try:
+        #     # 명시적 타입 변환
+        #     time = int(time) if isinstance(time, str) else time
+        #     new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
+        #     print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
+        # except (ValueError, TypeError) as e:
+        #     print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
+        #     return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
         
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
@@ -310,13 +310,6 @@ class PlanAdjustmentValidator:
     
         # 마스터 데이터에서 라인과 시프트 용량 가져오기
         capacity = self.get_line_capacity(line, time)
-
-            # 디버깅 정보 출력
-        print(f"=== validate_capacity 디버깅 ===")
-        print(f"line: {line}, time: {time}, item: {item}")
-        print(f"new_qty: {new_qty}, existing_qty: {existing_qty}")
-        print(f"current_allocation: {current_allocation}, capacity: {capacity}")
-        print(f"calculated_total: {current_allocation + new_qty}")
         
         # 용량 검증
         if capacity is not None:
@@ -440,11 +433,6 @@ class PlanAdjustmentValidator:
             if new_qty <= 0:
                 return False, f"아이템 '{item}'의 Qty를 찾을 수 없습니다."
             
-        # 디버깅 정보 출력
-        print(f"=== validate_adjustment 디버깅 ===")
-        print(f"line: {line}, time: {time}, item: {item}, new_qty: {new_qty}")
-        print(f"source_line: {source_line}, source_time: {source_time}")
-            
         # 각 제약 요소 검증
         validations = [
             self.validate_line_item_compatibility(line, item),
@@ -454,27 +442,20 @@ class PlanAdjustmentValidator:
         ]
 
         # 개별 검증 결과 확인
-        # for valid, message in validations:
-        #     if not valid: 
-        #         return False, message
-         # 개별 검증 결과 출력 및 확인
-        for i, (valid, message) in enumerate(validations):
-            validation_name = ["line_item_compatibility", "capacity", "due_date", "utilization_rate"][i]
-            print(f"{validation_name}: {valid} - {message}")
+        for valid, message in validations:
             if not valid: 
                 return False, message
+        #  # 개별 검증 결과 출력 및 확인
+        # for i, (valid, message) in enumerate(validations):
+        #     validation_name = ["line_item_compatibility", "capacity", "due_date", "utilization_rate"][i]
+        #     print(f"{validation_name}: {valid} - {message}")
+        #     if not valid: 
+        #         return False, message
         
         # 제조동 비율 제약조건 검증 (임시 데이터셋 생성 후 검증)
         temp_result_data = self._calculate_adjusted_data(line, time, item, new_qty, source_line, source_time)
-
-        # 임시 데이터 확인
-        print("=== 임시 데이터 확인 ===")
-        print(f"기존 제조동 비율: {self._get_current_building_ratios()}")
-        print(f"조정 후 제조동 비율: {self._get_building_ratios_from_data(temp_result_data)}")
-
         valid, message = self.validate_building_ratios(temp_result_data)
-        print(f"제조동 비율 검증: {valid} - {message}")
-
+   
         if not valid:
             return False, message
         
@@ -610,16 +591,6 @@ class PlanAdjustmentValidator:
     def validate_building_ratios(self, result_data=None):
         data_df = result_data if result_data is not None else self.result_data
 
-        # # 제조동별 생산량 상세 출력
-        # print("=== 제조동별 상세 분석 ===")
-        # for building in ['I', 'D', 'K', 'M']:
-        #     building_lines = data_df[data_df['Line'].str.startswith(f'{building}_', na=False)]
-        #     total_qty = building_lines['Qty'].sum()
-        #     print(f"{building} 제조동 총 생산량: {total_qty}")
-            
-        #     for _, row in building_lines.iterrows():
-        #         print(f"  라인 {row['Line']}, 시프트 {row['Time']}: {row['Qty']}개")
-
         building_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
             data_df=data_df,
             is_initial=True
@@ -627,15 +598,6 @@ class PlanAdjustmentValidator:
     
         if not building_ratios:
             return True, "No production volume or unable to calculate plant capacity ratios."
-        
-        # # 비율 상세 출력
-        # print("=== 제조동별 비율 상세 ===")
-        # for building, ratio in building_ratios.items():
-        #     constraints = self.building_constraints.get(building, {})
-        #     lower_limit = constraints.get('lower_limit', 0) * 100
-        #     upper_limit = constraints.get('upper_limit', 0) * 100
-            
-        #     print(f"{building}: {ratio:.2f}% (하한: {lower_limit:.2f}%, 상한: {upper_limit:.2f}%)")
         
         violations = []
 
@@ -750,46 +712,3 @@ class PlanAdjustmentValidator:
 
         return temp_result_data
     
-
-# 디버깅 함수
-    def _get_current_building_ratios(self):
-        """현재 결과 데이터의 제조동별 비율 반환"""
-        if self.result_data is None or self.result_data.empty:
-            return {}
-        
-        building_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
-            data_df=self.result_data,
-            is_initial=True
-        )
-        
-        return building_ratios if building_ratios else {}
-
-    def _get_building_ratios_from_data(self, data_df):
-        """특정 데이터프레임에서 제조동별 비율 계산"""
-        if data_df is None or data_df.empty:
-            return {}
-        
-        building_ratios = CapaRatioAnalyzer.analyze_capa_ratio(
-            data_df=data_df,
-            is_initial=True
-        )
-        
-        return building_ratios if building_ratios else {}
-
-
-    def debug_daily_production():
-        """요일별 생산량 직접 확인"""
-        days = {
-            'Mon': [1, 2], 'Tue': [3, 4], 'Wed': [5, 6],
-            'Thu': [7, 8], 'Fri': [9, 10], 'Sat': [11, 12], 'Sun': [13, 14]
-        }
-        
-        for day, shifts in days.items():
-            day_data = result_data[result_data['Time'].isin(shifts)]
-            total_qty = day_data['Qty'].sum()
-            print(f"{day}: 시프트 {shifts}, 총 생산량: {total_qty}")
-            
-            # M_04 라인 시프트 6 확인
-            if day == 'Wed':
-                m04_data = day_data[(day_data['Line'] == 'M_04') & (day_data['Time'] == 6)]
-                print(f"  M_04 시프트 6: {m04_data['Qty'].sum()}")
