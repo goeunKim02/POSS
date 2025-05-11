@@ -69,16 +69,22 @@ class ItemGridWidget(QWidget):
         self.current_selected_container = None
         self.current_selected_item = None
 
+        # 열 확장 정책 설정 - 데이터 셀만 확장
+        self.grid_layout.setColumnStretch(0, 0)  # 라인 열 - 고정 (확장 안함)
+        self.grid_layout.setColumnStretch(1, 0)  # 교대 열 - 고정 (확장 안함)
+
         # 열 헤더 추가 (있는 경우) - 첫 번째 열과 두 번째 열은 행 헤더용으로 예약
         if column_headers:
             # 빈 헤더 셀 (첫 번째 행, 첫 번째 열 - 라인 헤더 위)
             empty_header1 = QLabel("")
-            empty_header1.setStyleSheet("background-color: #F0F0F0;")
+            empty_header1.setStyleSheet("background-color: transparent;")
+            empty_header1.setFixedWidth(100)  # 라인 열 고정 너비
             self.grid_layout.addWidget(empty_header1, 0, 0)
 
             # 빈 헤더 셀 (첫 번째 행, 두 번째 열 - 교대 헤더 위)
             empty_header2 = QLabel("")
             empty_header2.setStyleSheet("background-color: #F0F0F0;")
+            empty_header2.setFixedWidth(80)  # 교대 열 고정 너비
             self.grid_layout.addWidget(empty_header2, 0, 1)
 
             # 열 헤더 추가 (데이터 열)
@@ -88,6 +94,8 @@ class ItemGridWidget(QWidget):
                 label.setAlignment(Qt.AlignCenter)
                 # 데이터 열은 2부터 시작 (0: 라인 헤더, 1: 교대 헤더)
                 self.grid_layout.addWidget(label, 0, col + 2)
+                # 데이터 열에만 확장 정책 적용
+                self.grid_layout.setColumnStretch(col + 2, 1)
 
         # 라인별 교대 정보가 있는 경우 행 헤더 설정
         if line_shifts:
@@ -107,6 +115,7 @@ class ItemGridWidget(QWidget):
                     font-family: Arial;
                 """)
                 line_label.setAlignment(Qt.AlignCenter)
+                line_label.setFixedWidth(100)  # 라인 열 고정 너비
 
                 # 교대 수에 따라 행 구성
                 shift_rows = []
@@ -134,6 +143,7 @@ class ItemGridWidget(QWidget):
                         """
                     shift_label.setStyleSheet(shift_style)
                     shift_label.setAlignment(Qt.AlignCenter)
+                    shift_label.setFixedWidth(80)  # 교대 열 고정 너비
 
                     # 교대 레이블을 두 번째 열(인덱스 1)에 배치
                     self.grid_layout.addWidget(shift_label, row_index, 1)
@@ -151,7 +161,8 @@ class ItemGridWidget(QWidget):
                     for col in range(columns):
                         container = ItemsContainer()
                         container.setMinimumHeight(200)
-                        container.setMinimumWidth(230)
+                        # 최소 너비만 설정하고 확장 가능하게
+                        container.setMinimumWidth(250)
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -179,7 +190,7 @@ class ItemGridWidget(QWidget):
                     # 교대가 하나뿐이면 병합 필요 없음
                     self.grid_layout.addWidget(line_label, start_row, 0)
         else:
-            # 기존 방식으로 행 헤더와 컨테이너 추가 (여기는 수정 불필요)
+            # 기존 방식으로 행 헤더와 컨테이너 추가
             for row in range(rows):
                 row_containers = []
 
@@ -188,13 +199,14 @@ class ItemGridWidget(QWidget):
                     label = QLabel(row_headers[row])
                     label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0;")
                     label.setAlignment(Qt.AlignCenter)
+                    label.setFixedWidth(120)  # 고정 너비
                     self.grid_layout.addWidget(label, row + 1, 0)
 
                 # 각 셀에 아이템 컨테이너 추가
                 for col in range(columns):
                     container = ItemsContainer()
                     container.setMinimumHeight(200)
-                    container.setMinimumWidth(230)
+                    container.setMinimumWidth(250)
                     container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                     # 아이템 선택 이벤트 연결
