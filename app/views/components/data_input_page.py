@@ -396,14 +396,11 @@ class DataInputPage(QWidget) :
         solution, failures = run_allocation()
 
         item_plan_retention, rmc_plan_retention = calc_plan_retention()
-        # print("[input 분석] item_plan_retention : ",item_plan_retention,", rmc_plan_retention : ", rmc_plan_retention)
-        
+    
         failures["plan_retention"] = {
             "item_plan_retention": item_plan_retention,
             "rmc_plan_retention": rmc_plan_retention
         }
-
-        # print("[input 분석] failures : ",failures)
 
         try :
             material_analyzer = MaterialAnalyzer()
@@ -431,6 +428,25 @@ class DataInputPage(QWidget) :
                             continue
 
                     failures['materials'] = material_failures
+
+                if material_analyzer.material_df is not None and not material_analyzer.material_df.empty :
+                    negative_stock_materials = {}
+
+                    current_negative = material_analyzer.material_df[material_analyzer.material_df['On-Hand'] < 0].copy()
+
+                    if not current_negative.empty :
+                        current_materials = []
+
+                        for _, row in current_negative.iterrows() :
+                            material_id = row.get('Material', 'Unknown')
+                            stock = row.get('On-Hand', 0)
+                            current_materials.append({
+                                'material_id': material_id,
+                                'stock': stock
+                            })
+                        negative_stock_materials['Current'] = current_materials
+                    if negative_stock_materials :
+                        failures['materials_negative_stock'] = negative_stock_materials
             else :
                 print('failed material analysis')
         except Exception as e :
@@ -448,10 +464,10 @@ class DataInputPage(QWidget) :
                     current_data['Production Capacity'] = project_analysis_results
                     self.left_parameter_component.set_project_analysis_data(current_data)
 
-                    if 'display_df' in project_analysis_results :
-                        display_df = project_analysis_results['display_df']
-                        has_issues = False
+                    display_df = project_analysis_results['display_df']
+                    has_issues = False
 
+                    if 'display_df' is not None :
                         for _, row in display_df.iterrows() :
                             if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
                                 has_issues = True
@@ -497,7 +513,7 @@ class DataInputPage(QWidget) :
         except Exception as e :
             print(f'error : {str(e)}')
 
-            self.parameter_component.show_failures.emit(failures)
+        self.parameter_component.show_failures.emit(failures)
 
     """
     Save 버튼 클릭 시 현재 데이터를 원본 파일에 저장

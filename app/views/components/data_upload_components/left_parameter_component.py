@@ -66,7 +66,7 @@ class LeftParameterComponent(QWidget):
             )
 
             summary_label = QLabel("analysis summary")
-            summary_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+            summary_label.setStyleSheet("font-weight: bold; font-size: 18px;")
             summary_label.setAlignment(Qt.AlignTop)
 
             page_layout.addWidget(table, 1)
@@ -181,13 +181,11 @@ class LeftParameterComponent(QWidget):
                 )
             elif metric == 'Materials' :
                 text = (
-                    f"<b>Material Shortage Analysis:</b><br>"
                     f"Total materials: {summary.get('Total materials', 0)}<br>"
                     f"Weekly shortage materials: {summary.get('Weekly shortage materials', 0)}<br>"
                     f"Full period shortage materials: {summary.get('Full period shortage materials', 0)}<br>"
                     f"Shortage rate: {summary.get('Shortage rate (%)', 0)}%<br>"
                     f"Period: {summary.get('Period', 'N/A')}<br>"
-                    f"Top shortage materials: {summary.get('Top shortage materials', 'None')}"
                 )
                 
             summary_label.setText(text)
