@@ -33,7 +33,7 @@ def calculate_fulfillment_rate(processed_data) :
         due_lt = get_due_lt(project, tosite_group, due_lt_map)
 
         if due_lt is None :
-            result_df.at[i, 'Constraint_Type'] = '납기정보 없음'
+            result_df.at[i, 'Constraint_Type'] = 'No due date info'
             continue
 
         material_constraint = check_material_availability(
@@ -48,10 +48,10 @@ def calculate_fulfillment_rate(processed_data) :
 
         if material_constraint['available_qty'] == 0 :
             result_df.at[i, 'Production_Qty'] = 0
-            result_df.at[i, 'Constraint_Type'] = '자재 부족'
+            result_df.at[i, 'Constraint_Type'] = 'Material shortage'
         elif production_constraint['available_qty'] == 0 :
             result_df.at[i, 'Production_Qty'] = 0
-            result_df.at[i, 'Constraint_Type'] = '생산 능력 부족'
+            result_df.at[i, 'Constraint_Type'] = 'Production CAPA shortage'
         else :
             available_qty = min(
                 material_constraint['available_qty'],
@@ -66,9 +66,9 @@ def calculate_fulfillment_rate(processed_data) :
                 result_df.at[i, 'Is_Fulfilled'] = False
 
                 if material_constraint['available_qty'] <= production_constraint['available_qty'] :
-                    result_df.at[i, 'Constraint_Type'] = '자재 부족'
+                    result_df.at[i, 'Constraint_Type'] = 'Material shortage'
                 else :
-                    result_df.at[i, 'Constraint_Type'] = '생산 능력 부족'
+                    result_df.at[i, 'Constraint_Type'] = 'Production CAPA shortage'
 
     total_sop = result_df['SOP'].sum()
     total_production = result_df['Production_Qty'].sum()
@@ -131,7 +131,7 @@ def check_material_availability(item, required_qty, model_to_materials, material
     if not required_materials :
         return {
             'available_qty' : 0,
-            'missing_materials' : ['자재 정보 없음']
+            'missing_materials' : ['No material info']
         }
     
     material_limits = []
@@ -173,7 +173,7 @@ def check_production_capacity(project, tosite_group, required_qty, due_lt, proje
     if due_lt is None or due_lt <= 0 :
         return {
             'available_qty': 0,
-            'reason': '유효하지 않은 납기 정보'
+            'reason': 'Invalid due date'
         }
     
     available_lines = project_lines.get(project, [])
@@ -181,7 +181,7 @@ def check_production_capacity(project, tosite_group, required_qty, due_lt, proje
     if not available_lines :
         return {
             'available_qty': 0,
-            'reason': '생산 가능 라인 없음'
+            'reason': 'No available production line'
         }
     
     total_capacity = 0
@@ -205,7 +205,7 @@ def check_production_capacity(project, tosite_group, required_qty, due_lt, proje
 
     return {
         'available_qty': available_qty,
-        'reason': '납기 내 생산 능력 부족' if total_capacity < required_qty else ''
+        'reason': 'Insufficient production capacity' if total_capacity < required_qty else ''
     }
 
 """
@@ -216,17 +216,17 @@ def get_fulfillment_summary(result) :
         return '계산 결과가 없습니다'
     
     summary = []
-    summary.append(f"당주 출하 만족률: {result['overall_rate']:.2f}%")
-    summary.append(f"총 수요(SOP): {result['total_sop']}")
-    summary.append(f"총 생산 가능: {result['total_production']}")
-    summary.append("\n프로젝트별 만족률:")
+    summary.append(f"Weekly shipment fulfillment rate : {result['overall_rate']:.2f}%")
+    summary.append(f"Total demand(SOP) : {result['total_sop']}")
+    summary.append(f"Total production capacity : {result['total_production']}")
+    summary.append("\nProject fulfillment rates :")
 
     for project, data in result['project_fulfillment'].items() :
-        summary.append(f"  - {project}: {data['rate']:.2f}% (수요: {data['sop']}, 생산 가능: {data['production']})")
+        summary.append(f"  - {project}: {data['rate']:.2f}% (Demand: {data['sop']}, Production: {data['production']})")
     
-    summary.append("\n사이트별 만족률:")
+    summary.append("\nSatisfaction rate by site :")
 
     for site, data in result['site_fulfillment'].items() :
-        summary.append(f"  - {site}: {data['rate']:.2f}% (수요: {data['sop']}, 생산 가능: {data['production']})")
+        summary.append(f"  - {site}: {data['rate']:.2f}% (Demand: {data['sop']}, Production: {data['production']})")
     
     return "\n".join(summary)

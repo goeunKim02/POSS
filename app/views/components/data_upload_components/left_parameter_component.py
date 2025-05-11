@@ -120,11 +120,15 @@ class LeftParameterComponent(QWidget):
                 headers = ["PJT Group", "PJT", "MFG", "SOP", "CAPA", "MFG/CAPA", "SOP/CAPA"]
             elif metric == 'Materials' :
                 headers = list(display_df.columns)
+            elif metric == 'Current Shipment' :
+                headers = ["Category", "Name", "SOP", "Production", "Fulfillment Rate", "Status"]
             
             table.setColumnCount(len(headers))
             table.setHeaderLabels(headers)
 
             red_brush = QBrush(QColor('#e74c3c'))
+            yellow_brush = QBrush(QColor('#f39c12'))
+            green_brush = QBrush(QColor('#2ecc71'))
             bold_font = QFont()
             bold_font.setBold(True)
 
@@ -160,6 +164,23 @@ class LeftParameterComponent(QWidget):
                                     item.setForeground(col, red_brush)
                         except (ValueError, TypeError) :
                             pass
+                elif metric == 'Current Shipment' :
+                    status = row.get('Status', '')
+                    category = row.get('Category', '')
+
+                    if category == 'Total' :
+                        for col in range(len(headers)) :
+                            item.setFont(col, bold_font)
+                    
+                    if status == 'Error' :
+                        for col in range(len(headers)) :
+                            item.setForeground(col, red_brush)
+                    elif status == 'Warning' :
+                        for col in range(len(headers)) :
+                            item.setForeground(col, yellow_brush)
+                    elif status == 'OK' :
+                        for col in range(len(headers)) :
+                            item.setForeground(col, green_brush)
 
                 table.addTopLevelItem(item)
 
@@ -186,6 +207,15 @@ class LeftParameterComponent(QWidget):
                     f"Full period shortage materials: {summary.get('Full period shortage materials', 0)}<br>"
                     f"Shortage rate: {summary.get('Shortage rate (%)', 0)}%<br>"
                     f"Period: {summary.get('Period', 'N/A')}<br>"
+                )
+            elif metric == 'Current Shipment' :
+                text = (
+                    f"Overall fulfillment rate: {summary.get('Overall fulfillment rate', '0%')}<br>"
+                    f"Total demand (SOP): {summary.get('Total demand(SOP)', 0):,}<br>"
+                    f"Total production: {summary.get('Total production', 0):,}<br>"
+                    f"Project count: {summary.get('Project count', 0)}<br>"
+                    f"Site count: {summary.get('Site count', 0)}<br>"
+                    f"Bottleneck items: {summary.get('Bottleneck items', 0)}"
                 )
                 
             summary_label.setText(text)
