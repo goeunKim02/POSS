@@ -78,7 +78,7 @@ class VisualizationUpdater:
             'transform_data': VisualizationUpdater._transform_utilization_data,
             'extra_params': {
                 'ylim': (0, 110), 
-                'threshold_values': [60, 80],
+                'threshold_values': [80, 100, 105],
                 'threshold_colors': ['#4CAF50', '#FFC107', '#F44336'],
                 'threshold_labels': ['Good', 'Warning', 'High'] if is_comparison else ['', '', ''],
                 'show_value': True,
@@ -150,7 +150,13 @@ class VisualizationUpdater:
                 'sort_descending': True,  # 내림차순 정렬
                 'truncate_labels': False,  # 긴 레이블 축약
                 'label_max_length': 20,  # 레이블 최대 길이
-                'annotate_above_bars': True  # 막대 위에 값 표시
+                'annotate_above_bars': True,  # 막대 위에 값 표시
+                'xlabels_rotation': 30,
+                'xlabels_ha': 'right',
+                'tick_fontsize': 10,
+                'show_grid': True,
+                'grid_style': '--',
+                'grid_alpha': 0.3
             }
         }
         

@@ -216,7 +216,7 @@ class ResultPage(QWidget):
                     }
                 """)
                 chart_layout = QVBoxLayout(chart_container)
-                chart_layout.setContentsMargins(0, 10, 15, 10)  # 여백 다시 정상화
+                chart_layout.setContentsMargins(0, 10, 15, 10) 
                 
                 # 자재 부족량 차트 추가
                 material_canvas = MplCanvas(width=6, height=3, dpi=100)  # 높이도 다시 정상화
