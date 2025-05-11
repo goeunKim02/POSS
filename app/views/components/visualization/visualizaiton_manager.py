@@ -56,6 +56,30 @@ class VisualizationManager:
                     ax.text(bar.get_x() + bar.get_width()/2., height,
                             f'{height:.1f}' if isinstance(height, float) else f'{height}',
                             ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 9))
+            
+            # 임계점 표시 기능 추가 (bar 차트에만 적용)
+            if kwargs.get('show_thresholds', False) and 'thresholds' in kwargs:
+                thresholds = kwargs['thresholds']
+                
+                # 각 바(제조동)에 대해 임계점 표시
+                for i, key in enumerate(x_data):
+                    if key in thresholds:
+                        plant_thresholds = thresholds[key]
+                        
+                        # 상한 임계점
+                        if 'upper_limit' in plant_thresholds:
+                            upper = plant_thresholds['upper_limit']
+                            # 특정 막대에 대해서만 임계선 그리기
+                            ax.hlines(y=upper, xmin=i-0.4, xmax=i+0.4, colors='red', linestyles='dashed', alpha=0.7)
+                            # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                            ax.text(i, upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=18)
+                        
+                        # 하한 임계점
+                        if 'lower_limit' in plant_thresholds:
+                            lower = plant_thresholds['lower_limit']
+                            ax.hlines(y=lower, xmin=i-0.4, xmax=i+0.4, colors='blue', linestyles='dashed', alpha=0.7)
+                            # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                            ax.text(i, lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=18)
                     
         elif chart_type == 'line':
             ax.plot(x_data, y_data, marker=kwargs.get('marker', 'o'), 
@@ -228,6 +252,30 @@ class VisualizationManager:
                 ax.axhline(y=threshold, color=threshold_colors[i], linestyle='--', alpha=0.7)
                 ax.text(len(all_keys)-1 + 0.2, threshold, f'{threshold}% {label}', 
                         color=threshold_colors[i], va='center', fontsize=10)
+        
+        # 임계점 표시 기능 추가 (비교 차트에도 적용)
+        if kwargs.get('show_thresholds', False) and 'thresholds' in kwargs:
+            thresholds = kwargs['thresholds']
+            
+            # 각 바(제조동)에 대해 임계점 표시
+            for i, key in enumerate(all_keys):
+                if key in thresholds:
+                    plant_thresholds = thresholds[key]
+                    
+                    # 상한 임계점
+                    if 'upper_limit' in plant_thresholds:
+                        upper = plant_thresholds['upper_limit']
+                        # 특정 막대들에 대해서만 임계선 그리기
+                        ax.hlines(y=upper, xmin=x[i]-width, xmax=x[i]+width, colors='red', linestyles='dashed', alpha=0.7)
+                        # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                        ax.text(x[i], upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=18)
+                    
+                    # 하한 임계점
+                    if 'lower_limit' in plant_thresholds:
+                        lower = plant_thresholds['lower_limit']
+                        ax.hlines(y=lower, xmin=x[i]-width, xmax=x[i]+width, colors='blue', linestyles='dashed', alpha=0.7)
+                        # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                        ax.text(x[i], lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=18)
                 
         # 차트 설정
         ax.set_title(title, fontsize=kwargs.get('title_fontsize', 20))

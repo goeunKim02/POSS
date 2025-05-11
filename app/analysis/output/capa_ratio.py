@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+from app.models.common.fileStore import FilePaths
 
 class CapaRatioAnalyzer:  
     @staticmethod
@@ -149,3 +150,62 @@ class CapaRatioAnalyzer:
             import traceback
             traceback.print_exc()
             return {}  # 오류 발생 시 빈 딕셔너리 반환
+        
+    @staticmethod
+    def get_capa_thresholds():
+        try:
+            # 마스터 파일 경로 가져오기
+            master_file = FilePaths.get("master_excel_file")
+            if not master_file or not os.path.exists(master_file):
+                print("마스터 파일을 찾을 수 없습니다.")
+                return {}
+            
+            # capa_portion 시트 로드
+            try:
+                portion_df = pd.read_excel(master_file, sheet_name="capa_portion")
+            except Exception as e:
+                print(f"capa_portion 시트 로드 오류: {str(e)}")
+                return {}
+            
+            # 필요한 열이 있는지 확인
+            if not all(col in portion_df.columns for col in ['name', 'upper_limit', 'lower_limit']):
+                return {}
+        
+            
+            # 퍼센트 값 처리
+            for col in ['upper_limit', 'lower_limit']:
+                # 값이 문자열인 경우 '%' 제거 후 숫자로 변환
+                for idx, value in enumerate(portion_df[col].values):
+                    if isinstance(value, str):
+                        # '%' 제거 후 숫자로 변환
+                        try:
+                            numeric_value = float(value.replace('%', ''))
+                            portion_df.at[idx, col] = numeric_value
+                        except (ValueError, TypeError):
+                            # print(f"변환 오류: {value}를 숫자로 변환할 수 없습니다.")
+                            portion_df.at[idx, col] = None
+                    # 숫자인 경우: 1 이하이면 100을 곱함 (소수점 표현 -> 퍼센트)
+                    elif isinstance(value, (int, float)):
+                        if value <= 1:
+                            portion_df.at[idx, col] = value * 100
+                
+                # 값이 100인 경우 확인해서 처리
+                for idx, value in enumerate(portion_df[col].values):
+                    if value == 1.0:  # 1.0으로 잘못 변환된 100% 값
+                        portion_df.at[idx, col] = 100.0
+            
+            # 결과 딕셔너리 생성
+            result = {}
+            for _, row in portion_df.iterrows():
+                result[row['name']] = {
+                    'upper_limit': row['upper_limit'],
+                    'lower_limit': row['lower_limit']
+                }
+            
+            return result
+            
+        except Exception as e:
+            print(f"임계점 데이터 로드 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return {}

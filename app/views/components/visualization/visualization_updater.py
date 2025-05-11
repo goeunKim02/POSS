@@ -1,6 +1,7 @@
 from app.views.components.visualization.visualizaiton_manager import VisualizationManager
 from app.views.components.visualization.DisplayHelper import DisplayHelper
 from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
+from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 
 """output 시각화 업데이트 클래스"""
 class VisualizationUpdater:
@@ -46,6 +47,8 @@ class VisualizationUpdater:
         # 비교 데이터형식 감지
         is_comparison = isinstance(capa_ratio_data, dict) and 'original' in capa_ratio_data and 'adjusted' in capa_ratio_data
         
+        thresholds = CapaRatioAnalyzer.get_capa_thresholds()
+
         chart_config = {
             'has_data_check' : VisualizationUpdater._is_capa_data_valid,
             'chart_type' : 'comparison_bar' if is_comparison else 'bar',
@@ -57,7 +60,9 @@ class VisualizationUpdater:
                 'show_value': True,
                 'value_fontsize': 14,
                 'show_legend': is_comparison,
-                'ylim': None  # 자동 계산
+                'ylim': None,
+                'thresholds': thresholds,
+                'show_thresholds': True
             }
         }
      
