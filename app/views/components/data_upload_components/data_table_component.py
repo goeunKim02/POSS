@@ -6,6 +6,8 @@ import pandas as pd
 class DataTableComponent:
     @staticmethod
     def create_table_from_dataframe(df, filter_component=None):
+        from PyQt5.QtCore import QTimer
+
         # 데이터프레임으로 테이블 위젯 생성
         # 컨테이너 위젯 생성
         container = QWidget()
@@ -64,18 +66,33 @@ class DataTableComponent:
 
             # 열 너비 균일하게 설정 (필터 컴포넌트용)
             header = filter_component.table_view.horizontalHeader()
+
+            # 사용자가 열 너비를 조정할 수 있도록 Interactive 모드 설정
             header.setSectionResizeMode(QHeaderView.Interactive)
 
-            # 모든 열의 초기 너비를 동일하게 설정
+            # 마지막 열이 남은 공간을 채우지 않도록 설정
+            header.setStretchLastSection(False)
+
+            # 모든 열의 초기 너비를 동일하게 설정하고 테이블 전체 폭을 채우도록 함
             column_count = len(df.columns)
             if column_count > 0:
-                table_width = filter_component.table_view.width()
+                # 테이블 뷰의 전체 폭에서 스크롤바 공간 약간 제외
+                table_width = filter_component.table_view.width() - 20  # 스크롤바 영역 고려
                 column_width = max(100, table_width // column_count)
+
+                # 모든 열을 동일한 폭으로 설정
                 for i in range(column_count):
                     filter_component.table_view.setColumnWidth(i, column_width)
 
-            # 마지막 열을 늘리지 않도록 설정
-            header.setStretchLastSection(False)
+            # 위젯이 화면에 표시된 후에 열 너비 균등하게 조정 (100ms 지연)
+            def adjust_columns():
+                total_width = filter_component.table_view.viewport().width()
+                if column_count > 0:
+                    column_width = total_width // column_count
+                    for i in range(column_count):
+                        filter_component.table_view.setColumnWidth(i, column_width)
+
+            QTimer.singleShot(100, adjust_columns)
 
             # 필터 위젯 추가
             layout.addWidget(filter_component)
@@ -159,13 +176,23 @@ class DataTableComponent:
         # 모든 열의 초기 너비를 동일하게 설정
         column_count = len(df.columns)
         if column_count > 0:
-            table_width = data_table.width()
+            table_width = data_table.width() - 20  # 스크롤바 영역 고려
             column_width = max(100, table_width // column_count)
             for i in range(column_count):
                 data_table.setColumnWidth(i, column_width)
 
-        # 마지막 열을 늘리지 않도록 설정
+        # 마지막 열이 남은 공간을 채우지 않도록 설정
         data_table.horizontalHeader().setStretchLastSection(False)
+
+        # 위젯이 화면에 표시된 후에 열 너비 균등하게 조정 (100ms 지연)
+        def adjust_columns_for_table():
+            total_width = data_table.viewport().width()
+            if column_count > 0:
+                column_width = total_width // column_count
+                for i in range(column_count):
+                    data_table.setColumnWidth(i, column_width)
+
+        QTimer.singleShot(100, adjust_columns_for_table)
 
         # 레이아웃에 테이블 추가
         layout.addWidget(data_table)

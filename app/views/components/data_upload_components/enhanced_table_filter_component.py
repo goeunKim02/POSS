@@ -392,6 +392,8 @@ class EnhancedTableFilterComponent(QWidget):
 
     def set_data(self, df):
         """데이터프레임 설정"""
+        from PyQt5.QtCore import QTimer
+
         self._df = df.copy()
         model = PandasModel(self._df, self)
         self.proxy_model.filters.clear()
@@ -399,20 +401,41 @@ class EnhancedTableFilterComponent(QWidget):
 
         # 열 너비 균일하게 설정
         header = self.table_view.horizontalHeader()
+
+        # 사용자가 열 너비를 조정할 수 있도록 Interactive 모드 설정
         header.setSectionResizeMode(QHeaderView.Interactive)
 
-        # 모든 열의 초기 너비를 동일하게 설정
+        # 마지막 열이 남은 공간을 채우지 않도록 설정
+        header.setStretchLastSection(False)
+
+        # 모든 열의 초기 너비를 동일하게 설정하고 테이블 전체 폭을 채우도록 함
         column_count = len(df.columns)
         if column_count > 0:
-            table_width = self.table_view.width()
+            # 테이블 뷰의 전체 폭에서 스크롤바 공간 약간 제외
+            table_width = self.table_view.width() - 20  # 스크롤바 영역 고려
             column_width = max(100, table_width // column_count)
+
+            # 모든 열을 동일한 폭으로 설정
             for i in range(column_count):
                 self.table_view.setColumnWidth(i, column_width)
 
-        # 마지막 열을 늘리지 않도록 설정
-        header.setStretchLastSection(False)
+        # 위젯이 화면에 표시된 후에 열 너비 균등하게 조정 (100ms 지연)
+        QTimer.singleShot(100, lambda: self._adjust_column_widths_evenly())
 
         self.filter_applied.emit()
+
+    def _adjust_column_widths_evenly(self):
+        """테이블 뷰 크기가 변경될 때 모든 열의 너비를 균등하게 조정"""
+        if self._df.empty:
+            return
+
+        total_width = self.table_view.viewport().width()
+        column_count = len(self._df.columns)
+
+        if column_count > 0:
+            column_width = total_width // column_count
+            for i in range(column_count):
+                self.table_view.setColumnWidth(i, column_width)
 
     def reset_filter(self):
         """필터 초기화"""
