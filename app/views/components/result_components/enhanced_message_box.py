@@ -1,5 +1,6 @@
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtGui import QFont
+from PyQt5.QtWidgets import (QMessageBox, QVBoxLayout, QLabel, QPushButton, 
+                             QHBoxLayout, QDialog, QApplication, QFrame)
+from PyQt5.QtGui import QFont, QIcon, QCursor
 from PyQt5.QtCore import Qt
 
 """메시지 박스 클래스"""
@@ -8,148 +9,213 @@ class EnhancedMessageBox:
     """검증 오류 메시지 박스 표시"""
     @staticmethod
     def show_validation_error(parent, title, message):
-        msg_box = QMessageBox(parent)
+        dialog = QDialog(parent)
+        dialog.setWindowTitle(title)
+        dialog.setModal(True)
+        dialog.setFixedSize(600, 200)
         
-        # 제목과 텍스트 설정
-        msg_box.setWindowTitle(title)
-        msg_box.setInformativeText(message)
+        layout = QVBoxLayout(dialog)
         
-        # 아이콘 설정
-        msg_box.setIcon(QMessageBox.Warning)
-        
-        # 창 크기를 충분히 크게 만들기 위해 최소 너비 설정
-        msg_box.setMinimumWidth(500)  # 크기 증가
-        msg_box.setMinimumHeight(350)  # 크기 증가
-
-        # 버튼 스타일 - 에러용 빨간색 버튼
-        button_style = """
-            QPushButton {
-                background-color: #DC3545;  /* 에러 메시지는 빨간색 */
-                color: white;
-                border-radius: 10px;
-                min-width: 80px;  /* 버튼 크기 증가 */
-                min-height: 30px;  /* 버튼 크기 증가 */
-                padding: 8px 15px;
-                font-size: 22px;  /* 버튼 텍스트 크기 증가 */
-                font-weight: 900;
-            }
-            QPushButton:hover {
-                background-color: #C82333;  /* 빨간색 hover */
-            }
-            QPushButton:pressed {
-                background-color: #BD2130;  /* 빨간색 pressed */
-            }
-        """
-        
-        # 스타일 적용 - 에러는 빨간색 테마로 변경
-        msg_box.setStyleSheet(f"""
-            QMessageBox {{
+        # 스타일 시트
+        dialog.setStyleSheet("""
+            QDialog {
                 background-color: white;
-                border: 2px solid #DC3545;  /* 빨간색 테두리 */
-                border-radius: 6px;
-                font-family: Arial;
-            }}
-            QLabel {{
-                color: #333333;
-                font-size: 26px;  /* 텍스트 크기 증가 */
-                padding: 15px;  /* 패딩 증가 */
+                border: 2px solid #DC3545;
+                border-radius: 10px;
+            }
+            QLabel {
+                color: #333;
+                padding: 10px;
+                font-size: 20px;
+            }
+            QPushButton {
                 border: none;
-                min-width: 400px;  /* 너비 증가 */
-            }}
-            /* 헤더 텍스트 (첫 번째 라벨) */
-            QLabel:first {{
-                font-size: 30px;  /* 헤더 텍스트 크기 증가 */
-                color: #DC3545;  /* 에러 메시지는 빨간색 */
-            }}
-            {button_style}
+                padding: 8px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                min-width: 80px;
+                font-size: 16px;
+            }
         """)
         
-        # 폰트 설정 - 굵기 제거
-        title_font = QFont("Arial", 26)  
-        msg_box.setFont(title_font)
+        # 제목
+        title_label = QLabel(title)
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 18, QFont.Bold))
+        title_label.setStyleSheet("color: #DC3545; font-weight: bold;")
+        layout.addWidget(title_label)
         
-        # 버튼 커스터마이징
-        for button in msg_box.buttons():
-            button_font = QFont("Arial", 22)
-            button_font.setBold(True)  # 버튼 텍스트는 굵게 설정
-            button.setFont(button_font)
-            button.setCursor(Qt.PointingHandCursor)
-            button.setMinimumSize(80, 50)  # 크기 증가
+        # 메시지
+        message_label = QLabel(message)
+        message_label.setAlignment(Qt.AlignCenter)
+        message_label.setWordWrap(True)
+        message_label.setFont(QFont("Arial", 14))
+        message_label.setStyleSheet("color: #333; padding: 10px;")
+        layout.addWidget(message_label)
         
-        # 실행
-        return msg_box.exec_()
+        # 버튼들
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        
+        # OK 버튼
+        ok_button = QPushButton("OK")
+        ok_button.setStyleSheet("""
+            background-color: #DC3545;
+            color: white;
+        """)
+        ok_button.setCursor(QCursor(Qt.PointingHandCursor))
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+        
+        button_layout.addStretch(1)
+        layout.addLayout(button_layout)
+        
+        return dialog.exec_() == QDialog.Accepted
     
     
     """검증 성공 메시지 박스 표시"""
     @staticmethod
     def show_validation_success(parent, title, message):
-        msg_box = QMessageBox(parent)
+        dialog = QDialog(parent)
+        dialog.setWindowTitle(title)
+        dialog.setModal(True)
+        dialog.setFixedSize(600, 200)
         
-        # 제목과 텍스트 설정
-        msg_box.setWindowTitle(title)
-        msg_box.setInformativeText(message)
+        layout = QVBoxLayout(dialog)
         
-        # 아이콘 설정
-        msg_box.setIcon(QMessageBox.Information)
-        
-        # 창 크기를 충분히 크게 만들기 위해 최소 너비 설정
-        msg_box.setMinimumWidth(500)  # 크기 증가
-        msg_box.setMinimumHeight(350)  # 크기 증가
-
-        # 버튼 스타일 - 성공용 파란색 버튼
-        button_style = """
-            QPushButton {
-                background-color: #1428A0;  /* 성공 메시지는 파란색 */
-                color: white;
-                border-radius: 10px;
-                min-width: 80px;  /* 버튼 크기 증가 */
-                min-height: 30px;  /* 버튼 크기 증가 */
-                padding: 8px 15px;
-                font-size: 22px;  /* 버튼 텍스트 크기 증가 */
-                font-weight: 900;
-            }
-            QPushButton:hover {
-                background-color: #004C99;
-            }
-            QPushButton:pressed {
-                background-color: #003366;
-            }
-        """
-        
-        # 스타일 적용 - 성공은 파란색 테마로 변경
-        msg_box.setStyleSheet(f"""
-            QMessageBox {{
+        # 스타일 시트
+        dialog.setStyleSheet("""
+            QDialog {
                 background-color: white;
-                border: 2px solid #1428A0;  /* 파란색 테두리 */
-                border-radius: 6px;
-                font-family: Arial;
-            }}
-            QLabel {{
-                color: #333333;
-                font-size: 26px;  /* 텍스트 크기 증가 */
-                padding: 15px;  /* 패딩 증가 */
+                border: 2px solid #1428A0;
+                border-radius: 10px;
+            }
+            QLabel {
+                color: #333;
+                padding: 10px;
+                font-size: 20px;
+            }
+            QPushButton {
                 border: none;
-                min-width: 500px;  /* 너비 증가 */
-            }}
-            /* 헤더 텍스트 (첫 번째 라벨) */
-            QLabel:first {{
-                font-size: 30px;  /* 헤더 텍스트 크기 증가 */
-                color: #1428A0;  /* 성공 메시지는 파란색 */
-            }}
-            {button_style}
+                padding: 8px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                min-width: 80px;
+                font-size: 16px;
+            }
         """)
         
-        # 폰트 설정 - 굵기 제거
-        title_font = QFont("Arial", 26)  
-        msg_box.setFont(title_font)
+        # 제목
+        title_label = QLabel(title)
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 18, QFont.Bold))
+        title_label.setStyleSheet("color: #1428A0; font-weight: bold;")
+        layout.addWidget(title_label)
         
-        # 버튼 커스터마이징
-        for button in msg_box.buttons():
-            button_font = QFont("Arial", 22)
-            button_font.setBold(True)  
-            button.setFont(button_font)
-            button.setCursor(Qt.PointingHandCursor)
-            button.setMinimumSize(80, 50)  
+        # 메시지
+        message_label = QLabel(message)
+        message_label.setAlignment(Qt.AlignCenter)
+        message_label.setWordWrap(True)
+        message_label.setFont(QFont("Arial", 14))
+        message_label.setStyleSheet("color: #333; padding: 10px;")
+        layout.addWidget(message_label)
         
-        # 실행
-        return msg_box.exec_()
+        # 버튼들
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        
+        # OK 버튼
+        ok_button = QPushButton("OK")
+        ok_button.setStyleSheet("""
+            background-color: #1428A0;
+            color: white;
+        """)
+        ok_button.setCursor(QCursor(Qt.PointingHandCursor))
+        ok_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(ok_button)
+        
+        button_layout.addStretch(1)
+        layout.addLayout(button_layout)
+        
+        return dialog.exec_() == QDialog.Accepted
+    
+
+    """확인 다이얼로그 (Yes/No)"""
+    @staticmethod
+    def show_confirmation(parent, title, message):
+        dialog = QDialog(parent)
+        dialog.setWindowTitle(title)
+        dialog.setModal(True)
+        dialog.setFixedSize(600, 200)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # 스타일 시트
+        dialog.setStyleSheet("""
+            QDialog {
+                background-color: white;
+                border: 2px solid #337ab7;
+                border-radius: 10px;
+            }
+            QLabel {
+                color: #333;
+                padding: 10px;
+                font-size: 20px;
+            }
+            QPushButton {
+                border: none;
+                padding: 8px 20px;
+                border-radius: 6px;
+                font-weight: bold;
+                min-width: 80px;
+                font-size: 16px;
+            }
+        """)
+        
+        # 제목 (선택사항)
+        if title:  # 제목이 있을 때만 표시
+            title_label = QLabel(title)
+            title_label.setAlignment(Qt.AlignCenter)
+            title_label.setFont(QFont("Arial", 18, QFont.Bold))
+            title_label.setStyleSheet("color: #337ab7; font-weight: bold;")
+            layout.addWidget(title_label)
+        
+        # 메시지
+        message_label = QLabel(message)
+        message_label.setAlignment(Qt.AlignCenter)
+        message_label.setWordWrap(True)
+        message_label.setFont(QFont("Arial", 14))
+        message_label.setStyleSheet("color: #333; padding: 10px;")
+        layout.addWidget(message_label)
+        
+        # 버튼들
+        button_layout = QHBoxLayout()
+        button_layout.addStretch(1)
+        
+        # Yes 버튼
+        yes_button = QPushButton("Yes")
+        yes_button.setStyleSheet("""
+            background-color: #1428A0;
+            color: white;
+        """)
+        yes_button.setCursor(QCursor(Qt.PointingHandCursor))
+        yes_button.clicked.connect(dialog.accept)
+        button_layout.addWidget(yes_button)
+        
+        # 간격 추가
+        button_layout.addSpacing(10)
+        
+        # No 버튼
+        no_button = QPushButton("No")
+        no_button.setStyleSheet("""
+            background-color: #808080;
+            color: white;
+        """)
+        no_button.setCursor(QCursor(Qt.PointingHandCursor))
+        no_button.clicked.connect(dialog.reject)
+        button_layout.addWidget(no_button)
+        
+        button_layout.addStretch(1)
+        layout.addLayout(button_layout)
+        
+        return dialog.exec_() == QDialog.Accepted
