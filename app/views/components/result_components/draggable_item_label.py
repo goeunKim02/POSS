@@ -235,6 +235,8 @@ class DraggableItemLabel(QLabel):
             for k, v in self.item_data.items():
                 if pd.isna(v):  # NaN 값은 None으로 변환
                     serializable_data[k] = None
+                elif isinstance(v, (int, float, bool)):  #  숫자타입은 그대로 유지
+                    serializable_data[k] = v
                 else:
                     serializable_data[k] = str(v)
 
