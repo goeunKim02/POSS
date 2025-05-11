@@ -31,6 +31,7 @@ class RightParameterComponent(QWidget):
 
     def _on_failures(self, failures: dict):
         self.list_widget.clear()
+
         if failures.get('plan_retention') is not None:
             item_plan_retention_rate = failures.get('plan_retention').get('item_plan_retention')
             rmc_plan_retention = failures.get('plan_retention').get('rmc_plan_retention')
@@ -43,3 +44,21 @@ class RightParameterComponent(QWidget):
             excess = error.get('excess')
             self.list_widget.addItem(QListWidgetItem(f"{line} 라인이 {reason} 을 {excess} 초과했습니다"))
 
+
+        # 기초 재고가 0 미만인 자재 표시
+        if failures.get('materials_negative_stock') :
+            negative_stock_materials = failures.get('materials_negative_stock')
+
+            for date, materials in negative_stock_materials.items() :
+                date_item = QListWidgetItem(f'Negative Initial Stock Materials :')
+                date_item.setForeground(QColor("#e74c3c"))
+                date_item.setFont(QFont("Arial", 9, QFont.Bold))
+                self.list_widget.addItem(date_item)
+
+                for material in materials :
+                    material_id = material.get('material_id', 'Unknown')
+                    stock = material.get('stock', 0)
+
+                    detail_item = QListWidgetItem(f'  - {material_id} : {stock}')
+                    detail_item.setForeground(QColor("#e74c3c"))
+                    self.list_widget.addItem(detail_item)

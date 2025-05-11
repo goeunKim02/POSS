@@ -166,23 +166,6 @@ class MainWindow(QMainWindow):
         processed_data = process_data()
         
         if processed_data :
-            # 제조동별 capa 검증
-
-            validation_results = validate_distribution_ratios(processed_data)
-            print(validation_results)
-            # self.display_validation_results(validation_results)
-
-            # PJT Group 분석
-            try:
-                analyzer = PjtGroupAnalyzer(processed_data)
-                results = analyzer.analyze()
-                self.data_model.analysis_results = results
-
-            except Exception as e:
-                print(f"프로젝트 그룹 분석 중 오류 발생: {e}")
-                import traceback
-                print(traceback.format_exc())
-
             # 0 미만 자재 분석
             try :
                 shortage_results = MaterialAnalyzer.analyze_material_shortage()
@@ -191,18 +174,6 @@ class MainWindow(QMainWindow):
                     self.data_model.material_shortage_results = shortage_results
             except Exception as e :
                 print(f'자재 부족 분석 중 오류 발생 : {e}')
-
-            # 자재만족률 분석
-            try :
-                # threshold의 값에 따라 기준 비율 바뀜
-                satisfaction_results = analyze_material_satisfaction_all(threshold=80)
-
-                if satisfaction_results and 'error' not in satisfaction_results :
-                    self.data_model.material_satisfaction_results = satisfaction_results
-            except Exception as e :
-                print(f'자재만족률 분석 중 오류 발생 : {e}')
-                import traceback
-                print(traceback.format_exc())
 
             # 당주 출하 만족률 분석
             try :

@@ -66,7 +66,7 @@ class LeftParameterComponent(QWidget):
             )
 
             summary_label = QLabel("analysis summary")
-            summary_label.setStyleSheet("font-weight: bold; font-size: 12px;")
+            summary_label.setStyleSheet("font-weight: bold; font-size: 18px;")
             summary_label.setAlignment(Qt.AlignTop)
 
             page_layout.addWidget(table, 1)
@@ -116,7 +116,10 @@ class LeftParameterComponent(QWidget):
         if display_df is None or display_df.empty:
             table.setColumnCount(0)
         else:
-            headers = ["PJT Group", "PJT", "MFG", "SOP", "CAPA", "MFG/CAPA", "SOP/CAPA"]
+            if metric == 'Production Capacity' :
+                headers = ["PJT Group", "PJT", "MFG", "SOP", "CAPA", "MFG/CAPA", "SOP/CAPA"]
+            elif metric == 'Materials' :
+                headers = list(display_df.columns)
             
             table.setColumnCount(len(headers))
             table.setHeaderLabels(headers)
@@ -126,31 +129,65 @@ class LeftParameterComponent(QWidget):
             bold_font.setBold(True)
 
             for _, row in display_df.iterrows():
-                row_data = [str(row.get(col, '')) for col in headers]
+                row_data = []
+
+                for col in headers :
+                    val = row.get(col, '')
+
+                    if isinstance(val, (int, float)) :
+                        row_data.append(f'{val :,.0f}')
+                    else :
+                        row_data.append(str(val))
+
                 item = QTreeWidgetItem(row_data)
-                if str(row.get('PJT', '')) == 'Total':
-                    for col in range(len(headers)):
-                        item.setFont(col, bold_font)
-                    if row.get('status', '') == 'Error':
-                        for col in range(len(headers)):
-                            item.setForeground(col, red_brush)
+
+                if metric == "Production Capacity":
+                    if str(row.get('PJT', '')) == 'Total' :
+                        for col in range(len(headers)) :
+                            item.setFont(col, bold_font)
+                        if row.get('status', '') == 'Error' :
+                            for col in range(len(headers)) :
+                                item.setForeground(col, red_brush)
+                elif metric == 'Materials' :
+                    if 'Shortage Amount' in headers :
+                        shortage_col = headers.index('Shortage Amount')
+
+                        try :
+                            shortage_amount = float(row.get('Shortage Amount', 0))
+
+                            if shortage_amount > 0 :
+                                for col in range(len(headers)) :
+                                    item.setForeground(col, red_brush)
+                        except (ValueError, TypeError) :
+                            pass
+
                 table.addTopLevelItem(item)
 
-            for i in range(len(headers)):
+            for i in range(len(headers)) :
                 table.resizeColumnToContents(i)
 
         summary_label = page_widgets["summary_label"]
 
         if summary is not None :
-            text = (
-                f"Total number of groups : {summary.get('Total number of groups', 0)}<br>"
-                f"Number of error groups : {summary.get('Number of error groups', 0)}<br>"
-                f"Total MFG : {summary.get('Total MFG', 0):,}<br>"
-                f"Total SOP : {summary.get('Total SOP', 0):,}<br>"
-                f"Total CAPA : {summary.get('Total CAPA', 0):,}<br>"
-                f"Total MFG/CAPA ratio : {summary.get('Total MFG/CAPA ratio', '0%')}<br>"
-                f"Total SOP/CAPA ratio : {summary.get('Total SOP/CAPA ratio', '0%')}"
-            )
+            if metric == 'Production Capacity' :
+                text = (
+                    f"Total number of groups : {summary.get('Total number of groups', 0)}<br>"
+                    f"Number of error groups : {summary.get('Number of error groups', 0)}<br>"
+                    f"Total MFG : {summary.get('Total MFG', 0):,}<br>"
+                    f"Total SOP : {summary.get('Total SOP', 0):,}<br>"
+                    f"Total CAPA : {summary.get('Total CAPA', 0):,}<br>"
+                    f"Total MFG/CAPA ratio : {summary.get('Total MFG/CAPA ratio', '0%')}<br>"
+                    f"Total SOP/CAPA ratio : {summary.get('Total SOP/CAPA ratio', '0%')}"
+                )
+            elif metric == 'Materials' :
+                text = (
+                    f"Total materials: {summary.get('Total materials', 0)}<br>"
+                    f"Weekly shortage materials: {summary.get('Weekly shortage materials', 0)}<br>"
+                    f"Full period shortage materials: {summary.get('Full period shortage materials', 0)}<br>"
+                    f"Shortage rate: {summary.get('Shortage rate (%)', 0)}%<br>"
+                    f"Period: {summary.get('Period', 'N/A')}<br>"
+                )
+                
             summary_label.setText(text)
         else:
             summary_label.setText("Analysis summary")
