@@ -22,6 +22,7 @@ from app.views.components.data_upload_components.data_input_components import Si
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
+from app.core.input.materialAnalyzer import MaterialAnalyzer
 from app.models.input.capa import process_data
 
 class DataInputPage(QWidget) :
@@ -401,6 +402,37 @@ class DataInputPage(QWidget) :
             }
 
             try :
+                material_analyzer = MaterialAnalyzer()
+
+                if material_analyzer.analyze() :
+                    materials_display_data = self.format_material_analysis_results(material_analyzer)
+
+                    project_data = self.left_parameter_component.all_project_analysis_data.copy()
+                    project_data['Materials'] = materials_display_data
+                    self.left_parameter_component.set_project_analysis_data(project_data)
+
+                    if material_analyzer.weekly_shortage_materials is not None and not material_analyzer.weekly_shortage_materials.empty :
+                        material_failures = []
+
+                        for _, row in material_analyzer.weekly_shortage_materials.iterrows() :
+                            try :
+                                material_failures.append({
+                                    'material_id' : row.get('Material', 'Unknown'),
+                                    'line' : '',
+                                    'reason' : 'Material shortage',
+                                    'available' : row.get('On-Hand', 0),
+                                    'excess' : row.get('Weekly_Shortage', 0)
+                                })
+                            except Exception as e :
+                                continue
+
+                        failures['materials'] = material_failures
+                else :
+                    print('failed material analysis')
+            except Exception as e :
+                print(f'Error : {str(e)}')
+
+            try :
                 processed_data = process_data()
 
                 if processed_data :
@@ -408,8 +440,9 @@ class DataInputPage(QWidget) :
                     project_analysis_results = pjt_analyzer.analyze()
 
                     if project_analysis_results and 'display_df' in project_analysis_results :
-                        result = {'Production Capacity': project_analysis_results}
-                        self.left_parameter_component.set_project_analysis_data(result)
+                        current_data = self.left_parameter_component.all_project_analysis_data.copy()
+                        current_data['Production Capacity'] = project_analysis_results
+                        self.left_parameter_component.set_project_analysis_data(current_data)
 
                         if 'display_df' in project_analysis_results :
                             display_df = project_analysis_results['display_df']
@@ -427,7 +460,7 @@ class DataInputPage(QWidget) :
                                     if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
                                         issues.append({
                                             'line': row.get('PJT Group', ''),
-                                            'reason': '용량 초과',
+                                            'reason': 'Capacity exceeded',
                                             'available': row.get('CAPA', 0),
                                             'excess': self.extract_number(row.get('MFG', 0)) - self.extract_number(row.get('CAPA, 0')) if row.get('MFG') and row.get('CAPA') else 0,
                                             'cap_limit': row.get('CAPA', 0),
@@ -438,8 +471,7 @@ class DataInputPage(QWidget) :
                             else :
                                 failures['production_capacity'] = None
             except Exception as e :
-                import traceback
-                traceback.print_exc()
+                print(f'error : {str(e)}')
 
             self.parameter_component.show_failures.emit(failures)
         except Exception as e:
@@ -502,3 +534,74 @@ class DataInputPage(QWidget) :
             
             return int(num_str) if num_str else 0
         return 0
+    
+    """
+    자재 분석 결과 형식 변환
+    """
+    def format_material_analysis_results(self, material_analyzer) :
+        try :
+            if material_analyzer.weekly_shortage_materials is None :
+                return None
+            
+            df = material_analyzer.weekly_shortage_materials.copy()
+
+            if df.empty :
+                return None
+            
+            display_columns = ['Material', 'Active_OX', 'On-Hand', 'Weekly_Shortage', 'Shortage_Rate']
+            available_columns = [col for col in display_columns if col in df.columns]
+
+            shortage_df = df[df['Weekly_Shortage'] > 0][available_columns].copy() if 'Weekly_Shortage' in df.columns else df
+
+            if shortage_df.empty :
+                return None
+            
+            column_mapping = {
+                'Material': 'Material ID',
+                'Active_OX': 'Active',
+                'On-Hand': 'Current Stock',
+                'Weekly_Shortage': 'Shortage Amount',
+                'Shortage_Rate': 'Shortage Rate (%)'
+            }
+
+            change_columns = {}
+
+            for col in available_columns :
+                if col in column_mapping :
+                    change_columns[col] = column_mapping[col]
+
+            display_df = shortage_df.rename(columns = change_columns)
+
+            weekly_count = len(shortage_df)
+            full_period_count = len(material_analyzer.full_period_shortage_materials) if material_analyzer.full_period_shortage_materials is not None else 0
+            total_materials = len(material_analyzer.material_df) if material_analyzer.material_df is not None else 0
+            shortage_rate = (weekly_count / total_materials * 100) if total_materials > 0 else 0
+
+            top_materials = []
+
+            if not shortage_df.empty and 'Weekly_Shortage' in shortage_df.columns :
+                try :
+                    top_df = shortage_df.sort_values(by='Weekly_Shortage', ascending=False).head(5)
+
+                    for _, row in top_df.iterrows() :
+                        material_id = row.get('Material', 'Unknown')
+                        shortage = row.get('Weekly_Shortage', 0)
+                        top_materials.append(f'{material_id} : {int(shortage)}')
+                except Exception as e :
+                    print(f'Error getting top materials : {str(e)}')
+
+            summary = {
+                'Total materials': total_materials,
+                'Weekly shortage materials': weekly_count,
+                'Full period shortage materials': full_period_count,
+                'Shortage rate (%)': round(shortage_rate, 2),
+                'Period': '4/7-4/13 (weekly), 4/7-4/20 (full)',
+                'Top shortage materials': ", ".join(top_materials[:3]) if top_materials else "None"
+            }
+
+            return {
+                'display_df': display_df,
+                'summary': summary
+            }
+        except Exception as e :
+            return None
