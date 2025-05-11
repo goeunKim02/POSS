@@ -154,7 +154,7 @@ class EnhancedMessageBox:
         dialog.setStyleSheet("""
             QDialog {
                 background-color: white;
-                border: 2px solid #337ab7;
+                border: 2px solid #1428A0;
                 border-radius: 10px;
             }
             QLabel {
@@ -177,7 +177,7 @@ class EnhancedMessageBox:
             title_label = QLabel(title)
             title_label.setAlignment(Qt.AlignCenter)
             title_label.setFont(QFont("Arial", 18, QFont.Bold))
-            title_label.setStyleSheet("color: #337ab7; font-weight: bold;")
+            title_label.setStyleSheet("color: #1428A0; font-weight: bold;")
             layout.addWidget(title_label)
         
         # 메시지
