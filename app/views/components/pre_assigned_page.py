@@ -10,6 +10,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize
 from datetime import datetime
 
 from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
+from .pre_assigned_components.summary import SummaryDialog
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
@@ -91,6 +92,12 @@ class PlanningPage(QWidget):
         font_title.setWeight(99)
         lbl.setFont(font_title)
         title_hbox.addWidget(lbl)
+
+        # 요약 버튼
+        btn_summary = create_button("Summary", "primary", self)
+        btn_summary.setFixedSize(80, 30)
+        btn_summary.clicked.connect(self.on_summary_click)
+        title_hbox.addWidget(btn_summary)
         title_hbox.addStretch()
 
         btn_export = create_button("Export", "primary", self)
@@ -171,6 +178,13 @@ class PlanningPage(QWidget):
         right_margin = sb.sizeHint().width() if has_scroll else 0
 
         self.header.layout().setContentsMargins(0, 10, right_margin, 0)
+
+    def on_summary_click(self):
+        if self._df is None or self._df.empty:
+            QMessageBox.information(self, "요약 정보", "표시할 데이터가 없습니다.")
+            return
+        dlg = SummaryDialog(self._df, parent=self)
+        dlg.exec_()
 
     # 엑셀 파일로 내보내기
     def on_export_click(self):
