@@ -6,6 +6,7 @@ import pandas as pd
 from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize
+from datetime import datetime
 
 from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
 from .pre_assigned_components.calendar_header import CalendarHeader
@@ -251,7 +252,19 @@ class PlanningPage(QWidget):
         self.progress_bar.setValue(100)
 
         if hasattr(self.main_window, 'result_page'):
-            self.main_window.result_page.left_section.set_data_from_external(result_df)
+            # 사전할당된 아이템 리스트
+            pre_assigned_items = self.filtered_df['Item'].unique().tolist()
+            
+            # 새로운 메서드 호출
+            self.main_window.result_page.set_optimization_result({
+                'assignment_result': result_df,
+                'pre_assigned_items': pre_assigned_items,
+                'optimization_metadata': {
+                    'execution_time': datetime.now(),
+                    'selected_projects': self.selected_projects
+                }
+            })
+            # 페이지 전환
             self.main_window.navigate_to_page(2)
         else:
             self.optimization_requested.emit({'assignment_result': result_df})
