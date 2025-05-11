@@ -27,6 +27,7 @@ class ResultPage(QWidget):
         self.utilization_data = None # 가동률 데이터 저장 변수
         self.result_data = None # 결과 데이터 저장 변수
         self.material_analyzer = None  # 자재 부족량 분석기 추가
+        self.pre_assigned_items = set()  # 사전할당된 아이템 저장
         self.init_ui()
 
         self.connect_signals()
@@ -490,6 +491,10 @@ class ResultPage(QWidget):
     def on_data_changed(self, data):
         print("on_data_changed 호출됨 - 데이터 변경 감지")
         self.result_data = data
+
+        # 사전할당 상태 업데이트
+        if hasattr(self, 'pre_assigned_items') and self.pre_assigned_items:
+            self.update_left_widget_pre_assigned_status(self.pre_assigned_items)
         
         try:
             # 데이터가 비어있지 않은 경우에만 분석 수행
@@ -879,3 +884,49 @@ class ResultPage(QWidget):
                         else:
                             # 정상 상태로 설정
                             item.set_shortage_status(False)
+
+    # 최적화 결과를 사전할당 정보와 함께 설정
+    def set_optimization_result(self, results):
+        # 결과 데이터 추출
+        assignment_result = results.get('assignment_result')
+        pre_assigned_items = results.get('pre_assigned_items', [])
+        optimization_metadata = results.get('optimization_metadata', {})
+
+        # 사전할당 아이템 저장 
+        self.pre_assigned_items = set(pre_assigned_items)
+
+        if hasattr(self, 'left_section'):
+            # 왼쪽 섹션에 사전할당 정보 전달
+            if hasattr(self.left_section, 'set_pre_assigned_items'):
+                self.left_section.set_pre_assigned_items(self.pre_assigned_items)
+            else:
+                # 속성으로 직접 설정
+                self.left_section.pre_assigned_items = self.pre_assigned_items
+
+            # 데이터 설정
+            self.left_section.set_data_from_external(assignment_result)
+
+        # 메타데이터 필요시
+        self.optimization_metadata = optimization_metadata
+
+        print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
+
+
+    """왼쪽 위젯에 사전할당 상태 적용"""
+    def update_left_widget_pre_assigned_status(self, pre_assigned_items):
+        if not hasattr(self, 'left_section') or not hasattr(self.left_section, 'grid_widget'):
+            return
+        
+        # 그리드의 모든 컨테이너 순환
+        for row_containers in self.left_section.grid_widget.containers:
+            for container in row_containers:
+                # 각 컨테이너의 아이템들 순환
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
+                        item_code = item.item_data['Item']
+
+                        # 해당 아이템이 사전할당 목록에 있는지 확인
+                        if item_code in pre_assigned_items:
+                            item.set_pre_assigned_status(True)
+                        else:
+                            item.set_pre_assigned_status(False)

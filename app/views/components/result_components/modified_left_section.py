@@ -17,6 +17,7 @@ class ModifiedLeftSection(QWidget):
         self.grouped_data = None
         self.days = ['월', '화', '수', '목', '금', '토', '일']
         self.time_periods = ['주간', '야간']
+        self.pre_assigned_items = set()  # 사전할당된 아이템 저장
         self.init_ui()
 
         # 아이템 이동을 위한 정보 저장
@@ -369,7 +370,12 @@ class ModifiedLeftSection(QWidget):
                         # 전체 행 데이터를 아이템 데이터로 전달
                         # pandas Series를 딕셔너리로 변환하여 전달
                         item_full_data = row_data.to_dict()
-                        self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
+                        new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
+
+                        # 사전할당 아이템인 경우 스타일 적용
+                        if new_item and item_full_data.get('Item') in self.pre_assigned_items:
+                            new_item.set_pre_assigned_status(True)
+
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
 
@@ -429,3 +435,25 @@ class ModifiedLeftSection(QWidget):
     def set_validator(self, validator):
         self.validator = validator
         self.grid_widget.set_validator(validator)
+        
+    """사전할당 아이템 정보 설정"""
+    def set_pre_assigned_items(self, pre_assigned_items):
+        self.pre_assigned_items = pre_assigned_items
+
+        # 이미 데이터가 있다면 적용
+        if hasattr(self, 'data') and self.data is not None:
+            self.apply_pre_assigned_status()
+
+
+    """사전할당 아이템 상태 적용"""
+    def apply_pre_assigned_status(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
+                        item_code = item.item_data['Item']
+                        if item_code in self.pre_assigned_items:
+                            item.set_pre_assigned_status(True)

@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths, QThread, QSize
 
 import os
 import pandas as pd
+from datetime import datetime 
 
 from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
 from .pre_assigned_components.calendar_header import CalendarHeader
@@ -192,12 +193,30 @@ class PlanningPage(QWidget):
                 'selected_projects': list(self.selected_projects)
             })
             
-            # 결과를 결과 페이지로 전달
+            # 결과를 결과 페이지로 전달 (사전할당 정보도 전달)
             if hasattr(self.main_window, 'result_page'):
-                self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
+                # 사전할당된 아이템 리스트 
+                pre_assigned_items = self.filtered_df['Item'].unique().tolist()
+                
+                # 새로운 메서드 호출
+                self.main_window.result_page.set_optimization_result({
+                    'assignment_result': results['assignment_result'],
+                    'pre_assigned_items': pre_assigned_items,
+                    # 필요시 다른 정보도 추가
+                    'optimization_metadata': {
+                        'execution_time': datetime.now(),
+                        'selected_projects': self.selected_projects
+                    }
+                })
                 self.main_window.navigate_to_page(2)
             else:
                 self.optimization_requested.emit(results)
+
+
+            #     self.main_window.result_page.left_section.set_data_from_external(results['assignment_result'])
+            #     self.main_window.navigate_to_page(2)
+            # else:
+            #     self.optimization_requested.emit(results)
                 
         except Exception as e:
             QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {str(e)}")
