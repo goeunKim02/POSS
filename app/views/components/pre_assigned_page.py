@@ -1,10 +1,11 @@
-from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory
-from PyQt5.QtCore import Qt, pyqtSignal, QStandardPaths, QThread, QSize
-
+import threading
+import time
 import os
 import pandas as pd
-import time
+
+from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory
+from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize
 
 from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
 from .pre_assigned_components.calendar_header import CalendarHeader
@@ -12,7 +13,6 @@ from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
 from app.utils.fileHandler import create_from_master
 from app.core.optimizer import Optimizer
-from app.views import main_window
 from app.utils.export_manager import ExportManager
 from app.models.common.settings_store import SettingsStore
 
@@ -32,17 +32,42 @@ class ProcessThread(QThread):
     progress = pyqtSignal(int)
     finished = pyqtSignal(pd.DataFrame)
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df: pd.DataFrame, projects: list, time_limit: int = None):
         super().__init__()
         self.df = df
+        self.projects = projects
+        # 설정된 time_limit 없으면 기본값 사용
+        self.time_limit = time_limit or SettingsStore._settings.get("time_limit", 300)
+        self._opt_result = None
 
     def run(self):
-        limit = SettingsStore._settings.get("time_limit", 10)
-        for i in range(limit):
+        # 최적화 작업
+        def do_opt():
+            results = Optimizer().run_optimization({
+                'pre_assigned_df': self.df,
+                'selected_projects': self.projects
+            })
+            self._opt_result = results['assignment_result']
+
+        opt_thread = threading.Thread(target=do_opt, daemon=True)
+        opt_thread.start()
+
+        # 진행률 업데이트
+        for i in range(self.time_limit):
             time.sleep(1)
-            pct = int((i+1) / limit * 100)
+            pct = int((i+1) / self.time_limit * 100)
             self.progress.emit(pct)
-        self.finished.emit(self.df)
+
+            if self._opt_result is not None:
+                self.progress.emit(100)
+                self.finished.emit(self._opt_result)
+                return
+
+        # 시간 제한 후 처리
+        if self._opt_result is not None:
+            self.finished.emit(self._opt_result)
+        else:
+            self.finished.emit(self.df)
 
 class PlanningPage(QWidget):
     optimization_requested = pyqtSignal(dict)
@@ -208,40 +233,32 @@ class PlanningPage(QWidget):
         self.filtered_df = self._df[self._df['Project'].isin(self.selected_projects)].copy()
 
         self.btn_run.setEnabled(False)
-        self.btn_run.setText("Processing...")
+        self.btn_run.setStyleSheet(SECONDARY_BUTTON_STYLE)
         self.progress_bar.setValue(0)
         self.progress_bar.show()
 
-        self.thread = ProcessThread(self.filtered_df)
+        self.thread = ProcessThread(
+            self.filtered_df,
+            list(self.selected_projects),
+            time_limit=SettingsStore._settings.get("time_limit", 300)
+        )
         self.thread.progress.connect(self.progress_bar.setValue)
         self.thread.finished.connect(self._on_optimization_prepare)
         self.thread.start()
 
     # 실제 최적화 로직
-    def _on_optimization_prepare(self, _):
-        try:
-            optimizer = Optimizer()
-            results = optimizer.run_optimization({
-                'pre_assigned_df': self.filtered_df,
-                'selected_projects': list(self.selected_projects)
-            })
-            # 결과 페이지 전송
-            if hasattr(self.main_window, 'result_page'):
-                self.main_window.result_page.left_section.set_data_from_external(
-                    results['assignment_result']
-                )
-                self.main_window.navigate_to_page(2)
-            else:
-                self.optimization_requested.emit(results)
+    def _on_optimization_prepare(self, result_df: pd.DataFrame):
+        self.progress_bar.setValue(100)
 
-        except Exception as e:
-            QMessageBox.critical(self, "최적화 오류", f"최적화 과정에서 오류가 발생했습니다: {e}")
+        if hasattr(self.main_window, 'result_page'):
+            self.main_window.result_page.left_section.set_data_from_external(result_df)
+            self.main_window.navigate_to_page(2)
+        else:
+            self.optimization_requested.emit({'assignment_result': result_df})
 
-        finally:
-            self.progress_bar.hide()
-            self.btn_run.setText("Run")
-            self.btn_run.setEnabled(True)
-            self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
+        self.progress_bar.hide()
+        self.btn_run.setEnabled(True)
+        self.btn_run.setStyleSheet(PRIMARY_BUTTON_STYLE)
 
     def _update_run_icon(self):
         pix = self.run_spinner.currentPixmap()
@@ -250,6 +267,8 @@ class PlanningPage(QWidget):
 
     # 결과 데이터 표시
     def display_preassign_result(self, df: pd.DataFrame):
+        self._df = df.copy()
+        
         agg_qty = (
             df.groupby(['Line','Time','Project'], as_index=False)
             ['Qty']
@@ -270,13 +289,11 @@ class PlanningPage(QWidget):
             on=['Line','Time','Project']
         )
 
-        self._df = df_agg
-
         old_header = self.header
         self.layout().removeWidget(old_header)
         old_header.deleteLater()
         
-        self.header = CalendarHeader(set(self._df['Time']), parent=self)
+        self.header = CalendarHeader(set(df_agg['Time']), parent=self)
         self.layout().insertWidget(2, self.header)
         self._sync_header_margin()
 
@@ -284,4 +301,4 @@ class PlanningPage(QWidget):
             w = self.body_layout.takeAt(i).widget()
             if w:
                 w.deleteLater()
-        self.body_layout.addWidget(WeeklyCalendar(self._df))
+        self.body_layout.addWidget(WeeklyCalendar(df_agg))
