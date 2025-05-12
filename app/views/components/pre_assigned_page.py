@@ -95,7 +95,7 @@ class PlanningPage(QWidget):
 
         # 요약 버튼
         btn_summary = create_button("Summary", "primary", self)
-        btn_summary.setFixedSize(80, 30)
+        btn_summary.setFixedSize(90, 40)
         btn_summary.clicked.connect(self.on_summary_click)
         title_hbox.addWidget(btn_summary)
         title_hbox.addStretch()
@@ -230,7 +230,7 @@ class PlanningPage(QWidget):
     # 최적화 요청
     def on_run_click(self):
         if self._df.empty:
-            QMessageBox.warning(self, "Error", "먼저 Run을 통해 결과를 불러와야 합니다.")
+            QMessageBox.warning(self, "Error", "You need to load the results by running it first.")
             return
 
         all_groups = create_from_master()
@@ -240,6 +240,7 @@ class PlanningPage(QWidget):
             if current & set(projs)
         }
         dlg = ProjectGroupDialog(filtered_groups, parent=self)
+        dlg.setContentsMargins(0,0,0,0)
         if dlg.exec_() != QDialog.Accepted:
             return
         selected = dlg.selected_groups()
