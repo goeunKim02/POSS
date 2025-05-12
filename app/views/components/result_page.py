@@ -93,7 +93,7 @@ class ResultPage(QWidget):
         # Report 버튼
         report_btn = QPushButton()
         report_btn.setText("Report")
-        report_btn.setFixedSize(130, 40)
+        report_btn.setFixedSize(140, 40)
         report_btn.setCursor(QCursor(Qt.PointingHandCursor))
         report_btn.setStyleSheet("""
             QPushButton {
@@ -157,14 +157,17 @@ class ResultPage(QWidget):
         button_group_layout.setSpacing(5)
         button_group_layout.setContentsMargins(10, 10, 10, 5)
 
+        # 버튼들 사이 균등 간격 설정 (필요시)
+        button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
+
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment"]
+        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment", "Shipment2"]
         active_button_style = """
             QPushButton {
                 background-color: #1428A0; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
         """
@@ -173,7 +176,7 @@ class ResultPage(QWidget):
                 background-color: #8E9CC9; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
             QPushButton:hover {
@@ -193,6 +196,10 @@ class ResultPage(QWidget):
             btn.setCursor(QCursor(Qt.PointingHandCursor))
             btn.setStyleSheet(active_button_style if i == 0 else inactive_button_style)
             btn.clicked.connect(lambda checked, idx=i: self.switch_viz_page(idx))
+
+            # 모든 버튼에 고정 크기 설정
+            btn.setFixedSize(130,40)
+
             button_group_layout.addWidget(btn)
             self.viz_buttons.append(btn)
 
@@ -336,6 +343,8 @@ class ResultPage(QWidget):
                 self.shipment_widget = ShipmentWidget()
                 self.shipment_widget.shipment_status_updated.connect(self.on_shipment_status_updated)
                 page_layout.addWidget(self.shipment_widget)
+            elif btn_text =='Shipment2':
+                pass
             else:
                 # 시각화 캔버스 추가 (Capa, Utilization)
                 canvas = MplCanvas(width=6, height=4, dpi=100)
@@ -356,8 +365,12 @@ class ResultPage(QWidget):
         splitter.addWidget(left_frame)
         splitter.addWidget(right_frame)
 
-        # 초기 크기 비율 설정 (7:3)
-        splitter.setSizes([720, 280])
+        # 스트레치 팩터로 비율 설정 (더 안정적)
+        splitter.setStretchFactor(0, 8)  # 왼쪽이 7의 비중
+        splitter.setStretchFactor(1, 2)  # 오른쪽이 3의 비중
+
+        # # 초기 크기 비율 설정 (7:3)
+        # splitter.setSizes([720, 280])
 
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
@@ -439,7 +452,7 @@ class ResultPage(QWidget):
                 background-color: #1428A0; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
         """
@@ -448,7 +461,7 @@ class ResultPage(QWidget):
                 background-color: #8E9CC9; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
             QPushButton:hover {
@@ -463,6 +476,9 @@ class ResultPage(QWidget):
             self.update_material_shortage_analysis()
         elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
             self.shipment_widget.run_analysis(self.result_data)
+        elif index == 7 and self.result_data is not None:  # 새 탭 (7번) 인덱스
+            # 새 탭 활성화 시 수행할 작업
+            print("새 탭이 활성화됨")
         else:
             # 다른 탭으로 전환 시 자재 부족 상태 초기화
             self.clear_left_widget_shortage_status()
