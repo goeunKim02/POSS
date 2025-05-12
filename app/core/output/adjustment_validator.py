@@ -271,46 +271,32 @@ class PlanAdjustmentValidator:
     """
     def validate_capacity(self, line, time, new_qty, item=None, is_move=False):
         # 시간과 수량을 숫자로 확실히 변환
-        try:
-            # 명시적 타입 변환
-            time = int(time) if isinstance(time, str) else time
-            new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
-            # print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
-        except (ValueError, TypeError) as e:
-            # print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
-            return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
+        # try:
+        #     # 명시적 타입 변환
+        #     time = int(time) if isinstance(time, str) else time
+        #     new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
+        #     print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
+        # except (ValueError, TypeError) as e:
+        #     print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
+        #     return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
         
-
-        # # 직접 capa_qty_data에서 용량 정보 확인
-        # print("\n===== 용량 정보 직접 확인 =====")
-        # if self.capa_qty_data is not None and not self.capa_qty_data.empty:
-        #     print(f"capa_qty_data 열 목록: {self.capa_qty_data.columns.tolist()}")
-            
-        #     # 해당 라인 찾기
-        #     line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == line]
-        #     if not line_rows.empty:
-        #         print(f"{line} 라인 데이터: {line_rows.iloc[0].to_dict()}")
-                
-        #         # 해당 시프트 용량 확인
-        #         if time in line_rows.columns:
-        #             capacity_val = line_rows.iloc[0][time]
-        #             print(f"시프트 {time} 용량: {capacity_val}")
-        #         elif str(time) in line_rows.columns:
-        #             capacity_val = line_rows.iloc[0][str(time)]
-        #             print(f"시프트 {time} (문자열) 용량: {capacity_val}")
-        #         else:
-        #             print(f"시프트 {time}에 대한 용량 정보가 없습니다.")
-        #     else:
-        #         print(f"{line} 라인을 찾을 수 없습니다.")
-        # else:
-        #     print("capa_qty_data가 비어있거나, 없습니다.")
-        # print("===========================\n")
-            
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
 
         # 시프트의 현재 할당량 확인
         current_allocation = self.line_shift_allocation.get(key, 0)
+
+        # 같은 위치에서 수량만 변경인 경우 기존 할당량 제외
+        existing_qty = 0
+        if not is_move and item:
+            existing_mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time) &
+                (self.result_data['Item'] == item)
+            )
+            if existing_mask.any():
+                existing_qty = self.result_data.loc[existing_mask, 'Qty'].iloc[0]
+                current_allocation -= existing_qty
         
         # 이동인 경우 해당 아이템의 기존 할당량 제외
         if is_move and item:
@@ -441,7 +427,7 @@ class PlanAdjustmentValidator:
         if line is None or time is None or item is None:
             return False, "라인, 시프트, 아이템 정보는 필수입니다."
         
-        if new_qty == 'ALL':
+        if new_qty == 'ALL' or new_qty == 'All':
             # 해당 아이템의 전체 수량 가져오기
             new_qty = self._get_total_demand_for_item(item)
             if new_qty <= 0:
@@ -459,10 +445,17 @@ class PlanAdjustmentValidator:
         for valid, message in validations:
             if not valid: 
                 return False, message
+        #  # 개별 검증 결과 출력 및 확인
+        # for i, (valid, message) in enumerate(validations):
+        #     validation_name = ["line_item_compatibility", "capacity", "due_date", "utilization_rate"][i]
+        #     print(f"{validation_name}: {valid} - {message}")
+        #     if not valid: 
+        #         return False, message
         
         # 제조동 비율 제약조건 검증 (임시 데이터셋 생성 후 검증)
         temp_result_data = self._calculate_adjusted_data(line, time, item, new_qty, source_line, source_time)
         valid, message = self.validate_building_ratios(temp_result_data)
+   
         if not valid:
             return False, message
         
@@ -719,6 +712,3 @@ class PlanAdjustmentValidator:
 
         return temp_result_data
     
-
-
-

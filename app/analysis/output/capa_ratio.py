@@ -121,18 +121,48 @@ class CapaRatioAnalyzer:
         """
         try:
             # 아이템 정보 찾기
+            # item_id = item_data.get('Item')
+
+            # 아이템 정보 추출
             item_id = item_data.get('Item')
+            old_line = item_data.get('Line')
+            old_time = int(item_data.get('Time'))
+            old_qty = float(item_data.get('Qty', 0))
             
-            if item_id is not None:
+            if item_id is None or old_line is None:
+                print("필수 정보 누락: 아이템명 또는 라인 정보")
+                return None
+            
+            # 데이터프레임 복사본 생성
+            df_copy = data_df.copy()
+            
+            # 데이터 타입 일관성 보장
+            df_copy['Time'] = df_copy['Time'].astype(int)
+            df_copy['Qty'] = df_copy['Qty'].astype(float)
+            
+            # 기존 항목 찾기 (Line, Time, Item 모두 일치)
+            mask = (
+                (df_copy['Item'] == item_id) &
+                (df_copy['Line'] == old_line) &
+                (df_copy['Time'] == old_time)
+            )
+            
+            item_rows = df_copy[mask]
+            
+            if item_rows is not None:
                 print(f"업데이트 전 Qty 합계: {data_df['Qty'].sum()}")
                 print(f"업데이트 대상 아이템: {item_id}")
                 print(f"대상 라인/시프트: {item_data.get('Line')}/{item_data.get('Time')}")
                 # 해당 아이템 행 찾기
-                item_row = data_df[data_df['Item'] == item_id]
+                # item_row = data_df[data_df['Item'] == item_id]
                 
-                if not item_row.empty:
+                if not item_rows.empty:
                     # 인덱스 가져오기
-                    idx = item_row.index[0]
+                    idx = item_rows.index[0]
+
+                    # 기존 수량 확인
+                    current_qty = df_copy.at[idx, 'Qty']
+                    print(f"현재 수량: {current_qty}")
                     
                     # 라인 정보 업데이트
                     if 'Line' in new_data:

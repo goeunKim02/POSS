@@ -308,23 +308,7 @@ class PlanMaintenanceRate:
     """조정된 계획 데이터 반환"""
     def get_adjusted_plan(self):
         return self.adjusted_plan.copy() if self.adjusted_plan is not None else None
-    
-    # """ 원본 복원 """
-    # def reset_to_prev(self):
-    #     if self.prev_plan is not None:
-    #         self.current_plan = self.prev_plan.copy()
-    #         self.adjusted_plan = self.prev_plan.copy()
-    #         return True
-        
-    #     return False
-    
-    # """조정 사항 초기화 (현재 계획으로 복원)"""
-    # def reset_adjustments(self):
-    #     if self.current_plan is not None:
-    #         self.adjusted_plan = self.current_plan.copy()
-    #         return True
-        
-    #     return False
+
     
     """
     수량 변경된 항목 확인

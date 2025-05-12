@@ -101,7 +101,7 @@ class ModifiedLeftSection(QWidget):
         if not item or not new_data or not hasattr(item, 'item_data'):
             print("아이템 또는 데이터가 없음")
             return
-
+        
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         print(f"이전 데이터: {old_data}")
@@ -245,6 +245,10 @@ class ModifiedLeftSection(QWidget):
                     # 셀 이동 이벤트 발생 (시각화 차트 업데이트)
                     self.cell_moved.emit(new_item, old_data, new_data)
 
+                    print(f"\n=== cell_moved 시그널 발생 ===")
+                    print(f"이전 데이터: {old_data}")
+                    print(f"새 데이터: {new_data}")
+
                     # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
                     self.item_data_changed.emit(new_item, new_data)
                     return  # 이후 코드는 실행하지 않음
@@ -273,8 +277,19 @@ class ModifiedLeftSection(QWidget):
         # 셀 이동 이벤트 발생 (시각화 차트 업데이트) 추가
         if not position_change_needed:
             # 위치 변경이 없는 데이터 수정의 경우에도 시각화 업데이트
-            self.cell_moved.emit(item, old_data, new_data)
-
+            print(f"\n=== 수량만 변경 시 시각화 업데이트 ===")
+            print(f"아이템: {old_data.get('Item')}")
+            print(f"이전 위치: Line={old_data.get('Line')}, Time={old_data.get('Time')}")
+            print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}")
+            print(f"이전 수량: {old_data.get('Qty')}")
+            print(f"새 수량: {new_data.get('Qty')}")
+            
+            # 수정: 정확한 위치 정보를 포함하여 전달
+            corrected_new_data = new_data.copy()
+            corrected_new_data['Line'] = old_data.get('Line')  # 기존 위치 유지
+            corrected_new_data['Time'] = old_data.get('Time')  # 기존 위치 유지
+            
+            self.cell_moved.emit(item, old_data, corrected_new_data)
         # # 변경 알림 메시지 표시
         # EnhancedMessageBox.show_validation_success(self, "Data Updated",
         #                         f"The production schedule has been successfully updated. \n{item.text()}")
@@ -413,9 +428,6 @@ class ModifiedLeftSection(QWidget):
         except Exception as e:
             # 에러 메시지 표시
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
-            # 디버깅을 위한 예외 정보 출력
-            import traceback
-            traceback.print_exc()
 
 
     """외부에서 데이터 설정"""

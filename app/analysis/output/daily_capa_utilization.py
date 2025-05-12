@@ -108,7 +108,7 @@ class CapaUtilization:
             # 수요 수량에 기반한 일별 생산량 계산
             df_demand['Day'] = df_demand['Time'].map(shift_to_day)
             day_production = df_demand.groupby('Day')['Qty'].sum()
-
+      
             # 일별 가동률 계산
             utilization_rate = {}
             for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']:
@@ -153,18 +153,26 @@ class CapaUtilization:
         try:
             # 아이템 정보 찾기
             item_id = item_data.get('Item')
+            old_line = item_data.get('Line')
+            old_time = int(item_data.get('Time'))
             
-            if item_id is not None:
-                # print(f"업데이트 전 Qty 합계: {data_df['Qty'].sum()}")
-                # print(f"업데이트 대상 아이템: {item_id}")
-                # print(f"대상 라인/시프트: {item_data.get('Line')}/{item_data.get('Time')}")
-
-                # 해당 아이템 행 찾기
-                item_row = data_df[data_df['Item'] == item_id]
+            if item_id is not None and old_line is not None:
+                # 정확한 아이템 찾기 (Line, Time, Item 모두 일치)
+                mask = (
+                    (data_df['Item'] == item_id) &
+                    (data_df['Line'] == old_line) &
+                    (data_df['Time'] == old_time)
+                )
                 
-                if not item_row.empty:
+                item_rows = data_df[mask]
+          
+                if not item_rows.empty:
                     # 인덱스 가져오기
-                    idx = item_row.index[0]
+                    idx = item_rows.index[0]
+
+                    # 이전 수량 저장
+                    old_qty = data_df.at[idx, 'Qty']
+                    print(f"이전 수량: {old_qty}")
                     
                     # 라인 정보 업데이트
                     if 'Line' in new_data:
@@ -177,6 +185,9 @@ class CapaUtilization:
                     # 수량 정보 업데이트
                     if 'Qty' in new_data:
                         data_df.at[idx, 'Qty'] = int(float(new_data['Qty']))
+                else:
+                    print(f"해당 아이템을 찾을 수 없음")
+                    return None
                         
             # 업데이트된 데이터로 가동률 분석
             return CapaUtilization.analyze_utilization(data_df)

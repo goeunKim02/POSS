@@ -57,7 +57,7 @@ class VisualizationManager:
                             f'{height:.1f}' if isinstance(height, float) else f'{height}',
                             ha='center', va='bottom', fontsize=kwargs.get('value_fontsize', 9))
             
-            # 임계점 표시 기능 추가 (bar 차트에만 적용)
+            # show_thresholds=True + thresholds 임계선 표현 (bar 차트에만 적용)
             if kwargs.get('show_thresholds', False) and 'thresholds' in kwargs:
                 thresholds = kwargs['thresholds']
                 
@@ -80,6 +80,24 @@ class VisualizationManager:
                             ax.hlines(y=lower, xmin=i-0.4, xmax=i+0.4, colors='blue', linestyles='dashed', alpha=0.7)
                             # 임계점 텍스트 추가 - 폰트 크기 18로 증가
                             ax.text(i, lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=18)
+
+            # threshold_values + threshold_colors 방식의 임계선 처리 (한 줄 임계선 표현)                
+            if 'threshold_values' in kwargs and 'threshold_colors' in kwargs:
+                threshold_values = kwargs['threshold_values']
+                threshold_colors = kwargs['threshold_colors']
+                threshold_labels = kwargs.get('threshold_labels', [''] * len(threshold_values))
+                
+                for i, threshold in enumerate(threshold_values):
+                    color = threshold_colors[i] if i < len(threshold_colors) else threshold_colors[-1]
+                    label = threshold_labels[i] if i < len(threshold_labels) else ''
+                    
+                    # 수평선 그리기
+                    ax.axhline(y=threshold, color=color, linestyle='--', alpha=0.7)
+                    
+                    # 임계선 오른쪽에 라벨 표시
+                    if len(x_data) > 0:
+                        ax.text(len(x_data) - 1 + 0.2, threshold, f'{threshold}% {label}', 
+                                color=color, va='center', fontsize=18)
                     
         elif chart_type == 'line':
             ax.plot(x_data, y_data, marker=kwargs.get('marker', 'o'), 
@@ -182,10 +200,18 @@ class VisualizationManager:
 
         # 그림 레이아웃 조정
         if ax.figure:
-            ax.figure.tight_layout()  
-            # bottom_margin = 0.25 if any(len(str(x)) > 10 for x in x_data) else 0.2
-            # ax.figure.subplots_adjust(left=0.12, right=0.95, top=0.9, bottom=0.3)
-
+            # X축 라벨이 긴 경우 하단 여백 늘리기
+            bottom_margin = 0.25 if any(len(str(x)) > 10 for x in x_data) else 0.15
+            
+            # 임계선이 있는 경우 약간 더 넓게
+            right_margin = 0.9 if 'threshold_values' in kwargs else 0.98
+            
+            ax.figure.subplots_adjust(
+                left=0.08,              # 왼쪽 여백
+                right=right_margin,     # 오른쪽 여백 (임계선 고려)
+                top=0.93,               # 상단 여백
+                bottom=bottom_margin    # 하단 여백 (X축 라벨 고려)
+            )
         return ax
     
 
