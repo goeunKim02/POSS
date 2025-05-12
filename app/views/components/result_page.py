@@ -163,7 +163,7 @@ class ResultPage(QWidget):
         button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
 
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment", "Shipment2"]
+        viz_types = ["Capa", "Material", "PortCapa", "Plan", "Shipment", "Shipment2"]
 
         # 시각화 콘텐츠를 표시할 스택 위젯
         self.viz_stack = QStackedWidget()
@@ -189,7 +189,33 @@ class ResultPage(QWidget):
             page_layout = QVBoxLayout(page)
             
             # tab 유형 별 처리 
-            if btn_text == 'Plan':
+            if btn_text == 'Capa':
+                # Capa와 Utilization 차트를 위아래로 배치
+                # 상단 차트 (Capa)
+                capa_title = QLabel("Plant Capacity Ratio")
+                capa_title.setFont(QFont("Arial", 12, QFont.Bold))
+                capa_title.setAlignment(Qt.AlignCenter)
+                capa_title.setStyleSheet("background-color: #f0f0f0; padding: 5px; border-radius: 3px;")
+                page_layout.addWidget(capa_title)
+                
+                capa_canvas = MplCanvas(width=6, height=3, dpi=100)
+                page_layout.addWidget(capa_canvas)
+                self.viz_canvases.append(capa_canvas)
+                
+                # 여백 추가
+                page_layout.addSpacing(10)
+                
+                # 하단 차트 (Utilization)
+                util_title = QLabel("Daily Utilization Rate")
+                util_title.setFont(QFont("Arial", 12, QFont.Bold))
+                util_title.setAlignment(Qt.AlignCenter)
+                util_title.setStyleSheet("background-color: #f0f0f0; padding: 5px; border-radius: 3px;")
+                page_layout.addWidget(util_title)
+                
+                util_canvas = MplCanvas(width=6, height=3, dpi=100)
+                page_layout.addWidget(util_canvas)
+                self.viz_canvases.append(util_canvas)
+            elif btn_text == 'Plan':
                 # 계획 유지율 위젯 생성
                 self.plan_maintenance_widget = PlanMaintenanceWidget()
                 page_layout.addWidget(self.plan_maintenance_widget)
@@ -326,14 +352,21 @@ class ResultPage(QWidget):
                 page_layout.addWidget(self.shipment_widget)
             elif btn_text =='Shipment2':
                 pass
-            else:
-                # 시각화 캔버스 추가 (Capa, Utilization)
-                canvas = MplCanvas(width=6, height=4, dpi=100)
-                page_layout.addWidget(canvas)
-                self.viz_canvases.append(canvas)
+            # else:
+            #     # 시각화 캔버스 추가 (Capa, Utilization)
+            #     canvas = MplCanvas(width=6, height=4, dpi=100)
+            #     page_layout.addWidget(canvas)
+            #     self.viz_canvases.append(canvas)
                 
-                # 초기 시각화 생성
-                self.create_initial_visualization(canvas, btn_text)
+            #     # 초기 시각화 생성
+            #     self.create_initial_visualization(canvas, btn_text)
+
+            # Performance 탭의 초기 시각화 생성
+            if btn_text == 'Capa':
+                # Capa 차트 초기화 (첫 번째 캔버스)
+                self.create_initial_visualization(self.viz_canvases[0], "Capa")
+                # Utilization 차트 초기화 (두 번째 캔버스)
+                self.create_initial_visualization(self.viz_canvases[1], "Utilization")
             
             # 스택 위젯에 페이지 추가
             self.viz_stack.addWidget(page)
@@ -427,7 +460,7 @@ class ResultPage(QWidget):
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
         # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
-        if self.viz_stack.currentIndex() == 5 and self.shipment_widget and index != 5:
+        if self.viz_stack.currentIndex() == 4 and self.shipment_widget and index != 4:
             # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
             self.shipment_widget.reset_state()
 
@@ -697,7 +730,7 @@ class ResultPage(QWidget):
         print(f"가동률 데이터: {self.utilization_data}")
 
         for i, canvas in enumerate(self.viz_canvases):
-            viz_type = ["Capa", "Material", "Utilization", "PortCapa", "Plan"][i]
+            viz_type = ["Capa", "Utilization", "Material", "PortCapa", "Plan", "Sheipment", "Sheipment2"][i]
             print(f"  - 캔버스 {i}: {viz_type}, 유효함: {canvas is not None}")
             self.update_visualization(canvas, viz_type)
 

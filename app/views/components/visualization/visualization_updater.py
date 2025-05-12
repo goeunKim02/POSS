@@ -1,5 +1,5 @@
 from app.views.components.visualization.visualizaiton_manager import VisualizationManager
-from app.views.components.visualization.DisplayHelper import DisplayHelper
+from app.views.components.visualization.display_helper import DisplayHelper
 from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 
