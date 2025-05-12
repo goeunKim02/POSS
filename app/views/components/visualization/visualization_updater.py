@@ -46,8 +46,6 @@ class VisualizationUpdater:
     def update_capa_chart(canvas, capa_ratio_data):
         # 비교 데이터형식 감지
         is_comparison = isinstance(capa_ratio_data, dict) and 'original' in capa_ratio_data and 'adjusted' in capa_ratio_data
-        
-        thresholds = CapaRatioAnalyzer.get_capa_thresholds()
 
         chart_config = {
             'has_data_check' : VisualizationUpdater._is_capa_data_valid,
@@ -61,8 +59,13 @@ class VisualizationUpdater:
                 'value_fontsize': 14,
                 'show_legend': is_comparison,
                 'ylim': None,
-                'thresholds': thresholds,
-                'show_thresholds': True
+                'show_thresholds': True,
+                'thresholds': {
+                    'I': {'lower_limit': 69.5, 'upper_limit': 100},
+                    'D': {'lower_limit': 8.3, 'upper_limit': 100},
+                    'K': {'lower_limit': 8.3, 'upper_limit': 100},
+                    'M': {'lower_limit': 12.5, 'upper_limit': 100}
+                }
             }
         }
      
@@ -85,7 +88,7 @@ class VisualizationUpdater:
                 'ylim': (0, 110), 
                 'threshold_values': [80, 100, 105],
                 'threshold_colors': ['#4CAF50', '#FFC107', '#F44336'],
-                'threshold_labels': ['Good', 'Warning', 'High'] if is_comparison else ['', '', ''],
+                'threshold_labels': ['Good', 'Warning', 'High'],
                 'show_value': True,
                 'value_fontsize': 14,
                 'show_legend': is_comparison
