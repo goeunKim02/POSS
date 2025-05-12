@@ -23,16 +23,11 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Samsung Production Planning Optimization Settings")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
-        # 화면 크기 가져오기
-        desktop = QApplication.desktop()
-        screen_rect = desktop.availableGeometry(self)
-        screen_width, screen_height = screen_rect.width(), screen_rect.height()
-
-        # 화면 크기의 80%로 다이얼로그 크기 설정
-        dialog_width = int(screen_width * 0.8)
-        dialog_height = int(screen_height * 0.8)
-        self.resize(dialog_width, dialog_height)
+        screen = self.screen()
+        screen_size = screen.availableGeometry()
+        self.resize(int(screen_size.width() * 0.45), int(screen_size.height() * 0.8))
 
         self.settings_map = {}  # 변경된 설정 추적
         self.init_ui()
@@ -40,7 +35,12 @@ class SettingsDialog(QDialog):
         # 초기 설정 상태 저장
         self.original_settings = self.settings_map.copy()
 
+
     def init_ui(self):
+
+        screen = self.screen()
+        screen_size = screen.availableGeometry()
+
         # 메인 레이아웃
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -49,7 +49,8 @@ class SettingsDialog(QDialog):
         title_frame = QFrame()
         title_frame.setFrameShape(QFrame.StyledPanel)
         title_frame.setStyleSheet("background-color: #1428A0; border: none;")
-        title_frame.setFixedHeight(60)
+
+        title_frame.setFixedHeight(int(screen_size.height()*0.035))
 
         # 프레임 레이아웃 생성
         title_frame_layout = QVBoxLayout(title_frame)
@@ -58,7 +59,7 @@ class SettingsDialog(QDialog):
 
         # 제목 레이블 생성
         title_label = QLabel("Settings")
-        title_font = QFont("Arial", 14)
+        title_font = QFont("Arial", int(screen_size.height()*0.0085))  #14
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
@@ -70,18 +71,19 @@ class SettingsDialog(QDialog):
         # 메인 레이아웃에 프레임 추가
         main_layout.addWidget(title_frame)
 
+        tab_font_size = int(screen_size.height()*0.0065)
         # 탭 위젯 생성
         self.tab_widget = QTabWidget()
         self.tab_widget.setStyleSheet(
-            """      
-                QTabBar::tab::first { margin-left: 10px;}
-                QTabBar {
+            f"""      
+                QTabBar::tab::first {{ margin-left: 10px;}}
+                QTabBar {{
                     background-color: transparent;
                     border: none;
                     
 
-                }
-                QTabBar::tab {
+                }}
+                QTabBar::tab {{
                     background: #f0f0f0;
                     border: 1px solid #cccccc;
                     border-top-left-radius: 10px;
@@ -90,12 +92,13 @@ class SettingsDialog(QDialog):
                     margin-right: 2px;
                     margin-bottom: 0px;
                     font-family : Arial;
-                }
-                QTabBar::tab:selected, QTabBar::tab:hover {
+                    font-size: {tab_font_size}
+                }}
+                QTabBar::tab:selected, QTabBar::tab:hover {{
                     background: #1428A0;
                     color: white;
                     font-family : Arial;
-                }
+                }}
             """
         )
 

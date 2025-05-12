@@ -37,11 +37,12 @@ class SettingsSectionComponent(QFrame):
         # 제목 레이블 생성
         title_label = QLabel(self.title)
         title_label.setFont(QFont("Arial", 12, QFont.Bold))
-        title_label.setStyleSheet("color: #1428A0; border:none; margin-bottom: 5px;")
+        title_label.setStyleSheet("color: #1428A0; border:none;")
 
         # 설정 항목들을 담을 위젯
         self.settings_widget = QWidget()
         self.settings_widget.setStyleSheet("border: none; background-color: transparent;")
+
         # QFormLayout 사용 - 라벨과 위젯을 자동으로 정렬
         self.settings_layout = QFormLayout(self.settings_widget)
         self.settings_layout.setContentsMargins(20, 0, 20, 0)
@@ -49,6 +50,7 @@ class SettingsSectionComponent(QFrame):
         self.settings_layout.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
         self.settings_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.settings_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.settings_layout.setVerticalSpacing(15)
 
         # 레이아웃에 위젯 추가
         main_layout.addWidget(title_label)
@@ -67,7 +69,9 @@ class SettingsSectionComponent(QFrame):
         # 라벨 생성
         label = QLabel(label_text)
         label.setFont(QFont("Arial", 10))
-        label.setStyleSheet("color: #333333;")
+        label.setStyleSheet("color: #333333; padding: 0px; margin: 0px;")
+        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        label.setFixedHeight(28)  # 라벨 높이 고정
 
         # 위젯 생성
         widget = None
@@ -75,9 +79,20 @@ class SettingsSectionComponent(QFrame):
         # 텍스트 입력
         if widget_type == 'input':
             widget = QLineEdit()
-            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
+            widget.setStyleSheet("""
+                QLineEdit {
+                    background-color: #F5F5F5; 
+                    border: 1px solid #cccccc;
+                    padding: 0px 5px;      /* 상하 padding을 0으로 설정 */
+                    margin: 0px;           /* margin도 0으로 설정 */
+                    font-size: 10pt;       /* 폰트 크기 명시 */
+                    font-family: Arial;    /* 폰트 패밀리 명시 */
+                }
+            """)
             widget.setMinimumWidth(300)
             widget.setMaximumWidth(500)
+            widget.setFixedHeight(28)  # 고정 높이 설정
+            widget.setAlignment(Qt.AlignVCenter)  # 텍스트를 수직 가운데 정렬
             if 'default' in kwargs:
                 widget.setText(str(kwargs['default']))
             widget.textChanged.connect(lambda text: self.setting_changed.emit(setting_key, text))
@@ -85,9 +100,19 @@ class SettingsSectionComponent(QFrame):
         # 정수 스핀박스
         elif widget_type == 'spinbox':
             widget = QSpinBox()
-            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
+            widget.setStyleSheet("""
+                QSpinBox {
+                    background-color: #F5F5F5; 
+                    border: 1px solid #cccccc;
+                    padding: 0px 5px;
+                    margin: 0px;
+                    font-size: 10pt;
+                    font-family: Arial;
+                }
+            """)
             widget.setMinimumWidth(150)
             widget.setMaximumWidth(200)
+            widget.setFixedHeight(28)  # 고정 높이 설정
             widget.wheelEvent = lambda event: event.ignore()
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
@@ -102,9 +127,19 @@ class SettingsSectionComponent(QFrame):
         # 실수 스핀박스
         elif widget_type == 'doublespinbox':
             widget = QDoubleSpinBox()
-            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
+            widget.setStyleSheet("""
+                QDoubleSpinBox {
+                    background-color: #F5F5F5; 
+                    border: 1px solid #cccccc;
+                    padding: 0px 5px;
+                    margin: 0px;
+                    font-size: 10pt;
+                    font-family: Arial;
+                }
+            """)
             widget.setMinimumWidth(150)
             widget.setMaximumWidth(200)
+            widget.setFixedHeight(28)  # 고정 높이 설정
             widget.wheelEvent = lambda event: event.ignore()
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
@@ -123,6 +158,7 @@ class SettingsSectionComponent(QFrame):
         # 체크박스
         elif widget_type == 'checkbox':
             widget = QCheckBox()
+            widget.setFixedHeight(28)  # 고정 높이 설정
             if 'default' in kwargs and kwargs['default']:
                 widget.setChecked(True)
             widget.stateChanged.connect(lambda state: self.setting_changed.emit(setting_key, bool(state)))
@@ -130,9 +166,19 @@ class SettingsSectionComponent(QFrame):
         # 콤보박스
         elif widget_type == 'combobox':
             widget = QComboBox()
-            widget.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
+            widget.setStyleSheet("""
+                QComboBox {
+                    background-color: #F5F5F5; 
+                    border: 1px solid #cccccc;
+                    padding: 0px 5px;
+                    margin: 0px;
+                    font-size: 10pt;
+                    font-family: Arial;
+                }
+            """)
             widget.setMinimumWidth(150)
             widget.setMaximumWidth(300)
+            widget.setFixedHeight(28)  # 고정 높이 설정
             if 'items' in kwargs:
                 widget.addItems(kwargs['items'])
             if 'default_index' in kwargs:
@@ -146,15 +192,27 @@ class SettingsSectionComponent(QFrame):
         elif widget_type == 'filepath':
             container_file = QWidget()
             container_file.setStyleSheet("background-color: transparent; border:none;")
+            container_file.setFixedHeight(28)  # 컨테이너 높이 고정
             container_file_layout = QHBoxLayout(container_file)
             container_file_layout.setContentsMargins(0, 0, 0, 0)
             container_file_layout.setSpacing(10)
 
             # 경로 표시 입력창
             path_input = QLineEdit()
-            path_input.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc; ")
+            path_input.setStyleSheet("""
+                QLineEdit {
+                    background-color: #F5F5F5; 
+                    border: 1px solid #cccccc;
+                    padding: 0px 5px;
+                    margin: 0px;
+                    font-size: 10pt;
+                    font-family: Arial;
+                }
+            """)
             path_input.setMinimumWidth(300)
             path_input.setMaximumWidth(400)
+            path_input.setFixedHeight(28)  # 고정 높이 설정
+            path_input.setAlignment(Qt.AlignVCenter)  # 텍스트를 수직 가운데 정렬
             if 'default' in kwargs:
                 path_input.setText(kwargs['default'])
             path_input.setReadOnly(kwargs.get('readonly', True))
@@ -175,6 +233,7 @@ class SettingsSectionComponent(QFrame):
                 }
             """)
             browse_button.setFixedWidth(80)
+            browse_button.setFixedHeight(28)  # 버튼 높이도 통일
 
             # 버튼 클릭 이벤트
             def browse_file():
@@ -230,8 +289,18 @@ class SettingsSectionComponent(QFrame):
 
             # 콤보박스
             combo = QComboBox()
-            combo.setStyleSheet("background-color: #F5F5F5; border: 1px solid #cccccc;")
+            combo.setStyleSheet("""
+                QComboBox {
+                    background-color: #F5F5F5; 
+                    border: 1px solid #cccccc;
+                    padding: 0px 5px;
+                    margin: 0px;
+                    font-size: 10pt;
+                    font-family: Arial;
+                }
+            """)
             combo.setMinimumWidth(150)
+            combo.setFixedHeight(28)  # 고정 높이 설정
             if 'items' in kwargs:
                 combo.addItems(kwargs['items'])
 
@@ -250,6 +319,7 @@ class SettingsSectionComponent(QFrame):
                 }
             """)
             add_button.setFixedWidth(60)
+            add_button.setFixedHeight(28)  # 고정 높이 설정
 
             # 선택된 항목들
             selected_items = []
@@ -292,6 +362,7 @@ class SettingsSectionComponent(QFrame):
                 }
             """)
             remove_button.setFixedWidth(80)
+            remove_button.setFixedHeight(28)  # 고정 높이 설정
 
             # 항목 제거 버튼 클릭 이벤트
             def remove_selected_item():
