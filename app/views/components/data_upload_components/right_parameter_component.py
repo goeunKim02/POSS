@@ -1,4 +1,4 @@
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtGui import QFont, QColor, QIcon
 from PyQt5.QtWidgets import (
     QWidget, QPushButton,
     QVBoxLayout, QLabel, QListWidget, QListWidgetItem, QHBoxLayout
@@ -35,7 +35,9 @@ class RightParameterComponent(QWidget):
         title_label = QLabel("Problems")
         title_label.setFont(QFont("Arial", 9, QFont.Bold))
 
-        minimize_button = QPushButton("minimize")
+        minimize_button = QPushButton()
+        minimize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarMinButton))
+        minimize_button.setStyleSheet("border: 1px solid gray; border-radius: 5px;")
         minimize_button.clicked.connect(self.minimize_parameter_component)
 
         # Problems 와 최소화버튼

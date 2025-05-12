@@ -215,7 +215,7 @@ class DataInputPage(QWidget) :
         right_parameter_area = QFrame()
         right_parameter_area.setStyleSheet("background-color: white; border: none;")
         right_parameter_layout = QVBoxLayout(right_parameter_area)
-        right_parameter_layout.setContentsMargins(5, 5, 5, 5)
+        right_parameter_layout.setContentsMargins(0, 0, 0, 0)
 
         self.parameter_component = RightParameterComponent()
         right_parameter_layout.addWidget(self.parameter_component)
