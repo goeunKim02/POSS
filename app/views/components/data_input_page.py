@@ -613,6 +613,7 @@ class DataInputPage(QWidget) :
             print(f'error : {str(e)}')
 
         self.parameter_component.show_failures.emit(failures)
+        self.left_parameter_component.refresh_current_tab()
 
     """
     Save 버튼 클릭 시 현재 데이터를 원본 파일에 저장
