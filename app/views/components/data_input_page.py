@@ -222,14 +222,14 @@ class DataInputPage(QWidget) :
 
         parameter_splitter.addWidget(left_parameter_area)
         parameter_splitter.addWidget(right_parameter_area)
-
+        
         parameter_splitter.setSizes([700, 300])
 
         parameter_layout.addWidget(parameter_splitter)
 
         vertical_splitter.addWidget(tab_container)
         vertical_splitter.addWidget(parameter_container)
-
+        vertical_splitter.setObjectName("vertical_splitter")
         vertical_splitter.setSizes([700, 300])
 
         right_layout.addWidget(vertical_splitter)

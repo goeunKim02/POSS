@@ -1,7 +1,7 @@
 from PyQt5.QtGui import QFont, QColor
 from PyQt5.QtWidgets import (
-    QWidget, 
-    QVBoxLayout, QLabel, QListWidget, QListWidgetItem
+    QWidget, QPushButton,
+    QVBoxLayout, QLabel, QListWidget, QListWidgetItem, QHBoxLayout
 )
 from PyQt5.QtCore import pyqtSignal
 from app.utils.error_handler import (
@@ -31,17 +31,24 @@ class RightParameterComponent(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        try :
-            title_label = QLabel('Problems')
-            layout.addWidget(title_label)
-        except Exception as e :
-            raise ValidationError('Failed to create title label', {'error' : str(e)})
+        title_layout = QHBoxLayout(self)
+        title_label = QLabel("Problems")
+        title_label.setFont(QFont("Arial", 9, QFont.Bold))
 
-        try :
-            self.list_widget = QListWidget()
-            layout.addWidget(self.list_widget)
-        except Exception as e :
-            raise ValidationError('Failed to create list widget', {'error' : str(e)})
+        minimize_button = QPushButton("minimize")
+        minimize_button.clicked.connect(self.minimize_parameter_component)
+
+        # Problems 와 최소화버튼
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        title_layout.addWidget(minimize_button)
+
+
+        layout.addLayout(title_layout)
+
+        self.list_widget = QListWidget()
+        layout.addWidget(self.list_widget)
+
 
     """
     파일 선택 이벤트 처리
@@ -52,6 +59,15 @@ class RightParameterComponent(QWidget):
     def on_file_selected(self, filepath: str):
         pass
 
+
+    def minimize_parameter_component(self):
+        parent = self.parent()
+        while parent is not None and parent.objectName() != 'vertical_splitter':
+            print(parent)
+            parent = parent.parent()
+        if parent is not None:
+            parent.setSizes([1,0])
+    
     """
     실패 정보 표시 처리
     """
