@@ -61,14 +61,6 @@ class RightParameterComponent(QWidget):
     )
     def on_file_selected(self, filepath: str):
         pass
-
-
-    def minimize_parameter_component(self):
-        parent = self.parent()
-        while parent is not None and parent.objectName() != 'vertical_splitter':
-            parent = parent.parent()
-        if parent is not None:
-            parent.setSizes([1,0])
     
     """
     실패 정보 표시 처리
