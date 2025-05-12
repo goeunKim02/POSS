@@ -10,6 +10,7 @@ from app.utils.error_handler import (
 
 class RightParameterComponent(QWidget):
     show_failures = pyqtSignal(dict)
+    close_button_clicked = pyqtSignal()
     
     def __init__(self):
         super().__init__()
@@ -38,7 +39,7 @@ class RightParameterComponent(QWidget):
         minimize_button = QPushButton()
         minimize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarMinButton))
         minimize_button.setStyleSheet("border: 1px solid gray; border-radius: 5px;")
-        minimize_button.clicked.connect(self.minimize_parameter_component)
+        minimize_button.clicked.connect(self.close_button_clicked.emit)
 
         # Problems 와 최소화버튼
         title_layout.addWidget(title_label)
@@ -65,7 +66,6 @@ class RightParameterComponent(QWidget):
     def minimize_parameter_component(self):
         parent = self.parent()
         while parent is not None and parent.objectName() != 'vertical_splitter':
-            print(parent)
             parent = parent.parent()
         if parent is not None:
             parent.setSizes([1,0])

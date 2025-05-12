@@ -189,6 +189,17 @@ class DataInputPage(QWidget) :
         tab_layout.addWidget(self.tab_bar)
         tab_layout.addWidget(self.stacked_widget)
 
+        maximize_button = QPushButton()
+        maximize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarShadeButton))
+        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 5px;")
+        maximize_button.clicked.connect(self.open_parameter_component)
+        maximize_button.setVisible(False)
+        maximize_button.setObjectName("maximize_button")
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        button_layout.addWidget(maximize_button)
+        tab_layout.addLayout(button_layout)
+
         parameter_container = QFrame()
         parameter_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
         parameter_layout = QHBoxLayout(parameter_container)
@@ -218,6 +229,7 @@ class DataInputPage(QWidget) :
         right_parameter_layout.setContentsMargins(0, 0, 0, 0)
 
         self.parameter_component = RightParameterComponent()
+        self.parameter_component.close_button_clicked.connect(self.close_parameter_component)
         right_parameter_layout.addWidget(self.parameter_component)
 
         parameter_splitter.addWidget(left_parameter_area)
@@ -231,6 +243,7 @@ class DataInputPage(QWidget) :
         vertical_splitter.addWidget(parameter_container)
         vertical_splitter.setObjectName("vertical_splitter")
         vertical_splitter.setSizes([700, 300])
+        vertical_splitter.splitterMoved.connect(self.check_vertical_splitter)
 
         right_layout.addWidget(vertical_splitter)
 
@@ -729,3 +742,25 @@ class DataInputPage(QWidget) :
             }
         except Exception as e :
             return None
+    
+    def check_vertical_splitter(self):
+        vertical_splitter = self.findChild(QSplitter,"vertical_splitter")
+        sizes = vertical_splitter.sizes()
+        maximize_button = self.findChild(QPushButton,"maximize_button")
+        print(sizes,maximize_button)
+        if sizes[1] == 0:
+            maximize_button.setVisible(True)
+        else:
+            maximize_button.setVisible(False)
+    
+    def open_parameter_component(self):
+        vertical_splitter = self.findChild(QSplitter,"vertical_splitter")
+        if vertical_splitter:
+            vertical_splitter.setSizes([700,300])
+        self.check_vertical_splitter()
+
+    def close_parameter_component(self):
+        vertical_splitter = self.findChild(QSplitter,"vertical_splitter")
+        if vertical_splitter:
+            vertical_splitter.setSizes([1,0])
+        self.check_vertical_splitter()
