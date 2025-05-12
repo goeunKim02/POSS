@@ -270,16 +270,6 @@ class PlanAdjustmentValidator:
         tuple: (성공 여부, 오류 메시지)
     """
     def validate_capacity(self, line, time, new_qty, item=None, is_move=False):
-        # 시간과 수량을 숫자로 확실히 변환
-        # try:
-        #     # 명시적 타입 변환
-        #     time = int(time) if isinstance(time, str) else time
-        #     new_qty = int(new_qty) if isinstance(new_qty, str) else new_qty
-        #     print(f"디버깅 - 변환 성공: line={line}, time={time}, new_qty={new_qty}")
-        # except (ValueError, TypeError) as e:
-        #     print(f"디버깅 - 변환 실패: {e}, line={line}, time={time} (타입: {type(time)}), new_qty={new_qty} (타입: {type(new_qty)})")
-        #     return False, f"유효하지 않은 시간 또는 수량: time={time}, new_qty={new_qty}"
-        
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
 
@@ -445,12 +435,6 @@ class PlanAdjustmentValidator:
         for valid, message in validations:
             if not valid: 
                 return False, message
-        #  # 개별 검증 결과 출력 및 확인
-        # for i, (valid, message) in enumerate(validations):
-        #     validation_name = ["line_item_compatibility", "capacity", "due_date", "utilization_rate"][i]
-        #     print(f"{validation_name}: {valid} - {message}")
-        #     if not valid: 
-        #         return False, message
         
         # 제조동 비율 제약조건 검증 (임시 데이터셋 생성 후 검증)
         temp_result_data = self._calculate_adjusted_data(line, time, item, new_qty, source_line, source_time)

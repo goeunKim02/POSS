@@ -106,9 +106,19 @@ class ModifiedLeftSection(QWidget):
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         print(f"이전 데이터: {old_data}")
 
+        # 중요: 이전 데이터는 changed_fields에서 가져와야 함
+        old_data = {}
+        if changed_fields:
+            for field, change_info in changed_fields.items():
+                if field != '_drop_pos' and isinstance(change_info, dict) and 'from' in change_info:
+                    old_data[field] = change_info['from']
+                    print(f"changed_fields에서 {field} 값 추가: {change_info['from']}")
+        
         # 검증 통과 시
         # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
         position_change_needed = False
+        old_time = old_data.get('Time')
+        old_line = old_data.get('Line')
         if changed_fields:
             # Time 변경 확인
             if 'Time' in changed_fields:
@@ -116,7 +126,7 @@ class ModifiedLeftSection(QWidget):
                 time_change = changed_fields['Time']
                 old_time = time_change['from']
                 new_time = time_change['to']
-                # print(f"Time 값 변경 감지: {old_time} -> {new_time}")
+                print(f"Time 값 변경 감지: {old_time} -> {new_time}")
 
             # Line 변경 확인
             if 'Line' in changed_fields:
@@ -124,7 +134,7 @@ class ModifiedLeftSection(QWidget):
                 line_change = changed_fields['Line']
                 old_line = line_change['from']
                 new_line = line_change['to']
-                # print(f"Line 값 변경 감지: {old_line} -> {new_line}")
+                print(f"Line 값 변경 감지: {old_line} -> {new_line}")
 
         # 위치 변경이 필요한 경우
         if position_change_needed:
@@ -188,7 +198,7 @@ class ModifiedLeftSection(QWidget):
                     if 'Qty' in new_data and pd.notna(new_data['Qty']):
                         item_text += f" ({new_data['Qty']}개)"
 
-                # print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
+                print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
 
                 # 수정: 데이터를 추가하기 전에 검증
                 if hasattr(self, 'validator'):
@@ -250,6 +260,7 @@ class ModifiedLeftSection(QWidget):
                     print(f"새 데이터: {new_data}")
 
                     # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
+                    # self.cell_moved.emit(new_item, old_data, new_data)
                     self.item_data_changed.emit(new_item, new_data)
                     return  # 이후 코드는 실행하지 않음
                 else:
@@ -260,13 +271,14 @@ class ModifiedLeftSection(QWidget):
                     f"유효하지 않은 인덱스: old_row_idx={old_row_idx}, old_col_idx={old_col_idx}, new_row_idx={new_row_idx}, new_col_idx={new_col_idx}")
                 return
 
-        # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
-        if hasattr(item, 'update_item_data'):
-            # 수정: update_item_data 메서드의 반환값 처리
-            success, error_message = item.update_item_data(new_data)
-            if not success:
-                EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
-                return
+        else:
+            # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
+            if hasattr(item, 'update_item_data'):
+                # 수정: update_item_data 메서드의 반환값 처리
+                success, error_message = item.update_item_data(new_data)
+                if not success:
+                    EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
+                    return
 
         # 데이터 변경 성공 시
         self.mark_as_modified()
@@ -290,6 +302,7 @@ class ModifiedLeftSection(QWidget):
             corrected_new_data['Time'] = old_data.get('Time')  # 기존 위치 유지
             
             self.cell_moved.emit(item, old_data, corrected_new_data)
+
         # # 변경 알림 메시지 표시
         # EnhancedMessageBox.show_validation_success(self, "Data Updated",
         #                         f"The production schedule has been successfully updated. \n{item.text()}")

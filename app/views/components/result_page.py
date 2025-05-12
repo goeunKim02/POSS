@@ -572,20 +572,47 @@ class ResultPage(QWidget):
                     matched_rows = self.result_data[mask]
                     
                     if len(matched_rows) > 0:
-                        # 기존 수량 확인
-                        old_qty_actual = matched_rows['Qty'].iloc[0]
-                        
-                        # 업데이트 전 총 수량 확인
-                        total_before = self.result_data['Qty'].sum()
-                        
                         # 수량 업데이트
                         self.result_data.loc[mask, 'Qty'] = float(new_data.get('Qty'))
+                        print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")
         
                 else:
                     # 위치 변경인 경우: 기존 처리 방식 유지
                     print(f"\n=== 위치 변경 처리 ===")
-                    print(f"기존 처리 방식으로 진행")
-
+                    print(f"기존 위치: Line={old_data.get('Line')}, Time={old_data.get('Time')}, Item={old_data.get('Item')}")
+                    print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}, Item={new_data.get('Item')}")
+                    
+                    # 기존 행 제거
+                    # 기존 행 제거
+                    old_mask = (
+                        (self.result_data['Line'] == old_data.get('Line')) &
+                        (self.result_data['Time'] == int(old_data.get('Time'))) &
+                        (self.result_data['Item'] == old_data.get('Item'))
+                    )
+                    
+                    # 기존 행 데이터 백업
+                    old_row_data = self.result_data[old_mask].iloc[0].copy() if old_mask.any() else None
+                    
+                    # 기존 행 제거
+                    self.result_data = self.result_data[~old_mask]
+                    
+                    # 새 행 추가
+                    if old_row_data is not None:
+                        new_row = old_row_data.copy()
+                        new_row['Line'] = new_data.get('Line')
+                        new_row['Time'] = int(new_data.get('Time'))
+                        new_row['Item'] = new_data.get('Item')
+                        new_row['Qty'] = float(new_data.get('Qty'))
+                        
+                        # 다른 필드들도 new_data에서 업데이트
+                        for key, value in new_data.items():
+                            if key in new_row.index and key not in ['Line', 'Time', 'Item', 'Qty']:
+                                new_row[key] = value
+                        
+                        # 새 행을 DataFrame에 추가
+                        self.result_data.loc[len(self.result_data)] = new_row
+                        
+                        print(f"위치 변경 완료: 기존 행 제거 후 새 행 추가")
 
                 # 셀 이동에 따른 제조동별 생산량 비율 업데이트
                 updated_ratio = CapaRatioAnalyzer.update_capa_ratio_for_cell_move(
