@@ -138,6 +138,9 @@ class ResultPage(QWidget):
         self.left_section.data_changed.connect(self.on_data_changed)
         # 셀 이동 시그널 연결
         self.left_section.cell_moved.connect(self.on_cell_moved)
+        # 아이템 데이터 변경 시그널 연결
+        self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
         left_layout.addWidget(self.left_section)
 
         # 오른쪽 컨테이너 
@@ -380,9 +383,13 @@ class ResultPage(QWidget):
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
             self.left_section.data_changed.connect(self.on_data_changed)
         
-        # 아이템 변경 이벤트 연결 (필요한 경우)
+        # 아이템 변경 이벤트 연결
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
             self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
+        # 셀 이동 이벤트 연결 
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'cell_moved'):
+            self.left_section.cell_moved.connect(self.on_cell_moved)
 
 
     """아이템 데이터가 변경되었을 때 호출되는 함수"""
