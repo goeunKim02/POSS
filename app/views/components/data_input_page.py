@@ -236,7 +236,7 @@ class DataInputPage(QWidget) :
 
         main_splitter.addWidget(self.file_explorer)
         main_splitter.addWidget(right_area)
-        main_splitter.setSizes([150, 850])
+        main_splitter.setSizes([120, 880])
 
         bottom_container_layout.addWidget(main_splitter)
 

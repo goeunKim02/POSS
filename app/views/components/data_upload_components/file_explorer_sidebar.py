@@ -95,7 +95,7 @@ class FileExplorerSidebar(QWidget):
         """)
 
         # 최소 너비 설정
-        self.setMinimumWidth(200)
+        self.setMinimumWidth(120)
 
     def add_file(self, file_path, sheet_names=None, is_modified=False):
         """파일을 트리에 추가 - 수정 상태 표시 지원"""

@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QWidget, QVBoxLayout, QTableView
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 import pandas as pd
 
 
@@ -64,18 +64,17 @@ class DataTableComponent:
 
             # 열 너비 균일하게 설정 (필터 컴포넌트용)
             header = filter_component.table_view.horizontalHeader()
+
+            # 사용자가 열 너비를 조정할 수 있도록 Interactive 모드 설정
             header.setSectionResizeMode(QHeaderView.Interactive)
 
-            # 모든 열의 초기 너비를 동일하게 설정
-            column_count = len(df.columns)
-            if column_count > 0:
-                table_width = filter_component.table_view.width()
-                column_width = max(100, table_width // column_count)
-                for i in range(column_count):
-                    filter_component.table_view.setColumnWidth(i, column_width)
-
-            # 마지막 열을 늘리지 않도록 설정
+            # 마지막 열이 남은 공간을 채우지 않도록 설정
             header.setStretchLastSection(False)
+
+            # 위젯이 화면에 표시된 후에 열 너비 균등하게 조정 (100ms 지연)
+            column_count = len(df.columns)
+            QTimer.singleShot(100, lambda: DataTableComponent._adjust_column_widths(filter_component.table_view,
+                                                                                    column_count))
 
             # 필터 위젯 추가
             layout.addWidget(filter_component)
@@ -156,16 +155,12 @@ class DataTableComponent:
                 item = QTableWidgetItem(display_value)
                 data_table.setItem(row, col, item)
 
-        # 모든 열의 초기 너비를 동일하게 설정
-        column_count = len(df.columns)
-        if column_count > 0:
-            table_width = data_table.width()
-            column_width = max(100, table_width // column_count)
-            for i in range(column_count):
-                data_table.setColumnWidth(i, column_width)
-
-        # 마지막 열을 늘리지 않도록 설정
+        # 마지막 열이 남은 공간을 채우지 않도록 설정
         data_table.horizontalHeader().setStretchLastSection(False)
+
+        # 위젯이 화면에 표시된 후에 열 너비 균등하게 조정 (100ms 지연)
+        column_count = len(df.columns)
+        QTimer.singleShot(100, lambda: DataTableComponent._adjust_column_widths(data_table, column_count))
 
         # 레이아웃에 테이블 추가
         layout.addWidget(data_table)
@@ -177,6 +172,18 @@ class DataTableComponent:
         container.get_filtered_data = lambda: df.copy()
 
         return container
+
+    @staticmethod
+    def _adjust_column_widths(table, column_count):
+        """모든 열의 너비를 균등하게 조정하여 테이블을 꽉 채움"""
+        if column_count <= 0:
+            return
+
+        total_width = table.viewport().width()
+        column_width = total_width // column_count
+
+        for i in range(column_count):
+            table.setColumnWidth(i, column_width)
 
     @staticmethod
     def load_data_from_file(file_path, sheet_name=None):
