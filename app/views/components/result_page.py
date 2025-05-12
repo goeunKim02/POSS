@@ -15,6 +15,7 @@ from ..components.result_components.maintenance_rate.plan_maintenance_widget imp
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
 from app.views.components.result_components.shipment_widget import ShipmentWidget
+from app.resources.styles.result_style import ResultStyles 
 
 
 class ResultPage(QWidget):
@@ -74,42 +75,14 @@ class ResultPage(QWidget):
         export_btn.setFixedSize(130, 40)
         export_btn.setCursor(QCursor(Qt.PointingHandCursor))
         export_btn.clicked.connect(self.export_results)
-        export_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1428A0; 
-                color: white; 
-                font-weight: bold; 
-                padding: 5px 15px; 
-                border-radius: 5px; 
-            }
-            QPushButton:hover {
-                background-color: #004C99;
-            }
-            QPushButton:pressed {
-                background-color: #003366;
-            }
-        """)
+        export_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
         # Report 버튼
         report_btn = QPushButton()
         report_btn.setText("Report")
         report_btn.setFixedSize(140, 40)
         report_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        report_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #1428A0; 
-                color: white; 
-                font-weight: bold; 
-                padding: 5px 15px; 
-                border-radius: 5px; 
-            }
-            QPushButton:hover {
-                background-color: #004C99;
-            }
-            QPushButton:pressed {
-                background-color: #003366;
-            }
-        """)
+        report_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
         export_layout.addWidget(export_btn)
         export_layout.addWidget(report_btn)
@@ -120,11 +93,11 @@ class ResultPage(QWidget):
         # 타이틀 프레임을 메인 레이아웃에 추가
         result_layout.addWidget(title_frame)
 
-        # QSplitter 생성
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.setHandleWidth(10)  # 스플리터 핸들 너비 설정
-        splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
-        splitter.setContentsMargins(10,10,10,10)
+        # 수평 스플리터 생성 (왼쪽 | 오른쪽)
+        main_horizontal_splitter = QSplitter(Qt.Horizontal)
+        main_horizontal_splitter.setHandleWidth(10)
+        main_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
+        main_horizontal_splitter.setContentsMargins(10, 10, 10, 10)
 
         # 왼쪽 컨테이너
         left_frame = QFrame()
@@ -143,14 +116,43 @@ class ResultPage(QWidget):
         # 아이템 데이터 변경 시그널 연결
         self.left_section.item_data_changed.connect(self.on_item_data_changed)
 
-        left_layout.addWidget(self.left_section)
+        left_layout.addWidget(self.left_section)\
+        
+        # 오른쪽 영역을 위아래로 분리하기 위한 수직 스플리터
+        right_vertical_splitter = QSplitter(Qt.Vertical)
+        right_vertical_splitter.setHandleWidth(10)
+        right_vertical_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
 
-        # 오른쪽 컨테이너 
-        right_frame = QFrame()
-        right_frame.setFrameShape(QFrame.StyledPanel)
-        right_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+        # 오른쪽 상단 컨테이너
+        right_top_frame = QFrame()
+        right_top_frame.setFrameShape(QFrame.StyledPanel)
+        right_top_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+        
+        right_top_layout = QVBoxLayout(right_top_frame)
+        right_top_layout.setContentsMargins(10, 10, 10, 10)
 
-        right_layout = QVBoxLayout(right_frame)
+        # 상단 섹션 제목
+        top_section_title = QLabel("Analysis Summary")
+        font_top = QFont()
+        font_top.setFamily("Arial")
+        font_top.setPointSize(14)
+        font_top.setBold(True)
+        top_section_title.setFont(font_top)
+        top_section_title.setAlignment(Qt.AlignCenter)
+        right_top_layout.addWidget(top_section_title)
+        
+        # # 상단 섹션에 표시할 내용 
+        # temp_label = QLabel("상단 섹션 내용이 여기에 표시됩니다.")
+        # temp_label.setAlignment(Qt.AlignCenter)
+        # temp_label.setStyleSheet("color: #666; font-style: italic;")
+        # right_top_layout.addWidget(temp_label)
+
+        # 오른쪽 하단 섹션 
+        right_bottom_frame = QFrame()
+        right_bottom_frame.setFrameShape(QFrame.StyledPanel)
+        right_bottom_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+
+        right_bottom_layout = QVBoxLayout(right_bottom_frame)
 
         # 지표 버튼
         button_group_layout = QHBoxLayout()
@@ -162,27 +164,6 @@ class ResultPage(QWidget):
 
         self.viz_buttons = []
         viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment", "Shipment2"]
-        active_button_style = """
-            QPushButton {
-                background-color: #1428A0; 
-                color: white; 
-                font-weight: bold; 
-                padding: 8px 8px; 
-                border-radius: 4px;
-            }
-        """
-        inactive_button_style = """
-            QPushButton {
-                background-color: #8E9CC9; 
-                color: white; 
-                font-weight: bold; 
-                padding: 8px 8px; 
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #1428A0;
-            }
-        """
 
         # 시각화 콘텐츠를 표시할 스택 위젯
         self.viz_stack = QStackedWidget()
@@ -194,7 +175,7 @@ class ResultPage(QWidget):
         for i, btn_text in enumerate(viz_types):
             btn = QPushButton(btn_text)
             btn.setCursor(QCursor(Qt.PointingHandCursor))
-            btn.setStyleSheet(active_button_style if i == 0 else inactive_button_style)
+            btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
             btn.clicked.connect(lambda checked, idx=i: self.switch_viz_page(idx))
 
             # 모든 버튼에 고정 크기 설정
@@ -358,19 +339,28 @@ class ResultPage(QWidget):
             self.viz_stack.addWidget(page)
 
         # 레이아웃에 버튼 그룹과 스택 위젯 추가
-        right_layout.addLayout(button_group_layout)
-        right_layout.addWidget(self.viz_stack)
+        right_bottom_layout.addLayout(button_group_layout)
+        right_bottom_layout.addWidget(self.viz_stack)
 
-        # 스플리터에 프레임 추가
-        splitter.addWidget(left_frame)
-        splitter.addWidget(right_frame)
+        # 오른쪽 수직 스플리터에 상단과 하단 프레임 추가
+        right_vertical_splitter.addWidget(right_top_frame)
+        right_vertical_splitter.addWidget(right_bottom_frame)
+        
+        # 상단과 하단의 비율 설정 
+        right_vertical_splitter.setSizes([300, 700])
+        right_vertical_splitter.setStretchFactor(0, 3)  # 상단 30%
+        right_vertical_splitter.setStretchFactor(1, 7)  # 하단 70%
 
-        # 스트레치 팩터로 비율 설정 (더 안정적)
-        splitter.setStretchFactor(0, 8)  # 왼쪽이 7의 비중
-        splitter.setStretchFactor(1, 2)  # 오른쪽이 3의 비중
+        # 수평 스플리터에 왼쪽 프레임과 오른쪽 수직 스플리터 추가
+        main_horizontal_splitter.addWidget(left_frame)
+        main_horizontal_splitter.addWidget(right_vertical_splitter)
+
+        # 왼쪽과 오른쪽의 비율 설정 
+        main_horizontal_splitter.setStretchFactor(0, 7)  # 왼쪽 80%
+        main_horizontal_splitter.setStretchFactor(1, 2)  # 오른쪽 20%
 
         # 스플리터를 메인 레이아웃에 추가
-        result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
+        result_layout.addWidget(main_horizontal_splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
     
     # 시각화 캔버스 초기화 
@@ -443,31 +433,8 @@ class ResultPage(QWidget):
 
         self.viz_stack.setCurrentIndex(index)
 
-         # Update button style 
-        active_style = """
-            QPushButton {
-                background-color: #1428A0; 
-                color: white; 
-                font-weight: bold; 
-                padding: 8px 8px; 
-                border-radius: 4px;
-            }
-        """
-        inactive_style = """
-            QPushButton {
-                background-color: #8E9CC9; 
-                color: white; 
-                font-weight: bold; 
-                padding: 8px 8px; 
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #1428A0;
-            }
-        """
-
         for i, btn in enumerate(self.viz_buttons):
-            btn.setStyleSheet(active_style if i == index else inactive_style)
+            btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == index else ResultStyles.INACTIVE_BUTTON_STYLE)
 
         if index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
             self.update_material_shortage_analysis()
