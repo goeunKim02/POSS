@@ -94,7 +94,7 @@ class DraggableItemLabel(QLabel):
             margin: 2px;
         """
 
-        # 복합 상태 스타일들
+        # 복합 상태 스타일들 (자재부족 + 사전할당)
         self.pre_assigned_shortage_style = """
             background-color: #FFF8E1;
             border: 2px solid #FF9800;
@@ -489,6 +489,9 @@ class DraggableItemLabel(QLabel):
     def update_item_data(self, new_data):
         """아이템 데이터 업데이트"""
         if new_data:
+            # 이전 데이터 백업 (검증 전에 먼저 저장)
+            old_data = self.item_data.copy() if self.item_data else {}
+
             # 데이터 변경 전 검증 (부모 위젯을 통해 validator 찾기)
             validator = None
             parent = self.parent()
@@ -530,7 +533,6 @@ class DraggableItemLabel(QLabel):
                     return False, message
             
             # 검증 통과 또는 validator 없음 - 데이터 업데이트 진행
-            # 데이터 직접 할당 (데이터 참조 복사)
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
