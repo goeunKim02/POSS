@@ -14,6 +14,7 @@ from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from ..components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
+from app.views.components.result_components.shipment_widget import ShipmentWidget
 
 
 class ResultPage(QWidget):
@@ -28,6 +29,7 @@ class ResultPage(QWidget):
         self.result_data = None # 결과 데이터 저장 변수
         self.material_analyzer = None  # 자재 부족량 분석기 추가
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
+        self.shipment_widget = None # 당주 출하 위젯 저장 변수
         self.init_ui()
 
         self.connect_signals()
@@ -91,7 +93,7 @@ class ResultPage(QWidget):
         # Report 버튼
         report_btn = QPushButton()
         report_btn.setText("Report")
-        report_btn.setFixedSize(130, 40)
+        report_btn.setFixedSize(140, 40)
         report_btn.setCursor(QCursor(Qt.PointingHandCursor))
         report_btn.setStyleSheet("""
             QPushButton {
@@ -138,6 +140,9 @@ class ResultPage(QWidget):
         self.left_section.data_changed.connect(self.on_data_changed)
         # 셀 이동 시그널 연결
         self.left_section.cell_moved.connect(self.on_cell_moved)
+        # 아이템 데이터 변경 시그널 연결
+        self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
         left_layout.addWidget(self.left_section)
 
         # 오른쪽 컨테이너 
@@ -152,14 +157,17 @@ class ResultPage(QWidget):
         button_group_layout.setSpacing(5)
         button_group_layout.setContentsMargins(10, 10, 10, 5)
 
+        # 버튼들 사이 균등 간격 설정 (필요시)
+        button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
+
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan"]
+        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment", "Shipment2"]
         active_button_style = """
             QPushButton {
                 background-color: #1428A0; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
         """
@@ -168,7 +176,7 @@ class ResultPage(QWidget):
                 background-color: #8E9CC9; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
             QPushButton:hover {
@@ -188,6 +196,10 @@ class ResultPage(QWidget):
             btn.setCursor(QCursor(Qt.PointingHandCursor))
             btn.setStyleSheet(active_button_style if i == 0 else inactive_button_style)
             btn.clicked.connect(lambda checked, idx=i: self.switch_viz_page(idx))
+
+            # 모든 버튼에 고정 크기 설정
+            btn.setFixedSize(130,40)
+
             button_group_layout.addWidget(btn)
             self.viz_buttons.append(btn)
 
@@ -326,6 +338,13 @@ class ResultPage(QWidget):
                 portcapa_canvas = MplCanvas(width=6, height=4, dpi=100)
                 page_layout.addWidget(portcapa_canvas)
                 self.viz_canvases.append(portcapa_canvas)
+            elif btn_text == 'Shipment':
+                # 당주 출하 위젯
+                self.shipment_widget = ShipmentWidget()
+                self.shipment_widget.shipment_status_updated.connect(self.on_shipment_status_updated)
+                page_layout.addWidget(self.shipment_widget)
+            elif btn_text =='Shipment2':
+                pass
             else:
                 # 시각화 캔버스 추가 (Capa, Utilization)
                 canvas = MplCanvas(width=6, height=4, dpi=100)
@@ -346,8 +365,12 @@ class ResultPage(QWidget):
         splitter.addWidget(left_frame)
         splitter.addWidget(right_frame)
 
-        # 초기 크기 비율 설정 (7:3)
-        splitter.setSizes([720, 280])
+        # 스트레치 팩터로 비율 설정 (더 안정적)
+        splitter.setStretchFactor(0, 8)  # 왼쪽이 7의 비중
+        splitter.setStretchFactor(1, 2)  # 오른쪽이 3의 비중
+
+        # # 초기 크기 비율 설정 (7:3)
+        # splitter.setSizes([720, 280])
 
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
@@ -380,9 +403,13 @@ class ResultPage(QWidget):
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
             self.left_section.data_changed.connect(self.on_data_changed)
         
-        # 아이템 변경 이벤트 연결 (필요한 경우)
+        # 아이템 변경 이벤트 연결
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
             self.left_section.item_data_changed.connect(self.on_item_data_changed)
+
+        # 셀 이동 이벤트 연결 
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'cell_moved'):
+            self.left_section.cell_moved.connect(self.on_cell_moved)
 
 
     """아이템 데이터가 변경되었을 때 호출되는 함수"""
@@ -412,6 +439,11 @@ class ResultPage(QWidget):
                         
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
+        # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
+        if self.viz_stack.currentIndex() == 5 and self.shipment_widget and index != 5:
+            # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
+            self.shipment_widget.reset_state()
+
         self.viz_stack.setCurrentIndex(index)
 
          # Update button style 
@@ -420,7 +452,7 @@ class ResultPage(QWidget):
                 background-color: #1428A0; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
         """
@@ -429,7 +461,7 @@ class ResultPage(QWidget):
                 background-color: #8E9CC9; 
                 color: white; 
                 font-weight: bold; 
-                padding: 8px 15px; 
+                padding: 8px 8px; 
                 border-radius: 4px;
             }
             QPushButton:hover {
@@ -442,6 +474,11 @@ class ResultPage(QWidget):
 
         if index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
             self.update_material_shortage_analysis()
+        elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
+            self.shipment_widget.run_analysis(self.result_data)
+        elif index == 7 and self.result_data is not None:  # 새 탭 (7번) 인덱스
+            # 새 탭 활성화 시 수행할 작업
+            print("새 탭이 활성화됨")
         else:
             # 다른 탭으로 전환 시 자재 부족 상태 초기화
             self.clear_left_widget_shortage_status()
@@ -461,6 +498,19 @@ class ResultPage(QWidget):
                         # 자재 부족 상태 초기화
                         item.set_shortage_status(False)
                         cleared_count += 1
+
+
+    """출하 상태가 업데이트될 때 호출되는 함수"""
+    def on_shipment_status_updated(self, failure_items):
+        """
+        출하 실패 정보가 업데이트되면 왼쪽 섹션의 아이템에 표시
+        
+        Args:
+            failure_items (dict): 아이템 코드를 키로, 실패 정보를 값으로 가진 딕셔너리
+        """
+        # 왼쪽 섹션에 출하 실패 정보 전달
+        if hasattr(self, 'left_section') and hasattr(self.left_section, 'set_shipment_failure_items'):
+            self.left_section.set_shipment_failure_items(failure_items)
         
 
     """각 지표별 초기 시각화 생성"""
@@ -572,20 +622,46 @@ class ResultPage(QWidget):
                     matched_rows = self.result_data[mask]
                     
                     if len(matched_rows) > 0:
-                        # 기존 수량 확인
-                        old_qty_actual = matched_rows['Qty'].iloc[0]
-                        
-                        # 업데이트 전 총 수량 확인
-                        total_before = self.result_data['Qty'].sum()
-                        
                         # 수량 업데이트
                         self.result_data.loc[mask, 'Qty'] = float(new_data.get('Qty'))
+                        print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")
         
                 else:
                     # 위치 변경인 경우: 기존 처리 방식 유지
                     print(f"\n=== 위치 변경 처리 ===")
-                    print(f"기존 처리 방식으로 진행")
-
+                    print(f"기존 위치: Line={old_data.get('Line')}, Time={old_data.get('Time')}, Item={old_data.get('Item')}")
+                    print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}, Item={new_data.get('Item')}")
+                    
+                    # 기존 행 제거
+                    old_mask = (
+                        (self.result_data['Line'] == old_data.get('Line')) &
+                        (self.result_data['Time'] == int(old_data.get('Time'))) &
+                        (self.result_data['Item'] == old_data.get('Item'))
+                    )
+                    
+                    # 기존 행 데이터 백업
+                    old_row_data = self.result_data[old_mask].iloc[0].copy() if old_mask.any() else None
+                    
+                    # 기존 행 제거
+                    self.result_data = self.result_data[~old_mask]
+                    
+                    # 새 행 추가
+                    if old_row_data is not None:
+                        new_row = old_row_data.copy()
+                        new_row['Line'] = str(new_data.get('Line'))
+                        new_row['Time'] = int(new_data.get('Time'))
+                        new_row['Item'] = str(new_data.get('Item'))
+                        new_row['Qty'] = float(new_data.get('Qty'))
+                        
+                        # 다른 필드들도 new_data에서 업데이트
+                        for key, value in new_data.items():
+                            if key in new_row.index and key not in ['Line', 'Time', 'Item', 'Qty']:
+                                new_row[key] = value
+                        
+                        # 새 행을 DataFrame에 추가
+                        self.result_data.loc[len(self.result_data)] = new_row
+                        
+                        print(f"위치 변경 완료: 기존 행 제거 후 새 행 추가")
 
                 # 셀 이동에 따른 제조동별 생산량 비율 업데이트
                 updated_ratio = CapaRatioAnalyzer.update_capa_ratio_for_cell_move(
@@ -942,7 +1018,8 @@ class ResultPage(QWidget):
         self.optimization_metadata = optimization_metadata
 
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
-
+        if hasattr(self, 'shipment_widget') and assignment_result is not None:
+                    self.shipment_widget.run_analysis(assignment_result)
 
     """왼쪽 위젯에 사전할당 상태 적용"""
     def update_left_widget_pre_assigned_status(self, pre_assigned_items):
