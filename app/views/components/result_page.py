@@ -633,7 +633,6 @@ class ResultPage(QWidget):
                     print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}, Item={new_data.get('Item')}")
                     
                     # 기존 행 제거
-                    # 기존 행 제거
                     old_mask = (
                         (self.result_data['Line'] == old_data.get('Line')) &
                         (self.result_data['Time'] == int(old_data.get('Time'))) &
@@ -649,9 +648,9 @@ class ResultPage(QWidget):
                     # 새 행 추가
                     if old_row_data is not None:
                         new_row = old_row_data.copy()
-                        new_row['Line'] = new_data.get('Line')
+                        new_row['Line'] = str(new_data.get('Line'))
                         new_row['Time'] = int(new_data.get('Time'))
-                        new_row['Item'] = new_data.get('Item')
+                        new_row['Item'] = str(new_data.get('Item'))
                         new_row['Qty'] = float(new_data.get('Qty'))
                         
                         # 다른 필드들도 new_data에서 업데이트
