@@ -106,7 +106,13 @@ def analyze_shipment_performance(use_flexible_matching=True, result_data=None):
         # 디버깅: 두 데이터프레임의 모든 컬럼 이름 출력
         # print("결과 데이터프레임 컬럼:", result_df.columns.tolist())
         # print("수요 데이터프레임 컬럼:", demand_df.columns.tolist())
-        
+
+        # 데이터 타입 변환
+        result_df['Due_LT'] = pd.to_numeric(result_df['Due_LT'], errors='coerce').fillna(0).astype(int)
+        result_df['Time'] = pd.to_numeric(result_df['Time'], errors='coerce').fillna(0).astype(int)
+        result_df['Qty'] = pd.to_numeric(result_df['Qty'], errors='coerce').fillna(0).astype(int)
+        demand_df['SOP'] = pd.to_numeric(demand_df['SOP'], errors='coerce').fillna(0).astype(int)
+
         # 컬럼명 대소문자 통일
         # 'To_Site'와 'To_site'의 대소문자 차이 해결을 위해 일관된 네이밍 사용
         if 'To_Site' in result_df.columns:

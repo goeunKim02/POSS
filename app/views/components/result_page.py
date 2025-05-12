@@ -620,8 +620,10 @@ class ResultPage(QWidget):
                     )
                     
                     matched_rows = self.result_data[mask]
+                    print(f"매칭된 행 수: {len(matched_rows)}")
                     
                     if len(matched_rows) > 0:
+                        print(f"매칭된 행 정보: {matched_rows.iloc[0].to_dict()}")
                         # 수량 업데이트
                         self.result_data.loc[mask, 'Qty'] = float(new_data.get('Qty'))
                         print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")

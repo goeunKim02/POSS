@@ -151,43 +151,53 @@ class CapaUtilization:
     @staticmethod
     def update_utilization_for_cell_move(data_df, item_data, new_data, is_initial=False):
         try:
-            # 아이템 정보 찾기
-            item_id = item_data.get('Item')
-            old_line = item_data.get('Line')
-            old_time = int(item_data.get('Time'))
+            print(f"가동률 업데이트 시도:")
+            print(f"  old_data: {item_data}")
+            print(f"  new_data: {new_data}")
             
-            if item_id is not None and old_line is not None:
-                # 정확한 아이템 찾기 (Line, Time, Item 모두 일치)
-                mask = (
-                    (data_df['Item'] == item_id) &
-                    (data_df['Line'] == old_line) &
-                    (data_df['Time'] == old_time)
-                )
-                
-                item_rows = data_df[mask]
-          
-                if not item_rows.empty:
-                    # 인덱스 가져오기
-                    idx = item_rows.index[0]
+            """1. 입력 데이터 검증 및 정규화"""
+            def normalize_data(data):
+                normalized = data.copuy()
+                if 'Time' in normalized:
+                    normalized['Time'] = int(normalized['Time'])
+                if 'Qty' in normalized:
+                    normalized['Qty'] = int(normalized['Qty'])
+                return normalized
+            
+            # 타입 변환 
+            old_data_clean = normalize_data(item_data)
+            new_data_clean = normalize_data(new_data)
+            
+            print(f"  변환된 old_time: {old_data_clean}, new_time: {new_data_clean}")
 
-                    # 이전 수량 저장
-                    old_qty = data_df.at[idx, 'Qty']
-                    print(f"이전 수량: {old_qty}")
-                    
-                    # 라인 정보 업데이트
-                    if 'Line' in new_data:
-                        data_df.at[idx, 'Line'] = new_data['Line']
-                        
-                    # 근무 정보 업데이트
-                    if 'Time' in new_data:
-                        data_df.at[idx, 'Time'] = int(new_data['Time'])
-                        
-                    # 수량 정보 업데이트
-                    if 'Qty' in new_data:
-                        data_df.at[idx, 'Qty'] = int(float(new_data['Qty']))
-                else:
-                    print(f"해당 아이템을 찾을 수 없음")
-                    return None
+            # 2. DataFrame에서 타겟 아이템 찾기
+            mask = (
+                (data_df['Item'] == old_data_clean['Item']) &
+                (data_df['Line'] == old_data_clean['Line']) &
+                (data_df['Time'] == old_data_clean['Time'])
+            )
+
+            matching_rows = data_df[mask]
+
+            # 3. 데이터 업데이트
+            row_idx = matching_rows.index[0]
+
+            # 4. Line 업데이트
+            # 라인 정보 업데이트
+            if 'Line'
+            if 'Line' in new_data:
+                data_df.at[idx, 'Line'] = new_data['Line']
+                
+            # 근무 정보 업데이트
+            if 'Time' in new_data:
+                data_df.at[idx, 'Time'] = int(new_data['Time'])
+                
+            # 수량 정보 업데이트
+            if 'Qty' in new_data:
+                data_df.at[idx, 'Qty'] = int(float(new_data['Qty']))
+        else:
+            print(f"해당 아이템을 찾을 수 없음")
+            return None
                         
             # 업데이트된 데이터로 가동률 분석
             return CapaUtilization.analyze_utilization(data_df)
