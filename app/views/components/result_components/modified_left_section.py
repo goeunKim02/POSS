@@ -105,20 +105,10 @@ class ModifiedLeftSection(QWidget):
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         print(f"이전 데이터: {old_data}")
-
-        # 중요: 이전 데이터는 changed_fields에서 가져와야 함
-        old_data = {}
-        if changed_fields:
-            for field, change_info in changed_fields.items():
-                if field != '_drop_pos' and isinstance(change_info, dict) and 'from' in change_info:
-                    old_data[field] = change_info['from']
-                    print(f"changed_fields에서 {field} 값 추가: {change_info['from']}")
         
         # 검증 통과 시
         # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
         position_change_needed = False
-        old_time = old_data.get('Time')
-        old_line = old_data.get('Line')
         if changed_fields:
             # Time 변경 확인
             if 'Time' in changed_fields:
@@ -260,7 +250,6 @@ class ModifiedLeftSection(QWidget):
                     print(f"새 데이터: {new_data}")
 
                     # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
-                    # self.cell_moved.emit(new_item, old_data, new_data)
                     self.item_data_changed.emit(new_item, new_data)
                     return  # 이후 코드는 실행하지 않음
                 else:

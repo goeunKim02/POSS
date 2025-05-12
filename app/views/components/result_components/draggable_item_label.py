@@ -489,9 +489,6 @@ class DraggableItemLabel(QLabel):
     def update_item_data(self, new_data):
         """아이템 데이터 업데이트"""
         if new_data:
-            # 이전 데이터 백업 (검증 전에 먼저 저장)
-            old_data = self.item_data.copy() if self.item_data else {}
-
             # 데이터 변경 전 검증 (부모 위젯을 통해 validator 찾기)
             validator = None
             parent = self.parent()
