@@ -26,7 +26,7 @@ class PlanDataManager:
     """이전 계획 로드"""
     def load_previous_plan(self, file_path):
         try:
-            previous_df = pd.read_excel(file_path, sheet_name='result')
+            previous_df = pd.read_excel(file_path)
             
             if not previous_df.empty:
                 self.previous_plan_path = file_path
