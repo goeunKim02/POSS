@@ -19,7 +19,6 @@ class CapaUtilization:
         try:
             # 입력 데이터 검증
             if data_df is None or data_df.empty:
-                # print("최적화 결과 데이터가 비어 있습니다.")
                 return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
 
             # 데이터 복사본 생성
@@ -28,7 +27,7 @@ class CapaUtilization:
             # 마스터 파일에서 생산능력 데이터(capa_qty) 로드
             master_file = FilePaths.get("master_excel_file")
             if not master_file:
-                # print("마스터 파일 경로가 설정되지 않았습니다.")
+                print("마스터 파일 경로가 설정되지 않았습니다.")
                 return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
 
             try:
@@ -40,11 +39,11 @@ class CapaUtilization:
                     df_capa_qty = sheets
                 
                 if df_capa_qty.empty:
-                    # print("capa_qty 데이터가 비어 있습니다.")
+                    print("capa_qty 데이터가 비어 있습니다.")
                     return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
                 
             except Exception as e:
-                # print(f"생산능력 데이터 로드 중 오류 발생: {str(e)}")
+                print(f"생산능력 데이터 로드 중 오류 발생: {str(e)}")
                 return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
             
                 
@@ -131,9 +130,9 @@ class CapaUtilization:
         
         except Exception as e:
                 print(f"가동률 계산 중 오류 발생: {str(e)}")
-                traceback.print_exc()
-                # 빈 결과 반환
-                return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
+                # traceback.print_exc()
+                # # 빈 결과 반환
+                # return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
 
 
     """
@@ -157,24 +156,29 @@ class CapaUtilization:
             
             """1. 입력 데이터 검증 및 정규화"""
             def normalize_data(data):
-                normalized = data.copuy()
+                normalized = data.copy()
                 if 'Time' in normalized:
                     normalized['Time'] = int(normalized['Time'])
                 if 'Qty' in normalized:
-                    normalized['Qty'] = int(normalized['Qty'])
+                    normalized['Qty'] = float(normalized['Qty'])
                 return normalized
             
             # 타입 변환 
             old_data_clean = normalize_data(item_data)
             new_data_clean = normalize_data(new_data)
-            
-            print(f"  변환된 old_time: {old_data_clean}, new_time: {new_data_clean}")
 
-            # 2. DataFrame에서 타겟 아이템 찾기
+            # 필수 필드 검증
+            required_fields = ['Item', 'Line', 'Time']
+            for field in required_fields:
+                if field not in old_data_clean:
+                    print(f"오류: 필수 필드 '{field}'가 old_data에 없습니다.")
+                    return None
+
+            # 2. DataFrame에서 타겟 아이템 찾기(이미 새 위치로 이동)
             mask = (
-                (data_df['Item'] == old_data_clean['Item']) &
-                (data_df['Line'] == old_data_clean['Line']) &
-                (data_df['Time'] == old_data_clean['Time'])
+                (data_df['Item'] == new_data_clean['Item']) &
+                (data_df['Line'] == new_data_clean['Line']) &
+                (data_df['Time'] == new_data_clean['Time'])
             )
 
             matching_rows = data_df[mask]
@@ -184,28 +188,27 @@ class CapaUtilization:
 
             # 4. Line 업데이트
             # 라인 정보 업데이트
-            if 'Line'
-            if 'Line' in new_data:
-                data_df.at[idx, 'Line'] = new_data['Line']
+            if 'Line' in new_data_clean:
+                data_df.at[row_idx, 'Line'] = new_data_clean['Line']
                 
             # 근무 정보 업데이트
-            if 'Time' in new_data:
-                data_df.at[idx, 'Time'] = int(new_data['Time'])
+            if 'Time' in new_data_clean:
+                data_df.at[row_idx, 'Time'] = new_data_clean['Time']
                 
             # 수량 정보 업데이트
-            if 'Qty' in new_data:
-                data_df.at[idx, 'Qty'] = int(float(new_data['Qty']))
-        else:
-            print(f"해당 아이템을 찾을 수 없음")
-            return None
-                        
+            if 'Qty' in new_data_clean:
+                old_qty = data_df.at[row_idx, 'Qty']
+                new_qty = new_data_clean['Qty']
+                data_df.at[row_idx,'Qty'] = new_qty
+
+                if not is_initial:
+                    print(f"수량 업데이트: {old_data_clean['Item']} - {old_qty} -> {new_qty}")
+
+            # 4. 가동률 재계산   
             # 업데이트된 데이터로 가동률 분석
             return CapaUtilization.analyze_utilization(data_df)
             
         except Exception as e:
             print(f"셀 이동 시 가동률 업데이트 중 오류 발생: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
 
 

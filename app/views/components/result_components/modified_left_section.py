@@ -104,7 +104,14 @@ class ModifiedLeftSection(QWidget):
         
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
-        print(f"이전 데이터: {old_data}")
+
+        # 셀 이동이 먼저되기 때문에 changed_fields에서 데이터를 가져와야함.
+        if changed_fields:
+            for field, change_info in changed_fields.items():
+                if field not in ['_drop_pos']:
+                    if isinstance(change_info, dict) and 'from' in change_info:
+                        old_data[field] = change_info['from']
+        print(f"복원된 이전 데이터: {old_data}")
         
         # 검증 통과 시
         # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
@@ -116,7 +123,7 @@ class ModifiedLeftSection(QWidget):
                 time_change = changed_fields['Time']
                 old_time = time_change['from']
                 new_time = time_change['to']
-                print(f"Time 값 변경 감지: {old_time} -> {new_time}")
+                # print(f"Time 값 변경 감지: {old_time} -> {new_time}")
 
             # Line 변경 확인
             if 'Line' in changed_fields:
@@ -124,7 +131,9 @@ class ModifiedLeftSection(QWidget):
                 line_change = changed_fields['Line']
                 old_line = line_change['from']
                 new_line = line_change['to']
-                print(f"Line 값 변경 감지: {old_line} -> {new_line}")
+                # print(f"Line 값 변경 감지: {old_line} -> {new_line}")
+            else:
+                print("Line 변경 없음")
 
         # 위치 변경이 필요한 경우
         if position_change_needed:
@@ -250,7 +259,7 @@ class ModifiedLeftSection(QWidget):
                     print(f"새 데이터: {new_data}")
 
                     # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
-                    self.item_data_changed.emit(new_item, new_data)
+                    # self.item_data_changed.emit(new_item, new_data)
                     return  # 이후 코드는 실행하지 않음
                 else:
                     print("새 아이템 생성 실패")
@@ -269,22 +278,6 @@ class ModifiedLeftSection(QWidget):
                     EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
                     return
 
-        # 데이터 변경 성공 시
-        self.mark_as_modified()
-        
-        # 상위 위젯에 이벤트 전달
-        self.item_data_changed.emit(item, new_data)
-
-        # 셀 이동 이벤트 발생 (시각화 차트 업데이트) 추가
-        if not position_change_needed:
-            # 위치 변경이 없는 데이터 수정의 경우에도 시각화 업데이트
-            print(f"\n=== 수량만 변경 시 시각화 업데이트 ===")
-            print(f"아이템: {old_data.get('Item')}")
-            print(f"이전 위치: Line={old_data.get('Line')}, Time={old_data.get('Time')}")
-            print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}")
-            print(f"이전 수량: {old_data.get('Qty')}")
-            print(f"새 수량: {new_data.get('Qty')}")
-            
             # 수정: 정확한 위치 정보를 포함하여 전달
             corrected_new_data = new_data.copy()
             corrected_new_data['Line'] = old_data.get('Line')  # 기존 위치 유지
@@ -292,9 +285,9 @@ class ModifiedLeftSection(QWidget):
             
             self.cell_moved.emit(item, old_data, corrected_new_data)
 
-        # # 변경 알림 메시지 표시
-        # EnhancedMessageBox.show_validation_success(self, "Data Updated",
-        #                         f"The production schedule has been successfully updated. \n{item.text()}")
+        # 데이터 변경 성공 시
+        self.mark_as_modified()
+        
 
     """엑셀 파일 로드"""
     def load_excel_file(self):

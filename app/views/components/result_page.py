@@ -369,9 +369,6 @@ class ResultPage(QWidget):
         splitter.setStretchFactor(0, 8)  # 왼쪽이 7의 비중
         splitter.setStretchFactor(1, 2)  # 오른쪽이 3의 비중
 
-        # # 초기 크기 비율 설정 (7:3)
-        # splitter.setSizes([720, 280])
-
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
@@ -623,17 +620,12 @@ class ResultPage(QWidget):
                     print(f"매칭된 행 수: {len(matched_rows)}")
                     
                     if len(matched_rows) > 0:
-                        print(f"매칭된 행 정보: {matched_rows.iloc[0].to_dict()}")
+                        # print(f"매칭된 행 정보: {matched_rows.iloc[0].to_dict()}")
                         # 수량 업데이트
                         self.result_data.loc[mask, 'Qty'] = float(new_data.get('Qty'))
-                        print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")
+                        # print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")
         
                 else:
-                    # 위치 변경인 경우: 기존 처리 방식 유지
-                    print(f"\n=== 위치 변경 처리 ===")
-                    print(f"기존 위치: Line={old_data.get('Line')}, Time={old_data.get('Time')}, Item={old_data.get('Item')}")
-                    print(f"새 위치: Line={new_data.get('Line')}, Time={new_data.get('Time')}, Item={new_data.get('Item')}")
-                    
                     # 기존 행 제거
                     old_mask = (
                         (self.result_data['Line'] == old_data.get('Line')) &
