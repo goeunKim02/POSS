@@ -32,7 +32,7 @@ class RightParameterComponent(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
 
-        title_layout = QHBoxLayout(self)
+        title_layout = QHBoxLayout()
         title_label = QLabel("Problems")
         title_label.setFont(QFont("Arial", 9, QFont.Bold))
 
