@@ -5,12 +5,12 @@ import pandas as pd
 from datetime import datetime 
 
 from PyQt5.QtGui import QFont, QCursor, QMovie, QIcon
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QMessageBox, QScrollArea, QDialog, QProgressBar, QStyleFactory, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QThread, QSize
 from datetime import datetime
 
 from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
-from .pre_assigned_components.summary import SummaryDialog
+from .pre_assigned_components.summary import SummaryWidget
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
@@ -83,6 +83,7 @@ class PlanningPage(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
 
         # 제목 및 버튼 레이아웃
         title_hbox = QHBoxLayout()
@@ -92,13 +93,6 @@ class PlanningPage(QWidget):
         font_title.setWeight(99)
         lbl.setFont(font_title)
         title_hbox.addWidget(lbl)
-
-        # 요약 버튼
-        btn_summary = create_button("Summary", "primary", self)
-        btn_summary.setFixedSize(90, 40)
-        btn_summary.clicked.connect(self.on_summary_click)
-        title_hbox.addWidget(btn_summary)
-        title_hbox.addStretch()
 
         btn_export = create_button("Export", "primary", self)
         btn_export.clicked.connect(self.on_export_click)
@@ -123,6 +117,7 @@ class PlanningPage(QWidget):
 
         layout.addLayout(title_hbox)
 
+        # 진행률 표시
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
@@ -145,16 +140,16 @@ class PlanningPage(QWidget):
         
         layout.addWidget(self.progress_bar)
 
-        # 캘린더 헤더
-        present_times = set(self._df['Time']) if not self._df.empty else set()
-        self.header = CalendarHeader(present_times, parent=self)
-        layout.addWidget(self.header)
-
         # 본문 영역
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        self.scroll_area.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Preferred
+        )
 
         # 본문 컨테이너
         self.body_container = QWidget()
@@ -163,28 +158,22 @@ class PlanningPage(QWidget):
         self.body_layout.setSpacing(0)
         self.scroll_area.setWidget(self.body_container)
 
-        layout.addWidget(self.scroll_area)
         self.setLayout(layout)
 
         # 헤더 마진
-        self._sync_header_margin()
         sb = self.scroll_area.verticalScrollBar()
         sb.rangeChanged.connect(lambda low, high: self._sync_header_margin())
 
     # 헤더 마진 조정
     def _sync_header_margin(self):
+        if not hasattr(self, 'header'):
+            return
+        
         sb = self.scroll_area.verticalScrollBar()
         has_scroll = sb.maximum() > 0
         right_margin = sb.sizeHint().width() if has_scroll else 0
 
-        self.header.layout().setContentsMargins(0, 10, right_margin, 0)
-
-    def on_summary_click(self):
-        if self._df is None or self._df.empty:
-            QMessageBox.information(self, "요약 정보", "표시할 데이터가 없습니다.")
-            return
-        dlg = SummaryDialog(self._df, parent=self)
-        dlg.exec_()
+        self.header.layout().setContentsMargins(0, 10, right_margin, 6)
 
     # 엑셀 파일로 내보내기
     def on_export_click(self):
@@ -214,18 +203,22 @@ class PlanningPage(QWidget):
         cols = ["Line", "Time", "Qty", "Item", "Project"]
         self._df = pd.DataFrame(columns=cols)
 
-        for i in range(self.body_layout.count() - 1, -1, -1):
-            w = self.body_layout.takeAt(i).widget()
-            if w:
-                w.deleteLater()
+        old = self.scroll_area.takeWidget()
+        if old:
+            old.deleteLater()
 
-        present_times = set(self._df['Time'])
-        self.header.setParent(None)
-        self.header = CalendarHeader(present_times, parent=self)
-        self.layout().insertWidget(2, self.header)
-        self._sync_header_margin()
+        self.body_container = QWidget()
+        self.body_layout = QVBoxLayout(self.body_container)
+        self.body_layout.setContentsMargins(0,0,0,0)
+        self.body_layout.setSpacing(0)
+        self.scroll_area.setWidget(self.body_container)
 
-        self.body_layout.addWidget(WeeklyCalendar(self._df))
+        if getattr(self, 'summary_widget', None):
+            self.summary_widget.deleteLater()
+            self.summary_widget = None
+        if getattr(self, 'header', None):
+            self.header.deleteLater()
+            self.header = None
 
     # 최적화 요청
     def on_run_click(self):
@@ -320,16 +313,50 @@ class PlanningPage(QWidget):
             on=['Line','Time','Project']
         )
 
-        old_header = self.header
-        self.layout().removeWidget(old_header)
-        old_header.deleteLater()
+        # 요약 위젯
+        summary = SummaryWidget(df, parent=self)
         
-        self.header = CalendarHeader(set(df_agg['Time']), parent=self)
-        self.layout().insertWidget(2, self.header)
-        self._sync_header_margin()
+        # 캘린더 헤더
+        header = CalendarHeader(set(df['Time']), parent=self)
 
-        for i in range(self.body_layout.count()-1, -1, -1):
+        # 기존 위젯 제거
+        if getattr(self, 'summary_widget', None):
+            self.summary_widget.deleteLater()
+            self.summary_widget = None
+        if getattr(self, 'header', None):
+            self.header.deleteLater()
+            self.header = None
+
+        # 본문 레이아웃 초기화
+        for i in reversed(range(self.body_layout.count())):
             w = self.body_layout.takeAt(i).widget()
             if w:
                 w.deleteLater()
+
+        # 왼쪽: 헤더 + 달력
+        left_container = QWidget(parent=self)
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setContentsMargins(0, 0, 10, 0)
+        left_layout.setSpacing(0)
+
+        left_layout.addWidget(header)
+        left_layout.addWidget(self.scroll_area)
+
+        left_layout.addStretch()
+
+        # 메인 컨테이너: 캘린더 + 요약
+        main_container = QWidget(parent=self)
+        main_hbox = QHBoxLayout(main_container)
+        main_hbox.setContentsMargins(0, 0, 0, 0)
+        main_hbox.setSpacing(0)
+        main_hbox.addWidget(left_container, stretch=3)
+        main_hbox.addWidget(summary, stretch=1, alignment=Qt.AlignTop)
+
+        self.layout().insertWidget(2, main_container)
+
         self.body_layout.addWidget(WeeklyCalendar(df_agg))
+
+        self.summary_widget = summary
+        self.header = header
+
+        self._sync_header_margin()

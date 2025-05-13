@@ -166,7 +166,7 @@ class ProjectGroupDialog(QDialog):
             }
             QPushButton:disabled {
                 background-color: #ACACAC;
-                color: #white;
+                color: white;
             }
         """)
         self.ok_button.setEnabled(False)
