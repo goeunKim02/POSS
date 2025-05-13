@@ -18,9 +18,9 @@ class DraggableItemLabel(QLabel):
     def __init__(self, text, parent=None, item_data=None):
         super().__init__(text, parent)
         
-        # 검증 에러상태 변수
-        self.is_validation_error = False
-        self.validation_error_message = None
+        # # 검증 에러상태 변수
+        # self.is_validation_error = False
+        # self.validation_error_message = None
         
         # 출하 실패 상태 변수
         self.is_shipment_failure = False
@@ -102,10 +102,10 @@ class DraggableItemLabel(QLabel):
             tooltip += "<tr><td><b>Shipment Status</b></td><td style='color:red;'>Failure</td></tr>"
             if self.shipment_failure_reason:
                 tooltip += f"<tr><td><b>Failure Reason</b></td><td>{self.shipment_failure_reason}</td></tr>"
-        if self.is_validation_error:
-            tooltip += "<tr><td><b>Validation Error</b></td><td style='color:red;'>Yes</td></tr>"
-            if self.validation_error_message:
-                tooltip += f"<tr><td><b>Error Details</b></td><td style='color:red;'>{self.validation_error_message}</td></tr>"
+        # if self.is_validation_error:
+        #     tooltip += "<tr><td><b>Validation Error</b></td><td style='color:red;'>Yes</td></tr>"
+        #     if self.validation_error_message:
+        #         tooltip += f"<tr><td><b>Error Details</b></td><td style='color:red;'>{self.validation_error_message}</td></tr>"
 
         tooltip += "</table>"
         return tooltip
@@ -180,9 +180,9 @@ class DraggableItemLabel(QLabel):
     """마우스가 위젯 위에 올라갔을 때 호출됨"""
     def enterEvent(self, event):
         if not self.is_selected:
-            if self.is_validation_error:  # 조정 검증 에러
-                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_HOVER_STYLE) 
-            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패
+            # if self.is_validation_error:  # 조정 검증 에러
+            #     self.setStyleSheet(ItemStyle.VALIDATION_ERROR_HOVER_STYLE) 
+            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_HOVER_STYLE)
             elif self.is_pre_assigned and self.is_shortage:  # 사전할당/자재부족
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_HOVER_STYLE)
@@ -322,9 +322,9 @@ class DraggableItemLabel(QLabel):
     """현재 상태에 맞게 스타일 업데이트"""
     def update_style(self):
         if self.is_selected:
-            if self.is_validation_error:
-                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_SELECTED_STYLE)
-            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
+            # if self.is_validation_error:
+            #     self.setStyleSheet(ItemStyle.VALIDATION_ERROR_SELECTED_STYLE)
+            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_SELECTED_STYLE)
             elif self.is_pre_assigned and self.is_shortage:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SELECTED_STYLE)
@@ -341,9 +341,9 @@ class DraggableItemLabel(QLabel):
             else:
                 self.setStyleSheet(ItemStyle.SELECTED_STYLE)
         else:
-            if self.is_validation_error:
-                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_STYLE)
-            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
+            # if self.is_validation_error:
+            #     self.setStyleSheet(ItemStyle.VALIDATION_ERROR_STYLE)
+            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_STYLE)
             elif self.is_pre_assigned and self.is_shortage:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_STYLE)
@@ -429,12 +429,12 @@ class DraggableItemLabel(QLabel):
             self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
 
-            if validation_failed:
-                self.set_validation_error(True, validation_mesasge)
-                return True, validation_mesasge  # 성공이지만 에러메세지 표시
-            else:
-                self.set_validation_error(False)  # 에러상태 해제
-                return True, ""
+            # if validation_failed:
+            #     self.set_validation_error(True, validation_mesasge)
+            #     return True, validation_mesasge  # 성공이지만 에러메세지 표시
+            # else:
+            #     self.set_validation_error(False)  # 에러상태 해제
+            #     return True, ""
             
         return False, "데이터가 없습니다."
     
@@ -461,12 +461,12 @@ class DraggableItemLabel(QLabel):
             self.setToolTip(self._create_tooltip_text())
 
 
-    """검증 에러상태 설정"""
-    def set_validation_error(self, is_error, error_message=None):
-        self.is_validation_error = is_error
-        self.validation_error_message = error_message if is_error else None
-        self.update_style()
+    # """검증 에러상태 설정"""
+    # def set_validation_error(self, is_error, error_message=None):
+    #     self.is_validation_error = is_error
+    #     self.validation_error_message = error_message if is_error else None
+    #     self.update_style()
 
-        # 툴팁 업데이트
-        self.setToolTip(self._create_tooltip_text())
+    #     # 툴팁 업데이트
+    #     self.setToolTip(self._create_tooltip_text())
 

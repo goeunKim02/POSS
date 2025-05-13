@@ -440,12 +440,12 @@ class ModifiedLeftSection(QWidget):
                                 shortage_info = self.current_shortage_items[item_code]
                                 new_item.set_shortage_status(True, shortage_info)
 
-                            # 검증 에러 상태인 겨우 스타일 적용
-                            if hasattr(self, 'current_validation_errors'):
-                                error_key = f"{item_full_data.get('Line')}_{item_full_data.get('Time')}_{item_code}"
-                                if error_key in self.current_validation_errors:
-                                    error_info = self.current_validation_errors[error_key]
-                                    new_item.set_validation_error(True, error_info.get('message', ''))
+                            # # 검증 에러 상태인 겨우 스타일 적용
+                            # if hasattr(self, 'current_validation_errors'):
+                            #     error_key = f"{item_full_data.get('Line')}_{item_full_data.get('Time')}_{item_code}"
+                            #     if error_key in self.current_validation_errors:
+                            #         error_info = self.current_validation_errors[error_key]
+                            #         new_item.set_validation_error(True, error_info.get('message', ''))
 
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
@@ -587,10 +587,10 @@ class ModifiedLeftSection(QWidget):
         self.current_shortage_items = shortage_items
         self.apply_all_states()
 
-    """현재 검증 에러 정보 저장"""
-    def set_current_validation_errors(self, validation_errors):
-        self.current_validation_errors = validation_errors
-        self.apply_all_states()
+    # """현재 검증 에러 정보 저장"""
+    # def set_current_validation_errors(self, validation_errors):
+    #     self.current_validation_errors = validation_errors
+    #     self.apply_all_states()
 
     """모든 상태 정보를 현재 아이템들에 적용"""
     def apply_all_states(self):
@@ -617,9 +617,9 @@ class ModifiedLeftSection(QWidget):
                             shortage_info = self.current_shortage_items[item_code]
                             item.set_shortage_status(True, shortage_info)
 
-                        # 검증 에러 상태인 겨우 스타일 적용
-                        if hasattr(self, 'current_validation_errors'):
-                            error_key = f"{item.item_data.get('Line')}_{item.item_data.get('Time')}_{item_code}"
-                            if error_key in self.current_validation_errors:
-                                error_info = self.current_validation_errors[error_key]
-                                item.set_validation_error(True, error_info.get('message', ''))
+                        # # 검증 에러 상태인 겨우 스타일 적용
+                        # if hasattr(self, 'current_validation_errors'):
+                        #     error_key = f"{item.item_data.get('Line')}_{item.item_data.get('Time')}_{item_code}"
+                        #     if error_key in self.current_validation_errors:
+                        #         error_info = self.current_validation_errors[error_key]
+                        #         item.set_validation_error(True, error_info.get('message', ''))

@@ -1295,8 +1295,9 @@ class ResultPage(QWidget):
                         item.item_data.get('Time') == item_info.get('Time') and 
                         item.item_data.get('Item') == item_info.get('Item')):
 
-                        # 에러 상태 설정
-                        item.set_validation_error(True, item_info.get('message', ''))
+                        # 에러 스타일 적용 대신 그냥 선택 상태로만 변경
+                        item.set_selected(True)
+                        return
 
 
     """아이템 카드 강조 해재"""
@@ -1317,8 +1318,9 @@ class ResultPage(QWidget):
                         item.item_data.get('Time') == item_info.get('Time') and 
                         item.item_data.get('Item') == item_info.get('Item')):
 
-                        # 에러상태 해제
-                        item.set_validation_error(False)
+                        # 에러 상태 해제 대신 그냥 선택 해제
+                        item.set_selected(False)
+                        return
 
     """에러 아이템 navigation 및 highlight"""
     def navigate_to_error_item(self, error_info):
