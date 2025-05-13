@@ -44,7 +44,7 @@ class SettingsDialog(QDialog):
         self.setStyleSheet("""
             QDialog {
                 background-color: #ffffff;
-                border-radius: 12px;
+                border-radius: 0px;
             }
         """)
 
@@ -63,6 +63,10 @@ class SettingsDialog(QDialog):
         screen_size = screen.availableGeometry()
 
         # 메인 레이아웃
+        main_frame = QFrame()
+        main_frame.setStyleSheet("""
+        border-radius: 0px;
+        """)
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -74,11 +78,13 @@ class SettingsDialog(QDialog):
                 background-color: #ffffff;
                 border: none;
                 border-top: 1px solid #e9ecef;
+                border-radius: 0px;
             }}
 
             QTabBar {{
                 background-color: #f8f9fa;
                 border: none;
+                border-radius: 0px;
             }}
 
             QTabBar::tab {{
@@ -103,10 +109,6 @@ class SettingsDialog(QDialog):
                 border-bottom: 3px solid #1428A0;
                 background: rgba(20, 40, 160, 0.05);
             }}
-
-            QTabBar::tab:first {{
-                margin-left: 24px;
-            }}
         """)
 
         # 탭 컴포넌트 생성 (모던 스타일 적용)
@@ -122,6 +124,9 @@ class SettingsDialog(QDialog):
         self.basic_tab.settings_changed.connect(self.on_setting_changed)
         self.pre_option_tab.settings_changed.connect(self.on_setting_changed)
         self.detail_tab.settings_changed.connect(self.on_setting_changed)
+
+        # Material Constraint와 Weight by Material Quantity 연동
+        self.connect_material_constraint_to_weight()
 
         # 탭 추가
         self.tab_widget.addTab(self.basic_tab, "Basic")
@@ -226,6 +231,137 @@ class SettingsDialog(QDialog):
                 background: #ced4da;
             }
         """)
+
+    def connect_material_constraint_to_weight(self):
+        """Material Constraint와 Weight by Material Quantity 연동"""
+        try:
+            # Detail 탭에서 Material Constraint 체크박스 찾기
+            material_constraint_checkbox = None
+            for i in range(self.detail_tab.content_layout.count()):
+                section = self.detail_tab.content_layout.itemAt(i).widget()
+                # ModernSettingsSectionComponent인지 확인
+                from app.views.components.settings_dialogs.settings_components.settings_section import \
+                    ModernSettingsSectionComponent
+                if isinstance(section, ModernSettingsSectionComponent) and section.title == "Material":
+                    # Material section에서 mat_use 체크박스 찾기
+                    from PyQt5.QtWidgets import QFormLayout, QCheckBox
+                    for j in range(section.settings_layout.rowCount()):
+                        label_item = section.settings_layout.itemAt(j, QFormLayout.LabelRole)
+                        field_item = section.settings_layout.itemAt(j, QFormLayout.FieldRole)
+                        if label_item and field_item:
+                            label_widget = label_item.widget()
+                            field_widget = field_item.widget()
+                            if isinstance(label_widget, QLabel) and label_widget.text() == "Material Constraint":
+                                if isinstance(field_widget, QCheckBox):
+                                    material_constraint_checkbox = field_widget
+                                    break
+                    break
+
+            # Basic 탭에서 Weight by Material Quantity 더블스핀박스 찾기
+            weight_material_spinbox = None
+            for i in range(self.basic_tab.content_layout.count()):
+                section = self.basic_tab.content_layout.itemAt(i).widget()
+                # ModernSettingsSectionComponent인지 확인
+                from app.views.components.settings_dialogs.settings_components.settings_section import \
+                    ModernSettingsSectionComponent
+                if isinstance(section, ModernSettingsSectionComponent) and section.title == "Weight":
+                    # Weight section에서 weight_mat_qty 스핀박스 찾기
+                    from PyQt5.QtWidgets import QFormLayout, QDoubleSpinBox
+                    for j in range(section.settings_layout.rowCount()):
+                        label_item = section.settings_layout.itemAt(j, QFormLayout.LabelRole)
+                        field_item = section.settings_layout.itemAt(j, QFormLayout.FieldRole)
+                        if label_item and field_item:
+                            label_widget = label_item.widget()
+                            field_widget = field_item.widget()
+                            if isinstance(label_widget,
+                                          QLabel) and label_widget.text() == "Weight by Material Quantity":
+                                if isinstance(field_widget, QDoubleSpinBox):
+                                    weight_material_spinbox = field_widget
+                                    break
+                    break
+
+            # 체크박스와 스핀박스가 모두 찾아졌다면 연결
+            if material_constraint_checkbox and weight_material_spinbox:
+                # 초기 상태 설정
+                weight_material_spinbox.setEnabled(material_constraint_checkbox.isChecked())
+
+                # 기본값 저장
+                default_value = SettingsStore.get("weight_mat_qty", 1.0)
+                weight_material_spinbox.setProperty('default_value', default_value)
+
+                # 비활성화 시 스타일 적용
+                if not material_constraint_checkbox.isChecked():
+                    weight_material_spinbox.setStyleSheet(self._get_disabled_doublespinbox_style())
+
+                # 체크박스 상태 변경 시 스핀박스 활성/비활성화
+                def on_material_constraint_changed(state):
+                    is_checked = bool(state)
+                    weight_material_spinbox.setEnabled(is_checked)
+
+                    # 활성화/비활성화에 따른 스타일 변경
+                    if is_checked:
+                        weight_material_spinbox.setStyleSheet(self._get_enabled_doublespinbox_style())
+                    else:
+                        weight_material_spinbox.setStyleSheet(self._get_disabled_doublespinbox_style())
+
+                        # 비활성화 시 기본값으로 복원
+                        if weight_material_spinbox.property('default_value'):
+                            weight_material_spinbox.setValue(weight_material_spinbox.property('default_value'))
+                            # 변경 사항 알림
+                            self.on_setting_changed("weight_mat_qty", weight_material_spinbox.property('default_value'))
+
+                material_constraint_checkbox.stateChanged.connect(on_material_constraint_changed)
+
+        except Exception as e:
+            print(f"Error connecting material constraint to weight: {e}")
+
+    def _get_enabled_doublespinbox_style(self):
+        """활성화된 더블스핀박스 스타일"""
+        return """
+            QDoubleSpinBox {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #1428A0;
+            }
+            QDoubleSpinBox:hover {
+                border-color: #adb5bd;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 16px;
+                height: 16px;
+                background-color: #f8f9fa;
+                border: none;
+            }
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #e9ecef;
+            }
+        """
+
+    def _get_disabled_doublespinbox_style(self):
+        """비활성화된 더블스핀박스 스타일"""
+        return """
+            QDoubleSpinBox {
+                background-color: #f5f5f5;
+                border: 1px solid #ddd;
+                color: #888;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 16px;
+                height: 16px;
+                background-color: #f0f0f0;
+                border: none;
+            }
+        """
 
     def load_settings(self):
         """저장된 설정 로드"""

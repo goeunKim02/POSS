@@ -57,13 +57,15 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         )
 
         plan_retention1_section.add_setting_item(
-            "SKU Plan Retention Rate 1(%)", "op_SKU_1", "input",
-            min=0, max=100, default=SettingsStore.get("op_SKU_1", 100)
+            "SKU Plan Retention Rate 1", "op_SKU_1", "input",
+            min=0, max=100, default=SettingsStore.get("op_SKU_1", 100),
+            suffix="%"
         )
 
         plan_retention1_section.add_setting_item(
-            "RMC Plan Retention Rate 1(%)", "op_RMC_1", "input",
-            min=0, max=100, default=SettingsStore.get("op_RMC_1", 100)
+            "RMC Plan Retention Rate 1", "op_RMC_1", "input",
+            min=0, max=100, default=SettingsStore.get("op_RMC_1", 100),
+            suffix="%"
         )
 
         # 계획 유지율 섹션 2
@@ -78,13 +80,15 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         )
 
         plan_retention2_section.add_setting_item(
-            "SKU Plan Retention Rate 2(%)", "op_SKU_2", "input",
-            min=0, max=100, default=SettingsStore.get("op_SKU_2", 100)
+            "SKU Plan Retention Rate 2", "op_SKU_2", "input",
+            min=0, max=100, default=SettingsStore.get("op_SKU_2", 100),
+            suffix="%"
         )
 
         plan_retention2_section.add_setting_item(
-            "RMC Plan Retention Rate 2(%)", "op_RMC_2", "input",
-            min=0, max=100, default=SettingsStore.get("op_RMC_2", 100)
+            "RMC Plan Retention Rate 2", "op_RMC_2", "input",
+            min=0, max=100, default=SettingsStore.get("op_RMC_2", 100),
+            suffix="%"
         )
 
         # 사전 할당 섹션
@@ -155,7 +159,6 @@ class ModernPreOptionTabComponent(BaseTabComponent):
             }
             QComboBox:focus {
                 border-color: #1428A0;
-                box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
             }
             QComboBox:hover {
                 border-color: #adb5bd;

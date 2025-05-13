@@ -215,11 +215,9 @@ class ModernDetailTabComponent(BaseTabComponent):
                 padding: 10px 14px;
                 font-size: 14px;
                 font-family: Arial;
-                transition: all 0.3s ease;
             }
             QLineEdit:focus {
                 border-color: #1428A0;
-                box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
             }
             QLineEdit:hover {
                 border-color: #adb5bd;
