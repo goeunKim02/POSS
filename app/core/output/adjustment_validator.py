@@ -587,6 +587,11 @@ class PlanAdjustmentValidator:
 
         # 각 제조동 별 비율이 제약조건을 만족하는지 검증
         for building, ratio in building_ratios.items():
+            # 제약 조건이 있는 제조동만 검증
+            if building not in self.building_constraints:
+                print(f"제조동 {building}의 제약 조건이 없습니다. 검증 스킵.")
+                continue
+            
             constraints = self.building_constraints[building]
             lower_limit = constraints.get('lower_limit', 0) * 100
             upper_limit = constraints.get('upper_limit', 0) * 100

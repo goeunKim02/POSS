@@ -207,7 +207,7 @@ class VisualizationManager:
             right_margin = 0.9 if 'threshold_values' in kwargs else 0.98
             
             ax.figure.subplots_adjust(
-                left=0.08,              # 왼쪽 여백
+                left=0.1,              # 왼쪽 여백
                 right=right_margin,     # 오른쪽 여백 (임계선 고려)
                 top=0.93,               # 상단 여백
                 bottom=bottom_margin    # 하단 여백 (X축 라벨 고려)

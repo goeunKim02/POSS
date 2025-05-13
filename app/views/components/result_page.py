@@ -190,29 +190,39 @@ class ResultPage(QWidget):
             
             # tab 유형 별 처리 
             if btn_text == 'Capa':
-                # Capa와 Utilization 차트를 위아래로 배치
-                # 상단 차트 (Capa)
-                capa_title = QLabel("Plant Capacity Ratio")
-                capa_title.setFont(QFont("Arial", 12, QFont.Bold))
-                capa_title.setAlignment(Qt.AlignCenter)
-                capa_title.setStyleSheet("background-color: #f0f0f0; padding: 5px; border-radius: 3px;")
-                page_layout.addWidget(capa_title)
+                # # Capa와 Utilization 차트를 위아래로 배치
+                # # 상단 차트 (Capa)
+                # capa_title = QLabel("Plant Capacity Ratio")
+                # capa_title.setFont(QFont("Arial", 10, QFont.Bold))
+                # capa_title.setAlignment(Qt.AlignCenter)
+                # capa_title.setStyleSheet("""
+                #     background-color: transparent;
+                #     border: none;
+                #     padding: 0px;
+                #     margin: 0px;
+                # """)
+                # page_layout.addWidget(capa_title)
                 
-                capa_canvas = MplCanvas(width=6, height=3, dpi=100)
+                capa_canvas = MplCanvas(width=4, height=5, dpi=100)
                 page_layout.addWidget(capa_canvas)
                 self.viz_canvases.append(capa_canvas)
                 
                 # 여백 추가
-                page_layout.addSpacing(10)
+                page_layout.addSpacing(5)
                 
                 # 하단 차트 (Utilization)
-                util_title = QLabel("Daily Utilization Rate")
-                util_title.setFont(QFont("Arial", 12, QFont.Bold))
-                util_title.setAlignment(Qt.AlignCenter)
-                util_title.setStyleSheet("background-color: #f0f0f0; padding: 5px; border-radius: 3px;")
-                page_layout.addWidget(util_title)
+                # util_title = QLabel("Daily Utilization Rate")
+                # util_title.setFont(QFont("Arial", 10, QFont.Bold))
+                # util_title.setAlignment(Qt.AlignCenter)
+                # util_title.setStyleSheet("""
+                #     background-color: transparent;
+                #     border: none;
+                #     padding: 0px;
+                #     margin: 0px;
+                # """)
+                # page_layout.addWidget(util_title)
                 
-                util_canvas = MplCanvas(width=6, height=3, dpi=100)
+                util_canvas = MplCanvas(width=5, height=5, dpi=100)
                 page_layout.addWidget(util_canvas)
                 self.viz_canvases.append(util_canvas)
             elif btn_text == 'Plan':
@@ -471,9 +481,9 @@ class ResultPage(QWidget):
 
         if index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
             self.update_material_shortage_analysis()
-        elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
+        elif index == 4 and self.result_data is not None:  # Shipment 탭 (4번) 인덱스
             self.shipment_widget.run_analysis(self.result_data)
-        elif index == 7 and self.result_data is not None:  # 새 탭 (7번) 인덱스
+        elif index == 5 and self.result_data is not None:  # 새 탭 (5번) 인덱스
             # 새 탭 활성화 시 수행할 작업
             print("새 탭이 활성화됨")
         else:
