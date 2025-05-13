@@ -1,5 +1,5 @@
 # app/views/components/settings_dialogs/settings_components/pre_option_tab.py - 모던한 Pre-Option 탭
-from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
+from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QComboBox, QCheckBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
@@ -57,15 +57,13 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         )
 
         plan_retention1_section.add_setting_item(
-            "SKU Plan Retention Rate 1", "op_SKU_1", "input",
-            min=0, max=100, default=SettingsStore.get("op_SKU_1", 100),
-            suffix="%"
+            "SKU Plan Retention Rate 1(%)", "op_SKU_1", "input",
+            min=0, max=100, default=SettingsStore.get("op_SKU_1", 100)
         )
 
         plan_retention1_section.add_setting_item(
-            "RMC Plan Retention Rate 1", "op_RMC_1", "input",
-            min=0, max=100, default=SettingsStore.get("op_RMC_1", 100),
-            suffix="%"
+            "RMC Plan Retention Rate 1(%)", "op_RMC_1", "input",
+            min=0, max=100, default=SettingsStore.get("op_RMC_1", 100)
         )
 
         # 계획 유지율 섹션 2
@@ -80,34 +78,134 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         )
 
         plan_retention2_section.add_setting_item(
-            "SKU Plan Retention Rate 2", "op_SKU_2", "input",
-            min=0, max=100, default=SettingsStore.get("op_SKU_2", 100),
-            suffix="%"
+            "SKU Plan Retention Rate 2(%)", "op_SKU_2", "input",
+            min=0, max=100, default=SettingsStore.get("op_SKU_2", 100)
         )
 
         plan_retention2_section.add_setting_item(
-            "RMC Plan Retention Rate 2", "op_RMC_2", "input",
-            min=0, max=100, default=SettingsStore.get("op_RMC_2", 100),
-            suffix="%"
+            "RMC Plan Retention Rate 2(%)", "op_RMC_2", "input",
+            min=0, max=100, default=SettingsStore.get("op_RMC_2", 100)
         )
 
         # 사전 할당 섹션
         pre_allocation_section = ModernSettingsSectionComponent("Pre-Assignment")
         pre_allocation_section.setting_changed.connect(self.on_setting_changed)
 
-        pre_allocation_section.add_setting_item(
+        # 체크박스 추가
+        checkbox_widget = pre_allocation_section.add_setting_item(
             "Apply Pre-Assignment Ratio", "max_min_ratio_ox", "checkbox",
             default=bool(SettingsStore.get("max_min_ratio_ox", 0))
         )
 
         # 1~50 범위의 숫자 리스트 생성
-        margins = [str(i) for i in range(1, 51)]
+        margins = [str(i) for i in range(0, 51)]
 
-        pre_allocation_section.add_setting_item(
+        # 콤보박스 추가
+        combobox_widget = pre_allocation_section.add_setting_item(
             "Pre-Assignment Ratio for Primary Execution", "max_min_margin", "combobox",
             items=margins,
-            default_index=SettingsStore.get("max_min_margin", 10) - 1
+            default_index=SettingsStore.get("max_min_margin", 0)
         )
+
+        # 체크박스와 콤보박스 연결
+        if isinstance(checkbox_widget, QCheckBox) and isinstance(combobox_widget, QComboBox):
+            # 초기 상태 설정
+            combobox_widget.setEnabled(checkbox_widget.isChecked())
+
+            # 비활성화 시 스타일 적용
+            if not checkbox_widget.isChecked():
+                combobox_widget.setStyleSheet("""
+                    QComboBox {
+                        background-color: #f5f5f5;
+                        border: 1px solid #ddd;
+                        color: #888;
+                        border-radius: 6px;
+                        padding: 10px 14px;
+                        font-size: 14px;
+                        font-family: Arial;
+                    }
+                    QComboBox::drop-down {
+                        border: none;
+                        width: 20px;
+                    }
+                    QComboBox::down-arrow {
+                        image: url(none);
+                        width: 0;
+                        height: 0;
+                        border-left: 5px solid transparent;
+                        border-right: 5px solid transparent;
+                        border-top: 5px solid #888;
+                    }
+                """)
+
+            # 체크박스 상태 변경 시 콤보박스 활성/비활성화
+            def on_checkbox_state_changed(state):
+                is_checked = bool(state)
+                combobox_widget.setEnabled(is_checked)
+
+                # 활성화/비활성화에 따른 스타일 변경
+                if is_checked:
+                    combobox_widget.setStyleSheet("""
+                        QComboBox {
+                            background-color: #ffffff;
+                            border: 1px solid #dee2e6;
+                            border-radius: 6px;
+                            padding: 10px 14px;
+                            font-size: 14px;
+                            font-family: Arial;
+                        }
+                        QComboBox:focus {
+                            border-color: #1428A0;
+                            box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
+                        }
+                        QComboBox:hover {
+                            border-color: #adb5bd;
+                        }
+                        QComboBox::drop-down {
+                            border: none;
+                            width: 20px;
+                        }
+                        QComboBox::down-arrow {
+                            image: url(none);
+                            width: 0;
+                            height: 0;
+                            border-left: 5px solid transparent;
+                            border-right: 5px solid transparent;
+                            border-top: 5px solid #666;
+                        }
+                        QComboBox QAbstractItemView {
+                            border: 1px solid #dee2e6;
+                            background-color: white;
+                            selection-background-color: #e9ecef;
+                            selection-color: #1428A0;
+                        }
+                    """)
+                else:
+                    combobox_widget.setStyleSheet("""
+                        QComboBox {
+                            background-color: #f5f5f5;
+                            border: 1px solid #ddd;
+                            color: #888;
+                            border-radius: 6px;
+                            padding: 10px 14px;
+                            font-size: 14px;
+                            font-family: Arial;
+                        }
+                        QComboBox::drop-down {
+                            border: none;
+                            width: 20px;
+                        }
+                        QComboBox::down-arrow {
+                            image: url(none);
+                            width: 0;
+                            height: 0;
+                            border-left: 5px solid transparent;
+                            border-right: 5px solid transparent;
+                            border-top: 5px solid #888;
+                        }
+                    """)
+
+            checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
 
         # 섹션 추가
         self.content_layout.addWidget(plan_retention1_section)
