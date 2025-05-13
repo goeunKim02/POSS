@@ -10,6 +10,8 @@ class ModifiedLeftSection(QWidget):
     item_selected = pyqtSignal(object, object)  # 아이템 선택 이벤트 추가 (아이템, 컨테이너)
     item_data_changed = pyqtSignal(object, dict)  # 아이템 데이터 변경 이벤트 추가
     cell_moved = pyqtSignal(object, dict, dict)  # 이전 아이템, 이전 데이터, 새 데이터
+    validation_error_occured = pyqtSignal(dict, str)  
+    validation_error_resolved = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -105,13 +107,62 @@ class ModifiedLeftSection(QWidget):
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
 
-        # 셀 이동이 먼저되기 때문에 changed_fields에서 데이터를 가져와야함.
-        if changed_fields:
-            for field, change_info in changed_fields.items():
-                if field not in ['_drop_pos']:
-                    if isinstance(change_info, dict) and 'from' in change_info:
-                        old_data[field] = change_info['from']
-        print(f"복원된 이전 데이터: {old_data}")
+        # 검증 결과 초기화
+        validation_failed = False
+        validation_error_message = ""
+
+        if hasattr(self, 'validator'):
+            # 어디가 변경인지 확인
+            is_move = False
+            source_line = None
+            source_time = None
+
+            if changed_fields:
+                if 'Line' in changed_fields or 'Time' in changed_fields:
+                    is_move = True
+                    source_line = old_data.get('Line')
+                    source_time = old_data.get('Time')
+
+        # 검증 실행
+        try:
+            valid, message = self.validator.validate_adjustment(
+                new_data.get('Line'),
+                new_data.get('Time'),
+                new_data.get('Item', ''),
+                new_data.get('Qty', 0),
+                source_line if is_move else None,
+                source_time if is_move else None
+            )
+
+            if not valid:
+                validation_failed = True
+                validation_error_message = message
+                print(f"검증 실패: {message}")
+                
+                # 시그널 발생
+                self.validation_error_occured.emit(new_data, message)
+            else:
+                print("검증 성공 - 에러 해결 시그널 발생")
+                # changed_fields에서 이전 값 복원
+                old_data_for_removal = old_data.copy()
+                if changed_fields:
+                    for field, change_info in changed_fields.items():
+                        if field not in ['_drop_pos'] and isinstance(change_info, dict) and 'from' in change_info:
+                            old_data_for_removal[field] = change_info['from']
+                
+                print(f"에러 제거를 위한 이전 데이터: {old_data_for_removal}")
+                self.validation_error_resolved.emit(old_data_for_removal)
+
+        except Exception as e:
+            print(f"검증 오류 발생: {e}")
+
+        # # 셀 이동이 먼저되기 때문에 changed_fields에서 데이터를 가져와야함.
+        # if changed_fields:
+        #     for field, change_info in changed_fields.items():
+        #         if field not in ['_drop_pos']:
+        #             if isinstance(change_info, dict) and 'from' in change_info:
+        #                 old_data[field] = change_info['from']
+        # print(f"복원된 이전 데이터: {old_data}")
         
         # 검증 통과 시
         # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
@@ -123,7 +174,7 @@ class ModifiedLeftSection(QWidget):
                 time_change = changed_fields['Time']
                 old_time = time_change['from']
                 new_time = time_change['to']
-                # print(f"Time 값 변경 감지: {old_time} -> {new_time}")
+                print(f"Time 값 변경 감지: {old_time} -> {new_time}")
 
             # Line 변경 확인
             if 'Line' in changed_fields:
@@ -131,7 +182,7 @@ class ModifiedLeftSection(QWidget):
                 line_change = changed_fields['Line']
                 old_line = line_change['from']
                 new_line = line_change['to']
-                # print(f"Line 값 변경 감지: {old_line} -> {new_line}")
+                print(f"Line 값 변경 감지: {old_line} -> {new_line}")
             else:
                 print("Line 변경 없음")
 
@@ -199,21 +250,6 @@ class ModifiedLeftSection(QWidget):
 
                 print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
 
-                # 수정: 데이터를 추가하기 전에 검증
-                if hasattr(self, 'validator'):
-                    valid, message = self.validator.validate_adjustment(
-                        new_data.get('Line'),
-                        new_data.get('Time'),
-                        new_data.get('Item', ''),
-                        new_data.get('Qty', 0),
-                        old_data.get('Line'),
-                        old_data.get('Time')
-                    )
-
-                    if not valid:
-                        EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", message)
-                        return
-
                 # 드롭 위치 정보 가져오기 (changed_fields에서)
                 drop_index = 0
                 if changed_fields and '_drop_pos' in changed_fields:
@@ -264,10 +300,6 @@ class ModifiedLeftSection(QWidget):
                 else:
                     print("새 아이템 생성 실패")
                     return
-            else:
-                print(
-                    f"유효하지 않은 인덱스: old_row_idx={old_row_idx}, old_col_idx={old_col_idx}, new_row_idx={new_row_idx}, new_col_idx={new_col_idx}")
-                return
 
         else:
             # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
@@ -275,18 +307,30 @@ class ModifiedLeftSection(QWidget):
                 # 수정: update_item_data 메서드의 반환값 처리
                 success, error_message = item.update_item_data(new_data)
                 if not success:
-                    EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
+                    # 수정: 대화상자 표시하지 않고 에러 상태만 설정
+                    if validation_failed:
+                        item.set_validation_error(True, validation_error_message)
                     return
+                    # EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
+                    # return
 
-            # 수정: 정확한 위치 정보를 포함하여 전달
-            corrected_new_data = new_data.copy()
-            corrected_new_data['Line'] = old_data.get('Line')  # 기존 위치 유지
-            corrected_new_data['Time'] = old_data.get('Time')  # 기존 위치 유지
-            
-            self.cell_moved.emit(item, old_data, corrected_new_data)
 
         # 데이터 변경 성공 시
         self.mark_as_modified()
+
+        # 검증 에러가 있는 경우에만 에러 상태 설정
+        if validation_failed and hasattr(item, 'set_validation_error'):
+            item.set_validation_error(True, validation_error_message)
+
+        # 정확한 위치 정보를 포함하여 전달
+        corrected_new_data = new_data.copy()
+        corrected_new_data['Line'] = old_data.get('Line')  # 기존 위치 유지
+        corrected_new_data['Time'] = old_data.get('Time')  # 기존 위치 유지
+        
+        self.cell_moved.emit(item, old_data, corrected_new_data)
+
+        # 상위 위젯에 이벤트 전달
+        self.item_data_changed.emit(item, new_data)
         
 
     """엑셀 파일 로드"""

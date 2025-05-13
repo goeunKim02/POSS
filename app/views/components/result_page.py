@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QFileDialog, 
                              QFrame, QSplitter, QStackedWidget, QTableWidget, QHeaderView, QToolTip, 
-                             QTableWidgetItem, QSizePolicy)
+                             QTableWidgetItem, QSizePolicy, QScrollArea)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QFont, QColor, QBrush
 import pandas as pd
@@ -17,7 +17,6 @@ from app.resources.styles.result_style import ResultStyles
 from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
 
 
-
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
 
@@ -32,8 +31,10 @@ class ResultPage(QWidget):
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
         self.shipment_widget = None # 당주 출하 위젯 저장 변수
         self.split_allocation_widget = None # 분산 배치 분석 위젯 저장 변수
-        self.init_ui()
+        self.validation_errors = {}  # 현재 발생한 검증 에러들
+        self.error_items = set()   # 에러가 있는 아이템 목록
 
+        self.init_ui()
         self.connect_signals()
 
     def init_ui(self):
@@ -46,7 +47,6 @@ class ResultPage(QWidget):
         title_frame = QFrame()
         title_frame.setFrameShape(QFrame.StyledPanel)
         title_frame.setStyleSheet("QFrame { min-height:61px; max-height:62px; border:none }")
-
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(25, 10, 15, 5)
         title_layout.setSpacing(0)
@@ -133,20 +133,31 @@ class ResultPage(QWidget):
         right_top_layout.setContentsMargins(10, 10, 10, 10)
 
         # 상단 섹션 제목
-        top_section_title = QLabel("Analysis Summary")
-        font_top = QFont()
-        font_top.setFamily("Arial")
-        font_top.setPointSize(14)
-        font_top.setBold(True)
-        top_section_title.setFont(font_top)
-        top_section_title.setAlignment(Qt.AlignCenter)
-        right_top_layout.addWidget(top_section_title)
+        # top_section_title = QLabel("Analysis Summary")
+        # font_top = QFont()
+        # font_top.setFamily("Arial")
+        # font_top.setPointSize(12)
+        # font_top.setBold(True)
+        # top_section_title.setFont(font_top)
+        # top_section_title.setAlignment(Qt.AlignCenter)
+        # right_top_layout.addWidget(top_section_title)
+
+        # 에러 표시 위젯
+        self.error_display_widget = QWidget()
+        self.error_display_layout = QVBoxLayout(self.error_display_widget)
+        self.error_display_layout.setContentsMargins(5, 5, 5, 5)
+        self.error_display_layout.setSpacing(5)
+        self.error_display_layout.setAlignment(Qt.AlignTop) 
         
-        # # 상단 섹션에 표시할 내용 
-        # temp_label = QLabel("상단 섹션 내용이 여기에 표시됩니다.")
-        # temp_label.setAlignment(Qt.AlignCenter)
-        # temp_label.setStyleSheet("color: #666; font-style: italic;")
-        # right_top_layout.addWidget(temp_label)
+        # # 스크롤 가능한 에러 영역
+        self.error_scroll_area = QScrollArea()
+        self.error_scroll_area.setWidgetResizable(True)
+        self.error_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.error_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.error_scroll_area.setWidget(self.error_display_widget)
+        self.error_scroll_area.hide()  # 초기에는 숨김
+        
+        right_top_layout.addWidget(self.error_scroll_area)
 
         # 오른쪽 하단 섹션 
         right_bottom_frame = QFrame()
@@ -380,7 +391,7 @@ class ResultPage(QWidget):
         main_horizontal_splitter.addWidget(right_vertical_splitter)
 
         # 왼쪽과 오른쪽의 비율 설정 
-        main_horizontal_splitter.setStretchFactor(0, 7)  # 왼쪽 80%
+        main_horizontal_splitter.setStretchFactor(0, 8)  # 왼쪽 80%
         main_horizontal_splitter.setStretchFactor(1, 2)  # 오른쪽 20%
 
         # 스플리터를 메인 레이아웃에 추가
@@ -421,6 +432,13 @@ class ResultPage(QWidget):
         # 셀 이동 이벤트 연결 
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'cell_moved'):
             self.left_section.cell_moved.connect(self.on_cell_moved)
+
+        # 검증 에러 관련 신호 연결
+        if hasattr(self.left_section, 'validation_error_occured'):
+            self.left_section.validation_error_occured.connect(self.add_validation_error)
+        
+        if hasattr(self.left_section, 'validation_error_resolved'):
+            self.left_section.validation_error_resolved.connect(self.remove_validation_error)
 
 
     """아이템 데이터가 변경되었을 때 호출되는 함수"""
@@ -1051,3 +1069,167 @@ class ResultPage(QWidget):
                             item.set_pre_assigned_status(True)
                         else:
                             item.set_pre_assigned_status(False)
+
+    """에러 관리 메서드"""
+    def add_validation_error(self, item_info, error_message):
+        error_key = f"{item_info.get('Line')}_{item_info.get('Time')}_{item_info.get('Item')}"
+
+        # 에러 저장
+        self.validation_errors[error_key] = {
+            'item_info' : item_info,
+            'message' : error_message
+        }
+
+        # 에러가 있는 아이템 목록에 추가
+        item_key = item_info.get('Item')
+        if item_key:
+            self.error_items.add(item_key)
+
+        # 에러표시 업데이트
+        self.update_error_display()
+
+        # 해당 아이템 카드 강조
+        self.highlight_error_item(item_info)
+
+    
+    """조정검증 에러 제거"""
+    def remove_validation_error(self, item_info):
+        error_key = f"{item_info.get('Line')}_{item_info.get('Time')}_{item_info.get('Item')}"
+
+        if error_key in self.validation_errors:
+            del self.validation_errors[error_key]
+
+            # 해당 아이템에 더 이상 에러가 없다면 목록에서 제거
+            item_key = item_info.get('Item')
+            if item_key and not any(error['item_info'].get('Item') == item_key for error in self.validation_errors.values()):
+                self.error_items.discard(item_key)
+
+        # 에러 표시 업데이트
+        self.update_error_display()
+        
+        # 아이템 카드 강조 해제
+        self.remove_item_highlight(item_info)
+
+    
+    """에러 표시 위젯 업데이트"""
+    def update_error_display(self):
+        # 기존 에러 위젯 제거
+        for i in reversed(range(self.error_display_layout.count())):
+            child = self.error_display_layout.itemAt(i).widget()
+            if child:
+                child.deleteLater()
+
+        # 에러가 없으면 숨김
+        if not self.validation_errors:
+            self.error_scroll_area.hide()
+            return
+        
+        # 에러가 있으면 표시
+        self.error_scroll_area.show()
+
+        # 에러 제목
+        title_label = QLabel("Constraint Violations")
+        title_label.setStyleSheet("""
+            QLabel {
+            background-color: #FF6B6B;
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 26px;
+            border: none;
+            }
+        """)
+        self.error_display_layout.addWidget(title_label)
+
+        # 각 에러 표시
+        for error_key, error_info in self.validation_errors.items():
+            error_widget = self.create_error_item_widget(error_info)
+            self.error_display_layout.addWidget(error_widget)
+
+        
+    """에러 항목 위젯 생성"""
+    def create_error_item_widget(self, error_info):
+        widget = QFrame()
+        widget.setStyleSheet("""
+        QFrame {
+            background-color: #FFF5F5;
+            border: 1px solid #FEB2B2;
+            border-radius: 5px;
+            padding: 2px;
+            margin: 2px;
+            min-height: 30px;
+            }
+        """)
+        
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(3)
+
+        # 아이템 정보와 위치 정보를 한 줄에 표시
+        item_info = error_info['item_info']
+        item_location_text = f"Item: {item_info.get('Item', 'N/A')} | Line: {item_info.get('Line', 'N/A')}, Time: {item_info.get('Time', 'N/A')}"
+        item_location_label = QLabel(item_location_text)
+        item_location_label.setStyleSheet("""
+            font-weight: bold; 
+            color: #333;
+            font-size: 22px;
+            border: none;
+            background: transparent;
+        """)
+        layout.addWidget(item_location_label)
+        
+        # 에러 메시지
+        message_label = QLabel(error_info['message'])
+        message_label.setWordWrap(True)
+        message_label.setStyleSheet("""
+            color: #D53030; 
+            font-size: 22px;
+            font-weight: 700;
+            border: none;
+            background: transparent;
+            line-height: 1.5;
+        """)
+        layout.addWidget(message_label)
+
+        return widget
+    
+
+    """에러가 있는 아이템 카드 강조"""
+    def highlight_error_item(self, item_info):
+        if not hasattr(self, 'left_section') or not hasattr(self.left_section, 'grid_widget'):
+            return
+        
+        # 그리드에서 해당 아이템 찾기
+        for row_containers in self.left_section.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if (hasattr(item, 'item_data') and item.item_data and 
+                        item.item_data.get('Line') == item_info.get('Line') and 
+                        item.item_data.get('Time') == item_info.get('Time') and 
+                        item.item_data.get('Item') == item_info.get('Item')):
+
+                        # 에러 상태 설정
+                        item.set_validation_error(True, item_info.get('message', ''))
+
+
+    """아이템 카드 강조 해재"""
+    def remove_item_highlight(self, item_info):
+        error_key = f"{item_info.get('Line')}_{item_info.get('Time')}_{item_info.get('Item')}"
+        print(f"에러 해결 시도: {error_key}")
+        print(f"현재 에러 목록: {list(self.validation_errors.keys())}")
+
+        if not hasattr(self, 'left_section') or not hasattr(self.left_section, 'grid_widget'):
+            return
+        
+        # 그리드에서 해당 아이템 차직
+        for row_containers in self.left_section.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if (hasattr(item, 'item_data') and item.item_data and 
+                        item.item_data.get('Line') == item_info.get('Line') and 
+                        item.item_data.get('Time') == item_info.get('Time') and 
+                        item.item_data.get('Item') == item_info.get('Item')):
+
+                        # 에러상태 해제
+                        item.set_validation_error(False)

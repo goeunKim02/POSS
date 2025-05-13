@@ -201,3 +201,28 @@ class ItemStyle:
         padding: 3px;
         margin: 2px;
     """
+
+    # 검증 에러 상태 스타일
+    VALIDATION_ERROR_STYLE = """
+        background-color: #FFEBEE;
+        border: 2px solid #F44336;
+        border-radius: 4px;
+        padding: 5px;
+        margin: 2px;
+    """
+
+    VALIDATION_ERROR_SELECTED_STYLE = """
+        background-color: #FFCDD2;
+        border: 2px solid #0078D7;
+        border-radius: 4px;
+        padding: 5px;
+        margin: 2px;
+    """
+    
+    VALIDATION_ERROR_HOVER_STYLE = """
+        background-color: #FFD7DA;
+        border: 2px solid #DC2626;
+        border-radius: 4px;
+        padding: 5px;
+        margin: 2px;
+    """

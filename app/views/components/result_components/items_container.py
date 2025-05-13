@@ -111,8 +111,12 @@ class ItemsContainer(QWidget):
                 if not success:
                     # 검증 실패 - 오류 메시지 반환만 하고 UI에 표시하지 않음
                     # UI 표시는 호출자(ModifiedLeftSection)가 처리
-                    return False, error_message
-            
+                    # return False, error_message
+                    if changed_fields is None:
+                        changed_fields = {}
+                    changed_fields['_validation_failed'] = True
+                    changed_fields['_validation_message'] = error_message
+                        
             # 아이템 데이터 업데이트
             # if item.update_item_data(new_data):
                 # 데이터 변경 시그널 발생 (변경 필드 정보 포함)
@@ -325,15 +329,11 @@ class ItemsContainer(QWidget):
 
                                      # 검증 실패 시 드롭 거부하고 함수 종료
                                     if not valid:
-                                        EnhancedMessageBox.show_validation_error(
-                                            self,
-                                            "Adjusted Constraint Error",
-                                            message
-                                        )
-                                        event.ignore()  # 드롭 거부
-                                        self.show_drop_indicator = False
-                                        self.update()
-                                        return
+                                        print(f"[DEBUG] 검증 실패하지만 진행: {message}")
+                                        item_data['_validation_failed'] = True
+                                        item_data['_validation_message'] = message
+                                else:
+                                    print("[DEBUG] validator가 없어서 검증 스킵")
 
                                 print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
 
