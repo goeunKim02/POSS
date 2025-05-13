@@ -205,7 +205,7 @@ class ItemStyle:
     # 검증 에러 상태 스타일
     VALIDATION_ERROR_STYLE = """
         background-color: #F0F0F0;
-        border: 2px solid #f70c20;
+        border: 3px solid #f70c20;
         border-radius: 4px;
         padding: 5px;
         margin: 2px;
@@ -213,7 +213,7 @@ class ItemStyle:
 
     VALIDATION_ERROR_SELECTED_STYLE = """
         background-color: #FFCDD2;
-        border: 2px solid #0078D7;
+        border: 3px solid #f70c20;
         border-radius: 4px;
         padding: 5px;
         margin: 2px;
@@ -221,7 +221,7 @@ class ItemStyle:
     
     VALIDATION_ERROR_HOVER_STYLE = """
         background-color: #FFD7DA;
-        border: 2px solid #DC2626;
+        border: 3px solid #f70c20;
         border-radius: 4px;
         padding: 5px;
         margin: 2px;

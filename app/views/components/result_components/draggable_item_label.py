@@ -17,7 +17,7 @@ class DraggableItemLabel(QLabel):
 
     def __init__(self, text, parent=None, item_data=None):
         super().__init__(text, parent)
-
+        
         # 검증 에러상태 변수
         self.is_validation_error = False
         self.validation_error_message = None

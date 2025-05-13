@@ -303,9 +303,6 @@ class ModifiedLeftSection(QWidget):
                     if validation_failed:
                         item.set_validation_error(True, validation_error_message)
                     return
-                    # EnhancedMessageBox.show_validation_error(self, "Adjustment Not Possible", error_message)
-                    # return
-
 
         # 데이터 변경 성공 시
         self.mark_as_modified()

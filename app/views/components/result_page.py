@@ -133,14 +133,14 @@ class ResultPage(QWidget):
         right_top_layout.setContentsMargins(10, 10, 10, 10)
 
         # 상단 섹션 제목
-        # top_section_title = QLabel("Analysis Summary")
-        # font_top = QFont()
-        # font_top.setFamily("Arial")
-        # font_top.setPointSize(12)
-        # font_top.setBold(True)
-        # top_section_title.setFont(font_top)
-        # top_section_title.setAlignment(Qt.AlignCenter)
-        # right_top_layout.addWidget(top_section_title)
+        top_section_title = QLabel("Adjustment Analysis")
+        font_top = QFont()
+        font_top.setFamily("Arial")
+        font_top.setPointSize(12)
+        font_top.setBold(True)
+        top_section_title.setFont(font_top)
+        top_section_title.setAlignment(Qt.AlignCenter)
+        right_top_layout.addWidget(top_section_title)
 
         # 에러 표시 위젯
         self.error_display_widget = QWidget()
