@@ -78,6 +78,34 @@ class RightParameterComponent(QWidget):
         )
 
         try :
+            production_capacity_issues = failures.get('production_capacity', [])
+
+            if production_capacity_issues :
+                for issue in production_capacity_issues :
+                    line = issue.get('line', 'Unknown')
+                    reason = issue.get('reason', 'capacity exceeded')
+                    available = issue.get('available', 0)
+                    excess = issue.get('excess', 0)
+                    center = issue.get('center', '')
+
+                    center_info = f'({center})' if center else ''
+                    item_text = f'{reason} : {line}{center_info}, Available capacity : {available}, Excess amount : {excess}'
+
+                    item = QListWidgetItem(item_text)
+                    item.setForeground(QColor('#e74c3c'))
+
+                    bold_font = QFont('Arial', 9, QFont.Bold)
+                    item.setFont(bold_font)
+
+                    safe_operation(
+                        self.list_widget.addItem,
+                        'Error adding capacity issue item',
+                        item
+                    )
+        except Exception as e :
+            raise DataError(f'Error processing production capacity issues : {str(e)}')
+
+        try :
             if failures.get('plan_retention') is not None :
                 plan_retention = failures.get('plan_retention', {})
 
