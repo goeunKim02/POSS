@@ -97,14 +97,15 @@ class ModernPreOptionTabComponent(BaseTabComponent):
             default=bool(SettingsStore.get("max_min_ratio_ox", 0))
         )
 
-        # 1~50 범위의 숫자 리스트 생성
+        # 0~50 범위의 숫자 리스트 생성
         margins = [str(i) for i in range(0, 51)]
 
-        # 콤보박스 추가
+        # 콤보박스 추가 (기본값 0)
+        default_margin = SettingsStore.get("max_min_margin", 0)
         combobox_widget = pre_allocation_section.add_setting_item(
             "Pre-Assignment Ratio for Primary Execution", "max_min_margin", "combobox",
             items=margins,
-            default_index=SettingsStore.get("max_min_margin", 0)
+            default_index=default_margin
         )
 
         # 체크박스와 콤보박스 연결
@@ -114,29 +115,7 @@ class ModernPreOptionTabComponent(BaseTabComponent):
 
             # 비활성화 시 스타일 적용
             if not checkbox_widget.isChecked():
-                combobox_widget.setStyleSheet("""
-                    QComboBox {
-                        background-color: #f5f5f5;
-                        border: 1px solid #ddd;
-                        color: #888;
-                        border-radius: 6px;
-                        padding: 10px 14px;
-                        font-size: 14px;
-                        font-family: Arial;
-                    }
-                    QComboBox::drop-down {
-                        border: none;
-                        width: 20px;
-                    }
-                    QComboBox::down-arrow {
-                        image: url(none);
-                        width: 0;
-                        height: 0;
-                        border-left: 5px solid transparent;
-                        border-right: 5px solid transparent;
-                        border-top: 5px solid #888;
-                    }
-                """)
+                combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
 
             # 체크박스 상태 변경 시 콤보박스 활성/비활성화
             def on_checkbox_state_changed(state):
@@ -145,65 +124,13 @@ class ModernPreOptionTabComponent(BaseTabComponent):
 
                 # 활성화/비활성화에 따른 스타일 변경
                 if is_checked:
-                    combobox_widget.setStyleSheet("""
-                        QComboBox {
-                            background-color: #ffffff;
-                            border: 1px solid #dee2e6;
-                            border-radius: 6px;
-                            padding: 10px 14px;
-                            font-size: 14px;
-                            font-family: Arial;
-                        }
-                        QComboBox:focus {
-                            border-color: #1428A0;
-                            box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
-                        }
-                        QComboBox:hover {
-                            border-color: #adb5bd;
-                        }
-                        QComboBox::drop-down {
-                            border: none;
-                            width: 20px;
-                        }
-                        QComboBox::down-arrow {
-                            image: url(none);
-                            width: 0;
-                            height: 0;
-                            border-left: 5px solid transparent;
-                            border-right: 5px solid transparent;
-                            border-top: 5px solid #666;
-                        }
-                        QComboBox QAbstractItemView {
-                            border: 1px solid #dee2e6;
-                            background-color: white;
-                            selection-background-color: #e9ecef;
-                            selection-color: #1428A0;
-                        }
-                    """)
+                    combobox_widget.setStyleSheet(self._get_enabled_combobox_style())
                 else:
-                    combobox_widget.setStyleSheet("""
-                        QComboBox {
-                            background-color: #f5f5f5;
-                            border: 1px solid #ddd;
-                            color: #888;
-                            border-radius: 6px;
-                            padding: 10px 14px;
-                            font-size: 14px;
-                            font-family: Arial;
-                        }
-                        QComboBox::drop-down {
-                            border: none;
-                            width: 20px;
-                        }
-                        QComboBox::down-arrow {
-                            image: url(none);
-                            width: 0;
-                            height: 0;
-                            border-left: 5px solid transparent;
-                            border-right: 5px solid transparent;
-                            border-top: 5px solid #888;
-                        }
-                    """)
+                    combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
+
+                    # 비활성화 시 기본값으로 초기화
+                    combobox_widget.setCurrentIndex(0)  # 0으로 초기화
+                    self.on_setting_changed("max_min_margin", 0)
 
             checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
 
@@ -214,6 +141,70 @@ class ModernPreOptionTabComponent(BaseTabComponent):
 
         # 스트레치 추가
         self.content_layout.addStretch(1)
+
+    def _get_enabled_combobox_style(self):
+        """활성화된 콤보박스 스타일"""
+        return """
+            QComboBox {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QComboBox:focus {
+                border-color: #1428A0;
+                box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
+            }
+            QComboBox:hover {
+                border-color: #adb5bd;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(none);
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #666;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #dee2e6;
+                background-color: white;
+                selection-background-color: #e9ecef;
+                selection-color: #1428A0;
+            }
+        """
+
+    def _get_disabled_combobox_style(self):
+        """비활성화된 콤보박스 스타일"""
+        return """
+            QComboBox {
+                background-color: #f5f5f5;
+                border: 1px solid #ddd;
+                color: #888;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(none);
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #888;
+            }
+        """
 
     def on_setting_changed(self, key, value):
         """설정 변경 시 호출되는 콜백"""

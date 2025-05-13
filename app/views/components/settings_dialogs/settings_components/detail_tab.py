@@ -1,5 +1,5 @@
 # app/views/components/settings_dialogs/settings_components/detail_tab.py - 모던한 Detail 탭
-from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
+from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QLineEdit, QCheckBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
@@ -62,35 +62,52 @@ class ModernDetailTabComponent(BaseTabComponent):
         line_change_section = ModernSettingsSectionComponent("Line Change")
         line_change_section.setting_changed.connect(self.on_setting_changed)
 
-        line_change_section.add_setting_item(
+        # Apply Model Changeover Time 체크박스
+        apply_changeover_checkbox = line_change_section.add_setting_item(
             "Apply Model Changeover Time", "itemcnt_limit_ox", "checkbox",
             default=bool(SettingsStore.get("itemcnt_limit_ox", 0))
         )
 
-        line_change_section.add_setting_item(
-            "Minimum SKU Count", "itemcnt_limit", "spinbox",
-            min=1, max=100, default=SettingsStore.get("itemcnt_limit", 1)
+        # Minimum SKU Count 입력 필드
+        default_min_sku = SettingsStore.get("itemcnt_limit", 1)
+        min_sku_input = line_change_section.add_setting_item(
+            "Minimum SKU Count", "itemcnt_limit", "input",
+            min=1, max=100, default=default_min_sku
         )
 
-        line_change_section.add_setting_item(
+        # Apply Max CNT Limit for I 체크박스
+        apply_max_i_checkbox = line_change_section.add_setting_item(
             "Apply Max CNT Limit for I", "itemcnt_limit_max_i_ox", "checkbox",
             default=bool(SettingsStore.get("itemcnt_limit_max_i_ox", 0))
         )
 
-        line_change_section.add_setting_item(
-            "Max CNT Limit for I", "itemcnt_limit_max_i", "spinbox",
-            min=1, max=100, default=SettingsStore.get("itemcnt_limit_max_i", 1)
+        # Max CNT Limit for I 입력 필드
+        default_max_i = SettingsStore.get("itemcnt_limit_max_i", 1)
+        max_i_input = line_change_section.add_setting_item(
+            "Max CNT Limit for I", "itemcnt_limit_max_i", "input",
+            min=1, max=100, default=default_max_i
         )
 
-        line_change_section.add_setting_item(
+        # Apply Max CNT Limit for O 체크박스
+        apply_max_o_checkbox = line_change_section.add_setting_item(
             "Apply Max CNT Limit for O", "itemcnt_limit_max_o_ox", "checkbox",
             default=bool(SettingsStore.get("itemcnt_limit_max_o_ox", 0))
         )
 
-        line_change_section.add_setting_item(
-            "Max CNT Limit for O", "itemcnt_limit_max_o", "spinbox",
-            min=1, max=100, default=SettingsStore.get("itemcnt_limit_max_o", 1)
+        # Max CNT Limit for O 입력 필드
+        default_max_o = SettingsStore.get("itemcnt_limit_max_o", 1)
+        max_o_input = line_change_section.add_setting_item(
+            "Max CNT Limit for O", "itemcnt_limit_max_o", "input",
+            min=1, max=100, default=default_max_o
         )
+
+        # 체크박스와 입력 필드 연결 (Line Change)
+        self._connect_checkbox_to_input(apply_changeover_checkbox, min_sku_input,
+                                        default_value=str(default_min_sku))
+        self._connect_checkbox_to_input(apply_max_i_checkbox, max_i_input,
+                                        default_value=str(default_max_i))
+        self._connect_checkbox_to_input(apply_max_o_checkbox, max_o_input,
+                                        default_value=str(default_max_o))
 
         # 자재 섹션
         material_section = ModernSettingsSectionComponent("Material")
@@ -105,21 +122,29 @@ class ModernDetailTabComponent(BaseTabComponent):
         line_assign_section = ModernSettingsSectionComponent("Line Assign")
         line_assign_section.setting_changed.connect(self.on_setting_changed)
 
-        line_assign_section.add_setting_item(
+        # P999 Constraint 체크박스
+        p999_checkbox = line_assign_section.add_setting_item(
             "P999 Constraint", "P999_line_ox", "checkbox",
             default=bool(SettingsStore.get("P999_line_ox", 0))
         )
 
-        line_assign_section.add_setting_item(
+        # P999 Assign Line 입력 필드
+        default_p999 = SettingsStore.get("P999_line", "")
+        p999_input = line_assign_section.add_setting_item(
             "P999 Assign Line", "P999_line", "input",
-            default=SettingsStore.get("P999_line", "")
+            default=default_p999
         )
+
+        # 체크박스와 입력 필드 연결 (Line Assign)
+        self._connect_checkbox_to_input(p999_checkbox, p999_input,
+                                        default_value=default_p999)
 
         # 작업률 섹션
         operation_rate_section = ModernSettingsSectionComponent("Operation Rate")
         operation_rate_section.setting_changed.connect(self.on_setting_changed)
 
-        operation_rate_section.add_setting_item(
+        # Apply Shift-Based Weight 체크박스
+        shift_weight_checkbox = operation_rate_section.add_setting_item(
             "Apply Shift-Based Weight", "weight_day_ox", "checkbox",
             default=bool(SettingsStore.get("weight_day_ox", 0))
         )
@@ -128,10 +153,15 @@ class ModernDetailTabComponent(BaseTabComponent):
         weight_day = SettingsStore.get("weight_day", [1.0, 1.0, 1.0])
         weight_day_str = ", ".join(map(str, weight_day))
 
-        operation_rate_section.add_setting_item(
+        # Shift-Based Weights 입력 필드
+        shift_weights_input = operation_rate_section.add_setting_item(
             "Shift-Based Weights(Comma-separated)", "weight_day_str", "input",
             default=weight_day_str
         )
+
+        # 체크박스와 입력 필드 연결 (Operation Rate)
+        self._connect_checkbox_to_input(shift_weight_checkbox, shift_weights_input,
+                                        default_value="1.0, 1.0, 1.0")
 
         # 섹션 추가
         self.content_layout.addWidget(path_section)
@@ -142,6 +172,73 @@ class ModernDetailTabComponent(BaseTabComponent):
 
         # 스트레치 추가
         self.content_layout.addStretch(1)
+
+    def _connect_checkbox_to_input(self, checkbox_widget, input_widget, default_value=""):
+        """체크박스와 입력 필드를 연결하는 헬퍼 메서드"""
+        if isinstance(checkbox_widget, QCheckBox) and isinstance(input_widget, QLineEdit):
+            # 초기 상태 설정
+            input_widget.setEnabled(checkbox_widget.isChecked())
+
+            # 비활성화 시 스타일 적용
+            if not checkbox_widget.isChecked():
+                input_widget.setStyleSheet(self._get_disabled_input_style())
+
+            # 기본값 저장
+            input_widget.setProperty('default_value', default_value)
+
+            # 체크박스 상태 변경 시 입력 필드 활성/비활성화
+            def on_checkbox_state_changed(state):
+                is_checked = bool(state)
+                input_widget.setEnabled(is_checked)
+
+                # 활성화/비활성화에 따른 스타일 변경
+                if is_checked:
+                    input_widget.setStyleSheet(self._get_enabled_input_style())
+                else:
+                    input_widget.setStyleSheet(self._get_disabled_input_style())
+
+                    # 비활성화 시 기본값으로 복원
+                    if input_widget.property('default_value'):
+                        input_widget.setText(str(input_widget.property('default_value')))
+                    else:
+                        input_widget.clear()
+
+            checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
+
+    def _get_enabled_input_style(self):
+        """활성화된 입력 필드 스타일"""
+        return """
+            QLineEdit {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+                transition: all 0.3s ease;
+            }
+            QLineEdit:focus {
+                border-color: #1428A0;
+                box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
+            }
+            QLineEdit:hover {
+                border-color: #adb5bd;
+            }
+        """
+
+    def _get_disabled_input_style(self):
+        """비활성화된 입력 필드 스타일"""
+        return """
+            QLineEdit {
+                background-color: #f5f5f5;
+                border: 1px solid #ddd;
+                color: #888;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+        """
 
     def on_setting_changed(self, key, value):
         """설정 변경 시 호출되는 콜백"""
