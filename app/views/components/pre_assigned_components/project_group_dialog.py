@@ -1,17 +1,25 @@
-from PyQt5.QtCore import Qt
+import pandas as pd
+
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QCheckBox,
-    QDialogButtonBox, QLabel, QFrame, QScrollArea, QWidget, QPushButton
+    QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QSizePolicy,
+    QLabel, QFrame, QScrollArea, QWidget, QPushButton, QProgressBar
 )
 from ....resources.styles.pre_assigned_style import (
     DETAIL_DIALOG_STYLE
 )
-
+from .processThread import ProcessThread
 
 class ProjectGroupDialog(QDialog):
-    def __init__(self, project_groups: dict, parent=None):
+    optimizationDone = pyqtSignal(pd.DataFrame, pd.DataFrame)
+
+    def __init__(self, project_groups: dict, df, parent=None):
         super().__init__(parent)
+        self.df = df
+        self.project_groups = project_groups
+        self.df_to_opt = None
+
         self.setStyleSheet(DETAIL_DIALOG_STYLE)
         # 다이얼로그에 ? 버튼 없애는 코드
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
@@ -61,17 +69,38 @@ class ProjectGroupDialog(QDialog):
                 border: 1px solid #cccccc;
             }
         """)
+        desc_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         desc_layout = QVBoxLayout(desc_frame)
         desc_layout.setContentsMargins(20, 15, 20, 15)
 
-        desc_label = QLabel("Select the project group to include in the optimization Process")
+        self.desc_label = QLabel("Select the project group to include in the optimization Process")
         desc_font = QFont("Arial", 12, QFont.Bold)
-        desc_label.setFont(desc_font)
-        desc_label.setStyleSheet("background-color: transparent; color: #333333; border:none; ")
-        desc_layout.addWidget(desc_label)
+        self.desc_label.setFont(desc_font)
+        self.desc_label.setStyleSheet("background-color: transparent; color: #333333; border:none; ")
+        desc_layout.addWidget(self.desc_label)
+
+        self.progress_bar = QProgressBar(desc_frame)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(0)
+        self.progress_bar.hide()                    # 시작할 땐 숨겨두기
+        self.progress_bar.setFixedHeight(20)        # 높이는 적당히
+        self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #AAA;
+                border-radius: 4px;
+                text-align: center;
+                background-color: #E0E0E0;
+            }
+            QProgressBar::chunk {
+                background-color: #1428A0;      /* 원래 색상 유지 */
+                width: 20px;
+            }
+        """)
+        desc_layout.addWidget(self.progress_bar)
 
         content_layout.addWidget(desc_frame)
-
+        
         # 체크박스 영역
         checkbox_frame = QFrame()
         checkbox_frame.setStyleSheet("""
@@ -166,11 +195,11 @@ class ProjectGroupDialog(QDialog):
             }
             QPushButton:disabled {
                 background-color: #ACACAC;
-                color: #white;
+                color: white;
             }
         """)
         self.ok_button.setEnabled(False)
-        self.ok_button.clicked.connect(self.accept)
+        self.ok_button.clicked.connect(self._on_ok_clicked)
 
         # Cancel 버튼
         self.cancel_button = QPushButton("Cancel")
@@ -213,3 +242,26 @@ class ProjectGroupDialog(QDialog):
     def selected_groups(self):
         # 사용자가 선택한 프로젝트 그룹 리스트
         return [gid for gid, cb in self.checkboxes.items() if cb.isChecked()]
+
+    def _on_ok_clicked(self):
+        gids = self.selected_groups()
+        projects = sum((self.project_groups[gid] for gid in gids), [])
+
+        self.df_to_opt = self.df[self.df['Project'].isin(projects)].copy()
+
+        self.ok_button.setEnabled(False)
+        self.desc_label.hide()
+        self.progress_bar.show()
+
+        # 최적화 스레드 실행
+        self.thread = ProcessThread(self.df_to_opt, projects)
+        self.thread.progress.connect(self.progress_bar.setValue)
+        self.thread.finished.connect(self._on_optimization_finished)
+        self.thread.start()
+
+    def _on_optimization_finished(self, result_df):
+        self.optimizationDone.emit(result_df, self.df_to_opt)
+        self.accept()
+
+        self.progress_bar.hide()
+        self.desc_label.show()
