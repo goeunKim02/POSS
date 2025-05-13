@@ -152,7 +152,7 @@ class DataInputPage(QWidget) :
         top_container_layout.addWidget(input_section)
 
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border:none;")
+        bottom_container.setStyleSheet("background-color: #F5F5F5; border-radius: 10px;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -185,7 +185,7 @@ class DataInputPage(QWidget) :
 
         self.tab_bar = QTabBar()
         self.stacked_widget = QStackedWidget()
-
+        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         tab_layout.addWidget(self.tab_bar)
         tab_layout.addWidget(self.stacked_widget)
 
@@ -201,9 +201,11 @@ class DataInputPage(QWidget) :
         tab_layout.addLayout(button_layout)
 
         parameter_container = QFrame()
-        parameter_container.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
+        parameter_container.setStyleSheet("background-color: white; padding: 0px; border: 3px solid #cccccc;")
+        parameter_container.setContentsMargins(0,0,0,0)
+
         parameter_layout = QHBoxLayout(parameter_container)
-        parameter_layout.setContentsMargins(5, 5, 5, 5)
+        parameter_layout.setContentsMargins(0,0,0,0)
 
         parameter_splitter = QSplitter(Qt.Horizontal)
         parameter_splitter.setHandleWidth(3)
@@ -567,7 +569,7 @@ class DataInputPage(QWidget) :
                     display_df = project_analysis_results['display_df']
                     has_issues = False
 
-                    if 'display_df' is not None :
+                    if display_df is not None :
                         for _, row in display_df.iterrows() :
                             if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
                                 has_issues = True
@@ -747,7 +749,6 @@ class DataInputPage(QWidget) :
         vertical_splitter = self.findChild(QSplitter,"vertical_splitter")
         sizes = vertical_splitter.sizes()
         maximize_button = self.findChild(QPushButton,"maximize_button")
-        print(sizes,maximize_button)
         if sizes[1] == 0:
             maximize_button.setVisible(True)
         else:
