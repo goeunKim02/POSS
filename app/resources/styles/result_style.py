@@ -1,4 +1,3 @@
-# ui_styles.py
 class ResultStyles:
     ACTIVE_BUTTON_STYLE = """
         QPushButton {
