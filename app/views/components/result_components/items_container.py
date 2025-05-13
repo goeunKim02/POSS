@@ -104,22 +104,31 @@ class ItemsContainer(QWidget):
     def update_item_data(self, item, new_data, changed_fields=None):
         """아이템 데이터 업데이트"""
         if item and item in self.items and new_data:
-            # 아이템 데이터 업데이트 전에 검증 로직을 여기에 통합
             # DraggableItemLabel.update_item_data는 이제 (성공여부, 오류메시지)를 반환
             if hasattr(item, 'update_item_data'):
                 success, error_message = item.update_item_data(new_data)
                 if not success:
-                    # 검증 실패 - 오류 메시지 반환만 하고 UI에 표시하지 않음
-                    # UI 표시는 호출자(ModifiedLeftSection)가 처리
-                    return False, error_message
-            
+                    if changed_fields is None:
+                        changed_fields = {}
+                    changed_fields['_validation_failed'] = True
+                    changed_fields['_validation_message'] = error_message
+                        
             # 아이템 데이터 업데이트
             # if item.update_item_data(new_data):
                 # 데이터 변경 시그널 발생 (변경 필드 정보 포함)
                 self.itemDataChanged.emit(item, new_data, changed_fields)
                 self.itemsChanged.emit()
                 return True, ""
-            return False, "update_item_data 메서드가 없습니다"
+            
+            # 검증 통과 시에만 에러 상태 클리어
+            if hasattr(item, 'set_validation_error'):
+                item.set_validation_error(False)
+                
+            # 데이터 변경 시그널 발생 (변경 필드 정보 포함)
+            self.itemDataChanged.emit(item, new_data, changed_fields)
+            self.itemsChanged.emit()
+            return True, ""
+        
         return False, "유효하지 않은 아이템 또는 데이터"
 
     def clear_selection(self):
@@ -325,15 +334,11 @@ class ItemsContainer(QWidget):
 
                                      # 검증 실패 시 드롭 거부하고 함수 종료
                                     if not valid:
-                                        EnhancedMessageBox.show_validation_error(
-                                            self,
-                                            "Adjusted Constraint Error",
-                                            message
-                                        )
-                                        event.ignore()  # 드롭 거부
-                                        self.show_drop_indicator = False
-                                        self.update()
-                                        return
+                                        print(f"[DEBUG] 검증 실패하지만 진행: {message}")
+                                        item_data['_validation_failed'] = True
+                                        item_data['_validation_message'] = message
+                                else:
+                                    print("[DEBUG] validator가 없어서 검증 스킵")
 
                                 print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
 

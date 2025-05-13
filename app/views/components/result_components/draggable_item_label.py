@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag, QPixmap, QPainter, QColor, QFont
 import pandas as pd
 import json
+from app.resources.styles.item_style import ItemStyle
 
 
 """드래그 가능한 아이템 라벨"""
@@ -16,216 +17,16 @@ class DraggableItemLabel(QLabel):
 
     def __init__(self, text, parent=None, item_data=None):
         super().__init__(text, parent)
-
-        # 기본 스타일 정의
-        self.default_style = """
-            background-color: #F0F0F0;
-            border: 1px solid #D0D0D0;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        # 선택됐을 때 스타일 정의
-        self.selected_style = """
-            background-color: #C2E0FF;
-            border: 1px solid #0078D7;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        # 호버 스타일 정의
-        self.hover_style = """
-            background-color: #E6E6E6;
-            border: 1px solid #B8B8B8;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        # 자재 부족 스타일 추가
-        self.shortage_style = """
-            background-color: #FFE0E0;
-            border: 1px solid #FF8080;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
         
-        self.shortage_selected_style = """
-            background-color: #FFC0C0;
-            border: 1px solid #0078D7;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-        
-        self.shortage_hover_style = """
-            background-color: #FFC8C8;
-            border: 1px solid #FF6060;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        # 사전할당 스타일
-        self.pre_assigned_style = """
-            background-color: #F0F0F0;
-            border: 3px solid #000000;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_selected_style = """
-            background-color: #C2E0FF;
-            border: 3px solid #0078D7;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-        
-        self.pre_assigned_hover_style = """
-            background-color: #E6E6E6;
-            border: 3px solid #4CAF50;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        # 출하 실패 스타일
-        self.shipment_failure_style = """
-            background-color: #fcf9c0;
-            border: 1px solid #FFCCCC;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-        
-        self.shipment_failure_selected_style = """
-            background-color: #FFCCCC;
-            border: 1px solid #fcf67e;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-        
-        self.shipment_failure_hover_style = """
-            background-color: #faf8ca;
-            border: 1px solid #faf24d;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        # 복합 상태 스타일들 
-        # 사전할당 + 자재부족 (자재부족 배경 + 굵은 테두리)
-        self.pre_assigned_shortage_style = """
-            background-color: #FFE0E0;
-            border: 4px solid #000000;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_shortage_selected_style = """
-            background-color: #FFC0C0;
-            border: 4px solid #0078D7;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_shortage_hover_style = """
-            background-color: #FFC8C8;
-            border: 4px solid #FF6060;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        # 사전할당 + 출하실패 (출하실패 배경 + 굵은 테두리)
-        self.pre_assigned_shipment_style = """
-            background-color: #fcf9c0;
-            border: 4px solid #000000;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_shipment_selected_style = """
-            background-color: #faf593;
-            border: 4px solid #fcf67e;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_shipment_hover_style = """
-            background-color: #faf8ca;
-            border: 4px solid #faf24d;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-         # 자재부족 + 출하실패 (자재부족 배경 우선)
-        self.shortage_shipment_style = """
-            background-color: #FFE0E0;
-            border: 1px solid #FF8080;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        self.shortage_shipment_selected_style = """
-            background-color: #FFC0C0;
-            border: 1px solid #0078D7;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        self.shortage_shipment_hover_style = """
-            background-color: #FFC8C8;
-            border: 1px solid #FF6060;
-            border-radius: 4px;
-            padding: 5px;
-            margin: 2px;
-        """
-
-        # 모든 상태 조합 (사전할당 + 자재부족 + 출하실패)
-        self.pre_assigned_shortage_shipment_style = """
-            background-color: #FFE0E0;
-            border: 3px solid #000000;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_shortage_shipment_selected_style = """
-            background-color: #FFC0C0;
-            border: 3px solid #0078D7;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
-        self.pre_assigned_shortage_shipment_hover_style = """
-            background-color: #FFC8C8;
-            border: 3px solid #FF6060;
-            border-radius: 4px;
-            padding: 3px;
-            margin: 2px;
-        """
-
+        # 검증 에러상태 변수
+        self.is_validation_error = False
+        self.validation_error_message = None
         
         # 출하 실패 상태 변수
         self.is_shipment_failure = False
         self.shipment_failure_reason = None
 
-        self.setStyleSheet(self.default_style)
+        self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
         self.setAlignment(Qt.AlignCenter)
         self.setCursor(Qt.OpenHandCursor)
         self.setAcceptDrops(False)  # 아이템 자체는 드롭 받지 않도록 변경
@@ -301,6 +102,10 @@ class DraggableItemLabel(QLabel):
             tooltip += "<tr><td><b>Shipment Status</b></td><td style='color:red;'>Failure</td></tr>"
             if self.shipment_failure_reason:
                 tooltip += f"<tr><td><b>Failure Reason</b></td><td>{self.shipment_failure_reason}</td></tr>"
+        if self.is_validation_error:
+            tooltip += "<tr><td><b>Validation Error</b></td><td style='color:red;'>Yes</td></tr>"
+            if self.validation_error_message:
+                tooltip += f"<tr><td><b>Error Details</b></td><td style='color:red;'>{self.validation_error_message}</td></tr>"
 
         tooltip += "</table>"
         return tooltip
@@ -375,22 +180,24 @@ class DraggableItemLabel(QLabel):
     """마우스가 위젯 위에 올라갔을 때 호출됨"""
     def enterEvent(self, event):
         if not self.is_selected:
-            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패패
-                self.setStyleSheet(self.pre_assigned_shortage_shipment_hover_style)
+            if self.is_validation_error:  # 조정 검증 에러
+                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_HOVER_STYLE) 
+            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_HOVER_STYLE)
             elif self.is_pre_assigned and self.is_shortage:  # 사전할당/자재부족
-                self.setStyleSheet(self.pre_assigned_shortage_hover_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_HOVER_STYLE)
             elif self.is_pre_assigned and self.is_shipment_failure:  # 사전할당/출하실패
-                self.setStyleSheet(self.pre_assigned_shipment_hover_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHIPMENT_HOVER_STYLE)
             elif self.is_shortage and self.is_shipment_failure:  # 자재부족/출하실패
-                self.setStyleSheet(self.shortage_shipment_hover_style)  
+                self.setStyleSheet(ItemStyle.SHORTAGE_SHIPMENT_HOVER_STYLE) 
             elif self.is_pre_assigned:
-                self.setStyleSheet(self.pre_assigned_hover_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_HOVER_STYLE)
             elif self.is_shortage:
-                self.setStyleSheet(self.shortage_hover_style)
+                self.setStyleSheet(ItemStyle.SHORTAGE_HOVER_STYLE)
             elif self.is_shipment_failure:
-                self.setStyleSheet(self.shipment_failure_hover_style)
+                self.setStyleSheet(ItemStyle.SHIPMENT_FAILURE_HOVER_STYLE)
             else:
-                self.setStyleSheet(self.hover_style)
+                self.setStyleSheet(ItemStyle.HOVER_STYLE)
         super().enterEvent(event)
 
     """마우스가 위젯을 벗어났을 때 호출됨"""
@@ -465,7 +272,7 @@ class DraggableItemLabel(QLabel):
             self.is_selected = selected
             self.update_style()
 
-    """ 사전할당 상태 설정 메서드 """
+    """사전할당 상태 설정"""
     def set_pre_assigned_status(self, is_pre_assigned):
         self.is_pre_assigned = is_pre_assigned
         self.update_style()
@@ -474,9 +281,8 @@ class DraggableItemLabel(QLabel):
         if self.item_data is not None:
             self.setToolTip(self._create_tooltip_text())
 
-    """ 자재 부족 상태 설정 메서드 """
+    """자재 부족 상태 설정"""
     def set_shortage_status(self, is_shortage, shortage_data=None):
-        """자재 부족 상태 설정"""
         self.is_shortage = is_shortage
         self.shortage_data = shortage_data
         self.update_style()
@@ -491,8 +297,8 @@ class DraggableItemLabel(QLabel):
             else:
                 self.setToolTip(self.text())
 
+    """자재 부족 정보 툴팁 생성"""
     def _create_shortage_tooltip(self):
-        """자재 부족 정보 툴팁 생성"""
         if not self.shortage_data:
             return self._create_tooltip_text()
         
@@ -513,45 +319,49 @@ class DraggableItemLabel(QLabel):
         tooltip += "</table>"
         return tooltip
 
+    """현재 상태에 맞게 스타일 업데이트"""
     def update_style(self):
-        """현재 상태에 맞게 스타일 업데이트"""
         if self.is_selected:
-            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
-                self.setStyleSheet(self.pre_assigned_shortage_shipment_selected_style)
+            if self.is_validation_error:
+                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_SELECTED_STYLE)
+            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_SELECTED_STYLE)
             elif self.is_pre_assigned and self.is_shortage:
-                self.setStyleSheet(self.pre_assigned_shortage_selected_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SELECTED_STYLE)
             elif self.is_pre_assigned and self.is_shipment_failure:
-                self.setStyleSheet(self.pre_assigned_shipment_selected_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHIPMENT_SELECTED_STYLE)
             elif self.is_shortage and self.is_shipment_failure:
-                self.setStyleSheet(self.shortage_shipment_selected_style)  
+                self.setStyleSheet(ItemStyle.SHORTAGE_SHIPMENT_SELECTED_STYLE)  
             elif self.is_pre_assigned:
-                self.setStyleSheet(self.pre_assigned_selected_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SELECTED_STYLE)
             elif self.is_shortage:
-                self.setStyleSheet(self.shortage_selected_style)
+                self.setStyleSheet(ItemStyle.SHORTAGE_SELECTED_STYLE)
             elif self.is_shipment_failure:
-                self.setStyleSheet(self.shipment_failure_selected_style)
+                self.setStyleSheet(ItemStyle.SHIPMENT_FAILURE_SELECTED_STYLE)
             else:
-                self.setStyleSheet(self.selected_style)
+                self.setStyleSheet(ItemStyle.SELECTED_STYLE)
         else:
-            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
-                self.setStyleSheet(self.pre_assigned_shortage_shipment_style)
+            if self.is_validation_error:
+                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_STYLE)
+            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_STYLE)
             elif self.is_pre_assigned and self.is_shortage:
-                self.setStyleSheet(self.pre_assigned_shortage_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_STYLE)
             elif self.is_pre_assigned and self.is_shipment_failure:
-                self.setStyleSheet(self.pre_assigned_shipment_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHIPMENT_STYLE)
             elif self.is_shortage and self.is_shipment_failure:
-                self.setStyleSheet(self.shortage_shipment_style) 
+                self.setStyleSheet(ItemStyle.SHORTAGE_SHIPMENT_STYLE) 
             elif self.is_pre_assigned:
-                self.setStyleSheet(self.pre_assigned_style)
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_STYLE)
             elif self.is_shortage:
-                self.setStyleSheet(self.shortage_style)
+                self.setStyleSheet(ItemStyle.SHORTAGE_STYLE)
             elif self.is_shipment_failure:
-                self.setStyleSheet(self.shipment_failure_style)
+                self.setStyleSheet(ItemStyle.SHIPMENT_FAILURE_STYLE)
             else:
-                self.setStyleSheet(self.default_style)
+                self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
 
+    """아이템 데이터로부터 표시 텍스트 업데이트"""
     def update_text_from_data(self):
-        """아이템 데이터로부터 표시 텍스트 업데이트"""
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
 
@@ -564,8 +374,8 @@ class DraggableItemLabel(QLabel):
             # 툴팁도 업데이트
             self.setToolTip(self._create_tooltip_text())
 
+    """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):
-        """아이템 데이터 업데이트"""
         if new_data:
             # 데이터 변경 전 검증 (부모 위젯을 통해 validator 찾기)
             validator = None
@@ -579,6 +389,10 @@ class DraggableItemLabel(QLabel):
                     validator = parent.grid_widget.validator
                     break
                 parent = parent.parent()
+
+            # 검증 상태 변수
+            validation_failed = False
+            validation_mesasge = ""
             
             # validator가 있으면 검증 수행
             if validator:
@@ -604,20 +418,28 @@ class DraggableItemLabel(QLabel):
                 
                 # 검증 실패 시 데이터 변경하지 않고 False 반환
                 if not valid:
-                    # 오류 메시지는 호출자에서 표시 (여기서는 표시하지 않음)
-                    return False, message
-            
-            # 검증 통과 또는 validator 없음 - 데이터 업데이트 진행
+                    validation_failed = True
+                    validation_mesasge = message
+                    print(f"검증 실패지만 변경 허용: {message}")
+                
+            # 검증 상관없이 데이터 업데이트 진행
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
             self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
-            return True, ""
+
+            if validation_failed:
+                self.set_validation_error(True, validation_mesasge)
+                return True, validation_mesasge  # 성공이지만 에러메세지 표시
+            else:
+                self.set_validation_error(False)  # 에러상태 해제
+                return True, ""
+            
         return False, "데이터가 없습니다."
     
+    """출하 실패 상태 설정"""
     def set_shipment_failure(self, is_failure, reason=None):
-        """출하 실패 상태 설정"""
         self.is_shipment_failure = is_failure
         self.shipment_failure_reason = reason if is_failure else None
         self.update_style()  # 스타일 업데이트
@@ -637,3 +459,14 @@ class DraggableItemLabel(QLabel):
         else:
             # 기본 툴팁으로 복원
             self.setToolTip(self._create_tooltip_text())
+
+
+    """검증 에러상태 설정"""
+    def set_validation_error(self, is_error, error_message=None):
+        self.is_validation_error = is_error
+        self.validation_error_message = error_message if is_error else None
+        self.update_style()
+
+        # 툴팁 업데이트
+        self.setToolTip(self._create_tooltip_text())
+
