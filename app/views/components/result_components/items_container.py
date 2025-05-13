@@ -455,3 +455,35 @@ class ItemsContainer(QWidget):
                 QPoint(width - arrow_size, y + arrow_size)
             ]
             painter.drawPolygon(points_right)
+
+
+    def get_container_position(self, grid_widget):
+        """현재 컨테이너가 그리드에서 어느 위치에 있는지 반환"""
+        if not grid_widget or not hasattr(grid_widget, 'containers'):
+            return -1, -1
+        
+        for row_idx, row in enumerate(grid_widget.containers):
+            for col_idx, container in enumerate(row):
+                if container == self:
+                    return row_idx, col_idx
+        return -1, -1
+
+    def calculate_new_position(self, grid_widget, row_idx, col_idx):
+        """그리드 위치를 기반으로 Line과 Time 계산"""
+        if not grid_widget or not hasattr(grid_widget, 'row_headers'):
+            return None, None
+        
+        # 행 헤더에서 Line과 교대 정보 추출
+        if row_idx < len(grid_widget.row_headers):
+            row_key = grid_widget.row_headers[row_idx]
+            if '_(' in row_key:
+                line_part = row_key.split('_(')[0]
+                shift_part = row_key.split('_(')[1].rstrip(')')
+                
+                # Time 계산
+                is_day_shift = shift_part == "주간"
+                new_time = (col_idx * 2) + (1 if is_day_shift else 2)
+                
+                return line_part, new_time
+        
+        return None, None

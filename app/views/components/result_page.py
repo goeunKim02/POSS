@@ -479,7 +479,12 @@ class ResultPage(QWidget):
 
     """아이템 데이터가 변경되었을 때 호출되는 함수"""
     def on_item_data_changed(self, item, new_data):
-        # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
+        # 위치 변경에 의한 호출인지 확인
+        if hasattr(item, '_is_position_change'):
+            # 위치 변경은 on_cell_moved에서 처리하므로 여기서는 무시
+            return
+        
+        # 수량 변경이 있는 경우 업데이트
         if 'Qty' in new_data and pd.notna(new_data['Qty']):
             line = new_data.get('Line')
             time = new_data.get('Time')

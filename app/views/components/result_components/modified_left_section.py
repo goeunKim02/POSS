@@ -106,7 +106,7 @@ class ModifiedLeftSection(QWidget):
         
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
-
+        
         if hasattr(self, 'validator'):
             # 어디가 변경인지 확인
             is_move = False
@@ -286,10 +286,7 @@ class ModifiedLeftSection(QWidget):
                     print(f"\n=== cell_moved 시그널 발생 ===")
                     print(f"이전 데이터: {old_data}")
                     print(f"새 데이터: {new_data}")
-
-                    # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
-                    self.item_data_changed.emit(new_item, new_data)
-                    return  # 이후 코드는 실행하지 않음
+                    return  
                 else:
                     print("새 아이템 생성 실패")
                     return
@@ -303,13 +300,11 @@ class ModifiedLeftSection(QWidget):
                     print(f"아이템 데이터 업데이트 실패: {error_message}")
                     return
 
-        # 데이터 변경 성공 시
-        self.mark_as_modified()
+            # 데이터 변경 성공 시
+            self.mark_as_modified()
 
-        self.cell_moved.emit(item, old_data, new_data)
-
-        # 상위 위젯에 이벤트 전달
-        self.item_data_changed.emit(item, new_data)
+            # 상위 위젯에 이벤트 전달
+            self.item_data_changed.emit(item, new_data)
         
 
     """엑셀 파일 로드"""
