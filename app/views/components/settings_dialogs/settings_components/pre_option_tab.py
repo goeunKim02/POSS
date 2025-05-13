@@ -57,13 +57,13 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         )
 
         plan_retention1_section.add_setting_item(
-            "SKU Plan Retention Rate 1", "op_SKU_1", "spinbox",
+            "SKU Plan Retention Rate 1", "op_SKU_1", "input",
             min=0, max=100, default=SettingsStore.get("op_SKU_1", 100),
             suffix="%"
         )
 
         plan_retention1_section.add_setting_item(
-            "RMC Plan Retention Rate 1", "op_RMC_1", "spinbox",
+            "RMC Plan Retention Rate 1", "op_RMC_1", "input",
             min=0, max=100, default=SettingsStore.get("op_RMC_1", 100),
             suffix="%"
         )
@@ -80,13 +80,13 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         )
 
         plan_retention2_section.add_setting_item(
-            "SKU Plan Retention Rate 2", "op_SKU_2", "spinbox",
+            "SKU Plan Retention Rate 2", "op_SKU_2", "input",
             min=0, max=100, default=SettingsStore.get("op_SKU_2", 100),
             suffix="%"
         )
 
         plan_retention2_section.add_setting_item(
-            "RMC Plan Retention Rate 2", "op_RMC_2", "spinbox",
+            "RMC Plan Retention Rate 2", "op_RMC_2", "input",
             min=0, max=100, default=SettingsStore.get("op_RMC_2", 100),
             suffix="%"
         )
