@@ -60,6 +60,11 @@ class VisualizationUpdater:
                 'show_legend': is_comparison,
                 'ylim': None,
                 'show_thresholds': True,
+                # 내림차순 정렬 파라미터 명시적 추가
+                'sort_data': True,
+                'sort_descending': True,
+                # 비교 차트인 경우 정렬 기준 설정 (조정된 데이터 기준)
+                'sort_by': 'adjusted' if is_comparison else None,
                 'thresholds': {
                     'I': {'lower_limit': 69.5, 'upper_limit': 100},
                     'D': {'lower_limit': 8.3, 'upper_limit': 100},
@@ -91,7 +96,9 @@ class VisualizationUpdater:
                 'threshold_labels': ['Good', 'Warning', 'High'],
                 'show_value': True,
                 'value_fontsize': 14,
-                'show_legend': is_comparison
+                'show_legend': is_comparison,
+                # 요일 데이터는 고정된 순서를 유지해야 하므로 정렬 비활성화
+                'sort_data': False
             }
         }
        
@@ -114,7 +121,9 @@ class VisualizationUpdater:
         #     'extra_params': {
         #         'show_value': True,
         #         'value_fontsize': 14,
-        #         'show_legend': is_comparison
+        #         'show_legend': is_comparison,
+        #         'sort_data': True,
+        #         'sort_descending': True 
         #     }
         # }
         
@@ -155,7 +164,8 @@ class VisualizationUpdater:
                 'threshold_colors': ['#FFD6D6', '#FFAAAA', '#FF7777'],  # 연한 빨강 → 진한 빨강
                 'value_fontsize': 14,
                 'max_bars': 20,  # 최대 표시 항목 수
-                'sort_descending': True,  # 내림차순 정렬
+                'sort_data': True,
+                'sort_descending': True,
                 'truncate_labels': False,  # 긴 레이블 축약
                 'label_max_length': 20,  # 레이블 최대 길이
                 'annotate_above_bars': True,  # 막대 위에 값 표시
