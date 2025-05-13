@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QFrame, QLabel, QPushButton, QHBoxLayout, QSizePolicy
-from PyQt5.QtCore import pyqtSignal,Qt
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QCursor, QFont
+from app.resources.fonts.font_manager import font_manager  # 폰트 매니저 임포트
 
 
 class Navbar(QFrame):
@@ -25,7 +26,7 @@ class Navbar(QFrame):
             QPushButton {
                 color: white;
                 border: 3px solid white;
-                padding: 8px 16px;
+                padding: 4px 8px;
                 background-color: transparent;
                 border-radius: 10px;
             }
@@ -39,33 +40,24 @@ class Navbar(QFrame):
 
         logo_label = QLabel("SAMSUNG Production Planning Optimization")
         logo_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        logo_font = QFont()
-        logo_font.setFamily("Arial")
-        logo_font.setPointSize(13)
-        logo_font.setBold(True)
-        logo_font.setWeight(80)
-        logo_label.setFont(logo_font)
 
+        # font_manager 사용
+        logo_font = font_manager.get_font("SamsungOne-700", 13)
+        logo_label.setFont(logo_font)
 
         navbar_layout.addWidget(logo_label)
         navbar_layout.addStretch()
 
         settings_btn = QPushButton("Settings")
         settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        settings_font = QFont()
-        settings_font.setFamily("Arial")
-        settings_font.setPointSize(9)
-        settings_font.setBold(True)
-        settings_btn.setFont(settings_font)
 
+        # font_manager 사용
+        btn_font = font_manager.get_font("SamsungOne-700", 9, QFont.Bold)
+        settings_btn.setFont(btn_font)
 
         help_btn = QPushButton("Help")
         help_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        help_font = QFont()
-        help_font.setFamily("Arial")
-        help_font.setPointSize(9)
-        help_font.setBold(True)
-        help_btn.setFont(help_font)
+        help_btn.setFont(btn_font)  # 같은 폰트 사용
 
         # 시그널 연결
         help_btn.clicked.connect(self.help_clicked.emit)

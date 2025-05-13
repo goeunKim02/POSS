@@ -1,14 +1,15 @@
-# app/views/components/settings_dialogs/settings_components/pre_option_tab.py
-from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
+# app/views/components/settings_dialogs/settings_components/pre_option_tab.py - 모던한 Pre-Option 탭
+from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QComboBox, QCheckBox
 from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
-from .settings_section import SettingsSectionComponent
+from .settings_section import ModernSettingsSectionComponent
 from app.models.common.settings_store import SettingsStore
+from app.resources.fonts.font_manager import font_manager
 
 
-class PreOptionTabComponent(BaseTabComponent):
-    """사전 옵션 탭 컴포넌트"""
+class ModernPreOptionTabComponent(BaseTabComponent):
+    """모던한 디자인의 사전 옵션 탭 컴포넌트"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -16,130 +17,197 @@ class PreOptionTabComponent(BaseTabComponent):
 
     def init_content(self):
         """콘텐츠 초기화"""
-        # 콘텐츠 프레임 생성
-        self.content_frame = QFrame()
-        self.content_frame.setStyleSheet("""
+        # 헤더 섹션
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
             QFrame {
-                background-color: #F9F9F9;
-                border-radius: 10px;
-                border: 1px solid #cccccc;
-                margin: 10px;
+                background-color: transparent;
+                border: none;
+                padding-bottom: 5px;
+                border-bottom: 2px solid #1428A0;
             }
         """)
 
-        # 콘텐츠 프레임 레이아웃 생성
-        frame_layout = QVBoxLayout(self.content_frame)
-        frame_layout.setContentsMargins(20, 20, 20, 20)
-        frame_layout.setSpacing(15)
+        header_layout = QVBoxLayout(header_frame)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        header_layout.setSpacing(8)
 
-        # 제목 레이블 생성
+        # 제목 레이블
         title_label = QLabel("Pre-Option Settings")
-        title_font = QFont("Arial", 14)
-        title_font.setBold(True)
+        title_font = font_manager.get_font("SamsungSharpSans-Bold", 20, QFont.Bold)
         title_label.setFont(title_font)
-        title_label.setStyleSheet(
-            "color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent;")
-        title_label.setMinimumHeight(40)
+        title_label.setStyleSheet("color: #1428A0; border: none;")
+        header_layout.addWidget(title_label)
 
-        # 설명 레이블
-        desc_label = QLabel("Configure the plan retention rate and pre-assignment settings.")
-        desc_label.setWordWrap(True)
-        desc_font = QFont("Arial", 11)
-        desc_label.setFont(desc_font)
-        desc_label.setStyleSheet("margin-bottom: 15px; background-color: transparent; border:none;")
-
-        # 섹션들을 담을 프레임
-        sections_frame = QFrame()
-        sections_frame.setStyleSheet("background-color: transparent; border:none;")
-        sections_layout = QVBoxLayout(sections_frame)
-        sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(15)  # 섹션간 간격
-
-        # 계획 유지율 섹션 1
-        plan_retention1_section = SettingsSectionComponent("Plan Retention Rate 1")
-        plan_retention1_section.setting_changed.connect(self.on_setting_changed)
+        # 컨텐츠에 헤더 추가
+        self.content_layout.addWidget(header_frame)
 
         # 날짜 선택 옵션 (1~14일)
         days = [str(i) for i in range(1, 15)]
 
-        # 계획 유지율 1 설정 항목 추가
+        # 계획 유지율 섹션 1
+        plan_retention1_section = ModernSettingsSectionComponent("Plan Retention Rate 1")
+        plan_retention1_section.setting_changed.connect(self.on_setting_changed)
+
+        # 버튼 그룹으로 변경
         plan_retention1_section.add_setting_item(
-            "Plan Retention Rate 1", "op_timeset_1", "multiselect",
-            items=days, default=SettingsStore.get("op_timeset_1", [])
+            "Plan Retention Rate 1", "op_timeset_1", "button_group",
+            items=days, default=SettingsStore.get("op_timeset_1", []),
+            columns=7  # 7열로 표시
         )
 
         plan_retention1_section.add_setting_item(
-            "SKU Plan Retention Rate 1", "op_SKU_1", "spinbox",
+            "SKU Plan Retention Rate 1", "op_SKU_1", "input",
             min=0, max=100, default=SettingsStore.get("op_SKU_1", 100),
             suffix="%"
         )
 
         plan_retention1_section.add_setting_item(
-            "RMC Plan Retention Rate 1", "op_RMC_1", "spinbox",
+            "RMC Plan Retention Rate 1", "op_RMC_1", "input",
             min=0, max=100, default=SettingsStore.get("op_RMC_1", 100),
             suffix="%"
         )
 
         # 계획 유지율 섹션 2
-        plan_retention2_section = SettingsSectionComponent("Plan Retention Rate 2")
+        plan_retention2_section = ModernSettingsSectionComponent("Plan Retention Rate 2")
         plan_retention2_section.setting_changed.connect(self.on_setting_changed)
 
-        # 계획 유지율 2 설정 항목 추가
+        # 버튼 그룹으로 변경
         plan_retention2_section.add_setting_item(
-            "Plan Retention Rate 2", "op_timeset_2", "multiselect",
-            items=days, default=SettingsStore.get("op_timeset_2", [])
+            "Plan Retention Rate 2", "op_timeset_2", "button_group",
+            items=days, default=SettingsStore.get("op_timeset_2", []),
+            columns=7  # 7열로 표시
         )
 
         plan_retention2_section.add_setting_item(
-            "SKU Plan Retention Rate 2", "op_SKU_2", "spinbox",
+            "SKU Plan Retention Rate 2", "op_SKU_2", "input",
             min=0, max=100, default=SettingsStore.get("op_SKU_2", 100),
             suffix="%"
         )
 
         plan_retention2_section.add_setting_item(
-            "RMC Plan Retention Rate 2", "op_RMC_2", "spinbox",
+            "RMC Plan Retention Rate 2", "op_RMC_2", "input",
             min=0, max=100, default=SettingsStore.get("op_RMC_2", 100),
             suffix="%"
         )
 
         # 사전 할당 섹션
-        pre_allocation_section = SettingsSectionComponent("Pre-Assignment")
+        pre_allocation_section = ModernSettingsSectionComponent("Pre-Assignment")
         pre_allocation_section.setting_changed.connect(self.on_setting_changed)
 
-        # 사전 할당 설정 항목 추가
-        pre_allocation_section.add_setting_item(
+        # 체크박스 추가
+        checkbox_widget = pre_allocation_section.add_setting_item(
             "Apply Pre-Assignment Ratio", "max_min_ratio_ox", "checkbox",
             default=bool(SettingsStore.get("max_min_ratio_ox", 0))
         )
 
-        # 1~50 범위의 숫자 리스트 생성
-        margins = [str(i) for i in range(1, 51)]
+        # 0~50 범위의 숫자 리스트 생성
+        margins = [str(i) for i in range(0, 51)]
 
-        pre_allocation_section.add_setting_item(
+        # 콤보박스 추가 (기본값 0)
+        default_margin = SettingsStore.get("max_min_margin", 0)
+        combobox_widget = pre_allocation_section.add_setting_item(
             "Pre-Assignment Ratio for Primary Execution", "max_min_margin", "combobox",
             items=margins,
-            default_index=SettingsStore.get("max_min_margin", 10) - 1  # 인덱스는 0부터 시작하므로 -1
+            default_index=default_margin
         )
 
-        # 섹션 프레임에 모든 섹션 추가
-        sections_layout.addWidget(plan_retention1_section)
-        sections_layout.addWidget(plan_retention2_section)
-        sections_layout.addWidget(pre_allocation_section)
+        # 체크박스와 콤보박스 연결
+        if isinstance(checkbox_widget, QCheckBox) and isinstance(combobox_widget, QComboBox):
+            # 초기 상태 설정
+            combobox_widget.setEnabled(checkbox_widget.isChecked())
 
-        # 메모 레이블
-        note_label = QLabel("The plan adherence rate is a configuration that ensures continuity with the prior plan.")
-        note_label.setStyleSheet(
-            "font-style: italic; color: #666; margin-top: 20px; background-color: transparent; border:none;")
+            # 비활성화 시 스타일 적용
+            if not checkbox_widget.isChecked():
+                combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
 
-        # 프레임 레이아웃에 위젯 추가
-        frame_layout.addWidget(title_label)
-        frame_layout.addWidget(desc_label)
-        frame_layout.addWidget(sections_frame)
-        frame_layout.addWidget(note_label)
-        frame_layout.addStretch(1)  # 하단 여백용 스트레치 추가
+            # 체크박스 상태 변경 시 콤보박스 활성/비활성화
+            def on_checkbox_state_changed(state):
+                is_checked = bool(state)
+                combobox_widget.setEnabled(is_checked)
 
-        # 메인 레이아웃에 콘텐츠 프레임 추가
-        self.content_layout.addWidget(self.content_frame)
+                # 활성화/비활성화에 따른 스타일 변경
+                if is_checked:
+                    combobox_widget.setStyleSheet(self._get_enabled_combobox_style())
+                else:
+                    combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
+
+                    # 비활성화 시 기본값으로 초기화
+                    combobox_widget.setCurrentIndex(0)  # 0으로 초기화
+                    self.on_setting_changed("max_min_margin", 0)
+
+            checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
+
+        # 섹션 추가
+        self.content_layout.addWidget(plan_retention1_section)
+        self.content_layout.addWidget(plan_retention2_section)
+        self.content_layout.addWidget(pre_allocation_section)
+
+        # 스트레치 추가
+        self.content_layout.addStretch(1)
+
+    def _get_enabled_combobox_style(self):
+        """활성화된 콤보박스 스타일"""
+        return """
+            QComboBox {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QComboBox:focus {
+                border-color: #1428A0;
+            }
+            QComboBox:hover {
+                border-color: #adb5bd;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(none);
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #666;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid #dee2e6;
+                background-color: white;
+                selection-background-color: #e9ecef;
+                selection-color: #1428A0;
+            }
+        """
+
+    def _get_disabled_combobox_style(self):
+        """비활성화된 콤보박스 스타일"""
+        return """
+            QComboBox {
+                background-color: #f5f5f5;
+                border: 1px solid #ddd;
+                color: #888;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(none);
+                width: 0;
+                height: 0;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #888;
+            }
+        """
 
     def on_setting_changed(self, key, value):
         """설정 변경 시 호출되는 콜백"""

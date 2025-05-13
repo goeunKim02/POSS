@@ -102,4 +102,4 @@ class DateRangeSelector(QWidget):
             return self.start_date_edit.date(), self.end_date_edit.date()
         except Exception as e:
             print(f"날짜 범위 조회 오류: {e}")
-            return QDate.currentDate(), QDate.currentDate().addDays(7)
+            return QDate.currentDate(), QDate.currentDate().addDays(6)

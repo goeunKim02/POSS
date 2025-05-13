@@ -1,39 +1,45 @@
-# app/views/components/settings_dialogs/settings_components/base_tab.py - 설정 기본 탭 컴포넌트
+# app/views/components/settings_dialogs/settings_components/base_tab.py - 모던한 기본 탭 컴포넌트
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QPalette, QColor
 
 
 class BaseTabComponent(QWidget):
-    """설정 탭의 기본 클래스"""
+    """모던한 디자인의 설정 탭 기본 클래스"""
     # 설정 변경 시그널 정의
     settings_changed = pyqtSignal(str, object)  # 키, 값
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(15, 15, 15, 15)
-        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
-        # 스크롤 영역 생성
+        # 스크롤 영역 생성 (모던 스타일)
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QScrollArea.NoFrame)
 
-        # 스크롤바 스타일 추가
+        # 배경색 설정
         self.scroll_area.setStyleSheet("""
             QScrollArea {
-                background-color:#F9F9F9; 
-                border-radius:10px;
+                background-color: #ffffff;
+                border: none;
             }
             QScrollBar:vertical {
+                background: #f8f9fa;
                 border: none;
                 width: 10px;
                 margin: 0px;
+                border-radius: 5px;
             }
             QScrollBar::handle:vertical {
-                background: #cccccc;
-                min-height: 20px;
+                background: #dee2e6;
+                min-height: 30px;
                 border-radius: 5px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #ced4da;
             }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                 border: none;
@@ -44,14 +50,19 @@ class BaseTabComponent(QWidget):
                 background: none;
             }
             QScrollBar:horizontal {
+                background: #f8f9fa;
                 border: none;
                 height: 10px;
                 margin: 0px;
+                border-radius: 5px;
             }
             QScrollBar::handle:horizontal {
-                background: #cccccc;
-                min-width: 20px;
+                background: #dee2e6;
+                min-width: 30px;
                 border-radius: 5px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #ced4da;
             }
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
                 border: none;
@@ -65,9 +76,10 @@ class BaseTabComponent(QWidget):
 
         # 스크롤 내용을 담을 위젯
         self.content_widget = QWidget()
+        self.content_widget.setStyleSheet("background-color: #ffffff;")
         self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(10)
+        self.content_layout.setContentsMargins(40, 40, 40, 40)
+        self.content_layout.setSpacing(24)
         self.content_layout.setAlignment(Qt.AlignTop)
 
         # 스크롤 영역에 콘텐츠 위젯 설정

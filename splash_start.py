@@ -11,7 +11,10 @@ class SamsungSplashScreen(QWidget):
         super().__init__()
         self.setWindowTitle("Samsung Production Planning System")
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setFixedSize(800, 350)  # 스플래시 화면 크기
+
+        screen = self.screen()
+        screen_size = screen.availableGeometry()
+        self.resize(int(screen_size.width()*0.5), int(screen_size.height()*0.4))
 
         # 창을 화면 중앙에 배치
         self.center()

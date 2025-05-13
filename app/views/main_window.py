@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.tab_widget.setStyleSheet("""
                 QTabWidget::pane {
-                    border: none;  /* 상단 탭과 연결을 위해 상단 테두리 제거 */
+                    border-top: 1px solid #cccccc;  
                 }
                 QTabBar::tab:selected {
                     background-color: #F5F5F5;  /* 선택된 탭의 배경색 (파랑색) */
