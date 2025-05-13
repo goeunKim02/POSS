@@ -13,6 +13,8 @@ from app.utils.error_handler import (
     error_handler, safe_operation,
     DataError, FileError, ValidationError, CalculationError
 )
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 class MainWindow(QMainWindow):
 
@@ -53,35 +55,43 @@ class MainWindow(QMainWindow):
 
         self.tab_widget = QTabWidget()
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
-        self.tab_widget.setStyleSheet("""
-                QTabWidget::pane {
-                    border-top: 1px solid #cccccc;  
-                }
-                QTabBar::tab:selected {
-                    background-color: #F5F5F5;  /* 선택된 탭의 배경색 (파랑색) */
-                    color: black;               /* 선택된 탭의 텍스트 색상 */
-                    font-family: Arial, sans-serif;
-                    font-weight: bold;
+        self.tab_widget.setStyleSheet(f"""      
+                    QTabWidget::pane {{
+                        background-color: #ffffff;
+                        border: none;
+                        border-top: 1px solid #e9ecef;
+                        border-radius: 0px;
+                    }}
 
-                }
-                QTabBar::tab:!selected {
-                    background-color: #E4E3E3;  
-                    font-family: Arial, sans-serif;
-                    font-weight: bold;
-                }
-                QTabBar::tab {
-                    padding: 8px 16px;          /* 탭 내부 여백 */
-                    min-width: 250px;           /* 최소 탭 너비 */
-                    margin-left: 7px;
-                    border-top-left-radius: 10px;
-                    border-top-right-radius: 10px;
-                    font-family: Arial, sans-serif;
-                    font-weight: bold;
-                    border: 1px solid #cccccc;
-                    border-bottom: none;
-                }
-                QTabBar::tab::first { margin-left: 10px;}
-            """)
+                    QTabBar {{
+                        background-color: #f8f9fa;
+                        border: none;
+                        border-radius: 0px;
+                    }}
+
+                    QTabBar::tab {{
+                        background: transparent;
+                        color: #666;
+                        padding: {p(8)}px {p(12)}px;
+                        font-family: {font_manager.get_just_font("SamsungOne-700").family()};
+                        font-size: {fs(13)}px;
+                        font-weight: 600;
+                        border-bottom: 3px solid transparent;
+                        margin-right: 0px;
+                    }}
+
+                    QTabBar::tab:hover {{
+                        color: #1428A0;
+                        background: rgba(20, 40, 160, 0.05);
+                    }}
+
+                    QTabBar::tab:selected {{
+                        color: #1428A0;
+                        font-weight: 700;
+                        border-bottom: 3px solid #1428A0;
+                        background: rgba(20, 40, 160, 0.05);
+                    }}
+                """)
 
         self.data_input_page = DataInputPage()
         self.data_input_page.file_selected.connect(self.on_file_selected)
