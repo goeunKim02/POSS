@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QLabel, QTabWidget, QPushButton, QSizePolicy, QHBoxLayout
 )
+from app.resources.fonts.font_manager import font_manager
 from app.resources.styles.result_style import ResultStyles
 from app.utils.error_handler import (
     error_handler, safe_operation,
@@ -73,24 +74,24 @@ class LeftParameterComponent(QWidget):
 
         for i, btn_text in enumerate(self.metrics) :
             btn = QPushButton(btn_text)
+            btn.setFont(font_manager.get_font("SamsungOne-700", 14))
             btn.setCursor(QCursor(Qt.PointingHandCursor))
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
-            btn.clicked.connect(lambda checked, idx=i: self.switch_tab(idx))
+            btn.clicked.connect(lambda checked, idx=i :self.switch_tab(idx))
 
              # 균등한 크기로 설정
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             btn.setFixedHeight(40)  # 높이만 고정
-            btn.clicked.connect(lambda checked, idx=i: self.switch_tab(idx))
 
             button_group_layout.addWidget(btn)
             self.tab_buttons.append(btn)
-
-            # # 해당 버튼에 대응하는 콘텐츠 페이지 생성
-            # page = QWidget()
-            # page_layout = QVBoxLayout(page)
+            # 버튼 스타일 업데이트
+          
+        layout.addLayout(button_group_layout)
 
 
         self.tab_widget = QTabWidget()
+        self.tab_widget.tabBar().hide()
         for metric in self.metrics :
             try :
                 page = QWidget()
@@ -337,4 +338,10 @@ class LeftParameterComponent(QWidget):
 
 
     def switch_tab(self, index):
-        self.viz_stack.setCurrentIndex(index)
+        """
+        index 번째 탭으로 전환
+        """
+        for i, btn in enumerate(self.tab_buttons):
+            btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == index else ResultStyles.INACTIVE_BUTTON_STYLE)
+        self.tab_widget.setCurrentIndex(index)
+        self._on_tab_changed(index)

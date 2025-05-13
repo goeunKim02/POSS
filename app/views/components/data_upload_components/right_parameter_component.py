@@ -38,7 +38,7 @@ class RightParameterComponent(QWidget):
 
         minimize_button = QPushButton()
         minimize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarMinButton))
-        minimize_button.setStyleSheet("border: 1px solid gray; border-radius: 5px;")
+        minimize_button.setStyleSheet("border: 2px solid #cccccc; border-radius: 5px;")
         minimize_button.clicked.connect(self.close_button_clicked.emit)
 
         # Problems 와 최소화버튼
