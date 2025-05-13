@@ -999,10 +999,26 @@ class ResultPage(QWidget):
 
     # 최적화 결과를 사전할당 정보와 함께 설정
     def set_optimization_result(self, results):
+        # 전달받은 데이터 출력
+        # print("=== 사전할당 페이지에서 전달받은 데이터 ===")
+        # print(f"Keys in results: {list(results.keys())}")
+        
         # 결과 데이터 추출
         assignment_result = results.get('assignment_result')
+        # if assignment_result is not None:
+        #     print(f"assignment_result type: {type(assignment_result)}")
+        #     print(f"assignment_result shape: {assignment_result.shape}")
+        #     print("assignment_result columns:", assignment_result.columns.tolist())
+        #     print("assignment_result first 5 rows:")
+        #     print(assignment_result.head())
+
         pre_assigned_items = results.get('pre_assigned_items', [])
+        # print(f"pre_assigned_items: {pre_assigned_items}")
+        # print(f"Number of pre_assigned_items: {len(pre_assigned_items)}")
+
         optimization_metadata = results.get('optimization_metadata', {})
+        # print(f"optimization_metadata: {optimization_metadata}")
+        # print("=" * 40)
 
         # 사전할당 아이템 저장 
         self.pre_assigned_items = set(pre_assigned_items)
