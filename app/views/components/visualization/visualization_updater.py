@@ -1,5 +1,5 @@
 from app.views.components.visualization.visualizaiton_manager import VisualizationManager
-from app.views.components.visualization.DisplayHelper import DisplayHelper
+from app.views.components.visualization.display_helper import DisplayHelper
 from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 
@@ -86,7 +86,7 @@ class VisualizationUpdater:
             'transform_data': VisualizationUpdater._transform_utilization_data,
             'extra_params': {
                 'ylim': (0, 110), 
-                'threshold_values': [80, 100, 105],
+                'threshold_values': [80, 100, 110],
                 'threshold_colors': ['#4CAF50', '#FFC107', '#F44336'],
                 'threshold_labels': ['Good', 'Warning', 'High'],
                 'show_value': True,
