@@ -9,7 +9,6 @@ class DataTableComponent:
         # 데이터프레임으로 테이블 위젯 생성
         # 컨테이너 위젯 생성
         container = QWidget()
-        container.setStyleSheet("border-radius: 10px; background-color: white;")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
 

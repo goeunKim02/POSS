@@ -65,7 +65,7 @@ class FileTabManager:
             }
         """)
 
-        self.stacked_widget.setStyleSheet("border: 2px solid #cccccc; background-color: white;")
+        self.stacked_widget.setContentsMargins(0, 0, 0, 0)
 
     # 파일 탭 제목 설정 부분을 수정
     # file_tab_manager.py 파일의 create_new_tab 메서드에서 수정할 부분
@@ -113,13 +113,14 @@ class FileTabManager:
             # 새 탭용 위젯 생성
             tab_widget = QWidget()
             tab_layout = QVBoxLayout(tab_widget)
-            tab_layout.setContentsMargins(0, 0, 0, 0)
+            tab_layout.setContentsMargins(3, 3, 3, 3)
 
             # 필터 컴포넌트 생성
             filter_component = EnhancedTableFilterComponent()
 
             # 데이터 테이블 생성
             data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
+            data_container.setStyleSheet("border-radius: 10px; background-color: white; border:3px solid #cccccc;")
             tab_layout.addWidget(data_container)
 
             # 새 탭과 스택 위젯 항목 추가
@@ -351,6 +352,7 @@ class FileTabManager:
         # Start Page 위젯 생성
         empty_widget = QWidget()
         empty_layout = QVBoxLayout(empty_widget)
+        empty_layout.setContentsMargins(0, 0, 0, 0)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
         empty_msg.setAlignment(Qt.AlignCenter)
         empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")

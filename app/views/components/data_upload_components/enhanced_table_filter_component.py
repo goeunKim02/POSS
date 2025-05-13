@@ -248,7 +248,7 @@ class EnhancedTableFilterComponent(QWidget):
             QHeaderView {
                 border: 1px solid #cccccc;
                 background-color: transparent;
-                border-radius: 10px;
+                border-radius: 5px;
             }
             QHeaderView::section {
                 background-color: #F5F5F5;

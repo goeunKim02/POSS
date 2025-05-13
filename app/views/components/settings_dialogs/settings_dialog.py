@@ -1,8 +1,9 @@
-# app/views/components/settings_dialogs/settings_dialog.py - 설정 다이얼로그 클래스
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame, QApplication, \
-    QMessageBox
-from PyQt5.QtGui import QFont, QCursor
+# app/views/components/settings_dialogs/settings_dialog.py - 모던한 디자인으로 개선된 설정 다이얼로그
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+                             QTabWidget, QFrame, QApplication, QMessageBox, QWidget)
+from PyQt5.QtGui import QFont, QCursor, QPalette, QColor
 from PyQt5.QtCore import Qt, pyqtSignal
+from app.resources.fonts.font_manager import font_manager
 
 # 분리된 탭 컴포넌트 import
 from app.views.components.settings_dialogs.settings_components import (
@@ -15,7 +16,7 @@ from app.models.common.settings_store import SettingsStore
 
 
 class SettingsDialog(QDialog):
-    """설정 다이얼로그 창"""
+    """모던하게 디자인된 설정 다이얼로그 창"""
 
     # 설정 변경 시그널 정의
     settings_changed = pyqtSignal(dict)  # 변경된 설정 값 딕셔너리
@@ -23,16 +24,14 @@ class SettingsDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Samsung Production Planning Optimization Settings")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
-        # 화면 크기 가져오기
-        desktop = QApplication.desktop()
-        screen_rect = desktop.availableGeometry(self)
-        screen_width, screen_height = screen_rect.width(), screen_rect.height()
+        # 모던한 스타일 설정
+        self.setStyle()
 
-        # 화면 크기의 80%로 다이얼로그 크기 설정
-        dialog_width = int(screen_width * 0.8)
-        dialog_height = int(screen_height * 0.8)
-        self.resize(dialog_width, dialog_height)
+        screen = self.screen()
+        screen_size = screen.availableGeometry()
+        self.resize(int(screen_size.width() * 0.5), int(screen_size.height() * 0.8))
 
         self.settings_map = {}  # 변경된 설정 추적
         self.init_ui()
@@ -40,156 +39,163 @@ class SettingsDialog(QDialog):
         # 초기 설정 상태 저장
         self.original_settings = self.settings_map.copy()
 
+    def setStyle(self):
+        """전체적인 모던 스타일 설정"""
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #ffffff;
+                border-radius: 0px;
+            }
+        """)
+
+        # 창 그림자 효과 추가
+        if hasattr(self, 'setGraphicsEffect'):
+            from PyQt5.QtWidgets import QGraphicsDropShadowEffect
+            shadow = QGraphicsDropShadowEffect()
+            shadow.setBlurRadius(60)
+            shadow.setXOffset(0)
+            shadow.setYOffset(20)
+            shadow.setColor(QColor(0, 0, 0, 80))
+            self.setGraphicsEffect(shadow)
+
     def init_ui(self):
+        screen = self.screen()
+        screen_size = screen.availableGeometry()
+
         # 메인 레이아웃
+        main_frame = QFrame()
+        main_frame.setStyleSheet("""
+        border-radius: 0px;
+        """)
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # 제목 레이블
-        title_frame = QFrame()
-        title_frame.setFrameShape(QFrame.StyledPanel)
-        title_frame.setStyleSheet("background-color: #1428A0; border: none;")
-        title_frame.setFixedHeight(60)
-
-        # 프레임 레이아웃 생성
-        title_frame_layout = QVBoxLayout(title_frame)
-        title_frame_layout.setContentsMargins(20, 0, 10, 0)
-        title_frame_layout.setAlignment(Qt.AlignLeft)
-
-        # 제목 레이블 생성
-        title_label = QLabel("Settings")
-        title_font = QFont("Arial", 14)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet("color: white;")  # 텍스트 색상 설정
-
-        # 레이아웃에 레이블 추가
-        title_frame_layout.addWidget(title_label)
-
-        # 메인 레이아웃에 프레임 추가
-        main_layout.addWidget(title_frame)
-
-        # 탭 위젯 생성
+        # 탭 위젯 생성 (모던 스타일)
         self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet(
-            """      
-                QTabBar::tab::first { margin-left: 10px;}
-                QTabBar {
-                    background-color: transparent;
-                    border: none;
-                    font-family : Arial;
+        self.tab_widget.setStyleSheet(f"""      
+            QTabWidget::pane {{
+                background-color: #ffffff;
+                border: none;
+                border-top: 1px solid #e9ecef;
+                border-radius: 0px;
+            }}
 
-                }
-                QTabBar::tab {
-                    background: #f0f0f0;
-                    border: 1px solid #cccccc;
-                    border-top-left-radius: 10px;
-                    border-top-right-radius: 10px;
-                    padding: 6px 10px;
-                    margin-right: 2px;
-                    margin-bottom: 0px;
-                }
-                QTabBar::tab:selected, QTabBar::tab:hover {
-                    background: #1428A0;
-                    color: white;
-                    font-family : Arial;
-                }
-            """
-        )
+            QTabBar {{
+                background-color: #f8f9fa;
+                border: none;
+                border-radius: 0px;
+            }}
 
-        # 탭 컴포넌트 생성
+            QTabBar::tab {{
+                background: transparent;
+                color: #666;
+                padding: 16px 24px;
+                font-family: {font_manager.get_just_font("SamsungOne-700").family()};
+                font-size: 14px;
+                font-weight: 600;
+                border-bottom: 3px solid transparent;
+                margin-right: 0px;
+            }}
+
+            QTabBar::tab:hover {{
+                color: #1428A0;
+                background: rgba(20, 40, 160, 0.05);
+            }}
+
+            QTabBar::tab:selected {{
+                color: #1428A0;
+                font-weight: 700;
+                border-bottom: 3px solid #1428A0;
+                background: rgba(20, 40, 160, 0.05);
+            }}
+        """)
+
+        # 탭 컴포넌트 생성 (모던 스타일 적용)
         self.basic_tab = BasicTabComponent()
         self.pre_option_tab = PreOptionTabComponent()
         self.detail_tab = DetailTabComponent()
+
+        # 모던 스타일 적용
+        for tab in [self.basic_tab, self.pre_option_tab, self.detail_tab]:
+            self.apply_modern_style_to_tab(tab)
 
         # 설정 변경 이벤트 연결
         self.basic_tab.settings_changed.connect(self.on_setting_changed)
         self.pre_option_tab.settings_changed.connect(self.on_setting_changed)
         self.detail_tab.settings_changed.connect(self.on_setting_changed)
 
+        # Material Constraint와 Weight by Material Quantity 연동
+        self.connect_material_constraint_to_weight()
+
         # 탭 추가
         self.tab_widget.addTab(self.basic_tab, "Basic")
         self.tab_widget.addTab(self.pre_option_tab, "Pre-Option")
         self.tab_widget.addTab(self.detail_tab, "Detail")
 
-        # 버튼 레이아웃
+        # 버튼 영역 (모던 스타일)
         button_frame = QFrame()
-        button_frame.setStyleSheet("background-color: #F0F0F0; border: none;")
-        button_layout = QHBoxLayout(button_frame)
-        button_layout.setContentsMargins(0, 0, 30, 10)
-
-        # 초기화 버튼
-        reset_button = QPushButton("Reset")
-        reset_button_font = QFont("Arial", 10)
-        reset_button_font.setBold(True)
-        reset_button.setFont(reset_button_font)
-        reset_button.setStyleSheet("""
-            QPushButton {
-                background-color: #FF5252;
+        button_frame.setStyleSheet("""
+            QFrame {
+                background-color: #f0f0f0;
                 border: none;
-                color: white;
-                border-radius: 10px;
-                width: 130px;
-                height: 50px;
-            }
-            QPushButton:hover {
-                background-color: #FF7676;
-                border: none;
-                color: white;
+                border-top: 1px solid #e9ecef;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
             }
         """)
-        reset_button.setCursor(QCursor(Qt.PointingHandCursor))
-        reset_button.clicked.connect(self.reset_settings)  # 초기화 함수 연결
+        button_layout = QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(0, 20, 40, 20)
 
-        # 저장 및 닫기 버튼
+        # 저장 버튼 (모던 스타일)
         save_button = QPushButton("Save")
-        save_button_font = QFont("Arial", 10)
-        save_button_font.setBold(True)
-        save_button.setFont(save_button_font)
+        save_button.setFont(QFont("Arial", 10, QFont.Bold))
         save_button.setStyleSheet("""
             QPushButton {
                 background-color: #1428A0;
                 border: none;
                 color: white;
-                border-radius: 10px;
-                width: 130px;
-                height: 50px;
+                border-radius: 8px;
+                padding: 12px 32px;
+                font-size: 15px;
+                font-weight: 700;
+                min-width: 130px;
             }
             QPushButton:hover {
+                background-color: #1a35cc;
+            }
+            QPushButton:pressed {
                 background-color: #1e429f;
-                border: none;
-                color: white;
             }
         """)
         save_button.setCursor(QCursor(Qt.PointingHandCursor))
         save_button.clicked.connect(self.save_settings)
 
-        # 취소 버튼
+        # 취소 버튼 (모던 스타일)
         cancel_button = QPushButton("Cancel")
-        cancel_button_font = QFont("Arial", 10)
-        cancel_button_font.setBold(True)
-        cancel_button.setFont(cancel_button_font)
+        cancel_button.setFont(QFont("Arial", 10, QFont.Bold))
         cancel_button.setStyleSheet("""
             QPushButton {
-                background-color: #DDDDDD;
+                background-color: #dddddd;
                 border: none;
                 color: #333333;
-                border-radius: 10px;
-                width: 130px;
-                height: 50px;
+                border-radius: 8px;
+                padding: 12px 32px;
+                font-size: 15px;
+                font-weight: 700;
+                min-width: 130px;
             }
             QPushButton:hover {
-                background-color: #CCCCCC;
-                border: none;
-                color: #333333;
+                background-color: #cccccc;
+            }
+            QPushButton:pressed {
+                background-color: #bbbbbb;
             }
         """)
         cancel_button.setCursor(QCursor(Qt.PointingHandCursor))
-        cancel_button.clicked.connect(self.reject)  # 다이얼로그 취소
+        cancel_button.clicked.connect(self.reject)
 
         button_layout.addStretch(1)
-        button_layout.addWidget(reset_button)  # 초기화 버튼 추가
         button_layout.addWidget(cancel_button)
         button_layout.addWidget(save_button)
 
@@ -200,17 +206,170 @@ class SettingsDialog(QDialog):
         # 설정 로드
         self.load_settings()
 
+    def apply_modern_style_to_tab(self, tab):
+        """탭에 모던 스타일 적용"""
+        tab.setStyleSheet("""
+            QScrollArea {
+                background-color: #ffffff;
+                border: none;
+            }
+
+            QScrollBar:vertical {
+                background: #f8f9fa;
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+
+            QScrollBar::handle:vertical {
+                background: #dee2e6;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+
+            QScrollBar::handle:vertical:hover {
+                background: #ced4da;
+            }
+        """)
+
+    def connect_material_constraint_to_weight(self):
+        """Material Constraint와 Weight by Material Quantity 연동"""
+        try:
+            # Detail 탭에서 Material Constraint 체크박스 찾기
+            material_constraint_checkbox = None
+            for i in range(self.detail_tab.content_layout.count()):
+                section = self.detail_tab.content_layout.itemAt(i).widget()
+                # ModernSettingsSectionComponent인지 확인
+                from app.views.components.settings_dialogs.settings_components.settings_section import \
+                    ModernSettingsSectionComponent
+                if isinstance(section, ModernSettingsSectionComponent) and section.title == "Material":
+                    # Material section에서 mat_use 체크박스 찾기
+                    from PyQt5.QtWidgets import QFormLayout, QCheckBox
+                    for j in range(section.settings_layout.rowCount()):
+                        label_item = section.settings_layout.itemAt(j, QFormLayout.LabelRole)
+                        field_item = section.settings_layout.itemAt(j, QFormLayout.FieldRole)
+                        if label_item and field_item:
+                            label_widget = label_item.widget()
+                            field_widget = field_item.widget()
+                            if isinstance(label_widget, QLabel) and label_widget.text() == "Material Constraint":
+                                if isinstance(field_widget, QCheckBox):
+                                    material_constraint_checkbox = field_widget
+                                    break
+                    break
+
+            # Basic 탭에서 Weight by Material Quantity 더블스핀박스 찾기
+            weight_material_spinbox = None
+            for i in range(self.basic_tab.content_layout.count()):
+                section = self.basic_tab.content_layout.itemAt(i).widget()
+                # ModernSettingsSectionComponent인지 확인
+                from app.views.components.settings_dialogs.settings_components.settings_section import \
+                    ModernSettingsSectionComponent
+                if isinstance(section, ModernSettingsSectionComponent) and section.title == "Weight":
+                    # Weight section에서 weight_mat_qty 스핀박스 찾기
+                    from PyQt5.QtWidgets import QFormLayout, QDoubleSpinBox
+                    for j in range(section.settings_layout.rowCount()):
+                        label_item = section.settings_layout.itemAt(j, QFormLayout.LabelRole)
+                        field_item = section.settings_layout.itemAt(j, QFormLayout.FieldRole)
+                        if label_item and field_item:
+                            label_widget = label_item.widget()
+                            field_widget = field_item.widget()
+                            if isinstance(label_widget,
+                                          QLabel) and label_widget.text() == "Weight by Material Quantity":
+                                if isinstance(field_widget, QDoubleSpinBox):
+                                    weight_material_spinbox = field_widget
+                                    break
+                    break
+
+            # 체크박스와 스핀박스가 모두 찾아졌다면 연결
+            if material_constraint_checkbox and weight_material_spinbox:
+                # 초기 상태 설정
+                weight_material_spinbox.setEnabled(material_constraint_checkbox.isChecked())
+
+                # 기본값 저장
+                default_value = SettingsStore.get("weight_mat_qty", 1.0)
+                weight_material_spinbox.setProperty('default_value', default_value)
+
+                # 비활성화 시 스타일 적용
+                if not material_constraint_checkbox.isChecked():
+                    weight_material_spinbox.setStyleSheet(self._get_disabled_doublespinbox_style())
+
+                # 체크박스 상태 변경 시 스핀박스 활성/비활성화
+                def on_material_constraint_changed(state):
+                    is_checked = bool(state)
+                    weight_material_spinbox.setEnabled(is_checked)
+
+                    # 활성화/비활성화에 따른 스타일 변경
+                    if is_checked:
+                        weight_material_spinbox.setStyleSheet(self._get_enabled_doublespinbox_style())
+                    else:
+                        weight_material_spinbox.setStyleSheet(self._get_disabled_doublespinbox_style())
+
+                        # 비활성화 시 기본값으로 복원
+                        if weight_material_spinbox.property('default_value'):
+                            weight_material_spinbox.setValue(weight_material_spinbox.property('default_value'))
+                            # 변경 사항 알림
+                            self.on_setting_changed("weight_mat_qty", weight_material_spinbox.property('default_value'))
+
+                material_constraint_checkbox.stateChanged.connect(on_material_constraint_changed)
+
+        except Exception as e:
+            print(f"Error connecting material constraint to weight: {e}")
+
+    def _get_enabled_doublespinbox_style(self):
+        """활성화된 더블스핀박스 스타일"""
+        return """
+            QDoubleSpinBox {
+                background-color: #ffffff;
+                border: 1px solid #dee2e6;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QDoubleSpinBox:focus {
+                border-color: #1428A0;
+            }
+            QDoubleSpinBox:hover {
+                border-color: #adb5bd;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 16px;
+                height: 16px;
+                background-color: #f8f9fa;
+                border: none;
+            }
+            QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+                background-color: #e9ecef;
+            }
+        """
+
+    def _get_disabled_doublespinbox_style(self):
+        """비활성화된 더블스핀박스 스타일"""
+        return """
+            QDoubleSpinBox {
+                background-color: #f5f5f5;
+                border: 1px solid #ddd;
+                color: #888;
+                border-radius: 6px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: Arial;
+            }
+            QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+                width: 16px;
+                height: 16px;
+                background-color: #f0f0f0;
+                border: none;
+            }
+        """
+
     def load_settings(self):
         """저장된 설정 로드"""
-        # 설정 파일에서 설정 로드
         SettingsStore.load_settings()
-
-        # 모든 설정 값을 복사
         self.settings_map = SettingsStore.get_all()
 
     def on_setting_changed(self, key, value):
         """설정 변경 시 호출되는 콜백"""
-        # 변경된 설정 추적
         self.settings_map[key] = value
 
     def save_settings(self):
@@ -225,57 +384,60 @@ class SettingsDialog(QDialog):
             # 설정 변경 시그널 발생
             self.settings_changed.emit(self.settings_map)
 
-            # 성공 메시지 표시
-            QMessageBox.information(self, "Save Settings", "Settings have been saved successfully.")
+            # 모던한 성공 메시지
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Success")
+            msg.setText("Settings have been saved successfully.")
+            msg.setIcon(QMessageBox.Information)
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: #333;
+                    font-size: 14px;
+                }
+                QMessageBox QPushButton {
+                    background-color: #1428A0;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QMessageBox QPushButton:hover {
+                    background-color: #1a35cc;
+                }
+            """)
+            msg.exec_()
 
             # 다이얼로그 종료
             self.accept()
 
         except Exception as e:
             # 에러 메시지 표시
-            QMessageBox.critical(self, "Save Error", f"An error occurred while saving the settings:\n{str(e)}")
-
-    def reset_settings(self):
-        """설정값을 기본값으로 초기화"""
-        # 확인 대화상자 표시
-        reply = QMessageBox.question(
-            self,
-            "Reset Settings",
-            "Reset all settings to default?\nThis action cannot be undone.",
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
-        )
-
-        if reply == QMessageBox.Yes:
-            # SettingsStore 초기화하고 기본값 받아오기
-            default_settings = SettingsStore.reset_to_default()
-            self.settings_map = default_settings
-
-            # UI 다시 로드 (탭 위젯 재생성)
-            # 현재 탭 인덱스 저장
-            current_tab = self.tab_widget.currentIndex()
-
-            # 기존 탭 제거
-            while self.tab_widget.count() > 0:
-                self.tab_widget.removeTab(0)
-
-            # 탭 컴포넌트 재생성
-            self.basic_tab = BasicTabComponent()
-            self.pre_option_tab = PreOptionTabComponent()
-            self.detail_tab = DetailTabComponent()
-
-            # 설정 변경 이벤트 다시 연결
-            self.basic_tab.settings_changed.connect(self.on_setting_changed)
-            self.pre_option_tab.settings_changed.connect(self.on_setting_changed)
-            self.detail_tab.settings_changed.connect(self.on_setting_changed)
-
-            # 탭 추가
-            self.tab_widget.addTab(self.basic_tab, "Basic")
-            self.tab_widget.addTab(self.pre_option_tab, "Pre-Option")
-            self.tab_widget.addTab(self.detail_tab, "Detail")
-
-            # 이전에 선택한 탭으로 복원
-            self.tab_widget.setCurrentIndex(current_tab)
-
-            # 메시지 표시
-            QMessageBox.information(self, "Reset Settings", "Settings have been reset to default values.")
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Error")
+            msg.setText(f"An error occurred while saving the settings:\n{str(e)}")
+            msg.setIcon(QMessageBox.Critical)
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                }
+                QMessageBox QLabel {
+                    color: #333;
+                    font-size: 14px;
+                }
+                QMessageBox QPushButton {
+                    background-color: #dc3545;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    font-weight: bold;
+                }
+                QMessageBox QPushButton:hover {
+                    background-color: #c82333;
+                }
+            """)
+            msg.exec_()

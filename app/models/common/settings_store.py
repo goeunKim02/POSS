@@ -24,7 +24,7 @@ class SettingsStore:
         "op_SKU_2": 100,  # SKU_계획유지율_2
         "op_RMC_2": 100,  # RMC_계획유지율_2
         "max_min_ratio_ox": 0,  # 사전할당 비율 반영여부
-        "max_min_margin": 10,  # 1차 수행 사전할당 비율
+        "max_min_margin": 0,  # 1차 수행 사전할당 비율
 
         # Detail 설정
         "op_InputRoute": "",  # 인풋경로
