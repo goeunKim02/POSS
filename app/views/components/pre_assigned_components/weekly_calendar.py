@@ -69,7 +69,7 @@ class WeeklyCalendar(QWidget):
             if day_data.empty and night_data.empty:
                 continue
 
-            # 1) Line 레이블: 이 라인의 (Day/Night/구분선) 총 row 수에 span 걸어서 합체
+            # Line 레이블
             span = (1 if not day_data.empty else 0) \
                 + (1 if not night_data.empty else 0) \
                 + (1 if (not day_data.empty and not night_data.empty) else 0)  # 중간 구분선
@@ -80,7 +80,7 @@ class WeeklyCalendar(QWidget):
             line_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             layout.addWidget(line_label, row_index, 0, span, 1)
 
-            # 2) Day 섹션
+            # Day 섹션
             if not day_data.empty:
                 # Day 레이블
                 day_label = QLabel("Day")
@@ -103,7 +103,7 @@ class WeeklyCalendar(QWidget):
                     layout.addWidget(cell, row_index, col)
                 row_index += 1
 
-            # 3) Day↔Night 중간 구분선 (둘 다 있을 때만)
+            # Day/Night 중간 구분선
             if not day_data.empty and not night_data.empty:
                 mid_sep = QFrame()
                 mid_sep.setFrameShape(QFrame.HLine)
@@ -112,7 +112,7 @@ class WeeklyCalendar(QWidget):
                 layout.addWidget(mid_sep, row_index, 1, 1, layout.columnCount()-1)
                 row_index += 1
 
-            # 4) Night 섹션
+            # Night 섹션
             if not night_data.empty:
                 night_label = QLabel("Night")
                 night_label.setAlignment(Qt.AlignCenter)
@@ -133,7 +133,7 @@ class WeeklyCalendar(QWidget):
                     layout.addWidget(cell, row_index, col)
                 row_index += 1
 
-            # 5) 라인 종료 구분선
+            # 라인 종료 구분선
             end_sep = QFrame()
             end_sep.setFrameShape(QFrame.HLine)
             end_sep.setStyleSheet(SEPARATOR_STYLE)
@@ -146,12 +146,16 @@ class WeeklyCalendar(QWidget):
         self.adjustSize()
         self.setFixedHeight(self.sizeHint().height())
 
-    def show_detail_card(self, row: dict):
+    def show_detail_card(self):
         card = self.sender()
+        record = getattr(card, '_row', {})  
+        if not record:
+            QMessageBox.information(self, "No Details", "상세정보를 찾을 수 없습니다.")
+            return
 
-        row  = getattr(card, 'row', {})
-        dlg  = DetailDialog(row, self.time_map, parent=self)
+        dlg = DetailDialog(record, self.time_map, parent=self)
         dlg.exec_()
 
+        # 카드 상태 초기화
         card._is_selected = False
         card.setStyleSheet(card.base_style)
