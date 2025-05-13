@@ -2,18 +2,21 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QFileDialog, QFrame
 from PyQt5.QtGui import QCursor, QFont
 
+import os
+from app.models.common.fileStore import FilePaths
 
+
+"""
+파일 업로드 컴포넌트
+파일 선택, 표시, 제거 기능을 제공합니다.
+"""
 class FileUploadComponent(QWidget):
-    """
-    파일 업로드 컴포넌트
-    파일 선택, 표시, 제거 기능을 제공합니다.
-    """
     file_selected = pyqtSignal(str)  # 파일이 선택되었을 때 발생하는 시그널
     file_removed = pyqtSignal(str)  # 파일이 제거되었을 때 발생하는 시그널
 
     def __init__(self, parent=None, label_text="Upload Data:", button_text="Browse"):
         super().__init__(parent)
-        self.file_paths = []  # 선택된 파일 경로들을 저장할 리스트
+        self.file_paths = []
         self.no_files_label = None
         self.label_text = label_text
         self.button_text = button_text
@@ -35,15 +38,15 @@ class FileUploadComponent(QWidget):
         files_container = QWidget()
         self.files_display = QHBoxLayout(files_container)
         self.files_display.setContentsMargins(5, 0, 5, 0)
-        self.files_display.setSpacing(5)  # 파일 항목 간격 설정
-        self.files_display.setAlignment(Qt.AlignLeft)  # 왼쪽 정렬 설정
+        self.files_display.setSpacing(5)
+        self.files_display.setAlignment(Qt.AlignLeft)
 
         # 처음에는 안내 텍스트 표시
         self.no_files_label = QLabel("No files selected")
         self.no_files_label.setFont(QFont("Arial"))
         self.no_files_label.setStyleSheet("color: #888888; border:none; background-color: transparent; margin-left:5px")
         self.files_display.addWidget(self.no_files_label)
-        self.files_display.addStretch(1)  # 파일 라벨들이 왼쪽에 정렬되도록
+        self.files_display.addStretch(1)
 
         # 파일 선택 버튼
         browse_btn = QPushButton(self.button_text)
@@ -63,19 +66,20 @@ class FileUploadComponent(QWidget):
                 border:none;
             }
             QPushButton:hover {
-                background-color: #004C99; /* 원래 색상보다 약간 어두운 색 */
+                background-color: #004C99;
             }
             QPushButton:pressed {
-                background-color: #003366; /* 클릭 시에는 더 어두운 색 */
+                background-color: #003366;
             }
         """)
 
-        # 레이아웃에 위젯 추가
         self.layout.addWidget(files_container, 1)
         self.layout.addWidget(browse_btn)
 
+    """
+    파일 라벨 추가
+    """
     def add_file_label(self, file_path):
-        """파일 라벨 추가"""
         # 첫 파일이 추가되면 안내 텍스트 제거
         if self.no_files_label:
             self.files_display.removeWidget(self.no_files_label)
@@ -127,9 +131,10 @@ class FileUploadComponent(QWidget):
 
         return file_frame
 
+    """
+    파일 제거
+    """
     def remove_file(self, file_path, file_frame):
-        """파일 제거"""
-        # UI에서 라벨 제거
         self.files_display.removeWidget(file_frame)
         file_frame.deleteLater()
 
@@ -164,10 +169,12 @@ class FileUploadComponent(QWidget):
             self.no_files_label.setStyleSheet("color: #888888; border: none; background-color: transparent; margin-left:5px")
 
             self.files_display.addWidget(self.no_files_label)
-            self.files_display.addStretch(1)  # 왼쪽 정렬을 위한 stretch
+            self.files_display.addStretch(1)
 
+    """
+    파일 선택 다이얼로그 표시 - 여러 파일 선택 가능
+    """
     def on_file_btn_clicked(self):
-        """파일 선택 다이얼로그 표시 - 여러 파일 선택 가능"""
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
             "Excel 파일 선택 (여러 파일 선택 가능)",
@@ -177,35 +184,52 @@ class FileUploadComponent(QWidget):
 
         # 선택된 파일들 처리
         for file_path in file_paths:
-            # 중복 파일 체크
-            if file_path not in self.file_paths:
+            file_name = os.path.basename(file_path).lower()
+            file_type = None
+
+            if "demand" in file_name:
+                file_type = "demand_excel_file"
+            elif "dynamic" in file_name:
+                file_type = "dynamic_excel_file"
+            elif "master" in file_name:
+                file_type = "master_excel_file"
+            elif "result" in file_name:
+                file_type = "result_file"
+            elif "pre_assign" in file_name:
+                file_type = "pre_assign_excel_file"
+            else:
+                file_type = "etc_excel_file"
+
+            old_file_path = None
+
+            if file_type :
+                old_file_path = FilePaths.get(file_type)
+
+            if old_file_path and old_file_path in self.file_paths :
+                self.file_removed.emit(old_file_path)
+
+                for i in range(self.files_display.count()) :
+                    item = self.files_display.itemAt(i)
+
+                    if item and item.widget() :
+                        widget = item.widget()
+
+                        if hasattr(widget, 'findChild') :
+                            label = widget.findChild(QLabel)
+
+                            if label and os.path.basename(old_file_path) in label.text() :
+                                self.files_display.removeWidget(widget)
+                                widget.deleteLater()
+                                break
+
+                if old_file_path in self.file_paths :
+                    self.file_paths.remove(old_file_path)
+
+            if file_path not in self.file_paths :
                 self.add_file_label(file_path)
 
+    """
+    선택된 파일 경로 리스트 반환
+    """
     def get_file_paths(self):
-        """선택된 파일 경로 리스트 반환"""
         return self.file_paths
-
-    # def clear_files(self):
-    #     """모든 파일 제거"""
-    #     # 파일 리스트 복사해서 순회
-    #     file_paths_copy = self.file_paths.copy()
-    #
-    #     # 모든 위젯 제거 - 레이아웃을 완전히 비움
-    #     while self.files_display.count():
-    #         item = self.files_display.takeAt(0)
-    #         if item.widget():
-    #             item.widget().deleteLater()
-    #
-    #     # 파일 경로 리스트 비우기
-    #     self.file_paths.clear()
-    #
-    #     # 안내 텍스트 다시 표시 - 초기 설정과 동일하게
-    #     self.no_files_label = QLabel("No files selected")
-    #     self.no_files_label.setFont(QFont("Arial"))
-    #     self.no_files_label.setStyleSheet("color: #888888; border:none; background-color: transparent;")
-    #     self.files_display.addWidget(self.no_files_label)
-    #     self.files_display.addStretch(1)  # 왼쪽 정렬을 위한 stretch
-    #
-    #     # 제거된 모든 파일에 대해 시그널 발생
-    #     for file_path in file_paths_copy:
-    #         self.file_removed.emit(file_path)

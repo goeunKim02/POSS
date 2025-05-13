@@ -295,3 +295,13 @@ class LeftParameterComponent(QWidget):
                 summary_label.setText("Analysis summary")
         except Exception as summary_error :
             summary_label.setText('Error displaying summary')
+
+    """
+    선택된 탭 새로고침
+    """
+    def refresh_current_tab(self) :
+        current_index = self.tab_widget.currentIndex()
+
+        if 0 <= current_index < len(self.metrics) :
+            metric = self.metrics[current_index]
+            self._update_tab_content(metric)
