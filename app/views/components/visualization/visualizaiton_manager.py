@@ -31,8 +31,19 @@ class VisualizationManager:
 
         # 시각화에 필요한 형식으로 데이터 변환
         if isinstance(data, dict):
-            x_data = list(data.keys())
-            y_data = list(data.values())
+            # 정렬 기능 추가 - 데이터 정렬 옵션
+            sort_data = kwargs.get('sort_data', False)
+            sort_descending = kwargs.get('sort_descending', True)
+            
+            if sort_data:
+                # 딕셔너리를 값(value) 기준으로 정렬하여 리스트로 변환
+                sorted_items = sorted(data.items(), key=lambda x: x[1], reverse=sort_descending)
+                x_data = [item[0] for item in sorted_items]
+                y_data = [item[1] for item in sorted_items]
+            else:
+                # 기존 방식 유지
+                x_data = list(data.keys())
+                y_data = list(data.values())
         elif isinstance(data, pd.DataFrame):
             if 'x' in kwargs and 'y' in kwargs:
                 x_data = data[kwargs['x']].tolist()
@@ -71,14 +82,14 @@ class VisualizationManager:
                             upper = plant_thresholds['upper_limit']
                             # 특정 막대에 대해서만 임계선 그리기
                             ax.hlines(y=upper, xmin=i-0.4, xmax=i+0.4, colors='red', linestyles='dashed', alpha=0.7)
-                            # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                            # 임계점 텍스트 추가
                             ax.text(i, upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=16)
                         
                         # 하한 임계점
                         if 'lower_limit' in plant_thresholds:
                             lower = plant_thresholds['lower_limit']
                             ax.hlines(y=lower, xmin=i-0.4, xmax=i+0.4, colors='blue', linestyles='dashed', alpha=0.7)
-                            # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                            # 임계점 텍스트 추가
                             ax.text(i, lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=16)
 
             # threshold_values + threshold_colors 방식의 임계선 처리 (한 줄 임계선 표현)                
@@ -230,8 +241,6 @@ class VisualizationManager:
     """
     @staticmethod
     def create_comparison_bar_chart(data, title, xlabel, ylabel, ax, **kwargs):
-        print("create_comparison_bar_chart 함수 실행됨")
-        print(f"데이터 키: {list(data.keys())}")
         if 'original' not in data or 'adjusted' not in data:
             raise ValueError("Data must contain 'original' and 'adjusted' keys for comparison chart")
         
@@ -243,8 +252,35 @@ class VisualizationManager:
             days_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
             all_keys = [day for day in days_order if day in orig_data.keys() or day in adj_data.keys()]
         else:
-            # 모든 키(x축)를 가져옴
-            all_keys = sorted(set(list(orig_data.keys()) + list(adj_data.keys())))
+            # 정렬 기능 추가 - 비교 차트에서도 정렬 지원
+            sort_data = kwargs.get('sort_data', False) 
+            sort_descending = kwargs.get('sort_descending', True)
+            sort_by = kwargs.get('sort_by', 'adjusted')  # 정렬 기준 ('original', 'adjusted', 'sum', 'diff')
+            
+            if sort_data:
+                # 원본 및 조정 데이터의 모든 키 수집
+                all_keys_set = set(list(orig_data.keys()) + list(adj_data.keys()))
+                
+                # 정렬 기준에 따라 값 계산 및 정렬
+                if sort_by == 'original':
+                    # 원본 데이터 기준 정렬
+                    sort_dict = {k: orig_data.get(k, 0) for k in all_keys_set}
+                elif sort_by == 'sum':
+                    # 합계 기준 정렬
+                    sort_dict = {k: orig_data.get(k, 0) + adj_data.get(k, 0) for k in all_keys_set}
+                elif sort_by == 'diff':
+                    # 차이 기준 정렬
+                    sort_dict = {k: abs(adj_data.get(k, 0) - orig_data.get(k, 0)) for k in all_keys_set}
+                else:
+                    # 기본값 - 조정된 데이터 기준 정렬
+                    sort_dict = {k: adj_data.get(k, 0) for k in all_keys_set}
+                
+                # 딕셔너리를 값 기준으로 정렬하여 키만 추출
+                sorted_items = sorted(sort_dict.items(), key=lambda x: x[1], reverse=sort_descending)
+                all_keys = [item[0] for item in sorted_items]
+            else:
+                # 모든 키(x축)를 가져옴 (기존 로직)
+                all_keys = sorted(set(list(orig_data.keys()) + list(adj_data.keys())))
 
         # x 위치 설정
         x = np.arange(len(all_keys))
@@ -293,14 +329,14 @@ class VisualizationManager:
                         upper = plant_thresholds['upper_limit']
                         # 특정 막대들에 대해서만 임계선 그리기
                         ax.hlines(y=upper, xmin=x[i]-width, xmax=x[i]+width, colors='red', linestyles='dashed', alpha=0.7)
-                        # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                        # 임계점 텍스트 추가
                         ax.text(x[i], upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=16)
                     
                     # 하한 임계점
                     if 'lower_limit' in plant_thresholds:
                         lower = plant_thresholds['lower_limit']
                         ax.hlines(y=lower, xmin=x[i]-width, xmax=x[i]+width, colors='blue', linestyles='dashed', alpha=0.7)
-                        # 임계점 텍스트 추가 - 폰트 크기 18로 증가
+                        # 임계점 텍스트 추가
                         ax.text(x[i], lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=16)
                 
         # 차트 설정

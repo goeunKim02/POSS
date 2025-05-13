@@ -400,23 +400,58 @@ class ResultPage(QWidget):
     
     # 시각화 캔버스 초기화 
     def init_visualization_canvases(self):
+        """시각화 캔버스 초기화 및 캔버스 배열 정리"""
         self.viz_canvases = []
-
-        # Plan 제외한 탭들의 캔버스 찾기
-        for i in range(3):
+        
+        # 모든 탭의 캔버스 찾기
+        for i in range(self.viz_stack.count()):
             page = self.viz_stack.widget(i)
             if page:
-                # 페이지 내의 모든 자식 위젯 중 MplCanvas 찾기
-                canvas = None
-                for child in page.findChildren(MplCanvas):
-                    canvas = child
-                    break
-                
-                # 캔버스가 있으면 리스트에 추가
-                if canvas:
-                    self.viz_canvases.append(canvas)
-                else:
-                    print(f"Tab {i}에서 캔버스를 찾을 수 없습니다.")
+                # 특수 처리가 필요한 탭
+                if i == 0:  # Capa 탭
+                    # Capa 탭에는 두 개의 캔버스가 있으므로 모두 찾기
+                    capa_canvases = page.findChildren(MplCanvas)
+                    if len(capa_canvases) >= 2:
+                        # 첫 번째 캔버스는 Capa 차트용
+                        self.viz_canvases.append(capa_canvases[0])
+                        # 두 번째 캔버스는 Utilization 차트용
+                        self.viz_canvases.append(capa_canvases[1])
+                        print("Capa 탭: 2개의 캔버스를 찾았습니다.")
+                elif i == 1:  # Material 탭
+                    # Material 탭의 캔버스 찾기
+                    material_canvas = None
+                    for child in page.findChildren(MplCanvas):
+                        material_canvas = child
+                        break
+                    
+                    if material_canvas:
+                        self.viz_canvases.append(material_canvas)
+                        print("Material 탭: 캔버스를 찾았습니다.")
+                elif i == 2:  # PortCapa 탭
+                    # PortCapa 탭의 캔버스 찾기
+                    port_canvas = None
+                    for child in page.findChildren(MplCanvas):
+                        port_canvas = child
+                        break
+                    
+                    if port_canvas:
+                        self.viz_canvases.append(port_canvas)
+                        print("PortCapa 탭: 캔버스를 찾았습니다.")
+        
+        print(f"초기화된 캔버스 개수: {len(self.viz_canvases)}")
+        # 캔버스 매핑 정보 출력
+        for i, canvas in enumerate(self.viz_canvases):
+            canvas_type = "Unknown"
+            if i == 0:
+                canvas_type = "Capa"
+            elif i == 1:
+                canvas_type = "Utilization"
+            elif i == 2:
+                canvas_type = "Material"
+            elif i == 3:
+                canvas_type = "PortCapa"
+            
+            print(f"  - 캔버스[{i}]: {canvas_type} 타입")
 
 
     """이벤트 시그널 연결"""
@@ -475,14 +510,24 @@ class ResultPage(QWidget):
 
         self.viz_stack.setCurrentIndex(index)
 
+        # 버튼 스타일 업데이트
         for i, btn in enumerate(self.viz_buttons):
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == index else ResultStyles.INACTIVE_BUTTON_STYLE)
 
-        if index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
+        # 각 탭별 특수 처리
+        if index == 0:  # Capa 탭
+            # Capa 탭이 선택되면 두 캔버스(Capa, Utilization) 모두 업데이트
+            if len(self.viz_canvases) >= 2 and self.result_data is not None:
+                VisualizationUpdater.update_capa_chart(self.viz_canvases[0], self.capa_ratio_data)
+                VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
+        elif index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
+            # Material 탭 데이터 업데이트
             self.update_material_shortage_analysis()
         elif index == 4 and self.result_data is not None:  # Shipment 탭 (4번) 인덱스
+            # Shipment 탭 데이터 업데이트
             self.shipment_widget.run_analysis(self.result_data)
         elif index == 5 and self.result_data is not None:  # SplitView 탭 (5번) 인덱스
+            # SplitView 탭 데이터 업데이트
             if hasattr(self, 'split_allocation_widget'):
                 self.split_allocation_widget.run_analysis(self.result_data)
         else:
@@ -741,15 +786,34 @@ class ResultPage(QWidget):
         print(f"Capa 비율 데이터: {self.capa_ratio_data}")
         print(f"가동률 데이터: {self.utilization_data}")
 
-        for i, canvas in enumerate(self.viz_canvases):
-            viz_type = ["Capa", "Utilization", "Material", "PortCapa", "Plan", "Sheipment", "Sheipment2"][i]
-            print(f"  - 캔버스 {i}: {viz_type}, 유효함: {canvas is not None}")
-            self.update_visualization(canvas, viz_type)
+        # Capa 탭의 두 차트 업데이트 (0번과 1번 캔버스)
+        if len(self.viz_canvases) >= 2:
+            # 첫 번째 캔버스 - Capa 차트
+            VisualizationUpdater.update_capa_chart(self.viz_canvases[0], self.capa_ratio_data)
+            
+            # 두 번째 캔버스 - Utilization 차트
+            VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
+        
+        # Material 탭 캔버스 업데이트 (2번 캔버스)
+        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 1:  # Material 탭이 현재 선택된 경우
+            # Material 탭의 경우 캔버스 업데이트 후 테이블 업데이트까지 함께 수행
+            if self.result_data is not None and not self.result_data.empty:
+                self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(
+                    self.viz_canvases[2], self.result_data
+                )
+                if hasattr(self, 'shortage_items_table') and self.shortage_items_table is not None:
+                    self.update_shortage_items_table()
+        
+        # PortCapa 탭 캔버스 업데이트 (3번 캔버스) - 필요시
+        if len(self.viz_canvases) >= 4:
+            # PortCapa 시각화 업데이트 코드 (구현 예정)
+            pass
 
         print("시각화 업데이트 완료")
     
     """개별 시각화 차트 업데이트"""
     def update_visualization(self, canvas, viz_type):
+        """개별 시각화 차트 업데이트"""
         if viz_type == "Capa":
             VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
         elif viz_type == "Utilization":
@@ -762,6 +826,7 @@ class ResultPage(QWidget):
                 if hasattr(self, 'shortage_items_table') and self.shortage_items_table is not None:
                     self.update_shortage_items_table()
         elif viz_type == "PortCapa":
+            # PortCapa 업데이트 로직 (구현 예정)
             pass
 
 
@@ -845,14 +910,15 @@ class ResultPage(QWidget):
     """자재 부족량 분석 실행 및 UI 업데이트"""
 
     def update_material_shortage_analysis(self):
+        """자재 부족량 분석 실행 및 UI 업데이트"""
         if not hasattr(self, 'shortage_items_table') or self.shortage_items_table is None:
             print("자재 부족 테이블이 초기화되지 않았습니다.")
             return
                 
-        # Material 탭의 캔버스 찾기
+        # Material 탭의 캔버스 찾기 - viz_canvases에서 올바른 인덱스 사용
         material_canvas = None
         for i, canvas in enumerate(self.viz_canvases):
-            if i == 1:  # Material 탭 인덱스
+            if i == 2:  # Material 탭 캔버스 인덱스 (0:Capa, 1:Utilization, 2:Material)
                 material_canvas = canvas
                 break
                     
@@ -890,10 +956,10 @@ class ResultPage(QWidget):
             print("자재 부족량 분석기가 생성되지 않았습니다.")
             return
         
-        # 부족 모델을 왼쪽 위젯에 전달 (추가)
+        # 부족 모델을 왼쪽 위젯에 전달
         if self.material_analyzer.shortage_results:
             self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
-    
+
         if not self.material_analyzer.shortage_results:
             print("자재 부족량 분석 결과가 없습니다.")
             self.shortage_items_table.setRowCount(0)
