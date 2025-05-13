@@ -15,6 +15,8 @@ from ..components.result_components.maintenance_rate.plan_maintenance_widget imp
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
 from app.views.components.result_components.shipment_widget import ShipmentWidget
+from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
+
 
 
 class ResultPage(QWidget):
@@ -30,6 +32,7 @@ class ResultPage(QWidget):
         self.material_analyzer = None  # 자재 부족량 분석기 추가
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
         self.shipment_widget = None # 당주 출하 위젯 저장 변수
+        self.split_allocation_widget = None # 분산 배치 분석 위젯 저장 변수
         self.init_ui()
 
         self.connect_signals()
@@ -161,7 +164,7 @@ class ResultPage(QWidget):
         button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
 
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment", "Shipment2"]
+        viz_types = ["Capa", "Material", "Utilization", "PortCapa", "Plan", "Shipment", "SplitView"]
         active_button_style = """
             QPushButton {
                 background-color: #1428A0; 
@@ -343,8 +346,9 @@ class ResultPage(QWidget):
                 self.shipment_widget = ShipmentWidget()
                 self.shipment_widget.shipment_status_updated.connect(self.on_shipment_status_updated)
                 page_layout.addWidget(self.shipment_widget)
-            elif btn_text =='Shipment2':
-                pass
+            elif btn_text =='SplitView':
+                self.split_allocation_widget = SplitAllocationWidget()
+                page_layout.addWidget(self.split_allocation_widget)
             else:
                 # 시각화 캔버스 추가 (Capa, Utilization)
                 canvas = MplCanvas(width=6, height=4, dpi=100)
@@ -473,6 +477,9 @@ class ResultPage(QWidget):
             self.update_material_shortage_analysis()
         elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
             self.shipment_widget.run_analysis(self.result_data)
+        elif index == 6 and self.result_data is not None:  # SplitView 탭 (6번) 인덱스
+            if hasattr(self, 'split_allocation_widget'):
+                self.split_allocation_widget.run_analysis(self.result_data)
         elif index == 7 and self.result_data is not None:  # 새 탭 (7번) 인덱스
             # 새 탭 활성화 시 수행할 작업
             print("새 탭이 활성화됨")
@@ -565,6 +572,10 @@ class ResultPage(QWidget):
                     # 한 번에 데이터 설정 (자동으로 이전 계획 감지 및 로드)
                     self.plan_maintenance_widget.set_data(data, start_date, end_date)
                     print("계획 유지율 위젯 데이터 업데이트 완료")
+                
+                # 분산 배치 위젯 업데이트
+                if hasattr(self, 'split_allocation_widget'):
+                    self.split_allocation_widget.run_analysis(data)
 
                 # Capa 비율 분석
                 # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
@@ -1014,6 +1025,10 @@ class ResultPage(QWidget):
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
         if hasattr(self, 'shipment_widget') and assignment_result is not None:
                     self.shipment_widget.run_analysis(assignment_result)
+        
+        # 분산 배치 위젯 업데이트 (추가)
+        if hasattr(self, 'split_allocation_widget') and assignment_result is not None:
+            self.split_allocation_widget.run_analysis(assignment_result)
 
     """왼쪽 위젯에 사전할당 상태 적용"""
     def update_left_widget_pre_assigned_status(self, pre_assigned_items):
