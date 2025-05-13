@@ -62,7 +62,7 @@ class ItemStyle:
 
     PRE_ASSIGNED_SELECTED_STYLE = """
         background-color: #C2E0FF;
-        border: 3px solid #0078D7;
+        border: 3px solid #000000;
         border-radius: 4px;
         padding: 3px;
         margin: 2px;
@@ -70,7 +70,7 @@ class ItemStyle:
     
     PRE_ASSIGNED_HOVER_STYLE = """
         background-color: #E6E6E6;
-        border: 3px solid #4CAF50;
+        border: 3px solid #000000;
         border-radius: 4px;
         padding: 3px;
         margin: 2px;

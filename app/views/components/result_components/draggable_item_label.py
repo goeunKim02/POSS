@@ -358,7 +358,7 @@ class DraggableItemLabel(QLabel):
             elif self.is_shipment_failure:
                 self.setStyleSheet(ItemStyle.SHIPMENT_FAILURE_STYLE)
             else:
-                self.setStyleSheet(ItemStyle.SELECTED_STYLE)
+                self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
 
     """아이템 데이터로부터 표시 텍스트 업데이트"""
     def update_text_from_data(self):
