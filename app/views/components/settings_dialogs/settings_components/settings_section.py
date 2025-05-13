@@ -89,11 +89,9 @@ class ModernSettingsSectionComponent(QFrame):
                     padding: 10px 14px;
                     font-size: 14px;
                     font-family: Arial;
-                    transition: all 0.3s ease;
                 }
                 QLineEdit:focus {
                     border-color: #1428A0;
-                    box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
                 }
                 QLineEdit:hover {
                     border-color: #adb5bd;
@@ -120,7 +118,6 @@ class ModernSettingsSectionComponent(QFrame):
                 }
                 QSpinBox:focus {
                     border-color: #1428A0;
-                    box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
                 }
                 QSpinBox:hover {
                     border-color: #adb5bd;
@@ -179,7 +176,6 @@ class ModernSettingsSectionComponent(QFrame):
                 }
                 QDoubleSpinBox:focus {
                     border-color: #1428A0;
-                    box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
                 }
                 QDoubleSpinBox:hover {
                     border-color: #adb5bd;
@@ -258,7 +254,6 @@ class ModernSettingsSectionComponent(QFrame):
                 }
                 QComboBox:focus {
                     border-color: #1428A0;
-                    box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
                 }
                 QComboBox:hover {
                     border-color: #adb5bd;
@@ -315,7 +310,6 @@ class ModernSettingsSectionComponent(QFrame):
                 }
                 QLineEdit:focus {
                     border-color: #1428A0;
-                    box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
                 }
             """)
             path_input.setMinimumWidth(300)
@@ -547,7 +541,6 @@ class ModernSettingsSectionComponent(QFrame):
                 }
                 QComboBox:focus {
                     border-color: #1428A0;
-                    box-shadow: 0 0 0 3px rgba(20, 40, 160, 0.1);
                 }
                 QComboBox:hover {
                     border-color: #adb5bd;
