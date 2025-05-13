@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt
 
-
 class DetailDialog(QDialog):
     def __init__(self, row: dict, time_map: dict, parent=None):
         super().__init__(parent)
