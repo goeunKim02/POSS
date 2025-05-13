@@ -18,20 +18,20 @@ class Navbar(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #1428A0;
-                min-height: {h(50)}px;
-                max-height: {h(50)}px;
+                min-height: {h(45)}px;
+                max-height: {h(45)}px;
             }}
             QLabel {{
                 color: white;
             }}
             QPushButton {{
                 color: white;
-                border: {s(3)}px solid white;
+                border: {s(2)}px solid white;
                 padding: {p(4)}px {p(8)}px;
                 background-color: transparent;
-                border-radius: {s(10)}px;
+                border-radius: {s(5)}px;
                 min-width: {w(50)}px;
-                min-height: {h(20)}px;
+                min-height: {h(15)}px;
             }}
             QPushButton:hover {{
                 background-color: #1e429f;
@@ -47,6 +47,8 @@ class Navbar(QFrame):
 
         # font_manager 사용
         logo_font = font_manager.get_font("SamsungOne-700", fs(13))
+        logo_font.setBold(True)
+        logo_font.setWeight(99)
         logo_label.setFont(logo_font)
 
         navbar_layout.addWidget(logo_label)
@@ -56,7 +58,7 @@ class Navbar(QFrame):
         settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
 
         # font_manager 사용
-        btn_font = font_manager.get_font("SamsungOne-700", fs(9), QFont.Bold)
+        btn_font = font_manager.get_font("SamsungOne-700", fs(10), QFont.Bold)
         settings_btn.setFont(btn_font)
 
         help_btn = QPushButton("Help")
