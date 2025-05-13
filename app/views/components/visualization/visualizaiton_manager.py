@@ -72,14 +72,14 @@ class VisualizationManager:
                             # 특정 막대에 대해서만 임계선 그리기
                             ax.hlines(y=upper, xmin=i-0.4, xmax=i+0.4, colors='red', linestyles='dashed', alpha=0.7)
                             # 임계점 텍스트 추가 - 폰트 크기 18로 증가
-                            ax.text(i, upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=18)
+                            ax.text(i, upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=16)
                         
                         # 하한 임계점
                         if 'lower_limit' in plant_thresholds:
                             lower = plant_thresholds['lower_limit']
                             ax.hlines(y=lower, xmin=i-0.4, xmax=i+0.4, colors='blue', linestyles='dashed', alpha=0.7)
                             # 임계점 텍스트 추가 - 폰트 크기 18로 증가
-                            ax.text(i, lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=18)
+                            ax.text(i, lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=16)
 
             # threshold_values + threshold_colors 방식의 임계선 처리 (한 줄 임계선 표현)                
             if 'threshold_values' in kwargs and 'threshold_colors' in kwargs:
@@ -97,7 +97,7 @@ class VisualizationManager:
                     # 임계선 오른쪽에 라벨 표시
                     if len(x_data) > 0:
                         ax.text(len(x_data) - 1 + 0.2, threshold, f'{threshold}% {label}', 
-                                color=color, va='center', fontsize=18)
+                                color=color, va='center', fontsize=16)
                     
         elif chart_type == 'line':
             ax.plot(x_data, y_data, marker=kwargs.get('marker', 'o'), 
@@ -277,7 +277,7 @@ class VisualizationManager:
                 label = threshold_labels[i] if i < len(threshold_labels) else ''
                 ax.axhline(y=threshold, color=threshold_colors[i], linestyle='--', alpha=0.7)
                 ax.text(len(all_keys)-1 + 0.2, threshold, f'{threshold}% {label}', 
-                        color=threshold_colors[i], va='center', fontsize=10)
+                        color=threshold_colors[i], va='center', fontsize=16)
         
         # 임계점 표시 기능 추가 (비교 차트에도 적용)
         if kwargs.get('show_thresholds', False) and 'thresholds' in kwargs:
@@ -294,14 +294,14 @@ class VisualizationManager:
                         # 특정 막대들에 대해서만 임계선 그리기
                         ax.hlines(y=upper, xmin=x[i]-width, xmax=x[i]+width, colors='red', linestyles='dashed', alpha=0.7)
                         # 임계점 텍스트 추가 - 폰트 크기 18로 증가
-                        ax.text(x[i], upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=18)
+                        ax.text(x[i], upper, f"{upper}%", ha='center', va='bottom', color='red', fontsize=16)
                     
                     # 하한 임계점
                     if 'lower_limit' in plant_thresholds:
                         lower = plant_thresholds['lower_limit']
                         ax.hlines(y=lower, xmin=x[i]-width, xmax=x[i]+width, colors='blue', linestyles='dashed', alpha=0.7)
                         # 임계점 텍스트 추가 - 폰트 크기 18로 증가
-                        ax.text(x[i], lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=18)
+                        ax.text(x[i], lower, f"{lower}%", ha='center', va='top', color='blue', fontsize=16)
                 
         # 차트 설정
         ax.set_title(title, fontsize=kwargs.get('title_fontsize', 20))
@@ -316,8 +316,8 @@ class VisualizationManager:
             ax.set_ylim(0, max(max(orig_values, default=0), max(adj_values, default=0)) *1.2)
 
         ax.set_xticks(x)
-        ax.set_xticklabels(all_keys, fontsize=kwargs.get('tick_fontsize', 16))
-        ax.tick_params(axis='y', labelsize=kwargs.get('tick_fontsize', 16))
+        ax.set_xticklabels(all_keys, fontsize=kwargs.get('tick_fontsize', 14))
+        ax.tick_params(axis='y', labelsize=kwargs.get('tick_fontsize', 14))
 
         # 범례 추가
         if kwargs.get('show_legend', True):
