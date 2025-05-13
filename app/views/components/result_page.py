@@ -124,23 +124,23 @@ class ResultPage(QWidget):
         right_vertical_splitter.setHandleWidth(10)
         right_vertical_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
 
-        # 오른쪽 상단 컨테이너
-        right_top_frame = QFrame()
-        right_top_frame.setFrameShape(QFrame.StyledPanel)
-        right_top_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+        # 하단 컨테이너
+        bottom_frame = QFrame()
+        bottom_frame.setFrameShape(QFrame.StyledPanel)
+        bottom_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
         
-        right_top_layout = QVBoxLayout(right_top_frame)
-        right_top_layout.setContentsMargins(10, 10, 10, 10)
+        bottom_layout = QVBoxLayout(bottom_frame)
+        bottom_layout.setContentsMargins(10, 10, 10, 10)
 
-        # 상단 섹션 제목
-        top_section_title = QLabel("Adjustment Analysis")
-        font_top = QFont()
-        font_top.setFamily("Arial")
-        font_top.setPointSize(12)
-        font_top.setBold(True)
-        top_section_title.setFont(font_top)
-        top_section_title.setAlignment(Qt.AlignCenter)
-        right_top_layout.addWidget(top_section_title)
+        # 하단 섹션 제목
+        bottom_section_title = QLabel("Adjustment Analysis")
+        font_bottom = QFont()
+        font_bottom.setFamily("Arial")
+        font_bottom.setPointSize(12)
+        font_bottom.setBold(True)
+        bottom_section_title.setFont(font_bottom)
+        bottom_section_title.setAlignment(Qt.AlignCenter)
+        bottom_layout.addWidget(bottom_section_title)
 
         # 에러 표시 위젯
         self.error_display_widget = QWidget()
@@ -157,14 +157,14 @@ class ResultPage(QWidget):
         self.error_scroll_area.setWidget(self.error_display_widget)
         self.error_scroll_area.hide()  # 초기에는 숨김
         
-        right_top_layout.addWidget(self.error_scroll_area)
+        bottom_layout.addWidget(self.error_scroll_area)
 
-        # 오른쪽 하단 섹션 
-        right_bottom_frame = QFrame()
-        right_bottom_frame.setFrameShape(QFrame.StyledPanel)
-        right_bottom_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+        # 오른쪽 상단 섹션 
+        right_top_frame = QFrame()
+        right_top_frame.setFrameShape(QFrame.StyledPanel)
+        right_top_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
 
-        right_bottom_layout = QVBoxLayout(right_bottom_frame)
+        right_top_layout = QVBoxLayout(right_top_frame)
 
         # 지표 버튼
         button_group_layout = QHBoxLayout()
@@ -374,17 +374,17 @@ class ResultPage(QWidget):
             self.viz_stack.addWidget(page)
 
         # 레이아웃에 버튼 그룹과 스택 위젯 추가
-        right_bottom_layout.addLayout(button_group_layout)
-        right_bottom_layout.addWidget(self.viz_stack)
+        right_top_layout.addLayout(button_group_layout)
+        right_top_layout.addWidget(self.viz_stack)
 
         # 오른쪽 수직 스플리터에 상단과 하단 프레임 추가
         right_vertical_splitter.addWidget(right_top_frame)
-        right_vertical_splitter.addWidget(right_bottom_frame)
+        right_vertical_splitter.addWidget(bottom_frame)
         
         # 상단과 하단의 비율 설정 
-        right_vertical_splitter.setSizes([300, 700])
-        right_vertical_splitter.setStretchFactor(0, 3)  # 상단 30%
-        right_vertical_splitter.setStretchFactor(1, 7)  # 하단 70%
+        right_vertical_splitter.setSizes([700, 300])
+        right_vertical_splitter.setStretchFactor(0, 7)  # 상단 30%
+        right_vertical_splitter.setStretchFactor(1, 3)  # 하단 70%
 
         # 수평 스플리터에 왼쪽 프레임과 오른쪽 수직 스플리터 추가
         main_horizontal_splitter.addWidget(left_frame)
