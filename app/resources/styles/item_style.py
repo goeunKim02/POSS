@@ -152,7 +152,7 @@ class ItemStyle:
         margin: 2px;
     """
 
-        # 자재부족 + 출하실패 (자재부족 배경 우선)
+    # 자재부족 + 출하실패 (자재부족 배경 우선)
     SHORTAGE_SHIPMENT_STYLE = """
         background-color: #FFE0E0;
         border: 1px solid #FF8080;
@@ -204,8 +204,8 @@ class ItemStyle:
 
     # 검증 에러 상태 스타일
     VALIDATION_ERROR_STYLE = """
-        background-color: #FFEBEE;
-        border: 2px solid #F44336;
+        background-color: #F0F0F0;
+        border: 2px solid #f70c20;
         border-radius: 4px;
         padding: 5px;
         margin: 2px;

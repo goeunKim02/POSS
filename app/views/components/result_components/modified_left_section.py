@@ -155,14 +155,6 @@ class ModifiedLeftSection(QWidget):
 
         except Exception as e:
             print(f"검증 오류 발생: {e}")
-
-        # # 셀 이동이 먼저되기 때문에 changed_fields에서 데이터를 가져와야함.
-        # if changed_fields:
-        #     for field, change_info in changed_fields.items():
-        #         if field not in ['_drop_pos']:
-        #             if isinstance(change_info, dict) and 'from' in change_info:
-        #                 old_data[field] = change_info['from']
-        # print(f"복원된 이전 데이터: {old_data}")
         
         # 검증 통과 시
         # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인

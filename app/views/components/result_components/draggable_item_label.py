@@ -180,16 +180,16 @@ class DraggableItemLabel(QLabel):
     """마우스가 위젯 위에 올라갔을 때 호출됨"""
     def enterEvent(self, event):
         if not self.is_selected:
-            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패패
-                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_shi)
+            if self.is_validation_error:  # 조정 검증 에러
+                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_HOVER_STYLE) 
+            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패
+                self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_HOVER_STYLE)
             elif self.is_pre_assigned and self.is_shortage:  # 사전할당/자재부족
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_HOVER_STYLE)
             elif self.is_pre_assigned and self.is_shipment_failure:  # 사전할당/출하실패
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHIPMENT_HOVER_STYLE)
             elif self.is_shortage and self.is_shipment_failure:  # 자재부족/출하실패
                 self.setStyleSheet(ItemStyle.SHORTAGE_SHIPMENT_HOVER_STYLE) 
-            elif self.is_validation_error:  # 조정 검증 에러
-                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_HOVER_STYLE) 
             elif self.is_pre_assigned:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_HOVER_STYLE)
             elif self.is_shortage:
@@ -322,7 +322,9 @@ class DraggableItemLabel(QLabel):
     """현재 상태에 맞게 스타일 업데이트"""
     def update_style(self):
         if self.is_selected:
-            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
+            if self.is_validation_error:
+                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_SELECTED_STYLE)
+            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_SELECTED_STYLE)
             elif self.is_pre_assigned and self.is_shortage:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SELECTED_STYLE)
@@ -330,8 +332,6 @@ class DraggableItemLabel(QLabel):
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHIPMENT_SELECTED_STYLE)
             elif self.is_shortage and self.is_shipment_failure:
                 self.setStyleSheet(ItemStyle.SHORTAGE_SHIPMENT_SELECTED_STYLE)  
-            elif self.is_validation_error:
-                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_SELECTED_STYLE)
             elif self.is_pre_assigned:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SELECTED_STYLE)
             elif self.is_shortage:
@@ -341,7 +341,9 @@ class DraggableItemLabel(QLabel):
             else:
                 self.setStyleSheet(ItemStyle.SELECTED_STYLE)
         else:
-            if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
+            if self.is_validation_error:
+                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_STYLE)
+            elif self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_STYLE)
             elif self.is_pre_assigned and self.is_shortage:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_STYLE)
@@ -349,8 +351,6 @@ class DraggableItemLabel(QLabel):
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHIPMENT_STYLE)
             elif self.is_shortage and self.is_shipment_failure:
                 self.setStyleSheet(ItemStyle.SHORTAGE_SHIPMENT_STYLE) 
-            if self.is_validation_error:
-                self.setStyleSheet(ItemStyle.VALIDATION_ERROR_STYLE)
             elif self.is_pre_assigned:
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_STYLE)
             elif self.is_shortage:

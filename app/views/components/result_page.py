@@ -468,10 +468,10 @@ class ResultPage(QWidget):
                         
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
-        # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
-        if self.viz_stack.currentIndex() == 4 and self.shipment_widget and index != 4:
-            # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
-            self.shipment_widget.reset_state()
+        # # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
+        # if self.viz_stack.currentIndex() == 4 and self.shipment_widget and index != 4:
+        #     # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
+        #     self.shipment_widget.reset_state()
 
         self.viz_stack.setCurrentIndex(index)
 
@@ -482,12 +482,9 @@ class ResultPage(QWidget):
             self.update_material_shortage_analysis()
         elif index == 4 and self.result_data is not None:  # Shipment 탭 (4번) 인덱스
             self.shipment_widget.run_analysis(self.result_data)
-        elif index == 6 and self.result_data is not None:  # SplitView 탭 (6번) 인덱스
+        elif index == 5 and self.result_data is not None:  # SplitView 탭 (5번) 인덱스
             if hasattr(self, 'split_allocation_widget'):
                 self.split_allocation_widget.run_analysis(self.result_data)
-        elif index == 7 and self.result_data is not None:  # 새 탭 (7번) 인덱스
-            # 새 탭 활성화 시 수행할 작업
-            print("새 탭이 활성화됨")
         else:
             # 다른 탭으로 전환 시 자재 부족 상태 초기화
             self.clear_left_widget_shortage_status()
@@ -528,7 +525,6 @@ class ResultPage(QWidget):
         if viz_type == "Capa":
             VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
         
-
         elif viz_type == "Utilization":
             if self.utilization_data is None:
                 try:
@@ -756,6 +752,8 @@ class ResultPage(QWidget):
     def update_visualization(self, canvas, viz_type):
         if viz_type == "Capa":
             VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
+        elif viz_type == "Utilization":
+            VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
         elif viz_type == "Material":
             # Material 탭의 경우 캔버스 업데이트 후 테이블 업데이트까지 함께 수행
             if self.result_data is not None and not self.result_data.empty:
@@ -763,8 +761,6 @@ class ResultPage(QWidget):
                 self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(canvas, self.result_data)
                 if hasattr(self, 'shortage_items_table') and self.shortage_items_table is not None:
                     self.update_shortage_items_table()
-        elif viz_type == "Utilization":
-            VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
         elif viz_type == "PortCapa":
             pass
 
