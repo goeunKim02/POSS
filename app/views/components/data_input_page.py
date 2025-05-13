@@ -580,7 +580,7 @@ class DataInputPage(QWidget) :
                                 if row.get('PJT') == 'Total' and row.get('status') == 'Error' :
                                     issues.append({
                                         'line': row.get('PJT Group', ''),
-                                        'reason': '용량 초과',
+                                        'reason': 'capacity exceeded',
                                         'available': row.get('CAPA', 0),
                                         'excess': self.extract_number(row.get('MFG', 0)) - self.extract_number(row.get('CAPA, 0')) if row.get('MFG') and row.get('CAPA') else 0,
                                         'cap_limit': row.get('CAPA', 0),
@@ -613,7 +613,6 @@ class DataInputPage(QWidget) :
             print(f'error : {str(e)}')
 
         self.parameter_component.show_failures.emit(failures)
-        self.left_parameter_component.refresh_current_tab()
 
     """
     Save 버튼 클릭 시 현재 데이터를 원본 파일에 저장
