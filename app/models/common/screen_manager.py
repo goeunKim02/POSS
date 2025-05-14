@@ -7,16 +7,20 @@ import platform
 
 
 class ScreenManager:
-    # 기준 해상도
+    # 기준 해상도 (FHD 기준)
     BASE_WIDTH = 1920
     BASE_HEIGHT = 1080
     BASE_DPI = 96
 
-    # FHD를 QHD처럼 보이게 하는 스케일
-    FHD_TO_QHD_SCALE = 0.95
+    # 스케일 캐시 (성능 최적화)
+    _scale_cache = {}
+    _last_update_time = 0
 
     def __init__(self):
-        pass
+        # 주기적으로 스케일 캐시 업데이트 (모니터 이동 감지)
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_scale_cache)
+        self.update_timer.start(1000)  # 1초마다 체크
 
     @staticmethod
     def get_current_screen(widget: QWidget = None) -> QScreen:
@@ -69,22 +73,66 @@ class ScreenManager:
         }
 
     @staticmethod
-    def get_scale_factor(screen: QScreen = None) -> float:
-        """현재 스크린의 스케일 팩터 계산 (FHD를 QHD처럼 보이게 하는 용도)"""
+    def get_scale_factor(screen: QScreen = None, force_update: bool = False) -> float:
+        """현재 스크린의 스케일 팩터 계산 (시스템 스케일을 보정하는 버전)"""
         if not screen:
             screen = ScreenManager.get_current_screen()
 
         if not screen:
             return 1.0
 
+        # 캐시 체크 (성능 최적화)
+        screen_name = screen.name()
+        if not force_update and screen_name in ScreenManager._scale_cache:
+            return ScreenManager._scale_cache[screen_name]
+
         info = ScreenManager.get_screen_info(screen)
+
+        # 1. 시스템 스케일 감지
+        detected_system_scale = 1.0
+        if platform.system() == 'Windows':
+            detected_system_scale = info['logical_dpi'] / ScreenManager.BASE_DPI
+        elif platform.system() == 'Darwin':  # macOS
+            detected_system_scale = info['device_pixel_ratio']
+        else:  # Linux
+            detected_system_scale = info['logical_dpi'] / ScreenManager.BASE_DPI
+
+        # 2. 시스템 스케일을 보정하여 100%로 만들기
+        # 예: 시스템이 125%면 1/1.25 = 0.8을 곱해서 100%로 만듦
+        scale_correction = 1.0 / detected_system_scale
+
+        # 3. 해상도 기반 스케일
         width = info['width']
 
-        # FHD인 경우에만 스케일 적용
-        if width == 1920:
-            return ScreenManager.FHD_TO_QHD_SCALE
-        else:
-            return 0.8
+        if width >= 2560:  # QHD 이상
+            # QHD는 시스템 스케일만 보정
+            final_scale = scale_correction
+        else:  # FHD 이하
+            if width >= 1920:  # FHD
+                # FHD를 QHD처럼 보이게 하면서 시스템 스케일도 보정
+                content_scale = 0.75
+                final_scale = content_scale * scale_correction
+            else:  # HD 이하
+                # 시스템 스케일만 보정
+                final_scale = scale_correction
+
+        # 4. 스케일 범위 제한 (0.5 ~ 2.5)
+        final_scale = max(0.5, min(2.5, final_scale))
+
+        # 캐시 저장
+        ScreenManager._scale_cache[screen_name] = final_scale
+
+        return final_scale
+
+    @staticmethod
+    def update_scale_cache():
+        """모든 스크린의 스케일 캐시 업데이트"""
+        app = QApplication.instance() or QGuiApplication.instance()
+        if not app:
+            return
+
+        for screen in app.screens():
+            ScreenManager.get_scale_factor(screen, force_update=True)
 
     @staticmethod
     def size(value: int, widget: QWidget = None) -> int:
@@ -96,7 +144,9 @@ class ScreenManager:
     def font_size(value: int, widget: QWidget = None) -> int:
         """폰트 크기를 현재 스크린에 맞게 조정"""
         scale = ScreenManager.get_scale_factor(ScreenManager.get_current_screen(widget))
-        return round(value * scale)
+        # 폰트는 스케일을 약간 보수적으로 적용
+        font_scale = 0.9 + (scale - 1) * 0.7
+        return round(value * font_scale)
 
     @staticmethod
     def width(value: int, widget: QWidget = None) -> int:
@@ -126,7 +176,10 @@ class ScreenManager:
     @staticmethod
     def icon_size(value: int, widget: QWidget = None) -> int:
         """아이콘 크기를 현재 스크린에 맞게 조정"""
-        return ScreenManager.size(value, widget)
+        scale = ScreenManager.get_scale_factor(ScreenManager.get_current_screen(widget))
+        # 아이콘은 스케일을 더 보수적으로 적용
+        icon_scale = 0.95 + (scale - 1) * 0.6
+        return round(value * icon_scale)
 
     @staticmethod
     def get_size_tuple(width: int, height: int, widget: QWidget = None) -> tuple:
@@ -146,6 +199,26 @@ class ScreenManager:
             round(bottom * scale),
             round(left * scale)
         )
+
+    @staticmethod
+    def is_high_dpi(widget: QWidget = None) -> bool:
+        """현재 스크린이 High DPI인지 확인"""
+        screen = ScreenManager.get_current_screen(widget)
+        if not screen:
+            return False
+
+        info = ScreenManager.get_screen_info(screen)
+        return info['logical_dpi'] > 120 or info['device_pixel_ratio'] > 1.5
+
+    @staticmethod
+    def is_qhd_or_higher(widget: QWidget = None) -> bool:
+        """현재 스크린이 QHD 이상인지 확인"""
+        screen = ScreenManager.get_current_screen(widget)
+        if not screen:
+            return False
+
+        info = ScreenManager.get_screen_info(screen)
+        return info['width'] >= 2560
 
 
 # 싱글톤 인스턴스
