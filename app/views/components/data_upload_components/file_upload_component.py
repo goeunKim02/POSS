@@ -98,18 +98,18 @@ class FileUploadComponent(QWidget):
         # 파일 라벨 생성
         file_frame = QFrame()
         file_frame.setStyleSheet("QFrame { background-color: #e0e0ff; border-radius: 10px; border:none; padding: 2px; }")
-        file_frame.setFixedHeight(h(27))
+        file_frame.setFixedHeight(27)
 
         file_layout = QHBoxLayout(file_frame)
-        file_layout.setContentsMargins(m(3), 0, m(3), 0)
-        file_layout.setSpacing(sp(2))
+        file_layout.setContentsMargins(3, 0, 3, 0)
+        file_layout.setSpacing(2)
 
         file_label = QLabel(file_name)
         file_label_font = QFont(font_manager.get_just_font("SamsungOne-700").family(),9)
         file_label.setFont(file_label_font)
 
         remove_btn = QPushButton("X")
-        remove_btn.setFixedSize(s(16), s(16))
+        remove_btn.setFixedSize(16,16)
         remove_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #555; border: none; font-weight: bold; } "
             "QPushButton:hover { color: red; }")
