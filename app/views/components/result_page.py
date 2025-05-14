@@ -184,7 +184,7 @@ class ResultPage(QWidget):
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
             btn.clicked.connect(lambda checked, idx=i: self.switch_viz_page(idx))
 
-             # 균등한 크기로 설정
+            # 균등한 크기로 설정
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             btn.setFixedHeight(40)  # 높이만 고정
             
