@@ -1,30 +1,32 @@
-from PyQt5.QtGui import QFont, QCursor, QPainter
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QTableWidget, QTableView, QHeaderView, QMenu, QWidgetAction,
-    QCheckBox, QPushButton, QTableWidgetItem, QScrollArea
+    QWidget, QVBoxLayout, QHBoxLayout,
+    QTableView, QHeaderView, QMenu, QWidgetAction,
+    QCheckBox, QScrollArea
 )
 from PyQt5.QtCore import (
     pyqtSignal, Qt, QAbstractTableModel, QModelIndex,
-    QVariant, QSortFilterProxyModel, QPoint, QSize, QTimer
+    QVariant, QSortFilterProxyModel, QPoint, QTimer
 )
 import pandas as pd
 
-
+"""
+헤더 필터링을 위한 사용자 정의 헤더
+"""
 class FilterHeader(QHeaderView):
-    """헤더 필터링을 위한 사용자 정의 헤더"""
 
     def __init__(self, orientation, parent=None):
         super().__init__(orientation, parent)
-        self.setSectionsClickable(True)  # 헤더 클릭 가능하게 설정
+        self.setSectionsClickable(True)
 
     def paintSection(self, painter, rect, logicalIndex):
         super().paintSection(painter, rect, logicalIndex)
         # 필터 아이콘이나 추가 표시가 필요한 경우 여기에 구현
 
 
+"""
+다중 필터 프록시 모델
+"""
 class MultiFilterProxy(QSortFilterProxyModel):
-    """다중 필터 프록시 모델"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -37,7 +39,7 @@ class MultiFilterProxy(QSortFilterProxyModel):
 
         model = self.sourceModel()
         for col, vals in self.filters.items():
-            if not vals:  # 필터 값이 없으면 모든 행 표시
+            if not vals:
                 continue
 
             cell = model.data(model.index(sourceRow, col), Qt.DisplayRole)
@@ -50,8 +52,10 @@ class MultiFilterProxy(QSortFilterProxyModel):
         super().sort(column, order)
 
 
+"""
+pandas DataFrame을 위한 테이블 모델
+"""
 class PandasModel(QAbstractTableModel):
-    """pandas DataFrame을 위한 테이블 모델"""
 
     def __init__(self, df=None, parent=None):
         super().__init__(parent)
@@ -123,12 +127,14 @@ class PandasModel(QAbstractTableModel):
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable
 
 
+"""
+커스텀 메뉴 클래스 - 구분선 없는 스타일 적용
+"""
 class CustomMenu(QMenu):
-    """커스텀 메뉴 클래스 - 구분선 없는 스타일 적용"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        # 구분선을 제거하는 스타일 적용
+
         self.setStyleSheet("""
             QMenu {
                 background-color: white;
@@ -159,7 +165,6 @@ class CustomMenu(QMenu):
                 spacing: 5px;
                 background: transparent;
             }
-            /* 이 부분이 중요: 체크박스 주변의 선 완전히 제거 */
             QWidget {
                 border: none;
                 margin: 0px;
@@ -194,8 +199,10 @@ class CustomMenu(QMenu):
         """)
 
 
+"""
+테두리가 없는 체크박스
+"""
 class NoOutlineCheckBox(QCheckBox):
-    """테두리가 없는 체크박스"""
 
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
@@ -217,11 +224,11 @@ class NoOutlineCheckBox(QCheckBox):
         """)
 
 
+"""
+향상된 테이블 필터 컴포넌트
+헤더 클릭으로 다중 필터 선택 기능 제공
+"""
 class EnhancedTableFilterComponent(QWidget):
-    """
-    향상된 테이블 필터 컴포넌트
-    헤더 클릭으로 다중 필터 선택 기능 제공
-    """
     filter_applied = pyqtSignal()  # 필터가 적용되었을 때 발생하는 시그널
     data_changed = pyqtSignal()
 
@@ -305,8 +312,10 @@ class EnhancedTableFilterComponent(QWidget):
 
         self.data_changed.emit()
 
+    """
+    필터 업데이트 (체크박스 상태 변경시 호출)
+    """
     def _update_filter(self, col, value, checked):
-        """필터 업데이트 (체크박스 상태 변경시 호출)"""
         current = set(self.proxy_model.filters.get(col, []))
         if checked:
             current.add(value)
@@ -316,8 +325,10 @@ class EnhancedTableFilterComponent(QWidget):
         self.proxy_model.invalidateFilter()
         self.filter_applied.emit()
 
+    """
+    체크박스 위젯 생성
+    """
     def create_checkbox_widget(self, val, is_checked, col_index):
-        """체크박스 위젯 생성"""
         widget = QWidget()
         widget.setStyleSheet("border: none; background-color: transparent;")
 
@@ -335,8 +346,10 @@ class EnhancedTableFilterComponent(QWidget):
         layout.addWidget(checkbox)
         return widget
 
+    """
+    헤더 클릭 시 필터 메뉴 표시
+    """
     def on_header_clicked(self, logicalIndex):
-        """헤더 클릭 시 필터 메뉴 표시"""
         # 현재 컬럼의 고유 값 가져오기
         col_name = self._df.columns[logicalIndex]
         raw = self._df[col_name].dropna().tolist()
@@ -359,13 +372,12 @@ class EnhancedTableFilterComponent(QWidget):
         max_menu_height = int(screen_height * 0.5)  # 화면 높이의 50%로 제한
 
         # 스크롤 영역 생성
-        if len(vals) > 10:  # 아이템이 많은 경우에만 스크롤 적용
-            # 컨테이너 생성
+        if len(vals) > 10:
             container = QWidget()
             container.setStyleSheet(" background-color: transparent;")
             container_layout = QVBoxLayout(container)
             container_layout.setContentsMargins(0, 0, 0, 0)
-            container_layout.setSpacing(0)  # 간격 없음
+            container_layout.setSpacing(0)
 
             # 현재 선택된 필터 항목 가져오기
             current = set(self.proxy_model.filters.get(logicalIndex, []))
@@ -415,8 +427,10 @@ class EnhancedTableFilterComponent(QWidget):
         elif sel == desc:
             self.proxy_model.sort(logicalIndex, Qt.DescendingOrder)
 
+    """
+    데이터프레임 설정
+    """
     def set_data(self, df):
-        """데이터프레임 설정"""
         self._df = df.copy()
         self._original_df = df.copy()
         self.edited_cells = {}
@@ -439,8 +453,10 @@ class EnhancedTableFilterComponent(QWidget):
 
         self.filter_applied.emit()
 
+    """
+    테이블 뷰의 열 너비를 균등하게 조정
+    """
     def _adjust_column_widths_evenly(self):
-        """테이블 뷰의 열 너비를 균등하게 조정"""
         if self._df.empty:
             return
 
@@ -452,14 +468,18 @@ class EnhancedTableFilterComponent(QWidget):
             for i in range(column_count):
                 self.table_view.setColumnWidth(i, column_width)
 
+    """
+    필터 초기화
+    """
     def reset_filter(self):
-        """필터 초기화"""
         self.proxy_model.filters.clear()
         self.proxy_model.invalidateFilter()
         self.filter_applied.emit()
 
+    """
+    QTableWidget을 DataFrame으로 변환
+    """
     def convert_table_to_dataframe(self, table_widget):
-        """QTableWidget을 DataFrame으로 변환"""
         rows = table_widget.rowCount()
         cols = table_widget.columnCount()
 
@@ -485,19 +505,6 @@ class EnhancedTableFilterComponent(QWidget):
     필터링된 데이터를 DataFrame으로 반환
     """
     def get_filtered_data(self):
-        # model = self.proxy_model
-        # source_model = model.sourceModel()
-
-        # # 필터링된 행 인덱스 가져오기
-        # rows = []
-        # for row in range(model.rowCount()):
-        #     source_idx = model.mapToSource(model.index(row, 0)).row()
-        #     rows.append(source_idx)
-
-        # # 원본 데이터에서 필터링된 행만 선택
-        # if not rows:
-        #     return pd.DataFrame(columns=self._df.columns)
-        # return self._df.iloc[rows].copy()
         result_df = self._original_df.copy()
 
         for (row, col), value in self.edited_cells.items() :
