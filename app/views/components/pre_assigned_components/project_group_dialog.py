@@ -1,10 +1,10 @@
 import pandas as pd
 
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QSizePolicy,
-    QLabel, QFrame, QScrollArea, QWidget, QPushButton, QProgressBar
+    QLabel, QFrame, QScrollArea, QWidget, QPushButton, QProgressBar, QStackedLayout, QApplication
 )
 from ....resources.styles.pre_assigned_style import (
     DETAIL_DIALOG_STYLE
@@ -14,18 +14,20 @@ from .processThread import ProcessThread
 class ProjectGroupDialog(QDialog):
     optimizationDone = pyqtSignal(pd.DataFrame, pd.DataFrame)
 
-    def __init__(self, project_groups: dict, df, parent=None):
+    def __init__(self, project_groups: dict, df, on_done_callback=None, parent=None):
         super().__init__(parent)
         self.df = df
         self.project_groups = project_groups
         self.df_to_opt = None
+
+        if on_done_callback:
+            self.optimizationDone.connect(on_done_callback)
 
         self.setStyleSheet(DETAIL_DIALOG_STYLE)
         # 다이얼로그에 ? 버튼 없애는 코드
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setWindowTitle("Select Project Groups")
         self.setModal(True)
-        self.resize(800, 600)
 
         # 메인 레이아웃
         main_layout = QVBoxLayout(self)
@@ -63,41 +65,44 @@ class ProjectGroupDialog(QDialog):
         # 설명 레이블 프레임
         desc_frame = QFrame()
         desc_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 10px;
-                border: 1px solid #cccccc;
-            }
+            QFrame { background-color: white; border-radius: 10px; border: 1px solid #cccccc; }
         """)
         desc_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        desc_layout = QVBoxLayout(desc_frame)
-        desc_layout.setContentsMargins(20, 15, 20, 15)
+        desc_frame.setMinimumHeight(20)
+        
+        # 스택 레이아웃 생성
+        self.desc_stack = QStackedLayout(desc_frame)
 
-        self.desc_label = QLabel("Select the project group to include in the optimization Process")
-        desc_font = QFont("Arial", 12, QFont.Bold)
-        self.desc_label.setFont(desc_font)
-        self.desc_label.setStyleSheet("background-color: transparent; color: #333333; border:none; ")
-        desc_layout.addWidget(self.desc_label)
+        # 설명 라벨
+        page_desc = QWidget()
+        pd_layout = QVBoxLayout(page_desc)
+        pd_layout.setContentsMargins(20, 15, 20, 15)
+        self.desc_label = QLabel(
+            "Select the project group to include in the optimization process"
+        )
+        self.desc_label.setFont(QFont("Arial", 12, QFont.Bold))
+        self.desc_label.setStyleSheet("background-color: transparent; color: #333333; border: none;")
+        pd_layout.addWidget(self.desc_label)
+        self.desc_stack.addWidget(page_desc)
 
-        self.progress_bar = QProgressBar(desc_frame)
+        # 프로그레스바
+        page_prog = QWidget()
+        pp_layout = QVBoxLayout(page_prog)
+        pp_layout.setContentsMargins(0, 0, 0, 0)
+        self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.hide()                    # 시작할 땐 숨겨두기
-        self.progress_bar.setFixedHeight(20)        # 높이는 적당히
-        self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 1px solid #AAA;
-                border-radius: 4px;
-                text-align: center;
-                background-color: #E0E0E0;
-            }
-            QProgressBar::chunk {
-                background-color: #1428A0;      /* 원래 색상 유지 */
-                width: 20px;
-            }
+            QProgressBar { border: 1px solid #AAA; border-radius: 10px; text-align: center; background-color: #E0E0E0; }
+            QProgressBar::chunk { background-color: #1428A0;}
         """)
-        desc_layout.addWidget(self.progress_bar)
+        pp_layout.addWidget(self.progress_bar)
+        pp_layout.setStretch(pp_layout.indexOf(self.progress_bar), 1)
+        self.desc_stack.addWidget(page_prog)
+        # 초기에는 설명 페이지
+        self.desc_stack.setCurrentIndex(0)
 
         content_layout.addWidget(desc_frame)
         
@@ -228,6 +233,9 @@ class ProjectGroupDialog(QDialog):
         # 메인 레이아웃에 버튼 프레임 추가
         main_layout.addWidget(button_frame)
 
+        self.setFixedWidth(1000)
+        self.adjustSize()
+
     def _update_ok_button(self):
         # 체크된 항목에 따른 버튼 활성화
         any_checked = any(cb.isChecked() for cb in self.checkboxes.values())
@@ -244,24 +252,32 @@ class ProjectGroupDialog(QDialog):
         return [gid for gid, cb in self.checkboxes.items() if cb.isChecked()]
 
     def _on_ok_clicked(self):
-        gids = self.selected_groups()
+        gids = [gid for gid, cb in self.checkboxes.items() if cb.isChecked()]
         projects = sum((self.project_groups[gid] for gid in gids), [])
-
         self.df_to_opt = self.df[self.df['Project'].isin(projects)].copy()
 
+        self.desc_stack.setCurrentIndex(1)
         self.ok_button.setEnabled(False)
-        self.desc_label.hide()
-        self.progress_bar.show()
 
-        # 최적화 스레드 실행
+        for cb in self.checkboxes.values():
+           cb.setEnabled(False)
+
         self.thread = ProcessThread(self.df_to_opt, projects)
-        self.thread.progress.connect(self.progress_bar.setValue)
-        self.thread.finished.connect(self._on_optimization_finished)
+        self.thread.progress.connect(self._on_progress)
+        self.thread.finished.connect(self._on_finished)
         self.thread.start()
 
-    def _on_optimization_finished(self, result_df):
+    @pyqtSlot(int, int)
+    def _on_progress(self, pct: int, remaining: int):
+        self.progress_bar.setValue(pct)
+
+        m, s = divmod(remaining, 60)
+        self.progress_bar.setFormat(f"{pct}%   remaining time {m}:{s:02d}")
+
+    @pyqtSlot(pd.DataFrame)
+    def _on_finished(self, result_df: pd.DataFrame):
+        self._on_progress(100, 0)
+        QApplication.processEvents()
+
         self.optimizationDone.emit(result_df, self.df_to_opt)
         self.accept()
-
-        self.progress_bar.hide()
-        self.desc_label.show()
