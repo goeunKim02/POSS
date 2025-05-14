@@ -1,6 +1,7 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
-                             QSplitter, QStackedWidget, QTabBar)
+                             QSplitter, QStackedWidget, QTabBar,
+                             QMessageBox)
 from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
 import os
@@ -618,7 +619,7 @@ class DataInputPage(QWidget) :
         modified_data = self.data_modifier.get_all_modified_data()
 
         if not modified_data:
-            print("저장할 변경사항이 없습니다.")
+            QMessageBox.information(self, 'Save Notice', 'No changes to save')
             return
 
         success_count = 0
@@ -640,7 +641,7 @@ class DataInputPage(QWidget) :
                                 df.to_excel(writer, sheet_name=sheet_name, index=False)
                     success_count += 1
             except Exception as e:
-                print(f"파일 '{file_path}' 저장 중 오류 발생: {str(e)}")
+                print(f"Error saving file '{file_path}' : {str(e)}")
                 error_count += 1
 
         if success_count > 0:
@@ -653,9 +654,13 @@ class DataInputPage(QWidget) :
             self.run_combined_analysis()
 
         if error_count == 0:
-            self.update_status_message(True, f"{success_count}개 파일 저장 완료")
+            message = f"Successfully saved {success_count} file(s)"
+            QMessageBox.information(self, 'Save Success', message)
+            self.update_status_message(True, message)
         else:
-            self.update_status_message(False, f"{success_count}개 파일 저장 완료, {error_count}개 파일 저장 실패")
+            message = f"Saved {success_count} file(s), Failed to save {error_count} file(s)"
+            QMessageBox.warning(self, 'Save Notice', message)
+            self.update_status_message(False, message)
 
     """
     문자열에서 숫자 추출 후 정수 변환
