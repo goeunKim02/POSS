@@ -5,6 +5,7 @@ import os
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
 from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
+from app.resources.fonts.font_manager import font_manager
 
 
 class FileTabManager:
@@ -39,30 +40,29 @@ class FileTabManager:
         self.tab_bar.setExpanding(False)
         self.tab_bar.setDrawBase(False)
         self.tab_bar.setElideMode(Qt.ElideNone)
-        self.tab_bar.setStyleSheet("""
-            QTabBar {
+        self.tab_bar.setStyleSheet(f"""
+            QTabBar {{
                 background-color: transparent;
                 border: none;
-            }
-            QTabBar::tab {
+            }}
+            QTabBar::tab {{
                 background: #f0f0f0;
                 border: 1px solid #cccccc;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
                 padding: 6px 10px;
                 margin-right: 2px;
-                min-width: 530px;
-                max-width: 1700px;
-                font-family: Arial, sans-serif;
+                min-width: 50px;
+                font-family: {font_manager.get_just_font("SamsungOne-700").family()}, sans-serif;
                 font-weight: bold;
-            }
-            QTabBar::tab:selected, QTabBar::tab:hover {
+            }}
+            QTabBar::tab:selected, QTabBar::tab:hover {{
                 background: #1428A0;
                 color: white;
-            }
-            QTabBar::tab:selected {
+            }}
+            QTabBar::tab:selected {{
                 border-bottom-color: white;
-            }
+            }}
         """)
 
         self.stacked_widget.setContentsMargins(0, 0, 0, 0)
@@ -355,7 +355,7 @@ class FileTabManager:
         empty_layout.setContentsMargins(0, 0, 0, 0)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
         empty_msg.setAlignment(Qt.AlignCenter)
-        empty_msg.setStyleSheet("color: #888; font-size: 14px; font-family: Arial; font-weight: bold;")
+        empty_msg.setStyleSheet(f"color: #888; font-size: 14px; font-family: {font_manager.get_just_font("SamsungSharpSans-Bold")}; font-weight: bold;")
         empty_layout.addWidget(empty_msg)
 
         # 위젯 추가
