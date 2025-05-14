@@ -17,8 +17,8 @@ class Navbar(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #1428A0;
-                min-height: 45px;
-                max-height: 45px;
+                min-height: 60px;
+                max-height: 60px;
             }}
             QLabel {{
                 color: white;
@@ -57,7 +57,7 @@ class Navbar(QFrame):
         settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
 
         # font_manager 사용
-        btn_font = font_manager.get_font("SamsungOne-700", 10, QFont.Bold)
+        btn_font = font_manager.get_font("SamsungOne-700", 9, QFont.Bold)
         settings_btn.setFont(btn_font)
 
         help_btn = QPushButton("Help")
