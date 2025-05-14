@@ -7,7 +7,7 @@ from app.core.optimizer import Optimizer
 from app.models.common.settings_store import SettingsStore
 
 class ProcessThread(QThread):
-    progress = pyqtSignal(int)
+    progress = pyqtSignal(int, int)
     finished = pyqtSignal(pd.DataFrame)
 
     def __init__(self, df: pd.DataFrame, projects: list, time_limit: int = None):
@@ -19,6 +19,7 @@ class ProcessThread(QThread):
         self._opt_result = None
 
     def run(self):
+        start = time.time()
         # 최적화 작업
         def do_opt():
             results = Optimizer().run_optimization({
@@ -31,15 +32,18 @@ class ProcessThread(QThread):
         opt_thread.start()
 
         # 진행률 업데이트
-        for i in range(self.time_limit):
-            time.sleep(1)
-            pct = int((i+1) / self.time_limit * 100)
-            self.progress.emit(pct)
+        while True:
+            elapsed = time.time() - start
+            pct = min(100, int(elapsed / self.time_limit * 100))
+            remaining = max(0, int(self.time_limit - elapsed))
+            self.progress.emit(pct, remaining)
 
-            if self._opt_result is not None:
-                self.progress.emit(100)
-                self.finished.emit(self._opt_result)
-                return
+            # 최적화 끝났거나 타임아웃
+            if self._opt_result is not None or elapsed >= self.time_limit:
+                break
+            time.sleep(1)
+
+        self.progress.emit(100, 0)
 
         # 시간 제한 후 처리
         if self._opt_result is not None:
