@@ -14,7 +14,6 @@ from app.utils.error_handler import (
     DataError, FileError, ValidationError, CalculationError
 )
 from app.resources.fonts.font_manager import font_manager
-from app.models.common.screen_manager import *
 
 class MainWindow(QMainWindow):
 
@@ -72,9 +71,9 @@ class MainWindow(QMainWindow):
                     QTabBar::tab {{
                         background: transparent;
                         color: #666;
-                        padding: {p(8)}px {p(12)}px;
+                        padding: 8px 12px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {fs(13)}px;
+                        font-size: 13px;
                         font-weight: 600;
                         border-bottom: 3px solid transparent;
                         margin-right: 0px;
