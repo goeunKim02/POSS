@@ -27,7 +27,7 @@ class PortCapaWidget(QWidget):
         header.setStyleSheet(
             "QHeaderView::section { background-color: #1428A0; color: white; border: none; }"
         )
-        header_font = QFont(font_manager.get_just_font("SamsungOne-700").family(), fs(14), QFont.Bold)
+        header_font = QFont(font_manager.get_just_font("SamsungOne-700").family(), 14, QFont.Bold)
         header.setFont(header_font)
         # 헤더 높이 고정
         header.setFixedHeight(40)
