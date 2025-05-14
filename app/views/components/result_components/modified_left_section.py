@@ -4,6 +4,7 @@ from PyQt5.QtGui import QCursor
 import pandas as pd
 from .item_grid_widget import ItemGridWidget
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
+from app.models.common.fileStore import FilePaths
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
@@ -330,6 +331,7 @@ class ModifiedLeftSection(QWidget):
             try:
                 # 엑셀 파일 로드
                 self.data = pd.read_excel(file_path)
+                FilePaths.set("result_file", file_path)
                 self.update_table_from_data()
 
                 # 데이터 로드 성공 메시지

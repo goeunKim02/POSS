@@ -6,25 +6,12 @@ import pandas as pd
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.models.common.fileStore import FilePaths
 from app.utils.fileHandler import load_file
-from app.views.components.common.custom_table import CustomTable
 
 """결과 요약 정보 표시 위젯"""
 class SummaryWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-
-        # 레이아웃 설정
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-
-        # customtable 인스턴스 생성
-        self.table = CustomTable()
-        layout.addWidget(self.table)
-
-        # 초기 메세지
-        self.table.set_message("요약 정보를 불러오는 중입니다.")
         self.line_capacity_data = {}  # 라인별 생산능력 
-        
         self.line_utilization_data = {}  # 라인별 가동률 
         self.init_ui()
 
@@ -32,12 +19,6 @@ class SummaryWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10 ,10, 10)
         main_layout.setSpacing(10)
-        self.setStyleSheet("""
-            QWidget {
-                background-color: transparent;
-                border: none;
-            }
-        """)
 
         # 요약 테이블
         self.summary_table = QTableWidget()
@@ -50,6 +31,7 @@ class SummaryWidget(QWidget):
         self.summary_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #E0E0E0;
+                border: 1px solid #D0D0D0;
                 border-radius: 5px;
             }
             QHeaderView::section {
@@ -57,7 +39,11 @@ class SummaryWidget(QWidget):
                 color: white;
                 padding: 8px;
                 font-weight: bold;
+                border: 1px solid #0C1A6B;
                 font-size: 12px;
+            }
+            QTableWidget::item {
+                background-color: transparent;
             }
             QTableWidget::item:selected {
                 background-color: #E3F2FD;
