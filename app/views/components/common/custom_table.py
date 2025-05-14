@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QTableWidget, QHeaderView, QTableWidgetItem)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QBrush
+from PyQt5.QtGui import QColor, QBrush, QFont
 import pandas as pd
 
 class CustomTable(QTableWidget):
@@ -97,6 +97,12 @@ class CustomTable(QTableWidget):
         self.setHorizontalHeaderLabels(header_labels)
         
         header = self.horizontalHeader()
+
+        # 헤더 높이와 폰트 설정
+        header.setFixedHeight(35)  
+        header_font = QFont("Arial", 10) 
+        header_font.setBold(True)
+        header.setFont(header_font)
         
         # 헤더 설정
         header.setSectionsClickable(False)  # 클릭 불가

@@ -1,8 +1,10 @@
 from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QHeaderView)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QBrush
+from PyQt5.QtGui import QColor, QFont
 import pandas as pd
 from app.views.components.common.custom_table import CustomTable
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 """유지율 표시를 위한 테이블 위젯 기본 클래스"""
 class MaintenanceTableWidget(CustomTable):
@@ -20,7 +22,7 @@ class MaintenanceTableWidget(CustomTable):
         # CustomTable의 기본 스타일에 유지율 테이블 특화 스타일 추가
         additional_style = """
             QHeaderView::section {
-                font-size: 20px;
+                font-size: 12px;
             }
         """
         current_style = self.styleSheet()
