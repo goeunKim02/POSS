@@ -170,9 +170,9 @@ class ItemGridWidget(QWidget):
                     row_containers = []
                     for col in range(columns):
                         container = ItemsContainer()
-                        container.setMinimumHeight(200)
+                        container.setMinimumHeight(280)
                         # 최소 너비만 설정하고 확장 가능하게
-                        container.setMinimumWidth(250)
+                        container.setMinimumWidth(350)
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -215,7 +215,7 @@ class ItemGridWidget(QWidget):
                 # 각 셀에 아이템 컨테이너 추가
                 for col in range(columns):
                     container = ItemsContainer()
-                    container.setMinimumHeight(200)
+                    container.setMinimumHeight(280)
                     container.setMinimumWidth(350)
                     container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 

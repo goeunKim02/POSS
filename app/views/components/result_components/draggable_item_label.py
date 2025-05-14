@@ -37,6 +37,7 @@ class DraggableItemLabel(QFrame):
         self.item_label.setFont(QFont('Arial', 9, QFont.Normal))
         self.item_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.item_label.setStyleSheet("background: transparent; border: none;")
+        self.item_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(self.item_label)
         
         # 수량 라벨 (오른쪽)
@@ -44,6 +45,7 @@ class DraggableItemLabel(QFrame):
         self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.qty_label.setFont(QFont('Arial', 9, QFont.Bold))
         self.qty_label.setStyleSheet("background: transparent; border: none;")
+        self.qty_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(self.qty_label)
 
         # 위젯 속성 설정
@@ -52,8 +54,8 @@ class DraggableItemLabel(QFrame):
         self.drag_start_position = None
         
         # 위젯 크기 설정
-        self.setMinimumHeight(45)
-        self.setMaximumHeight(45)  # 새로 추가
+        self.setMinimumHeight(80)
+        self.setMaximumHeight(100)  # 새로 추가
         self.setMinimumWidth(320)
         
         # 사전할당 상태 관련 속성 
