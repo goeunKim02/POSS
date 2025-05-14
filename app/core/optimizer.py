@@ -28,4 +28,7 @@ class Optimizer:
         
         print(f"최적화 완료: {len(self.result_data)}개 행 처리됨")
         
+        import time
+        time.sleep(10)
+        
         return results

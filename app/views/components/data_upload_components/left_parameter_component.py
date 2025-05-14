@@ -1,9 +1,11 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QColor, QBrush
+from PyQt5.QtGui import QFont, QColor, QBrush, QCursor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
-    QLabel, QTabWidget
+    QLabel, QTabWidget, QPushButton, QSizePolicy, QHBoxLayout
 )
+from app.resources.fonts.font_manager import font_manager
+from app.resources.styles.result_style import ResultStyles
 from app.utils.error_handler import (
     error_handler, safe_operation,
     DataError, ValidationError
@@ -52,8 +54,7 @@ class LeftParameterComponent(QWidget):
     def _init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-
-        self.tab_widget = QTabWidget()
+        self.tab_buttons = []
         self.metrics = [
             "Production Capacity",
             "Materials",
@@ -62,6 +63,35 @@ class LeftParameterComponent(QWidget):
             "Plan Retention",
             "Shipment Capacity"
         ]
+
+        # 지표 버튼
+        button_group_layout = QHBoxLayout()
+        button_group_layout.setSpacing(5)
+        button_group_layout.setContentsMargins(10, 10, 10, 5)
+
+        # 버튼들 사이 균등 간격 설정 (필요시)
+        button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
+
+        for i, btn_text in enumerate(self.metrics) :
+            btn = QPushButton(btn_text)
+            btn.setFont(font_manager.get_font("SamsungOne-700", 14))
+            btn.setCursor(QCursor(Qt.PointingHandCursor))
+            btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
+            btn.clicked.connect(lambda checked, idx=i :self.switch_tab(idx))
+
+             # 균등한 크기로 설정
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            btn.setFixedHeight(40)  # 높이만 고정
+
+            button_group_layout.addWidget(btn)
+            self.tab_buttons.append(btn)
+            # 버튼 스타일 업데이트
+          
+        layout.addLayout(button_group_layout)
+
+
+        self.tab_widget = QTabWidget()
+        self.tab_widget.tabBar().hide()
         for metric in self.metrics :
             try :
                 page = QWidget()
@@ -305,3 +335,13 @@ class LeftParameterComponent(QWidget):
         if 0 <= current_index < len(self.metrics) :
             metric = self.metrics[current_index]
             self._update_tab_content(metric)
+
+
+    def switch_tab(self, index):
+        """
+        index 번째 탭으로 전환
+        """
+        for i, btn in enumerate(self.tab_buttons):
+            btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == index else ResultStyles.INACTIVE_BUTTON_STYLE)
+        self.tab_widget.setCurrentIndex(index)
+        self._on_tab_changed(index)
