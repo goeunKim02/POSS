@@ -3,7 +3,7 @@ from PyQt5.QtGui import QFont, QColor, QBrush, QCursor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
     QLabel, QTabWidget, QPushButton, QSizePolicy, QHBoxLayout,
-    QFrame
+    QFrame, QHeaderView, QSplitter
 )
 from app.resources.fonts.font_manager import font_manager
 from app.resources.styles.result_style import ResultStyles
@@ -162,9 +162,22 @@ class LeftParameterComponent(QWidget):
                 page = QWidget()
                 page_layout = QVBoxLayout(page)
                 page_layout.setContentsMargins(0, 0, 0, 0)
-                page_layout.setSpacing(10)
+                page_layout.setSpacing(0)
 
-                # 테이블 컨테이너
+                # 가로 분할기 생성
+                horizontal_splitter = QSplitter(Qt.Horizontal)
+                horizontal_splitter.setHandleWidth(5)
+                horizontal_splitter.setStyleSheet("""
+                    QSplitter::handle {
+                        background-color: white;
+                        border-radius: 2px;
+                    }
+                    QSplitter::handle:hover {
+                        background-color: #1428A0;
+                    }
+                """)
+
+                # 왼쪽: 테이블 컨테이너
                 table_container = QFrame()
                 table_container.setStyleSheet("""
                     QFrame {
@@ -187,7 +200,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 8px;
                         font-family: %s;
-                        font-size: 11px;
+                        font-size: 20px;
                     }
                     QTreeWidget::item {
                         padding: 6px;
@@ -208,9 +221,29 @@ class LeftParameterComponent(QWidget):
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
                     }
+                    QScrollBar:vertical {
+                        border: none;
+                        width: 10px;
+                        margin: 0px;
+                    }
+                    QScrollBar::handle:vertical {
+                        background: #CCCCCC;
+                        min-height: 20px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                        border: none;
+                        background: none;
+                        height: 0px;
+                    }
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                        background: none;
+                    }
                 """ % font_manager.get_just_font("SamsungOne-700").family())
 
-                # Summary 레이블 컨테이너
+                table_layout.addWidget(table)
+
+                # 오른쪽: Summary 레이블 컨테이너
                 summary_container = QFrame()
                 summary_container.setStyleSheet("""
                     QFrame {
@@ -240,15 +273,25 @@ class LeftParameterComponent(QWidget):
                 summary_font.setBold(True)
                 summary_label.setFont(summary_font)
 
-                table_layout.addWidget(table)
                 summary_layout.addWidget(summary_label)
 
-                page_layout.addWidget(table_container, 1)
-                page_layout.addWidget(summary_container)
+                # 스플리터에 위젯 추가 (왼쪽: 테이블, 오른쪽: 써머리)
+                horizontal_splitter.addWidget(table_container)
+                horizontal_splitter.addWidget(summary_container)
+
+                # 초기 비율 설정 (7:3)
+                horizontal_splitter.setSizes([800, 200])
+
+                # 페이지 레이아웃에 스플리터 추가
+                page_layout.addWidget(horizontal_splitter)
 
                 self.tab_widget.addTab(page, metric)
 
-                self.pages[metric] = {"table": table, "summary_label": summary_label}
+                self.pages[metric] = {
+                    "table": table,
+                    "summary_label": summary_label,
+                    "splitter": horizontal_splitter
+                }
 
             except Exception as e:
                 raise ValidationError(f'Failed to set up UI for metric \'{metric}\' : {str(e)}')
@@ -350,6 +393,10 @@ class LeftParameterComponent(QWidget):
                 table.setColumnCount(len(headers))
                 table.setHeaderLabels(headers)
 
+                # 헤더의 열 너비를 균등하게 분배
+                header = table.header()
+                header.setSectionResizeMode(QHeaderView.Stretch)
+
                 red_brush = QBrush(QColor('#e74c3c'))
                 yellow_brush = QBrush(QColor('#f39c12'))
                 green_brush = QBrush(QColor('#2ecc71'))
@@ -412,12 +459,6 @@ class LeftParameterComponent(QWidget):
 
                     table.addTopLevelItem(item)
 
-                for i in range(len(headers)):
-                    safe_operation(
-                        table.resizeColumnToContents,
-                        f'Error resizing column {i}',
-                        i
-                    )
         except Exception as e:
             raise DataError(f'Error displaying data : {str(e)}', {'metric': metric})
 

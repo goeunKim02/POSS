@@ -102,7 +102,7 @@ class RightParameterComponent(QWidget):
         list_container.setStyleSheet("""
             QFrame {
                 background-color: white;
-                border: 1px solid #E0E0E0;
+                border: none;
                 border-radius: 8px;
             }
         """)
