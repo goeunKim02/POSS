@@ -7,13 +7,11 @@ import os
 import re
 
 from app.core.input.pre_assign import run_allocation
-from app.core.input.maintenance import calc_plan_retention, run_maintenance_analysis
+from app.core.input.maintenance import calc_plan_retention
 from app.models.common.fileStore import FilePaths, DataStore
 
-from app.utils.week_plan_manager import WeeklyPlanManager
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
-from app.views.components.data_upload_components.parameter_component import ParameterComponent
 from app.views.components.data_upload_components.left_parameter_component import LeftParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
 
@@ -25,7 +23,7 @@ from app.views.components.data_upload_components.save_confirmation_dialog import
 
 from app.core.input.capaAnalysis import PjtGroupAnalyzer
 from app.core.input.materialAnalyzer import MaterialAnalyzer
-from app.core.input.shipmentAnalysis import calculate_fulfillment_rate, get_fulfillment_summary
+from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
@@ -377,9 +375,6 @@ class DataInputPage(QWidget) :
 
         DataStore.set("organized_dataframes", organized_dataframes)
 
-        for file_type, sheets in organized_dataframes.items():
-            print(f"  - {file_type}: {len(sheets)}개 시트/파일")
-
     """
     상태 메시지 업데이트
     """
@@ -663,6 +658,8 @@ class DataInputPage(QWidget) :
             for (file_path, sheet_name), idx in self.tab_manager.open_tabs.items():
                 self.data_modifier.remove_modified_status_in_sidebar(file_path, sheet_name)
                 self.tab_manager.update_tab_title(file_path, sheet_name, False)
+            
+            self.run_combined_analysis()
 
         if error_count == 0:
             self.update_status_message(True, f"{success_count}개 파일 저장 완료")

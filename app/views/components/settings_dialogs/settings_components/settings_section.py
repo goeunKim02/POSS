@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QFrame, QVBoxLayout, QFormLayout, QLabel,
                              QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox,
                              QComboBox, QPushButton, QFileDialog, QWidget, QHBoxLayout,
                              QGraphicsDropShadowEffect, QGridLayout)
-from PyQt5.QtGui import QFont, QColor, QCursor
+from PyQt5.QtGui import QFont, QColor, QCursor, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt, pyqtSignal
 
 
@@ -100,9 +100,67 @@ class ModernSettingsSectionComponent(QFrame):
             widget.setMinimumWidth(300)
             widget.setMaximumWidth(400)
             widget.setFixedHeight(40)
+
+            # 입력 데이터 타입 결정
+            input_type = kwargs.get('type', 'text')  # 기본값은 텍스트
+
+            # min/max 값이 있으면 정수형으로 간주
+            if 'min' in kwargs and 'max' in kwargs:
+                input_type = 'int'
+                validator = QIntValidator(kwargs['min'], kwargs['max'])
+                widget.setValidator(validator)
+
+            # suffix가 %면 정수형으로 간주
+            elif 'suffix' in kwargs and kwargs['suffix'] == '%':
+                input_type = 'int'
+                validator = QIntValidator(0, 100)
+                widget.setValidator(validator)
+
+            # 타입이 명시적으로 지정된 경우
+            elif input_type == 'int':
+                validator = QIntValidator()
+                if 'min' in kwargs:
+                    validator.setBottom(kwargs['min'])
+                if 'max' in kwargs:
+                    validator.setTop(kwargs['max'])
+                widget.setValidator(validator)
+            elif input_type == 'float':
+                validator = QDoubleValidator()
+                if 'min' in kwargs:
+                    validator.setBottom(kwargs['min'])
+                if 'max' in kwargs:
+                    validator.setTop(kwargs['max'])
+                if 'decimals' in kwargs:
+                    validator.setDecimals(kwargs['decimals'])
+                widget.setValidator(validator)
+
             if 'default' in kwargs:
                 widget.setText(str(kwargs['default']))
-            widget.textChanged.connect(lambda text: self.setting_changed.emit(setting_key, text))
+
+            # 텍스트 변경 시 타입에 맞게 변환하여 시그널 발생
+            def on_text_changed(text):
+                if text:  # 빈 문자열이 아닌 경우에만
+                    try:
+                        if input_type == 'int':
+                            value = int(text)
+                        elif input_type == 'float':
+                            value = float(text)
+                        else:
+                            value = text
+                        self.setting_changed.emit(setting_key, value)
+                    except ValueError:
+                        # 변환 실패 시 원본 텍스트 전달
+                        self.setting_changed.emit(setting_key, text)
+                else:
+                    # 빈 문자열인 경우 기본값 또는 빈 문자열 전달
+                    if input_type == 'int' and 'default' in kwargs:
+                        self.setting_changed.emit(setting_key, kwargs['default'])
+                    elif input_type == 'float' and 'default' in kwargs:
+                        self.setting_changed.emit(setting_key, kwargs['default'])
+                    else:
+                        self.setting_changed.emit(setting_key, text)
+
+            widget.textChanged.connect(on_text_changed)
 
         # 정수 스핀박스
         elif widget_type == 'spinbox':
