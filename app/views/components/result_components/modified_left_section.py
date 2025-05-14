@@ -86,6 +86,7 @@ class ModifiedLeftSection(QWidget):
         self.grid_widget = ItemGridWidget()
         self.grid_widget.itemSelected.connect(self.on_grid_item_selected)  # 아이템 선택 이벤트 연결
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
+        
         main_layout.addWidget(self.grid_widget)
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""
