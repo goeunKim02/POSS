@@ -23,7 +23,7 @@ class ItemsContainer(QWidget):
         self.selected_item = None  # 현재 선택된 아이템
 
         self.base_height = 100
-        self.item_height = 30  # 각 아이템의 예상 높이
+        self.item_height = 45  # 각 아이템의 예상 높이
         self.setMinimumHeight(self.base_height)
 
         # 드롭 인디케이터 관련 변수
@@ -52,7 +52,7 @@ class ItemsContainer(QWidget):
         self.layout.removeItem(self.spacer)
 
         item_label = DraggableItemLabel(item_text, self, item_data)
-        item_label.setFont(QFont('Arial', 8, QFont.Normal))
+        # item_label.setFont(QFont('Arial', 8, QFont.Normal))
 
         # 아이템 선택 이벤트 연결
         item_label.itemSelected.connect(self.on_item_selected)

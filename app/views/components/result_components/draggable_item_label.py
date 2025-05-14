@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel, QApplication, QToolTip
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QToolTip, QSizePolicy
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag, QPixmap, QPainter, QColor, QFont
 import pandas as pd
@@ -7,7 +7,7 @@ from app.resources.styles.item_style import ItemStyle
 
 
 """드래그 가능한 아이템 라벨"""
-class DraggableItemLabel(QLabel):
+class DraggableItemLabel(QFrame):
 
     # 아이템 선택 이벤트를 위한 시그널 추가
     itemSelected = pyqtSignal(object)  # 선택된 아이템 참조를 전달
@@ -16,21 +16,46 @@ class DraggableItemLabel(QLabel):
     itemDoubleClicked = pyqtSignal(object)  # 더블클릭된 아이템 참조를 전달
 
     def __init__(self, text, parent=None, item_data=None):
-        super().__init__(text, parent)
+        super().__init__(parent)
         
         # 출하 실패 상태 변수
         self.is_shipment_failure = False
         self.shipment_failure_reason = None
 
-        self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
-        self.setAlignment(Qt.AlignCenter)
-        self.setCursor(Qt.OpenHandCursor)
-        self.setAcceptDrops(False)  # 아이템 자체는 드롭 받지 않도록 변경
-        self.drag_start_position = None
-        self.setWordWrap(True)
-        self.setMinimumHeight(25)
-        self.adjustSize()
+        # 프레임 기본 설정
+        self.setFrameShape(QFrame.NoFrame)
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        
+        # 레이아웃 설정
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(8)
+        
+        # 아이템 라벨 (왼쪽)
+        self.item_label = QLabel()
+        self.item_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.item_label.setFont(QFont('Arial', 9, QFont.Normal))
+        self.item_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.item_label.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(self.item_label)
+        
+        # 수량 라벨 (오른쪽)
+        self.qty_label = QLabel()
+        self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.qty_label.setFont(QFont('Arial', 9, QFont.Bold))
+        self.qty_label.setStyleSheet("background: transparent; border: none;")
+        layout.addWidget(self.qty_label)
 
+        # 위젯 속성 설정
+        self.setCursor(Qt.OpenHandCursor)
+        self.setAcceptDrops(False)
+        self.drag_start_position = None
+        
+        # 위젯 크기 설정
+        self.setMinimumHeight(45)
+        self.setMaximumHeight(45)  # 새로 추가
+        self.setMinimumWidth(320)
+        
         # 사전할당 상태 관련 속성 
         self.is_pre_assigned = False
 
@@ -46,15 +71,51 @@ class DraggableItemLabel(QLabel):
 
         # 아이템 데이터 저장 (엑셀 행 정보)
         self.item_data = item_data
+        
+        # 초기 텍스트 설정
+        if text:
+            self.setText(text)
+        
+        # 데이터가 있으면 업데이트
+        self.update_text_from_data()
+
+        # 초기 스타일 적용
+        self.update_style()
 
         # 아이템 데이터가 있으면 툴팁 생성
         if self.item_data is not None:
             self.setToolTip(self._create_tooltip_text())
         else:
-            self.setToolTip(text)  # 데이터가 없으면 텍스트만 표시
+            self.setToolTip(text if text else "")
 
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
+
+    def text(self):
+            """호환성을 위한 text() 메서드"""
+            item_text = self.item_label.text()
+            qty_text = self.qty_label.text()
+            if qty_text:
+                return f"{item_text} ({qty_text})"
+            return item_text
+
+    def setText(self, text):
+        """호환성을 위한 setText() 메서드"""
+        if not text:
+            self.item_label.setText("")
+            self.qty_label.setText("")
+            return
+            
+        # 기존 형식의 텍스트를 파싱해서 두 라벨에 분배
+        if '(' in text and text.endswith(')'):
+            # "ItemCode (123개)" 형식
+            parts = text.rsplit('(', 1)
+            self.item_label.setText(parts[0].strip())
+            self.qty_label.setText(parts[1].rstrip(')'))
+        else:
+            # 아이템명만 있는 경우
+            self.item_label.setText(text)
+            self.qty_label.setText("")
 
     def _create_tooltip_text(self):
         if self.item_data is None:
@@ -106,6 +167,7 @@ class DraggableItemLabel(QLabel):
     def _create_shortage_tooltip(self):
         if not self.shortage_data:
             return self._create_tooltip_text()
+        
         item_code = self.item_data.get('Item', 'Unknown Item') if self.item_data else 'Unknown Item'
         tooltip = """
         <style>
@@ -372,16 +434,14 @@ class DraggableItemLabel(QLabel):
     def update_text_from_data(self):        
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
-
-            # MFG 정보가 있으면 수량 정보로 추가
+            self.item_label.setText(item_info)
+            
+            # 수량 정보가 있으면 수량 라벨에 설정
             if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']):
-                item_info += f" ({self.item_data['Qty']}개)"
-                
-            # 시프트(Time) 정보 추가 - 필요에 따라 활성화
-            if 'Time' in self.item_data and pd.notna(self.item_data['Time']):
-                item_info += f" [Shift {self.item_data['Time']}]"  # 시프트 정보 추가
-
-            self.setText(item_info)
+                qty = self.item_data['Qty']
+                self.qty_label.setText(f"{qty}개")
+            else:
+                self.qty_label.setText("")
 
             # 툴팁도 업데이트
             self.setToolTip(self._create_tooltip_text())
@@ -467,7 +527,7 @@ class DraggableItemLabel(QLabel):
 
     """아이템 상태별 색상 선 표시"""
     def paintEvent(self, event):
-        # 기본 QLabel의 paintEvent 호출
+        # 기본 QFrame의 paintEvent 호출
         super().paintEvent(event)
         
         # 상태별 색상 선 그리기

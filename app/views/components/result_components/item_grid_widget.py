@@ -216,7 +216,7 @@ class ItemGridWidget(QWidget):
                 for col in range(columns):
                     container = ItemsContainer()
                     container.setMinimumHeight(200)
-                    container.setMinimumWidth(250)
+                    container.setMinimumWidth(350)
                     container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                     # 아이템 선택 이벤트 연결
