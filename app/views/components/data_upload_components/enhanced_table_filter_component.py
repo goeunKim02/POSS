@@ -223,12 +223,15 @@ class EnhancedTableFilterComponent(QWidget):
     헤더 클릭으로 다중 필터 선택 기능 제공
     """
     filter_applied = pyqtSignal()  # 필터가 적용되었을 때 발생하는 시그널
+    data_changed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.table_view = None
         self.proxy_model = None
         self._df = pd.DataFrame()
+        self._original_df = pd.DataFrame()
+        self.edited_cells = {}
         self.init_ui()
 
     def init_ui(self):
@@ -274,11 +277,33 @@ class EnhancedTableFilterComponent(QWidget):
         self.proxy_model.setFilterCaseSensitivity(Qt.CaseInsensitive)
         self.table_view.setModel(self.proxy_model)
 
+        source_model = PandasModel()
+        source_model.dataChanged.connect(self.on_data_changed)
+        self.proxy_model.setSourceModel(source_model)
+
         # 헤더 클릭 이벤트 연결
         header.sectionClicked.connect(self.on_header_clicked)
 
         # 레이아웃에 테이블 뷰 추가
         main_layout.addWidget(self.table_view)
+
+    """
+    데이터가 변경되었을 때 호출되는 메서드
+    """
+    def on_data_changed(self, topLeft, bottomRight) :
+        for row in range(topLeft.row(), bottomRight.row() + 1) :
+            for col in range(topLeft.column(), bottomRight.column() + 1) :
+                source_index = self.proxy_model.mapToSource(self.proxy_model.index(row, col))
+
+                if source_index.isValid() :
+                    source_row = source_index.row()
+                    source_col = source_index.column()
+
+                    value = self.proxy_model.sourceModel().data(source_index, Qt.DisplayRole)
+
+                    self.edited_cells[(source_row, source_col)] = value
+
+        self.data_changed.emit()
 
     def _update_filter(self, col, value, checked):
         """필터 업데이트 (체크박스 상태 변경시 호출)"""
@@ -393,7 +418,12 @@ class EnhancedTableFilterComponent(QWidget):
     def set_data(self, df):
         """데이터프레임 설정"""
         self._df = df.copy()
+        self._original_df = df.copy()
+        self.edited_cells = {}
+
         model = PandasModel(self._df, self)
+        model.dataChanged.connect(self.on_data_changed)
+
         self.proxy_model.filters.clear()
         self.proxy_model.setSourceModel(model)
 
@@ -451,18 +481,41 @@ class EnhancedTableFilterComponent(QWidget):
         # DataFrame 생성
         return pd.DataFrame(data, columns=headers)
 
+    """
+    필터링된 데이터를 DataFrame으로 반환
+    """
     def get_filtered_data(self):
-        """필터링된 데이터를 DataFrame으로 반환"""
-        model = self.proxy_model
-        source_model = model.sourceModel()
+        # model = self.proxy_model
+        # source_model = model.sourceModel()
 
-        # 필터링된 행 인덱스 가져오기
-        rows = []
-        for row in range(model.rowCount()):
-            source_idx = model.mapToSource(model.index(row, 0)).row()
-            rows.append(source_idx)
+        # # 필터링된 행 인덱스 가져오기
+        # rows = []
+        # for row in range(model.rowCount()):
+        #     source_idx = model.mapToSource(model.index(row, 0)).row()
+        #     rows.append(source_idx)
 
-        # 원본 데이터에서 필터링된 행만 선택
-        if not rows:
-            return pd.DataFrame(columns=self._df.columns)
-        return self._df.iloc[rows].copy()
+        # # 원본 데이터에서 필터링된 행만 선택
+        # if not rows:
+        #     return pd.DataFrame(columns=self._df.columns)
+        # return self._df.iloc[rows].copy()
+        result_df = self._original_df.copy()
+
+        for (row, col), value in self.edited_cells.items() :
+            try :
+                if pd.api.types.is_numeric_dtype(result_df.iloc[:, col].dtype) :
+                    try :
+                        if value.strip() == '' :
+                            result_df.iloc[row, col] = np.nan
+                        else :
+                            if '.' in value :
+                                result_df.iloc[row, col] = float(value)
+                            else :
+                                result_df.iloc[row, col] = int(value)
+                    except ValueError :
+                        result_df.iloc[row, col] = value
+                else :
+                    result_df.iloc[row, col] = value
+            except (IndexError, ValueError) as e :
+                print(f"데이터 업데이트 오류: ({row}, {col}) -> {value}, 에러: {e}")
+        
+        return result_df
