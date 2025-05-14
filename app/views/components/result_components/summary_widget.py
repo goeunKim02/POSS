@@ -39,15 +39,6 @@ class SummaryWidget(QWidget):
                 color: white;
                 padding: 8px;
                 font-weight: bold;
-                border: 1px solid #0C1A6B;
-                font-size: 12px;
-            }
-            QTableWidget::item {
-                background-color: transparent;
-            }
-            QTableWidget::item:selected {
-                background-color: #E3F2FD;
-                color: black;
             }
         """)
         

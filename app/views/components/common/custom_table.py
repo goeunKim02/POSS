@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import (QTableWidget, QHeaderView, QTableWidgetItem)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QBrush, QFont
 import pandas as pd
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 class CustomTable(QTableWidget):
     def __init__(self, headers=[], parent=None):
@@ -38,7 +40,6 @@ class CustomTable(QTableWidget):
                 padding: 8px;
                 font-weight: bold;
                 border: 1px solid #0c1a6b;
-                font-size: 12px;
             }
             QTableWidget::item {
                 padding: 6px;
@@ -98,11 +99,11 @@ class CustomTable(QTableWidget):
         
         header = self.horizontalHeader()
 
-        # 헤더 높이와 폰트 설정
-        header.setFixedHeight(35)  
-        header_font = QFont("Arial", 10) 
-        header_font.setBold(True)
-        header.setFont(header_font)
+        # # 헤더 높이와 폰트 설정
+        # header.setFixedHeight(35)  
+        # header_font = QFont(font_manager.get_just_font("SamsungOne-700").family(), 12)  
+        # header_font.setBold(True)
+        # header.setFont(header_font)
         
         # 헤더 설정
         header.setSectionsClickable(False)  # 클릭 불가

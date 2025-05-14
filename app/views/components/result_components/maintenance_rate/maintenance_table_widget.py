@@ -22,7 +22,10 @@ class MaintenanceTableWidget(CustomTable):
         # CustomTable의 기본 스타일에 유지율 테이블 특화 스타일 추가
         additional_style = """
             QHeaderView::section {
-                font-size: 12px;
+                padding: 6px 8px;
+            }
+            QTableWidget::item {
+                padding: 4px 6px;
             }
         """
         current_style = self.styleSheet()
@@ -97,9 +100,9 @@ class MaintenanceTableWidget(CustomTable):
             if is_modified and col == 4:  # curr_plan 열
                 style['foreground'] = QColor('#F8AC59')
                 # 폰트 굵게 만들기
-                font = QFont()
-                font.setBold(True)
-                style['font'] = font
+                # font = QFont()
+                # font.setBold(True)
+                # style['font'] = font
             
             styles[col] = style
         

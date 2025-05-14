@@ -133,8 +133,8 @@ class PlanMaintenanceWidget(QWidget):
         
         # 탭 위젯
         self.tab_widget = QTabWidget()
-        self.tab_widget.setMinimumHeight(120)  # 최소 높이 설정
-        self.tab_widget.setMaximumHeight(160)  # 최대 높이 제한
+        # self.tab_widget.setMinimumHeight(50)  # 최소 높이 설정
+        # self.tab_widget.setMaximumHeight(160)  # 최대 높이 제한
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane {
@@ -147,13 +147,13 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 14px; 
+                font-size: 20px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 14px;  
+                font-size: 20px;  
             }
             QTabBar::tab {
                 padding: 5px 5px;
@@ -164,7 +164,7 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 14px;  
+                font-size: 20px;  
                 min-height: 18px;  /* 최소 높이 설정 */
             }
             QTabBar::tab::first { margin-left: 5px; }
@@ -222,18 +222,10 @@ class PlanMaintenanceWidget(QWidget):
 
     def get_tab_size_hint(self, index, font_metrics):
         """탭 크기 힌트 계산"""
-        # from PyQt5.QtCore import QSize
-        # tab_text = self.tab_widget.tabText(index)
-        # text_width = font_metrics.width(tab_text)
-        # return QSize(text_width + 10, 10)  # 여백 추가
-
         from PyQt5.QtCore import QSize
         tab_text = self.tab_widget.tabText(index)
         text_width = font_metrics.width(tab_text)
-        # 최대 너비 160px로 제한하고 최소 너비 보장
-        width = min(max(text_width + 5, 120), 160)
-        return QSize(width, 28)  # 높이도 조금 줄임
-        
+        return QSize(text_width)  # 여백 추가
     
     """이전 계획 선택"""
     def select_previous_plan(self):
