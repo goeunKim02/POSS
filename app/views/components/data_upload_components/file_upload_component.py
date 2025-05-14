@@ -109,7 +109,7 @@ class FileUploadComponent(QWidget):
         file_label.setFont(file_label_font)
 
         remove_btn = QPushButton("X")
-        remove_btn.setFixedSize(16, 16)
+        remove_btn.setFixedSize(16,16)
         remove_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #555; border: none; font-weight: bold; } "
             "QPushButton:hover { color: red; }")
