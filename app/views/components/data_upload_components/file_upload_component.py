@@ -57,7 +57,7 @@ class FileUploadComponent(QWidget):
         browse_btn.clicked.connect(self.on_file_btn_clicked)
         browse_btn.setCursor(QCursor(Qt.PointingHandCursor))
         browse_btn_font = QFont(font_manager.get_just_font("SamsungOne-700").family())
-        browse_btn_font.setPointSize(fs(12))
+        browse_btn_font.setPointSize(fs(11))
         browse_btn_font.setBold(True)
         browse_btn.setFont(browse_btn_font)
         browse_btn.setStyleSheet(f"""
