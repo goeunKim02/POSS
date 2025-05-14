@@ -13,6 +13,13 @@ class SummaryWidget(QWidget):
         super().__init__(parent)
         self.line_capacity_data = {}  # 라인별 생산능력 
         self.line_utilization_data = {}  # 라인별 가동률 
+        self.make_read_only()
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         self.init_ui()
 
     def init_ui(self):
@@ -31,7 +38,6 @@ class SummaryWidget(QWidget):
         self.summary_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #E0E0E0;
-                border: 1px solid #D0D0D0;
                 border-radius: 5px;
             }
             QHeaderView::section {
@@ -39,11 +45,7 @@ class SummaryWidget(QWidget):
                 color: white;
                 padding: 8px;
                 font-weight: bold;
-                border: 1px solid #0C1A6B;
                 font-size: 12px;
-            }
-            QTableWidget::item {
-                background-color: transparent;
             }
             QTableWidget::item:selected {
                 background-color: #E3F2FD;
