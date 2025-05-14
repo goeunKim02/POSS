@@ -101,30 +101,29 @@ class ItemsContainer(QWidget):
         # 다이얼로그 실행
         dialog.exec_()
 
+    """아이템 데이터 업데이트"""
     def update_item_data(self, item, new_data, changed_fields=None):
-        """아이템 데이터 업데이트"""
         if item and item in self.items and new_data:
-            # DraggableItemLabel.update_item_data는 이제 (성공여부, 오류메시지)를 반환
-            if hasattr(item, 'update_item_data'):
-                success, error_message = item.update_item_data(new_data)
-                if not success:
-                    if changed_fields is None:
-                        changed_fields = {}
-                    changed_fields['_validation_failed'] = True
-                    changed_fields['_validation_message'] = error_message
-                        
-            # 아이템 데이터 업데이트
-            # if item.update_item_data(new_data):
-                # 데이터 변경 시그널 발생 (변경 필드 정보 포함)
-                self.itemDataChanged.emit(item, new_data, changed_fields)
-                self.itemsChanged.emit()
-                return True, ""
-            
-            # 검증 통과 시에만 에러 상태 클리어
-            if hasattr(item, 'set_validation_error'):
-                item.set_validation_error(False)
-                
-            # 데이터 변경 시그널 발생 (변경 필드 정보 포함)
+            # # 검증 정보 변수
+            # validation_failed = False
+            # validation_message = ""
+
+            # if changed_fields:
+            #     validation_failed = changed_fields.get('_validation_failed', False)
+            #     validation_message = changed_fields.get('_validation_message', '')
+            #     print(f"검증 상태: 실패={validation_failed}, 메세지={validation_message}")
+
+            # # 에러 상태 설정
+            # if validation_failed and hasattr(item, 'set_validation_error'):
+            #     item.set_validation_error(True, validation_message)
+            #     print(f"아이템 에러설정 완료")
+            # else:
+            #     # 검증 성공 시 에러 상태 해제
+            #     if hasattr(item, 'set_validation_error'):
+            #         item.set_validation_error(False)
+            #         print("아이템 에러상태 해제 완료")
+
+            # 데이터 변경 시그널 발생
             self.itemDataChanged.emit(item, new_data, changed_fields)
             self.itemsChanged.emit()
             return True, ""
@@ -266,8 +265,8 @@ class ItemsContainer(QWidget):
                     # 스페이서 다시 추가
                     self.layout.addSpacerItem(self.spacer)
 
+                # 다른 컨테이너에서 이동하는 경우
                 elif isinstance(source_container, ItemsContainer):
-                    # 다른 컨테이너에서 이동하는 경우
                     # 부모 위젯 찾기 (ItemGridWidget)
                     grid_widget = self.find_parent_grid_widget()
 
@@ -456,3 +455,35 @@ class ItemsContainer(QWidget):
                 QPoint(width - arrow_size, y + arrow_size)
             ]
             painter.drawPolygon(points_right)
+
+
+    def get_container_position(self, grid_widget):
+        """현재 컨테이너가 그리드에서 어느 위치에 있는지 반환"""
+        if not grid_widget or not hasattr(grid_widget, 'containers'):
+            return -1, -1
+        
+        for row_idx, row in enumerate(grid_widget.containers):
+            for col_idx, container in enumerate(row):
+                if container == self:
+                    return row_idx, col_idx
+        return -1, -1
+
+    def calculate_new_position(self, grid_widget, row_idx, col_idx):
+        """그리드 위치를 기반으로 Line과 Time 계산"""
+        if not grid_widget or not hasattr(grid_widget, 'row_headers'):
+            return None, None
+        
+        # 행 헤더에서 Line과 교대 정보 추출
+        if row_idx < len(grid_widget.row_headers):
+            row_key = grid_widget.row_headers[row_idx]
+            if '_(' in row_key:
+                line_part = row_key.split('_(')[0]
+                shift_part = row_key.split('_(')[1].rstrip(')')
+                
+                # Time 계산
+                is_day_shift = shift_part == "주간"
+                new_time = (col_idx * 2) + (1 if is_day_shift else 2)
+                
+                return line_part, new_time
+        
+        return None, None

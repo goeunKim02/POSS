@@ -85,6 +85,10 @@ class CapaUtilization:
                         line_capacities = [(line, df_capa_qty.loc[line, shift]) for line in factory_lines if pd.notna(df_capa_qty.loc[line, shift])]
                         line_capacities.sort(key=lambda x:x[1], reverse=True)  # Sort by capacity in descending order
                         
+                        # # print(f"[DEBUG] Shift {shift} ({day}) - {factory}공장 라인별 생산능력:")
+                        # for line, capacity in line_capacities:
+                        #     print(f"  - Line {line}: {capacity}")
+
                         # 최대 수량 제약 확인
                         max_qty_key = f'Max_qty_{factory}'
                         max_qty = df_capa_qty.loc[max_qty_key, shift] if max_qty_key in df_capa_qty.index and pd.notna(df_capa_qty.loc[max_qty_key, shift]) else float('inf')
@@ -93,15 +97,19 @@ class CapaUtilization:
                         factory_capacity = 0
                         for i, (line, capacity) in enumerate(line_capacities):
                             if i < max_line and factory_capacity + capacity <= max_qty:
+                                # print(f"[DEBUG]     누적 중: {line} 라인, 수용량 {capacity}, 현재 누적: {factory_capacity}")
                                 factory_capacity += capacity
                             elif i < max_line and factory_capacity < max_qty:
+                                # print(f"[WARNING]  Max Qty 도달로 factory_capacity 강제 설정: {factory_capacity} → {max_qty}")
                                 factory_capacity = max_qty # Max qty constraint reached
                                 break
-                        
+
+                        # print(f"[DEBUG]  Shift {shift}_{line} - 공장 {factory} 생산능력: {factory_capacity}")
                         shift_capacity += factory_capacity
 
                     day_total_capacity += shift_capacity
                 
+                # print(f"[DEBUG] {day} 총 생산능력: {day_total_capacity}")
                 day_capacity[day] = day_total_capacity
             
             # 수요 수량에 기반한 일별 생산량 계산
@@ -197,7 +205,7 @@ class CapaUtilization:
                 
             # 수량 정보 업데이트
             if 'Qty' in new_data_clean:
-                old_qty = data_df.at[row_idx, 'Qty']
+                old_qty = old_data_clean['Qty']
                 new_qty = new_data_clean['Qty']
                 data_df.at[row_idx,'Qty'] = new_qty
 
