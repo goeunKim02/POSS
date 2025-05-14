@@ -221,22 +221,22 @@ class LeftParameterComponent(QWidget):
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
                     }
-                    QScrollBar:vertical {
+                    QScrollBar{
                         border: none;
                         width: 10px;
                         margin: 0px;
                     }
-                    QScrollBar::handle:vertical {
+                    QScrollBar::handle{
                         background: #CCCCCC;
                         min-height: 20px;
                         border-radius: 5px;
                     }
-                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    QScrollBar::add-line, QScrollBar::sub-line{
                         border: none;
                         background: none;
                         height: 0px;
                     }
-                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    QScrollBar::add-page, QScrollBar::sub-page {
                         background: none;
                     }
                 """ % font_manager.get_just_font("SamsungOne-700").family())
