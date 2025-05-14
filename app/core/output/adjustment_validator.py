@@ -349,44 +349,83 @@ class PlanAdjustmentValidator:
     Returns:
         tuple: (성공 여부, 오류 메시지)
     """
-    def validate_utilization_rate(self, line, time, new_qty):
+    def validate_utilization_rate(self, line, time, item, new_qty):
         # 시프트별 최대 가동률 설정 
         max_utilization_by_shift = {
-            1: 110, 2: 110, 3: 110,  4: 110,  5: 110,  6: 110,
-            7: 110,  8: 110,  9: 110, 10: 110, 11: 110, 12: 110, 13: 110, 14: 110, 
+            1: 100, 2: 100, 3: 100,  4: 100,  5: 100,  6: 100,
+            7: 100,  8: 100,  9: 100, 10: 100, 11: 100, 12: 100, 13: 100, 14: 100, 
         }
 
-        # 라인-시프트 키 생성
-        key = f"{line}_{time}"
-        current_allocation = self.line_shift_allocation.get(key, 0)
-        
-        # 라인의 기본 용량 확인
-        line_capacity = None
-        if line in self.line_capacities and time in self.line_capacities[line]:
-            line_capacity = self.line_capacities[line][time]
+        # 1. 해당 라인/시프트의 전체 현재 할당량 가져오기 (이동하는 라인/시프트)
+        current_total_allocation = self.get_current_allocation(line=line, time=time)
 
-        # 용량 정보가 없는 경우 처리
-        if line_capacity is None or line_capacity < 0:
-            # 용량 정보가 없으면 다른 방법으로 제약 조건 확인 : 해당 라인/시프트의 capacity 값 직접 조회
-            capacity = self.get_line_capacity(line, time)
-            if capacity is not None and capacity >= 0:
-                line_capacity = capacity
-            else:
-                # 용량 정보를 찾을 수 없는 경우
-                print(f"경고: 라인 '{line}'의 시프트 {time}에 대한 용량 정보를 찾을 수 없습니다.")
-                # 용량 정보가 없으면 제약 조건을 검증할 수 없으므로 통과
-                return True, ""
+        # 2. 해당 아이템의 현재 위치에서의 기존 수량 (같은 아이템이 있을 수 있음.)
+        existing_item_qty = self.get_item_qty_at_position(line, time, item)
+
+        # 3. 라인 용량 조회 (이동하는 라인/시프트) 
+        line_capacity = self.get_line_capacity(line, time)
+        if line_capacity is None or line_capacity <= 0:
+            return True, "용량 정보 없음"
     
-        new_total = current_allocation + new_qty
-        utilization_rate = (new_total / line_capacity) * 100 if line_capacity > 0 else 0
-
-        # 해당 시프트의 최대 가동률 가져오기
-        max_rate = max_utilization_by_shift.get(time, 100)  # 기본값 100%
+        # 4. 새로운 총 할당량 계산
+        new_total_allocation = current_total_allocation - existing_item_qty + new_qty
+        
+        # 5. 가동률 계산
+        utilization_rate = (new_total_allocation / line_capacity) * 100
+        
+        print(f"[DEBUG] 가동률 계산:")
+        print(f"  - 아이템: {item}")
+        print(f"  - 전체할당: {current_total_allocation}")
+        print(f"  - 기존수량: {existing_item_qty}")
+        print(f"  - 새수량: {new_qty}")
+        print(f"  - 새총할당: {new_total_allocation}")
+        print(f"  - 용량: {line_capacity}")
+        print(f"  - 가동률: {utilization_rate:.1f}%")
+        
+        # 6. 최대 가동률 검증
+        max_rate = max_utilization_by_shift.get(int(time), 100)
         
         if utilization_rate > max_rate:
-            return False, f"Maximum utilization rate for shift {time} exceeded ({max_rate}%).\nCurrent: {utilization_rate:.1f}%"
+            return False, f"시프트 {time}의 최대 가동률 {max_rate}% 초과\n현재: {utilization_rate:.1f}%"
+        
+        return True, "가동률 제약 만족"
+
+
+        # # 라인-시프트 키 생성
+        # key = f"{line}_{time}"
+        # current_allocation = self.line_shift_allocation.get(key, 0)
+        
+        # # 라인의 기본 용량 확인
+        # line_capacity = None
+        # if line in self.line_capacities and time in self.line_capacities[line]:
+        #     line_capacity = self.line_capacities[line][time]
+
+        # # 용량 정보가 없는 경우 처리
+        # if line_capacity is None or line_capacity < 0:
+        #     # 용량 정보가 없으면 다른 방법으로 제약 조건 확인 : 해당 라인/시프트의 capacity 값 직접 조회
+        #     capacity = self.get_line_capacity(line, time)
+        #     if capacity is not None and capacity >= 0:
+        #         line_capacity = capacity
+        #     else:
+        #         # 용량 정보를 찾을 수 없는 경우
+        #         print(f"경고: 라인 '{line}'의 시프트 {time}에 대한 용량 정보를 찾을 수 없습니다.")
+        #         # 용량 정보가 없으면 제약 조건을 검증할 수 없으므로 통과
+        #         return True, ""
     
-        return True, ""
+        # adjusted_qty = new_qty - old_qty
+        # print(f"adj : {adjusted_qty}")
+        # new_total = current_allocation + adjusted_qty
+        # print(f"new: {new_total}")
+        # utilization_rate = (new_total / line_capacity) * 100 if line_capacity > 0 else 0
+        # print(f"가동률 : {utilization_rate}")
+
+        # # 해당 시프트의 최대 가동률 가져오기
+        # max_rate = max_utilization_by_shift.get(time, 100)  # 기본값 100%
+        
+        # if utilization_rate > max_rate:
+        #     return False, f"Maximum utilization rate for shift {time} exceeded ({max_rate}%).\nCurrent: {utilization_rate:.1f}%"
+    
+        # return True, ""
     
     
 
@@ -408,6 +447,10 @@ class PlanAdjustmentValidator:
         # 이동 여부 확인
         is_move = source_line is not None and source_time is not None
 
+        # 기존 수량 조회 (현재 위치에서)
+        old_qty = self.get_item_qty_at_position(line, time, item)
+        print(f"[DEBUG] validate_adjustment: {item} at {line}-{time}, old_qty={old_qty}, new_qty={new_qty}, is_move={is_move}")
+
         # 타입 변환 (문자열 -> 숫자)
         time = convert_value(time, int, None)
         new_qty = convert_value(new_qty, int, 0, special_values={'ALL'})
@@ -428,7 +471,7 @@ class PlanAdjustmentValidator:
             self.validate_line_item_compatibility(line, item),
             self.validate_capacity(line, time, new_qty, item, is_move),
             self.validate_due_date(item, time),
-            self.validate_utilization_rate(line, time, new_qty)
+            self.validate_utilization_rate(line, time, item, new_qty)
         ]
 
         # 개별 검증 결과 확인
@@ -545,23 +588,71 @@ class PlanAdjustmentValidator:
         float: 현재 할당된 생산량
     """
     def get_factory_allocation(self, factory, time):
-        if not hasattr(self, 'result_data') or self.result_data is None:
-            return 0
-        
-        # 숫자로 변환
-        if isinstance(time, str) and time.isdigit():
-            time = int(time)
-        
-        # 해당 제조동 및 시프트의 할당량 합계
-        factoroy_mask = (
-            self.result_data['Line'].str.startswith(f'{factory}_', na=False) &
-            (self.result_data['Time'] == time)
-        )
-
-        allocation = self.result_data[factoroy_mask]['Qty'].sum()
-        
-        return allocation
+        return self.get_current_allocation(factory=factory, time=time)
     
+    def get_existing_qty(self, line, time):
+        return self.get_current_allocation(line=line, time=time)
+
+    def get_current_allocation(self, line=None, time=None, item=None, factory=None):
+        """
+        현재 할당량을 계산하는 통합 함수
+        
+        Args:
+            line: 특정 라인의 할당량 (line + time)
+            time: 시프트 번호
+            item: 특정 아이템의 할당량 (line + time + item)
+            factory: 제조동 전체 할당량 (factory + time)
+        """
+        
+        # 1. 특정 아이템의 할당량
+        if line and time and item:
+            mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time) &
+                (self.result_data['Item'] == item)
+            )
+            matched = self.result_data[mask]
+            return float(matched.iloc[0]['Qty']) if not matched.empty else 0
+        
+        # 2. 특정 라인-시프트의 총 할당량
+        elif line and time:
+            mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time)
+            )
+            return self.result_data[mask]['Qty'].sum()
+        
+        # 3. 제조동 전체의 할당량
+        elif factory and time:
+            mask = (
+                self.result_data['Line'].str.startswith(f'{factory}_', na=False) &
+                (self.result_data['Time'] == time)
+            )
+            return self.result_data[mask]['Qty'].sum()
+        
+        return 0
+    
+
+    """특정 라인/시프느에서 특정 아이템의 수량 조회"""
+    def get_item_qty_at_position(self, line, time, item):
+        try:
+            mask = (
+                (self.result_data['Line'] == str(line)) &
+                (self.result_data['Time'] == int(time)) &
+                (self.result_data['Item'] == str(item))
+            )
+
+            matched_rows = self.result_data[mask]
+
+            if not matched_rows.empty:
+                qty = matched_rows.iloc[0]['Qty']
+                return float(qty)
+            else:
+                return 0
+
+        except Exception as e:
+            print(f"[ERROR] get_item_qty_at_position 오류: {e}")
+            return 0
 
     """
     제조동별 생산량 비율 제약 검증

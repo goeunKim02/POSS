@@ -324,23 +324,18 @@ class ItemEditDialog(QDialog):
 
                         # 검증 실패 시 메시지 표시하고 함수 종료
                         if not valid:
-                            validation_failed = True
-                            validation_message = message
                             print(f"[다이얼로그] 검증 실패하지만 변경 허용: {message}")
 
                             # 검증 실패 정보를 changed_field에 추가
                             changed_fields['_validation_failed'] = True
-                            changed_fields['_validation_message'] = validation_message
+                            changed_fields['_validation_message'] = message
 
                     except Exception as e:
                         print(f"[다이어로그] 검증 중 오류 발생 : {e}")
 
                         # 오류 발생 시에도 변경 허용
-                        # 오류 발생 시에도 변경 허용
-                        validation_failed = True
-                        validation_message = f"Validation error: {str(e)}"
                         changed_fields['_validation_failed'] = True
-                        changed_fields['_validation_message'] = validation_message
+                        changed_fields['_validation_message'] = f"Validation error: {str(e)}"
 
                 # 검증 통과 또는 validator 없음 - 변경 사항 적용
                 # 변경 사항이 있으면 시그널 발생 (변경된 필드 정보 포함)
@@ -352,4 +347,4 @@ class ItemEditDialog(QDialog):
 
         except Exception as e:
             print(f"[다이얼로그] 데이터 업데이트 중 오류 발생: {str(e)}")
-            EnhancedMessageBox.show_validation_error(self, "Error", f"An error occurred while updating data: {str(e)}")
+        

@@ -514,8 +514,8 @@ class ShipmentWidget(QWidget):
         super().showEvent(event)
         # 여기에 필요한 초기화 코드 추가
         
-    """위젯이 숨겨질 때 호출됨"""    
-    def hideEvent(self, event):
-        super().hideEvent(event)
-        # 다른 탭으로 전환 시 출하 실패 표시 초기화
-        self.shipment_status_updated.emit({})
+    # """위젯이 숨겨질 때 호출됨"""    
+    # def hideEvent(self, event):
+    #     super().hideEvent(event)
+    #     # 다른 탭으로 전환 시 출하 실패 표시 초기화
+    #     self.shipment_status_updated.emit({})
