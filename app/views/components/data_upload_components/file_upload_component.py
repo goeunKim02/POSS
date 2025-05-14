@@ -6,6 +6,7 @@ import os
 from app.models.common.fileStore import FilePaths
 from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
+from app.models.common.settings_store import SettingsStore
 
 
 """
@@ -30,7 +31,7 @@ class FileUploadComponent(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(5)
 
-        # 라벨 추가
+        # 라벨
         upload_label = QLabel(self.label_text)
         upload_label.setFont(QFont(font_manager.get_just_font("SamsungOne-700").family()))
         upload_label.setStyleSheet("border: none")
@@ -43,7 +44,7 @@ class FileUploadComponent(QWidget):
         self.files_display.setSpacing(sp(5))
         self.files_display.setAlignment(Qt.AlignLeft)
 
-        # 처음에는 안내 텍스트 표시
+        # 안내 텍스트 표시
         self.no_files_label = QLabel("No files selected")
         self.no_files_label.setFont(QFont(font_manager.get_just_font("SamsungOne-700").family()))
         self.no_files_label.setStyleSheet("color: #888888; border:none; background-color: transparent; margin-left:5px")
@@ -84,23 +85,21 @@ class FileUploadComponent(QWidget):
     파일 라벨 추가
     """
     def add_file_label(self, file_path):
-        # 첫 파일이 추가되면 안내 텍스트 제거
         if self.no_files_label:
             self.files_display.removeWidget(self.no_files_label)
             self.no_files_label.deleteLater()
             self.no_files_label = None
 
-        # 항상 추가하기 전에 모든 stretch 제거
         for i in range(self.files_display.count() - 1, -1, -1):
             if self.files_display.itemAt(i).spacerItem():
                 self.files_display.removeItem(self.files_display.itemAt(i))
 
         file_name = file_path.split('/')[-1]
 
-        # 파일 라벨 생성 - 더 작고 컴팩트하게
+        # 파일 라벨 생성
         file_frame = QFrame()
         file_frame.setStyleSheet("QFrame { background-color: #e0e0ff; border-radius: 10px; border:none; padding: 2px; }")
-        file_frame.setFixedHeight(h(27))  # 높이 고정
+        file_frame.setFixedHeight(h(27))
 
         file_layout = QHBoxLayout(file_frame)
         file_layout.setContentsMargins(m(3), 0, m(3), 0)
@@ -121,16 +120,12 @@ class FileUploadComponent(QWidget):
         file_layout.addWidget(file_label)
         file_layout.addWidget(remove_btn)
 
-        # 파일 위젯 추가
         self.files_display.addWidget(file_frame)
 
-        # 파일 경로 저장
         self.file_paths.append(file_path)
 
-        # 파일이 선택되면 시그널 발생
         self.file_selected.emit(file_path)
 
-        # 마지막에 한 번만 stretch 추가
         self.files_display.addStretch(1)
 
         return file_frame
@@ -152,7 +147,6 @@ class FileUploadComponent(QWidget):
         # 파일 경로 목록에서 제거
         if file_path in self.file_paths:
             self.file_paths.remove(file_path)
-            # 파일 제거 시그널 발생
             self.file_removed.emit(file_path)
 
         # 파일이 남아 있으면 마지막에 다시 stretch 추가
@@ -161,13 +155,11 @@ class FileUploadComponent(QWidget):
 
         # 모든 파일이 제거되면 안내 텍스트 다시 표시
         if not self.file_paths and not self.no_files_label:
-            # 모든 기존 항목 제거 (stretch 포함)
             while self.files_display.count():
                 item = self.files_display.takeAt(0)
                 if item.widget():
                     item.widget().deleteLater()
 
-            # 안내 텍스트 추가
             self.no_files_label = QLabel("No files selected")
             self.no_files_label.setFont(QFont(font_manager.get_just_font("SamsungOne-700").family()))
             self.no_files_label.setStyleSheet("color: #888888; border: none; background-color: transparent; margin-left:5px")
@@ -179,10 +171,14 @@ class FileUploadComponent(QWidget):
     파일 선택 다이얼로그 표시 - 여러 파일 선택 가능
     """
     def on_file_btn_clicked(self):
+        input_route = SettingsStore.get('op_InputRoute', '')
+
+        initial_dir = input_route if input_route and os.path.isdir(input_route) else ''
+
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
             "Excel 파일 선택 (여러 파일 선택 가능)",
-            "",
+            initial_dir,
             "Excel Files (*.xlsx *.xls)"
         )
 
