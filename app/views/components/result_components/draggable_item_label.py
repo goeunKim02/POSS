@@ -296,14 +296,36 @@ class DraggableItemLabel(QLabel):
         
         tooltip = f"<b>{item_code}</b> Material Shortage Details:<br><br>"
         tooltip += "<table border='1' cellspacing='0' cellpadding='3'>"
-        tooltip += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Required</th><th>Available</th><th>Shortage</th></tr>"
+        
+        # Material과 Shortage 컬럼은 항상 있지만, Required와 Available은 없을 수 있음
+        has_required = any('Required' in s or 'required' in s for s in self.shortage_data)
+        has_available = any('Available' in s or 'available' in s for s in self.shortage_data)
+        
+        # 테이블 헤더 동적 생성
+        if has_required and has_available:
+            tooltip += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Required</th><th>Available</th><th>Shortage</th></tr>"
+        else:
+            tooltip += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Shortage</th></tr>"
         
         for shortage in self.shortage_data:
             tooltip += f"<tr>"
-            tooltip += f"<td>{shortage['Material']}</td>"
-            tooltip += f"<td align='right'>{int(shortage['Required']):,}</td>"
-            tooltip += f"<td align='right'>{int(shortage['Available']):,}</td>"
-            tooltip += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td>"
+            # Material 키는 소문자로 통일 (KeyError 방지)
+            material = shortage.get('material')
+            if material:
+                tooltip += f"<td>{material}</td>"
+            else:
+                tooltip += f"<td>Unknown</td>"
+                
+            # Required와 Available 컬럼이 있을 경우에만 표시
+            if has_required and has_available:
+                required = shortage.get('Required', shortage.get('required', 0))
+                available = shortage.get('Available', shortage.get('available', 0))
+                tooltip += f"<td align='right'>{int(required):,}</td>"
+                tooltip += f"<td align='right'>{int(available):,}</td>"
+            
+            # Shortage는 항상 있음
+            shortage_amt = shortage.get('shortage', 0)
+            tooltip += f"<td align='right' style='color:red'>{int(shortage_amt):,}</td>"
             tooltip += f"</tr>"
         
         tooltip += "</table>"
@@ -347,13 +369,17 @@ class DraggableItemLabel(QLabel):
                 self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
 
     """아이템 데이터로부터 표시 텍스트 업데이트"""
-    def update_text_from_data(self):
+    def update_text_from_data(self):        
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
 
             # MFG 정보가 있으면 수량 정보로 추가
             if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']):
                 item_info += f" ({self.item_data['Qty']}개)"
+                
+            # 시프트(Time) 정보 추가 - 필요에 따라 활성화
+            if 'Time' in self.item_data and pd.notna(self.item_data['Time']):
+                item_info += f" [Shift {self.item_data['Time']}]"  # 시프트 정보 추가
 
             self.setText(item_info)
 
