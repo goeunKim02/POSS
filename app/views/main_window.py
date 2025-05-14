@@ -73,10 +73,11 @@ class MainWindow(QMainWindow):
                         color: #666;
                         padding: 8px 12px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: 13px;
+                        font-size: 20px;
                         font-weight: 600;
                         border-bottom: 3px solid transparent;
                         margin-right: 0px;
+                        min-width: 10px;
                     }}
 
                     QTabBar::tab:hover {{

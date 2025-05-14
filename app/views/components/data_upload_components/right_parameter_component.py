@@ -7,6 +7,7 @@ from PyQt5.QtCore import pyqtSignal
 from app.utils.error_handler import (
     error_handler, safe_operation, DataError, ValidationError, AppError
 )
+from app.resources.fonts.font_manager import font_manager
 
 class RightParameterComponent(QWidget):
     show_failures = pyqtSignal(dict)

@@ -52,12 +52,11 @@ class FileUploadComponent(QWidget):
 
         # 파일 선택 버튼
         browse_btn = QPushButton(self.button_text)
-        browse_btn.setFixedWidth(80)
-        browse_btn.setFixedHeight(30)
+
         browse_btn.clicked.connect(self.on_file_btn_clicked)
         browse_btn.setCursor(QCursor(Qt.PointingHandCursor))
         browse_btn_font = QFont(font_manager.get_just_font("SamsungOne-700").family())
-        browse_btn_font.setPointSize(11)
+        browse_btn_font.setPointSize(9)
         browse_btn_font.setBold(True)
         browse_btn.setFont(browse_btn_font)
         browse_btn.setStyleSheet(f"""
@@ -68,6 +67,8 @@ class FileUploadComponent(QWidget):
                 border-radius: 5px;
                 padding: 5px 10px;
                 font-weight: bold;
+                min-width: 50px;
+                min-height : 20px;
             }}
             QPushButton:hover {{
                 background-color: #004C99;
