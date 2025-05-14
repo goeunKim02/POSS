@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushBut
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont, QColor, QBrush
 import pandas as pd
+
+from app.views.components.result_components.portcapa_widget import PortCapaWidget
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualization_updater import VisualizationUpdater
@@ -335,10 +337,15 @@ class ResultPage(QWidget):
                 # 캔버스 저장
                 self.viz_canvases.append(material_canvas)
             elif btn_text == 'PortCapa':
-                # PortCapa 캔버스 추가 (기존 로직 유지)
-                portcapa_canvas = MplCanvas(width=6, height=4, dpi=100)
-                page_layout.addWidget(portcapa_canvas)
-                self.viz_canvases.append(portcapa_canvas)
+                self.portcapa_widget = PortCapaWidget()
+                self.portcapa_widget.setStyleSheet("""
+                    QWidget { 
+                        border: none;
+                        outline: none;
+                        background-color: white;
+                    }
+                """)
+                page_layout.addWidget(self.portcapa_widget)
             elif btn_text == 'Shipment':
                 # 당주 출하 위젯
                 self.shipment_widget = ShipmentWidget()
@@ -514,6 +521,9 @@ class ResultPage(QWidget):
         elif index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
             # Material 탭 데이터 업데이트
             self.update_material_shortage_analysis()
+        elif index == 2 and self.result_data is not None:
+            self.portcapa_widget.render_table()
+
         elif index == 4 and self.result_data is not None:  # Shipment 탭 (4번) 인덱스
             # Shipment 탭 데이터 업데이트
             self.shipment_widget.run_analysis(self.result_data)
@@ -831,7 +841,7 @@ class ResultPage(QWidget):
         elif viz_type == "PortCapa":
             # PortCapa 업데이트 로직 (구현 예정)
             pass
-
+    
 
     """최종 최적화 결과를 파일로 내보내는 메서드"""
     def export_results(self):
