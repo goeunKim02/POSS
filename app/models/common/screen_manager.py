@@ -106,18 +106,18 @@ class ScreenManager:
 
         if width >= 2560:  # QHD 이상
             # QHD는 시스템 스케일만 보정
-            final_scale = scale_correction
+            final_scale = scale_correction*0.8
         else:  # FHD 이하
             if width >= 1920:  # FHD
                 # FHD를 QHD처럼 보이게 하면서 시스템 스케일도 보정
-                content_scale = 0.75
+                content_scale = 0.85
                 final_scale = content_scale * scale_correction
             else:  # HD 이하
                 # 시스템 스케일만 보정
                 final_scale = scale_correction
 
         # 4. 스케일 범위 제한 (0.5 ~ 2.5)
-        final_scale = max(0.5, min(2.5, final_scale))
+        final_scale = max(0.1, min(2.5, final_scale))
 
         # 캐시 저장
         ScreenManager._scale_cache[screen_name] = final_scale
