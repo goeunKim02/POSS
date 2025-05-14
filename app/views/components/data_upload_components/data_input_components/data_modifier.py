@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
-
+from app.models.common.fileStore import DataStore
 
 class DataModifier:
     """데이터 수정 관련 로직을 처리하는 클래스"""
@@ -110,7 +110,6 @@ class DataModifier:
 
     def update_data_store(self, file_path, sheet_name, df):
         """DataStore에 데이터프레임 저장/업데이트"""
-        from app.models.common.fileStore import DataStore
 
         # 데이터프레임 저장 키 생성
         key = f"{file_path}:{sheet_name}" if sheet_name else file_path
@@ -123,7 +122,6 @@ class DataModifier:
 
         # 업데이트된 딕셔너리 DataStore에 저장
         DataStore.set("dataframes", df_dict)
-        print(f"DataStore에 데이터프레임 저장됨: {key}")
 
     def save_tab_data(self, tab_widget, file_path, sheet_name):
         """특정 탭의 데이터 저장"""
