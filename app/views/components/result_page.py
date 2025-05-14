@@ -133,16 +133,6 @@ class ResultPage(QWidget):
         bottom_layout = QVBoxLayout(bottom_frame)
         bottom_layout.setContentsMargins(0, 0, 0, 0)
 
-        # 하단 섹션 제목
-        # bottom_section_title = QLabel("Adjustment Analysis")
-        # font_bottom = QFont()
-        # font_bottom.setFamily("Arial")
-        # font_bottom.setPointSize(12)
-        # font_bottom.setBold(True)
-        # bottom_section_title.setFont(font_bottom)
-        # bottom_section_title.setAlignment(Qt.AlignCenter)
-        # bottom_layout.addWidget(bottom_section_title)
-
         # 에러 표시 위젯
         self.error_display_widget = QWidget()
         self.error_display_layout = QVBoxLayout(self.error_display_widget)
@@ -355,14 +345,7 @@ class ResultPage(QWidget):
             elif btn_text =='SplitView':
                 self.split_allocation_widget = SplitAllocationWidget()
                 page_layout.addWidget(self.split_allocation_widget)
-            # else:
-            #     # 시각화 캔버스 추가 (Capa, Utilization)
-            #     canvas = MplCanvas(width=6, height=4, dpi=100)
-            #     page_layout.addWidget(canvas)
-            #     self.viz_canvases.append(canvas)
-                
-            #     # 초기 시각화 생성
-            #     self.create_initial_visualization(canvas, btn_text)
+            
 
             # Performance 탭의 초기 시각화 생성
             if btn_text == 'Capa':
@@ -680,6 +663,7 @@ class ResultPage(QWidget):
 
                 # 수량만 변경된 경우
                 if is_quantity_only_change:
+                    print(f"[DEBUG] 수량 변경 전: {old_data['Qty']}, 변경 후: {new_data['Qty']}")
                     # 결과 데이터에서 정확한 아이템만 업데이트
                     mask = (
                         (self.result_data['Line'] == new_data.get('Line')) &
@@ -697,6 +681,9 @@ class ResultPage(QWidget):
                         # print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")
         
                 else:
+                    print(f"[DEBUG] 위치 이동 감지! {old_data['Line']}→{new_data['Line']}, "
+                            f"{old_data['Time']}→{new_data['Time']}, "
+                            f"Qty: {old_data['Qty']} → {new_data['Qty']}")
                     # 기존 행 제거
                     old_mask = (
                         (self.result_data['Line'] == old_data.get('Line')) &

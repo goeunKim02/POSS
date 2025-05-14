@@ -107,17 +107,30 @@ class ModifiedLeftSection(QWidget):
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
         
+        if changed_fields:
+            old_data_for_validation = old_data.copy()
+
+            for field, change_info in changed_fields.items():
+                # 검증 관련 필드는 건너뛰기
+                if field.startswith('_validation') or field.startswith('_drop_pos'):
+                    continue
+
+                if field not in ['_drop_pos'] and isinstance(change_info, dict) and 'from' in change_info:
+                        old_data_for_validation[field] = change_info['from']
+                
+            old_data = old_data_for_validation  # 복원된 데이터를 사용
+        print(f"복원된 이전 데이터: {old_data}")
+
         if hasattr(self, 'validator'):
             # 어디가 변경인지 확인
             is_move = False
             source_line = None
             source_time = None
 
-            if changed_fields:
-                if 'Line' in changed_fields or 'Time' in changed_fields:
-                    is_move = True
-                    source_line = old_data.get('Line')
-                    source_time = old_data.get('Time')
+            if 'Line' in changed_fields or 'Time' in changed_fields:
+                is_move = True
+                source_line = old_data.get('Line')
+                source_time = old_data.get('Time')
 
         # 검증 실행
         try:

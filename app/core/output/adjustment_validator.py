@@ -349,11 +349,12 @@ class PlanAdjustmentValidator:
     Returns:
         tuple: (성공 여부, 오류 메시지)
     """
-    def validate_utilization_rate(self, line, time, new_qty):
+    def validate_utilization_rate(self, line, time, new_qty, old_qty=0):
+        print(f"new({new_qty}), old({old_qty})")
         # 시프트별 최대 가동률 설정 
         max_utilization_by_shift = {
-            1: 110, 2: 110, 3: 110,  4: 110,  5: 110,  6: 110,
-            7: 110,  8: 110,  9: 110, 10: 110, 11: 110, 12: 110, 13: 110, 14: 110, 
+            1: 100, 2: 100, 3: 100,  4: 100,  5: 100,  6: 100,
+            7: 100,  8: 100,  9: 100, 10: 100, 11: 100, 12: 100, 13: 100, 14: 100, 
         }
 
         # 라인-시프트 키 생성
@@ -377,8 +378,12 @@ class PlanAdjustmentValidator:
                 # 용량 정보가 없으면 제약 조건을 검증할 수 없으므로 통과
                 return True, ""
     
-        new_total = current_allocation + new_qty
+        adjusted_qty = new_qty - old_qty
+        print(f"adj : {adjusted_qty}")
+        new_total = current_allocation + adjusted_qty
+        print(f"new: {new_total}")
         utilization_rate = (new_total / line_capacity) * 100 if line_capacity > 0 else 0
+        print(f"가동률 : {utilization_rate}")
 
         # 해당 시프트의 최대 가동률 가져오기
         max_rate = max_utilization_by_shift.get(time, 100)  # 기본값 100%
@@ -408,6 +413,9 @@ class PlanAdjustmentValidator:
         # 이동 여부 확인
         is_move = source_line is not None and source_time is not None
 
+        old_qty = self.get_existing_qty(line, time, item)
+        print(f"[validate_adjustment] old_qty: {old_qty}, new_qty: {new_qty}")
+
         # 타입 변환 (문자열 -> 숫자)
         time = convert_value(time, int, None)
         new_qty = convert_value(new_qty, int, 0, special_values={'ALL'})
@@ -428,7 +436,7 @@ class PlanAdjustmentValidator:
             self.validate_line_item_compatibility(line, item),
             self.validate_capacity(line, time, new_qty, item, is_move),
             self.validate_due_date(item, time),
-            self.validate_utilization_rate(line, time, new_qty)
+            self.validate_utilization_rate(line, time, new_qty, old_qty)
         ]
 
         # 개별 검증 결과 확인
@@ -444,6 +452,29 @@ class PlanAdjustmentValidator:
             return False, message
         
         return True, "조정 가능합니다."
+    
+
+    def get_existing_qty(self, line, time, item):
+        mask = (
+            (self.result_data['Line'] == line) &
+            (self.result_data['Time'] == time) &
+            (self.result_data['Item'] == item)
+        )
+        # if not self.result_data[mask].empty:
+        #     return float(self.result_data[mask].iloc[0]['Qty'])
+        # return 0
+
+        matched = self.result_data[mask]
+
+        print(f"[get_existing_qty] Line: {line}, Time: {time}, Item: {item}")
+        print(f"[get_existing_qty] 매칭된 행 수: {len(matched)}")
+        if not matched.empty:
+            qty = float(matched.iloc[0]['Qty'])
+            print(f"[get_existing_qty] 기존 수량 (old_qty): {qty}")
+            return qty
+        
+        print(f"[get_existing_qty] 기존 수량 없음, 기본값 0 반환")
+        return 0
 
     
     """
@@ -557,8 +588,9 @@ class PlanAdjustmentValidator:
             self.result_data['Line'].str.startswith(f'{factory}_', na=False) &
             (self.result_data['Time'] == time)
         )
-
+        print(f"현재 할당:{factoroy_mask}")
         allocation = self.result_data[factoroy_mask]['Qty'].sum()
+        print(f"allocation: {allocation}")
         
         return allocation
     
