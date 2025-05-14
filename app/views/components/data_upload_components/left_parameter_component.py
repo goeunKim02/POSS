@@ -221,22 +221,40 @@ class LeftParameterComponent(QWidget):
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
                     }
-                    QScrollBar{
+                    QScrollBar:vertical {
                         border: none;
                         width: 10px;
                         margin: 0px;
                     }
-                    QScrollBar::handle{
+                    QScrollBar::handle:vertical {
                         background: #CCCCCC;
                         min-height: 20px;
                         border-radius: 5px;
                     }
-                    QScrollBar::add-line, QScrollBar::sub-line{
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                         border: none;
                         background: none;
                         height: 0px;
                     }
-                    QScrollBar::add-page, QScrollBar::sub-page {
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                        background: none;
+                    }
+                    QScrollBar:horizontal {
+                        border: none;
+                        height: 10px;
+                        margin: 0px;
+                    }
+                    QScrollBar::handle:horizontal {
+                        background: #CCCCCC;
+                        min-width: 20px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                        border: none;
+                        background: none;
+                        width: 0px;
+                    }
+                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
                         background: none;
                     }
                 """ % font_manager.get_just_font("SamsungOne-700").family())
