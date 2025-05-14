@@ -74,7 +74,7 @@ class ScreenManager:
 
     @staticmethod
     def get_scale_factor(screen: QScreen = None, force_update: bool = False) -> float:
-        """현재 스크린의 스케일 팩터 계산"""
+        """현재 스크린의 스케일 팩터 계산 (시스템 스케일을 보정하는 버전)"""
         if not screen:
             screen = ScreenManager.get_current_screen()
 
@@ -88,31 +88,36 @@ class ScreenManager:
 
         info = ScreenManager.get_screen_info(screen)
 
-        # 1. Windows/Linux/Mac별 시스템 스케일 감지
-        system_scale = 1.0
+        # 1. 시스템 스케일 감지
+        detected_system_scale = 1.0
         if platform.system() == 'Windows':
-            # Windows의 디스플레이 스케일 설정
-            system_scale = info['logical_dpi'] / ScreenManager.BASE_DPI
+            detected_system_scale = info['logical_dpi'] / ScreenManager.BASE_DPI
         elif platform.system() == 'Darwin':  # macOS
-            # macOS Retina 디스플레이
-            system_scale = info['device_pixel_ratio']
+            detected_system_scale = info['device_pixel_ratio']
         else:  # Linux
-            # Linux의 경우 logical DPI 사용
-            system_scale = info['logical_dpi'] / ScreenManager.BASE_DPI
+            detected_system_scale = info['logical_dpi'] / ScreenManager.BASE_DPI
 
-        # 2. 해상도 기반 스케일
-        resolution_scale = info['width'] / ScreenManager.BASE_WIDTH
+        # 2. 시스템 스케일을 보정하여 100%로 만들기
+        # 예: 시스템이 125%면 1/1.25 = 0.8을 곱해서 100%로 만듦
+        scale_correction = 1.0 / detected_system_scale
 
-        # 3. 최종 스케일 계산
-        if info['width'] >= 2560:  # QHD 이상
-            # 고해상도에서는 해상도 스케일을 우선
-            final_scale = max(system_scale, resolution_scale)
+        # 3. 해상도 기반 스케일
+        width = info['width']
+
+        if width >= 2560:  # QHD 이상
+            # QHD는 시스템 스케일만 보정
+            final_scale = scale_correction
         else:  # FHD 이하
-            # 저해상도에서는 시스템 스케일을 우선
-            final_scale = system_scale
+            if width >= 1920:  # FHD
+                # FHD를 QHD처럼 보이게 하면서 시스템 스케일도 보정
+                content_scale = 0.75
+                final_scale = content_scale * scale_correction
+            else:  # HD 이하
+                # 시스템 스케일만 보정
+                final_scale = scale_correction
 
-        # 4. 스케일 범위 제한 (0.75 ~ 2.5)
-        final_scale = max(0.75, min(2.5, final_scale))
+        # 4. 스케일 범위 제한 (0.5 ~ 2.5)
+        final_scale = max(0.5, min(2.5, final_scale))
 
         # 캐시 저장
         ScreenManager._scale_cache[screen_name] = final_scale
@@ -214,6 +219,7 @@ class ScreenManager:
 
         info = ScreenManager.get_screen_info(screen)
         return info['width'] >= 2560
+
 
 # 싱글톤 인스턴스
 screen_mgr = ScreenManager()
