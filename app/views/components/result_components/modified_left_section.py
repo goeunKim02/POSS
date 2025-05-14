@@ -106,10 +106,20 @@ class ModifiedLeftSection(QWidget):
         
         # 이전 데이터 저장 (시각화 업데이트용)
         old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
+        
+        if changed_fields:
+            old_data_for_validation = old_data.copy()
 
-        # 검증 결과 초기화
-        validation_failed = False
-        validation_error_message = ""
+            for field, change_info in changed_fields.items():
+                # 검증 관련 필드는 건너뛰기
+                if field.startswith('_validation') or field.startswith('_drop_pos'):
+                    continue
+
+                if field not in ['_drop_pos'] and isinstance(change_info, dict) and 'from' in change_info:
+                        old_data_for_validation[field] = change_info['from']
+                
+            old_data = old_data_for_validation  # 복원된 데이터를 사용
+        print(f"복원된 이전 데이터: {old_data}")
 
         if hasattr(self, 'validator'):
             # 어디가 변경인지 확인
@@ -117,11 +127,10 @@ class ModifiedLeftSection(QWidget):
             source_line = None
             source_time = None
 
-            if changed_fields:
-                if 'Line' in changed_fields or 'Time' in changed_fields:
-                    is_move = True
-                    source_line = old_data.get('Line')
-                    source_time = old_data.get('Time')
+            if 'Line' in changed_fields or 'Time' in changed_fields:
+                is_move = True
+                source_line = old_data.get('Line')
+                source_time = old_data.get('Time')
 
         # 검증 실행
         try:
@@ -279,16 +288,18 @@ class ModifiedLeftSection(QWidget):
                         failure_info = self.shipment_failure_items[new_data['Item']]
                         new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
 
+                    # 자재부족 상태 적용 (필요한 경우)
+                    if hasattr(self, 'current_shortage_items') and 'Item' in new_data and new_data['Item'] in self.current_shortage_items:
+                        shortage_info = self.current_shortage_items[new_data['Item']]
+                        new_item.set_shortage_status(True, shortage_info)
+
                     # 셀 이동 이벤트 발생 (시각화 차트 업데이트)
                     self.cell_moved.emit(new_item, old_data, new_data)
 
                     print(f"\n=== cell_moved 시그널 발생 ===")
                     print(f"이전 데이터: {old_data}")
                     print(f"새 데이터: {new_data}")
-
-                    # 상위 위젯에 이벤트만 전달하고 메시지는 표시하지 않음
-                    # self.item_data_changed.emit(new_item, new_data)
-                    return  # 이후 코드는 실행하지 않음
+                    return  
                 else:
                     print("새 아이템 생성 실패")
                     return
@@ -299,27 +310,14 @@ class ModifiedLeftSection(QWidget):
                 # 수정: update_item_data 메서드의 반환값 처리
                 success, error_message = item.update_item_data(new_data)
                 if not success:
-                    # 수정: 대화상자 표시하지 않고 에러 상태만 설정
-                    if validation_failed:
-                        item.set_validation_error(True, validation_error_message)
+                    print(f"아이템 데이터 업데이트 실패: {error_message}")
                     return
 
-        # 데이터 변경 성공 시
-        self.mark_as_modified()
+            # 데이터 변경 성공 시
+            self.mark_as_modified()
 
-        # 검증 에러가 있는 경우에만 에러 상태 설정
-        if validation_failed and hasattr(item, 'set_validation_error'):
-            item.set_validation_error(True, validation_error_message)
-
-        # 정확한 위치 정보를 포함하여 전달
-        corrected_new_data = new_data.copy()
-        corrected_new_data['Line'] = old_data.get('Line')  # 기존 위치 유지
-        corrected_new_data['Time'] = old_data.get('Time')  # 기존 위치 유지
-        
-        self.cell_moved.emit(item, old_data, corrected_new_data)
-
-        # 상위 위젯에 이벤트 전달
-        self.item_data_changed.emit(item, new_data)
+            # 상위 위젯에 이벤트 전달
+            self.item_data_changed.emit(item, new_data)
         
 
     """엑셀 파일 로드"""
@@ -431,15 +429,31 @@ class ModifiedLeftSection(QWidget):
                         item_full_data = row_data.to_dict()
                         new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
 
-                        # 사전할당 아이템인 경우 스타일 적용
-                        if new_item and item_full_data.get('Item') in self.pre_assigned_items:
-                            new_item.set_pre_assigned_status(True)
-                            
-                        # 출하 실패 아이템인 경우 스타일 적용 (추가)
-                        if new_item and item_full_data.get('Item') in self.shipment_failure_items:
-                            item_code = item_full_data.get('Item')
-                            failure_info = self.shipment_failure_items[item_code]
-                            new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
+                        # 새 아이템에 모든 상태 적용
+                        if new_item:
+                            item_code = item_full_data.get('Item', '')
+
+                            # 사전할당 아이템인 경우 스타일 적용
+                            if item_code in self.pre_assigned_items:
+                                new_item.set_pre_assigned_status(True)
+                                
+                            # 출하 실패 아이템인 경우 스타일 적용 
+                            if item_code in self.shipment_failure_items:
+                                item_code = item_full_data.get('Item')
+                                failure_info = self.shipment_failure_items[item_code]
+                                new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
+
+                            # 자재부족 아이템인 경우 스타일 적용
+                            if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
+                                shortage_info = self.current_shortage_items[item_code]
+                                new_item.set_shortage_status(True, shortage_info)
+
+                            # # 검증 에러 상태인 겨우 스타일 적용
+                            # if hasattr(self, 'current_validation_errors'):
+                            #     error_key = f"{item_full_data.get('Line')}_{item_full_data.get('Time')}_{item_code}"
+                            #     if error_key in self.current_validation_errors:
+                            #         error_info = self.current_validation_errors[error_key]
+                            #         new_item.set_validation_error(True, error_info.get('message', ''))
 
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
@@ -455,6 +469,7 @@ class ModifiedLeftSection(QWidget):
 
         except Exception as e:
             # 에러 메시지 표시
+            print(f"")
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
 
 
@@ -573,3 +588,46 @@ class ModifiedLeftSection(QWidget):
     """데이터가 수정되었음을 표시하는 메서드"""
     def mark_as_modified(self):
         self.reset_button.setEnabled(True)
+
+
+    """현재 자재부족 아이템 정보 저장"""
+    def set_current_shortage_items(self, shortage_items):
+        self.current_shortage_items = shortage_items
+        self.apply_all_states()
+
+    # """현재 검증 에러 정보 저장"""
+    # def set_current_validation_errors(self, validation_errors):
+    #     self.current_validation_errors = validation_errors
+    #     self.apply_all_states()
+
+    """모든 상태 정보를 현재 아이템들에 적용"""
+    def apply_all_states(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
+                        item_code = item.item_data['Item']
+
+                        # 사전할당 상태
+                        if item_code in self.pre_assigned_items:
+                            item.set_pre_assigned_status(True)
+
+                        # 출하 실패 상태
+                        if item_code in self.shipment_failure_items:
+                            failure_info = self.shipment_failure_items[item_code]
+                            item.set_shipment_failure(True, failure_info.get('reason', 'Unknown'))
+
+                        # 자재 부족 상태
+                        if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
+                            shortage_info = self.current_shortage_items[item_code]
+                            item.set_shortage_status(True, shortage_info)
+
+                        # # 검증 에러 상태인 겨우 스타일 적용
+                        # if hasattr(self, 'current_validation_errors'):
+                        #     error_key = f"{item.item_data.get('Line')}_{item.item_data.get('Time')}_{item_code}"
+                        #     if error_key in self.current_validation_errors:
+                        #         error_info = self.current_validation_errors[error_key]
+                        #         item.set_validation_error(True, error_info.get('message', ''))
