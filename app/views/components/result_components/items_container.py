@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
 from .item_edit_dialog import ItemEditDialog
 import json
-from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
 class ItemsContainer(QWidget):
     """아이템들을 담는 컨테이너 위젯"""
@@ -104,25 +104,6 @@ class ItemsContainer(QWidget):
     """아이템 데이터 업데이트"""
     def update_item_data(self, item, new_data, changed_fields=None):
         if item and item in self.items and new_data:
-            # # 검증 정보 변수
-            # validation_failed = False
-            # validation_message = ""
-
-            # if changed_fields:
-            #     validation_failed = changed_fields.get('_validation_failed', False)
-            #     validation_message = changed_fields.get('_validation_message', '')
-            #     print(f"검증 상태: 실패={validation_failed}, 메세지={validation_message}")
-
-            # # 에러 상태 설정
-            # if validation_failed and hasattr(item, 'set_validation_error'):
-            #     item.set_validation_error(True, validation_message)
-            #     print(f"아이템 에러설정 완료")
-            # else:
-            #     # 검증 성공 시 에러 상태 해제
-            #     if hasattr(item, 'set_validation_error'):
-            #         item.set_validation_error(False)
-            #         print("아이템 에러상태 해제 완료")
-
             # 데이터 변경 시그널 발생
             self.itemDataChanged.emit(item, new_data, changed_fields)
             self.itemsChanged.emit()
