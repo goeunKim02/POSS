@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushBut
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont, QColor, QBrush
 import pandas as pd
+
+from app.views.components.result_components.portcapa_widget import PortCapaWidget
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualization_updater import VisualizationUpdater
@@ -339,10 +341,15 @@ class ResultPage(QWidget):
                 # 캔버스 저장
                 self.viz_canvases.append(material_canvas)
             elif btn_text == 'PortCapa':
-                # PortCapa 캔버스 추가 (기존 로직 유지)
-                portcapa_canvas = MplCanvas(width=6, height=4, dpi=100)
-                page_layout.addWidget(portcapa_canvas)
-                self.viz_canvases.append(portcapa_canvas)
+                self.portcapa_widget = PortCapaWidget()
+                self.portcapa_widget.setStyleSheet("""
+                    QWidget { 
+                        border: none;
+                        outline: none;
+                        background-color: white;
+                    }
+                """)
+                page_layout.addWidget(self.portcapa_widget)
             elif btn_text == 'Shipment':
                 # 당주 출하 위젯
                 self.shipment_widget = ShipmentWidget()
@@ -517,6 +524,8 @@ class ResultPage(QWidget):
         elif index == 2 and self.result_data is not None:  # Material 탭 (2번) 인덱스
             # Material 탭 데이터 업데이트
             self.update_material_shortage_analysis()
+        elif index == 3 and self.result_data is not None:
+            self.portcapa_widget.render_table()
         elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
             # Shipment 탭 데이터 업데이트
             self.shipment_widget.run_analysis(self.result_data)
@@ -524,9 +533,7 @@ class ResultPage(QWidget):
             # SplitView 탭 데이터 업데이트
             if hasattr(self, 'split_allocation_widget'):
                 self.split_allocation_widget.run_analysis(self.result_data)
-        # else:
-        #     # 다른 탭으로 전환 시 자재 부족 상태 초기화
-        #     self.clear_left_widget_shortage_status()
+
 
     def clear_left_widget_shortage_status(self):
         """왼쪽 위젯의 모든 아이템들의 자재 부족 상태 초기화"""
@@ -805,7 +812,7 @@ class ResultPage(QWidget):
             VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
         
         # Material 탭 캔버스 업데이트 (2번 캔버스)
-        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 1:  # Material 탭이 현재 선택된 경우
+        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 2:  # Material 탭이 현재 선택된 경우
             # Material 탭의 경우 캔버스 업데이트 후 테이블 업데이트까지 함께 수행
             if self.result_data is not None and not self.result_data.empty:
                 self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(
@@ -838,7 +845,7 @@ class ResultPage(QWidget):
         elif viz_type == "PortCapa":
             # PortCapa 업데이트 로직 (구현 예정)
             pass
-
+    
 
     """최종 최적화 결과를 파일로 내보내는 메서드"""
     def export_results(self):
