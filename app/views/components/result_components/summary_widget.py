@@ -13,19 +13,18 @@ class SummaryWidget(QWidget):
         super().__init__(parent)
         self.line_capacity_data = {}  # 라인별 생산능력 
         self.line_utilization_data = {}  # 라인별 가동률 
-        self.make_read_only()
-        self.setStyleSheet("""
-            QWidget {
-                background-color: transparent;
-                border: none;
-            }
-        """)
         self.init_ui()
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10 ,10, 10)
         main_layout.setSpacing(10)
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+                border: none;
+            }
+        """)
 
         # 요약 테이블
         self.summary_table = QTableWidget()

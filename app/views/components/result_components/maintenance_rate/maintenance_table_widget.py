@@ -2,15 +2,11 @@ from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QHeaderView)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QBrush, QFont
 import pandas as pd
-from app.views.components.common.custom_table_widget import CustomTableWidget
 
 """유지율 표시를 위한 테이블 위젯 기본 클래스"""
-class MaintenanceTableWidget(CustomTableWidget):
-    def __init__(self, headers, parent=None):
-        super().__init__(self)
-        self.setColumnCount(len(headers))
-        self.setHorizontalHeaderLabels(headers)
-
+class MaintenanceTableWidget(QTableWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
         # 라인별 배경색 정의
         self.group_colors = [
             QColor('#ffffff'),  # 흰색
