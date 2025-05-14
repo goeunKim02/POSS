@@ -157,8 +157,12 @@ class PlanningPage(QWidget):
         current = set(self._df['Project'])
         filtered = {gid: projs for gid, projs in all_groups.items() if current & set(projs)}
 
-        dlg = ProjectGroupDialog(filtered, self._df, parent=self)
-        dlg.optimizationDone.connect(self._on_optimization_prepare)
+        dlg = ProjectGroupDialog(
+            filtered,
+            self._df,
+            on_done_callback=self._on_optimization_prepare,
+            parent=self
+        )
         dlg.exec_()
 
     # 실제 최적화 완료 처리
