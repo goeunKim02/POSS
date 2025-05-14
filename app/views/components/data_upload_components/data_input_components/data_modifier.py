@@ -151,11 +151,21 @@ class DataModifier:
                     try:
                         if not modified_df.equals(original_df):
                             # 값만 비교 (데이터 타입 무시)
-                            modified_values = modified_df.astype(str).values
-                            original_values = original_df.astype(str).values
+                            try :
+                                for col in modified_df.columns :
+                                    if col in original_df.columns :
+                                        if not (modified_df[col].astype(str).values == original_df[col].astype(str).values).all() :
+                                            is_modified = True
+                                            break
+                            except Exception as e :
+                                modified_values = modified_df.astype(str).values
+                                original_values = original_df.astype(str).values
 
-                            if not (modified_values == original_values).all():
-                                is_modified = True
+                                try :
+                                    if not (modified_values == original_values).all():
+                                        is_modified = True
+                                except Exception as e2 :
+                                    is_modified = True
                     except Exception as e:
                         print(f"데이터 비교 중 오류 발생: {e}")
                         is_modified = False
