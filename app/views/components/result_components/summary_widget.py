@@ -1,12 +1,9 @@
-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QLabel, QFrame)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 import pandas as pd
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
-from app.analysis.output.daily_capa_utilization import CapaUtilization
-from app.analysis.output.separate_region_and_group import analyze_line_allocation
 from app.models.common.fileStore import FilePaths
 from app.utils.fileHandler import load_file
 
@@ -171,9 +168,9 @@ class SummaryWidget(QWidget):
             'Capa': f"{total_capacity:,}" if total_capacity > 0 else '',
             'Line_Qty': f"{total_qty:,}",  
             'Utilization(%)': f"{total_utilization:.1f}%" if total_utilization > 0 else '',
-            'Project': '-',
-            'Region': '-',
-            'Pjt_Qty': '-',  # 프로젝트별 수량은 총합행에서는 빈값
+            'Project': '',
+            'Region': '',
+            'Pjt_Qty': '',  # 프로젝트별 수량은 총합행에서는 빈값
             'Qty_raw': total_qty,  # 정렬용
             'is_total': True  # Total 행 표시용
         })
@@ -306,18 +303,15 @@ class SummaryWidget(QWidget):
             return
         
         # 표시용 컬럼만 추출 (is_total은 제외하고 표시)
-        display_columns = [c for c in summary_df.columns if c != 'is_total']
-        self.summary_table.clear()
-        self.summary_table.setRowCount(len(summary_df))
-        self.summary_table.setColumnCount(len(display_columns))
-        self.summary_table.setHorizontalHeaderLabels(display_columns)
+        display_columns = [col for col in summary_df.columns if col != 'is_total']
+        display_df = summary_df[display_columns]
 
-        # # 테이블 설정
-        # self.summary_table.setRowCount(len(display_df))
-        # self.summary_table.setColumnCount(len(display_df.columns))
+        # 테이블 설정
+        self.summary_table.setRowCount(len(display_df))
+        self.summary_table.setColumnCount(len(display_df.columns))
 
-        # # 헤더 설정
-        # self.summary_table.setHorizontalHeaderLabels(display_df.columns.tolist())
+        # 헤더 설정
+        self.summary_table.setHorizontalHeaderLabels(display_df.columns.tolist())
 
         # 제조동별 병합 
         building_spans = {}
@@ -370,6 +364,7 @@ class SummaryWidget(QWidget):
 
         # 데이터 입력
         for row_idx, (_, row) in enumerate(summary_df.iterrows()):
+            display_row = display_df.iloc[row_idx]
 
             for col_idx, value in enumerate(row):
                 item = QTableWidgetItem(str(value) if pd.notna(value) else "")
