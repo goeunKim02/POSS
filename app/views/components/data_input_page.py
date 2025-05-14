@@ -62,9 +62,9 @@ class DataInputPage(QWidget) :
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
         top_container_layout.setContentsMargins(10, 10, 10, 10)
-        top_container_layout.setSpacing(0)
-        top_container.setStyleSheet(f"background-color: #F5F5F5; border-radius: 5px;")  # border-radius도 스케일
-        top_container.setFixedHeight(100)  # 원래 높이로 변경
+        top_container_layout.setSpacing(10)
+        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
+        top_container.setFixedHeight(150)
 
         title_row = QFrame()
         title_row.setStyleSheet(f"background-color: transparent; padding-bottom:10px;")
@@ -77,7 +77,7 @@ class DataInputPage(QWidget) :
         title_label.setStyleSheet("padding: 0px;")
         title_label.setFixedHeight(30)  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", 20)
+        title_font = font_manager.get_font("SamsungOne-700", 15)
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
@@ -92,8 +92,9 @@ class DataInputPage(QWidget) :
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: 5px 10px;
-                font-weight: bold;
+                padding: 8px 16px;
+                min-width: 30px;
+                min-height: 10px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -102,8 +103,8 @@ class DataInputPage(QWidget) :
                 background-color: #0062cc;
             }}
         """)  # f-string으로 변경하고 모든 중괄호 두 개로 수정
-        save_btn.setFixedWidth(80)  # 원래 크기로
-        save_btn.setFixedHeight(30)  # 원래 크기로
+        # save_btn.setFixedWidth(80)  # 원래 크기로
+        # save_btn.setFixedHeight(30)  # 원래 크기로
 
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -113,8 +114,9 @@ class DataInputPage(QWidget) :
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: 5px 10px;
-                font-weight: bold;
+                padding: 8px 16px;
+                min-width: 30px;
+                min-height: 10px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -123,11 +125,11 @@ class DataInputPage(QWidget) :
                 background-color: #0062cc;
             }}
         """)
-        run_btn.setFixedWidth(80)
-        run_btn.setFixedHeight(30)
+        # run_btn.setFixedWidth(80)
+        # run_btn.setFixedHeight(30)
 
         # font_manager 사용법 수정
-        run_font = font_manager.get_font("SamsungOne-700", 11)
+        run_font = font_manager.get_font("SamsungOne-700", 9)
         run_font.setBold(True)
         run_btn.setFont(run_font)
         save_btn.setFont(run_font)
@@ -157,7 +159,7 @@ class DataInputPage(QWidget) :
         top_container_layout.addWidget(input_section)
 
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: #F5F5F5; border-radius: 10px;")
+        bottom_container.setStyleSheet("background-color: #F5F5F5;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -190,7 +192,8 @@ class DataInputPage(QWidget) :
 
         self.tab_bar = QTabBar()
         self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
+        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-top-left-radius: 0px;")
+
         tab_layout.addWidget(self.tab_bar)
         tab_layout.addWidget(self.stacked_widget)
 
@@ -256,7 +259,7 @@ class DataInputPage(QWidget) :
 
         main_splitter.addWidget(self.file_explorer)
         main_splitter.addWidget(right_area)
-        main_splitter.setSizes([120, 880])
+        main_splitter.setSizes([140, 860])
 
         bottom_container_layout.addWidget(main_splitter)
 

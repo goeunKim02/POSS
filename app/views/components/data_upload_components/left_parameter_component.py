@@ -74,14 +74,14 @@ class LeftParameterComponent(QWidget):
 
         for i, btn_text in enumerate(self.metrics) :
             btn = QPushButton(btn_text)
-            btn.setFont(font_manager.get_font("SamsungOne-700", 14))
+            btn.setFont(font_manager.get_font("SamsungOne-700", 11))
             btn.setCursor(QCursor(Qt.PointingHandCursor))
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
             btn.clicked.connect(lambda checked, idx=i :self.switch_tab(idx))
 
              # 균등한 크기로 설정
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            btn.setFixedHeight(40)  # 높이만 고정
+            btn.setMinimumHeight(20)  # 높이만 고정
 
             button_group_layout.addWidget(btn)
             self.tab_buttons.append(btn)
@@ -111,7 +111,7 @@ class LeftParameterComponent(QWidget):
 
                 summary_label = QLabel("analysis summary")
                 summary_label.setStyleSheet("font-weight: bold; font-size: 18px;")
-                summary_label.setAlignment(Qt.AlignTop)
+                summary_label.setAlignment(Qt.AlignTop|Qt.AlignCenter)
 
                 page_layout.addWidget(table, 1)
                 page_layout.addWidget(summary_label)
