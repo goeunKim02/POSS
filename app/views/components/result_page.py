@@ -171,6 +171,7 @@ class ResultPage(QWidget):
 
         # 시각화 콘텐츠를 표시할 스택 위젯
         self.viz_stack = QStackedWidget()
+        self.viz_stack.setStyleSheet("border: none;")
 
         # 시각화 캔버스 저장
         self.viz_canvases = []
@@ -194,6 +195,7 @@ class ResultPage(QWidget):
 
             # 해당 버튼에 대응하는 콘텐츠 페이지 생성
             page = QWidget()
+            page.setStyleSheet("border: none;")
             page_layout = QVBoxLayout(page)
             
             # tab 유형 별 처리 
