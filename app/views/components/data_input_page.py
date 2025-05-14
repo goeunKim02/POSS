@@ -209,23 +209,22 @@ class DataInputPage(QWidget) :
         tab_layout.addLayout(button_layout)
 
         parameter_container = QFrame()
-        parameter_container.setStyleSheet("background-color: white; padding: 0px; border: 3px solid #cccccc;")
+        parameter_container.setStyleSheet("background-color: white; padding: 0px; border:none;")
         parameter_container.setContentsMargins(0,0,0,0)
 
         parameter_layout = QHBoxLayout(parameter_container)
         parameter_layout.setContentsMargins(0,0,0,0)
 
         parameter_splitter = QSplitter(Qt.Horizontal)
-        parameter_splitter.setHandleWidth(3)
+        parameter_splitter.setHandleWidth(10)
         parameter_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #cccccc;
-                width: 1px;
+                background-color: #F5F5F5;
             }
         """)
 
         left_parameter_area = QFrame()
-        left_parameter_area.setStyleSheet("background-color: white; border: none;")
+        left_parameter_area.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         left_parameter_layout = QVBoxLayout(left_parameter_area)
         left_parameter_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -234,7 +233,7 @@ class DataInputPage(QWidget) :
         self.left_parameter_component.setVisible(True)
 
         right_parameter_area = QFrame()
-        right_parameter_area.setStyleSheet("background-color: white; border: none;")
+        right_parameter_area.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         right_parameter_layout = QVBoxLayout(right_parameter_area)
         right_parameter_layout.setContentsMargins(0, 0, 0, 0)
 
