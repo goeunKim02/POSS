@@ -30,8 +30,8 @@ class Navbar(QFrame):
                 padding: {p(4)}px {p(8)}px;
                 background-color: transparent;
                 border-radius: {s(5)}px;
-                min-width: {w(50)}px;
-                min-height: {h(15)}px;
+                min-width: {w(40)}px;
+                min-height: {h(10)}px;
             }}
             QPushButton:hover {{
                 background-color: #1e429f;

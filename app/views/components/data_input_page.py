@@ -128,7 +128,7 @@ class DataInputPage(QWidget) :
         run_btn.setFixedHeight(h(30))
 
         # font_manager 사용법 수정
-        run_font = font_manager.get_font("SamsungOne-700", fs(12))
+        run_font = font_manager.get_font("SamsungOne-700", fs(11))
         run_font.setBold(True)
         run_btn.setFont(run_font)
         save_btn.setFont(run_font)
