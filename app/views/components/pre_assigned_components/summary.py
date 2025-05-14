@@ -42,7 +42,7 @@ class SummaryWidget(QWidget):
         header_font = QFont("Arial", 10, QFont.Bold)
         header.setFont(header_font)
         # 헤더 높이 고정
-        header.setFixedHeight(40)
+        # header.setFixedHeight(40)
 
         # 행 높이 고정
         table.verticalHeader().setDefaultSectionSize(35)
