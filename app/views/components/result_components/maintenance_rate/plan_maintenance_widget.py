@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QCursor, QFontMetrics
 from app.views.components.result_components.maintenance_rate.plan_data_manager import PlanDataManager
 from app.views.components.result_components.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
 """계획 유지율 표시 위젯"""
 class PlanMaintenanceWidget(QWidget):
@@ -132,6 +133,8 @@ class PlanMaintenanceWidget(QWidget):
         
         # 탭 위젯
         self.tab_widget = QTabWidget()
+        self.tab_widget.setMinimumHeight(400)  # 최소 높이 설정
+        self.tab_widget.setMaximumHeight(600)  # 최대 높이 제한
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane {
@@ -144,13 +147,13 @@ class PlanMaintenanceWidget(QWidget):
                 color: black;
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 22px; 
+                font-size: 16px; 
             }
             QTabBar::tab:!selected {
                 background-color: #E4E3E3;  
                 font-family: Arial, sans-serif;
                 font-weight: bold;
-                font-size: 22px;  
+                font-size: 16px;  
             }
             QTabBar::tab {
                 padding: 8px 16px;
@@ -161,7 +164,7 @@ class PlanMaintenanceWidget(QWidget):
                 font-weight: bold;
                 border: 1px solid #cccccc;
                 border-bottom: none;
-                font-size: 22px;  
+                font-size: 16px;  
             }
             QTabBar::tab::first { margin-left: 10px; }
         """)
@@ -215,6 +218,13 @@ class PlanMaintenanceWidget(QWidget):
         
         # 탭 변경 시 유지율 레이블 업데이트
         self.tab_widget.currentChanged.connect(self.update_rate_label)
+
+    def get_tab_size_hint(self, index, font_metrics):
+        """탭 크기 힌트 계산"""
+        from PyQt5.QtCore import QSize
+        tab_text = self.tab_widget.tabText(index)
+        text_width = font_metrics.width(tab_text)
+        return QSize(text_width + 40, 40)  # 여백 추가
         
     
     """이전 계획 선택"""
@@ -239,13 +249,13 @@ class PlanMaintenanceWidget(QWidget):
                 # 유지율 다시 계산
                 self.refresh_maintenance_rate()
                 
-                QMessageBox.information(
+                EnhancedMessageBox.show_validation_success(
                     self, 
                     "Previous Plan Loaded Successfully", 
                     f"Previous plan has been loaded successfully:\n{message}"
                 )
             else:
-                QMessageBox.warning(
+                EnhancedMessageBox.show_validation_error(
                     self, 
                     "Load Failed", 
                     f"Failed to load previous plan: {message}"
@@ -273,7 +283,7 @@ class PlanMaintenanceWidget(QWidget):
             else:
                 self.item_rate_label.setStyleSheet("color: #F8AC59;")  # 주황색
         else:
-            self.item_rate_label.setText("N/A")
+            self.item_rate_label.setText("None")
             
     def set_data(self, result_data, start_date=None, end_date=None):
         """결과 데이터 설정"""
