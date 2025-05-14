@@ -44,11 +44,11 @@ class CalendarHeader(QWidget):
             header.setStyleSheet(WEEKDAY_HEADER_STYLE)
             layout.addWidget(header, 0, col)
 
-        # 헤더 구분선
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Plain)
-        separator.setStyleSheet(SEPARATOR_STYLE)
-        separator.setFixedHeight(3)
-        separator.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout.addWidget(separator, 1, 0, 1, 9)
+        # # 헤더 구분선
+        # separator = QFrame()
+        # separator.setFrameShape(QFrame.HLine)
+        # separator.setFrameShadow(QFrame.Plain)
+        # separator.setStyleSheet(SEPARATOR_STYLE)
+        # separator.setFixedHeight(3)
+        # separator.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # layout.addWidget(separator, 1, 0, 1, 9)
