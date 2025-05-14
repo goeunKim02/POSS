@@ -15,13 +15,23 @@ class ItemGridWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+                border: none;
+            }
+        """)
 
         # 스크롤 영역 설정
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setContentsMargins(0, 0, 0, 0)
         self.scroll_content = QWidget()
         self.grid_layout = QGridLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
+        self.grid_layout.setContentsMargins(0, 0, 0, 0)
 
         self.main_layout.addWidget(self.scroll_area)
 
