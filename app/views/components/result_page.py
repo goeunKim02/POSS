@@ -18,7 +18,7 @@ from app.views.components.result_components.shipment_widget import ShipmentWidge
 from app.resources.styles.result_style import ResultStyles 
 from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.items_container import ItemsContainer
-
+from app.views.components.result_components.summary_widget import SummaryWidget
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -36,6 +36,7 @@ class ResultPage(QWidget):
         self.split_allocation_widget = None # 분산 배치 분석 위젯 저장 변수
         self.validation_errors = {}  # 현재 발생한 검증 에러들
         self.error_items = set()   # 에러가 있는 아이템 목록
+        self.summary_widget = None
 
         self.init_ui()
         self.connect_signals()
@@ -168,7 +169,7 @@ class ResultPage(QWidget):
         button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
 
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "PortCapa", "Plan", "Shipment", "SplitView"]
+        viz_types = ["Summary", "Capa", "Material", "PortCapa", "Plan", "Shipment", "SplitView"]
 
         # 시각화 콘텐츠를 표시할 스택 위젯
         self.viz_stack = QStackedWidget()
@@ -200,7 +201,10 @@ class ResultPage(QWidget):
             page_layout = QVBoxLayout(page)
             
             # tab 유형 별 처리 
-            if btn_text == 'Capa':
+            if btn_text == 'Summary':
+                self.summary_widget = SummaryWidget()
+                page_layout.addWidget(self.summary_widget)
+            elif btn_text == 'Capa':
                 capa_canvas = MplCanvas(width=4, height=5, dpi=100)
                 page_layout.addWidget(capa_canvas)
                 self.viz_canvases.append(capa_canvas)
@@ -463,11 +467,6 @@ class ResultPage(QWidget):
                         
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
-        # # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
-        # if self.viz_stack.currentIndex() == 4 and self.shipment_widget and index != 4:
-        #     # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
-        #     self.shipment_widget.reset_state()
-
         self.viz_stack.setCurrentIndex(index)
 
         # 버튼 스타일 업데이트
@@ -475,27 +474,28 @@ class ResultPage(QWidget):
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == index else ResultStyles.INACTIVE_BUTTON_STYLE)
 
         # 각 탭별 특수 처리
-        if index == 0:  # Capa 탭
+        if index == 0:  # Summary 탭
+            # 데이터 업데이트 
+            if hasattr(self, 'summary_widget'):
+                self.summary_widget.run_analysis(self.result_data)
+        elif index == 1:  # Capa 탭
             # Capa 탭이 선택되면 두 캔버스(Capa, Utilization) 모두 업데이트
             if len(self.viz_canvases) >= 2 and self.result_data is not None:
                 VisualizationUpdater.update_capa_chart(self.viz_canvases[0], self.capa_ratio_data)
                 VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
-        elif index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
+        elif index == 2 and self.result_data is not None:  # Material 탭 (2번) 인덱스
             # Material 탭 데이터 업데이트
             self.update_material_shortage_analysis()
-        elif index == 2 and self.result_data is not None:
+        elif index == 3 and self.result_data is not None:
             self.portcapa_widget.render_table()
-
-        elif index == 4 and self.result_data is not None:  # Shipment 탭 (4번) 인덱스
+        elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
             # Shipment 탭 데이터 업데이트
             self.shipment_widget.run_analysis(self.result_data)
-        elif index == 5 and self.result_data is not None:  # SplitView 탭 (5번) 인덱스
+        elif index == 6 and self.result_data is not None:  # SplitView 탭 (6번) 인덱스
             # SplitView 탭 데이터 업데이트
             if hasattr(self, 'split_allocation_widget'):
                 self.split_allocation_widget.run_analysis(self.result_data)
-        # else:
-        #     # 다른 탭으로 전환 시 자재 부족 상태 초기화
-        #     self.clear_left_widget_shortage_status()
+
 
     def clear_left_widget_shortage_status(self):
         """왼쪽 위젯의 모든 아이템들의 자재 부족 상태 초기화"""
@@ -593,6 +593,10 @@ class ResultPage(QWidget):
                 # 분산 배치 위젯 업데이트
                 if hasattr(self, 'split_allocation_widget'):
                     self.split_allocation_widget.run_analysis(data)
+
+                # summary 위젯 업데이트
+                if hasattr(self, 'summary_widget'):
+                    self.summary_widget.run_analysis(data)
 
                 # Capa 비율 분석
                 # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
@@ -770,7 +774,7 @@ class ResultPage(QWidget):
             VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
         
         # Material 탭 캔버스 업데이트 (2번 캔버스)
-        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 1:  # Material 탭이 현재 선택된 경우
+        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 2:  # Material 탭이 현재 선택된 경우
             # Material 탭의 경우 캔버스 업데이트 후 테이블 업데이트까지 함께 수행
             if self.result_data is not None and not self.result_data.empty:
                 self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(

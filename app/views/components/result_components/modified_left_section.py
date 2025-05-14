@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QCursor
 import pandas as pd
 from .item_grid_widget import ItemGridWidget
-from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from app.models.common.fileStore import FilePaths
 
 class ModifiedLeftSection(QWidget):
@@ -87,7 +87,6 @@ class ModifiedLeftSection(QWidget):
         self.grid_widget = ItemGridWidget()
         self.grid_widget.itemSelected.connect(self.on_grid_item_selected)  # 아이템 선택 이벤트 연결
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
-        
         main_layout.addWidget(self.grid_widget)
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""

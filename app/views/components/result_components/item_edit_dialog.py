@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QCursor
 import pandas as pd
-from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
 
 
 class ItemEditDialog(QDialog):
