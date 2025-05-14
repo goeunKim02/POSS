@@ -5,6 +5,7 @@ import pandas as pd
 from .item_grid_widget import ItemGridWidget
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from app.models.common.fileStore import FilePaths
+from .legend_widget import LegendWidget
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
@@ -27,6 +28,13 @@ class ModifiedLeftSection(QWidget):
 
         # 아이템 이동을 위한 정보 저장
         self.row_headers = []
+
+        # 필터 상태 저장 
+        self.current_filter_states = {
+            'shortage': False,
+            'shipment': False,  
+            'pre_assigned': False
+        }
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -81,6 +89,11 @@ class ModifiedLeftSection(QWidget):
         # 나머지 공간 채우기
         control_layout.addStretch(1)
 
+        # 범례 위젯 추가
+        self.legend_widget = LegendWidget()
+        self.legend_widget.filter_changed.connect(self.on_filter_changed)
+        main_layout.addWidget(self.legend_widget)
+
         main_layout.addLayout(control_layout)
 
         # 새로운 그리드 위젯 추가
@@ -88,6 +101,7 @@ class ModifiedLeftSection(QWidget):
         self.grid_widget.itemSelected.connect(self.on_grid_item_selected)  # 아이템 선택 이벤트 연결
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
         main_layout.addWidget(self.grid_widget)
+
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""
     def on_grid_item_selected(self, selected_item, container):
@@ -450,13 +464,6 @@ class ModifiedLeftSection(QWidget):
                                 shortage_info = self.current_shortage_items[item_code]
                                 new_item.set_shortage_status(True, shortage_info)
 
-                            # # 검증 에러 상태인 겨우 스타일 적용
-                            # if hasattr(self, 'current_validation_errors'):
-                            #     error_key = f"{item_full_data.get('Line')}_{item_full_data.get('Time')}_{item_code}"
-                            #     if error_key in self.current_validation_errors:
-                            #         error_info = self.current_validation_errors[error_key]
-                            #         new_item.set_validation_error(True, error_info.get('message', ''))
-
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
 
@@ -591,16 +598,10 @@ class ModifiedLeftSection(QWidget):
     def mark_as_modified(self):
         self.reset_button.setEnabled(True)
 
-
     """현재 자재부족 아이템 정보 저장"""
     def set_current_shortage_items(self, shortage_items):
         self.current_shortage_items = shortage_items
         self.apply_all_states()
-
-    # """현재 검증 에러 정보 저장"""
-    # def set_current_validation_errors(self, validation_errors):
-    #     self.current_validation_errors = validation_errors
-    #     self.apply_all_states()
 
     """모든 상태 정보를 현재 아이템들에 적용"""
     def apply_all_states(self):
@@ -627,9 +628,67 @@ class ModifiedLeftSection(QWidget):
                             shortage_info = self.current_shortage_items[item_code]
                             item.set_shortage_status(True, shortage_info)
 
-                        # # 검증 에러 상태인 겨우 스타일 적용
-                        # if hasattr(self, 'current_validation_errors'):
-                        #     error_key = f"{item.item_data.get('Line')}_{item.item_data.get('Time')}_{item_code}"
-                        #     if error_key in self.current_validation_errors:
-                        #         error_info = self.current_validation_errors[error_key]
-                        #         item.set_validation_error(True, error_info.get('message', ''))
+    """범례 위젯에서 필터가 변경될 때 호출"""
+    def on_filter_changed(self, filter_states):
+        self.current_filter_states = filter_states
+        self.apply_visibility_filter()
+    
+    """현재 필터 상태에 따라 아이템 가시성 조정"""
+    def apply_visibility_filter(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    should_show = self.should_show_item(item)
+                    
+                    # 아이템 가시성 설정
+                    if should_show:
+                        item.show()
+                    else:
+                        item.hide()
+                        
+                # 컨테이너 높이 재조정
+                container.adjustSize()
+    
+    """
+    아이템이 표시
+    - shortage만 체크: 자재부족 아이템만 표시
+    - shipment만 체크: 출하실패 아이템만 표시
+    - pre_assigned만 체크: 사전할당 아이템만 표시
+    - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
+    - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
+    - 모든 체크박스 해제: 모든 아이템 표시
+    """
+    def should_show_item(self, item):
+        if not hasattr(self, 'current_filter_states'):
+            return True
+        
+        # 아이템의 상태 확인
+        is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
+        is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+        is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+        
+        # 각 상태별 필터 확인
+        shortage_filter = self.current_filter_states.get('shortage', False)
+        shipment_filter = self.current_filter_states.get('shipment', False)
+        pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
+
+        # 모든 필터가 해제되어 있으면 모든 아이템 표시
+        if not (shortage_filter or shipment_filter or pre_assigned_filter):
+            print(f"  - 결과: 모든 필터 해제 → 표시")
+            return True
+        
+        # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
+        should_show = True
+        
+        # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
+        if shortage_filter and not is_shortage:
+            should_show = False
+        if shipment_filter and not is_shipment:
+            should_show = False
+        if pre_assigned_filter and not is_pre_assigned:
+            should_show = False
+        
+        return should_show

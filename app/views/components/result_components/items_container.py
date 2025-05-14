@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
 from .item_edit_dialog import ItemEditDialog
 import json
-from app.views.components.common.enhanced_message_box import EnhancedMessageBox
+
 
 class ItemsContainer(QWidget):
     """아이템들을 담는 컨테이너 위젯"""
@@ -437,7 +437,7 @@ class ItemsContainer(QWidget):
             ]
             painter.drawPolygon(points_right)
 
-
+    # 사용안하면 삭제 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     def get_container_position(self, grid_widget):
         """현재 컨테이너가 그리드에서 어느 위치에 있는지 반환"""
         if not grid_widget or not hasattr(grid_widget, 'containers'):
@@ -468,3 +468,4 @@ class ItemsContainer(QWidget):
                 return line_part, new_time
         
         return None, None
+    

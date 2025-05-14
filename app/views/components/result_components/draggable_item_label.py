@@ -465,4 +465,38 @@ class DraggableItemLabel(QLabel):
             # 기본 툴팁으로 복원
             self.setToolTip(self._create_tooltip_text())
 
+    """아이템 상태별 색상 선 표시"""
+    def paintEvent(self, event):
+        # 기본 QLabel의 paintEvent 호출
+        super().paintEvent(event)
+        
+        # 상태별 색상 선 그리기
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # 선의 시작 위치와 너비
+        line_width = 10
+        line_gap = 5
+        current_x = 0  # 왼쪽 여백
 
+        # 상하 여백
+        top_margin = 0
+        bottom_margin = 0
+        
+        # 상태에 따른 색상 순서 정의
+        status_colors = []
+        
+        if self.is_shortage:
+            status_colors.append(QColor("#fc3838"))  # 빨간색
+        if self.is_shipment_failure:
+            status_colors.append(QColor("#fcb438"))  # 주황색
+        if self.is_pre_assigned:
+            status_colors.append(QColor("#7a9ff5"))  # 파란색
+        
+        # 각 상태별로 선 그리기
+        for color in status_colors:
+            painter.fillRect(current_x, top_margin, line_width, 
+                        self.height() - top_margin - bottom_margin, color)
+            current_x += line_width + line_gap
+        
+        painter.end()

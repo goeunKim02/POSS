@@ -151,6 +151,10 @@ class PlanMaintenanceRate:
         tuple: (결과 DataFrame, 유지율 %)
     """
     def calculate_items_maintenance_rate(self, compare_with_adjusted=False):
+        # 이전 계획이 없으면 계산 제외 
+        if self.prev_plan is None:
+            return pd.DataFrame(), None
+        
         # 비교 대상 결정
         if compare_with_adjusted:
             # 조정 결과와 비료
@@ -222,6 +226,10 @@ class PlanMaintenanceRate:
         tuple: (결과 DataFrame, 유지율 %)
     """
     def calculate_rmc_maintenance_rate(self, compare_with_adjusted=False):
+        # 이전 계획이 없으면 계산 제외 
+        if self.prev_plan is None:
+            return pd.DataFrame(), None
+        
         # 비교 대상 결정
         if compare_with_adjusted:
             # 조정된 계획과 비교
