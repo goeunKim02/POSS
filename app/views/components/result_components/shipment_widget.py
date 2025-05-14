@@ -1,17 +1,11 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget, 
-                             QTableWidgetItem, QHeaderView, QProgressBar, QSplitter, QFrame)
+                             QTableWidgetItem, QHeaderView, QProgressBar, QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QColor, QBrush, QFont, QPainter, QPen
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+from PyQt5.QtGui import QColor, QBrush, QFont
 from app.analysis.output.this_week_shipment import analyze_and_get_results
 
 """당주 출하 분석 위젯"""
 class ShipmentWidget(QWidget):
-    
     
     # 출하 실패 정보 전달용 시그널
     shipment_status_updated = pyqtSignal(dict)  # 실패 아이템 정보 전달
@@ -22,6 +16,14 @@ class ShipmentWidget(QWidget):
         self.summary = None
         self.analysis_df = None
         self.failure_items = {}  # 아이템별 실패 정보 저장
+        
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        
         self.init_ui()
         
     def init_ui(self):
@@ -29,33 +31,11 @@ class ShipmentWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
         
-        # 스플리터 생성 (상하 분할)
-        splitter = QSplitter(Qt.Vertical)
-        splitter.setHandleWidth(1)
-        splitter.setChildrenCollapsible(False)
-        
-        # 테두리와 배경색 제거
-        splitter.setStyleSheet("""
-            QSplitter {
-                border: none;
-                background-color: transparent;
-            }
-            QSplitter::handle {
-                background-color: #F0F0F0;
-            }
-        """)
-        
-        # 상단 섹션 - 차트와 통계
-        self.top_section = QWidget()
-        top_layout = QVBoxLayout(self.top_section)
-        top_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
-        
-        # 배경색 및 테두리 제거
-        self.top_section.setStyleSheet("background-color: transparent; border: none;")
-        
+        # 제목
         top_title = QLabel("Shipment Satisfaction Rate")
         top_title.setFont(QFont("Arial", 12, QFont.Bold))
-        top_layout.addWidget(top_title)
+        top_title.setStyleSheet("background-color: transparent; border: none;")
+        main_layout.addWidget(top_title)
         
         # 만족률 카드 컨테이너
         cards_container = QWidget()
@@ -73,6 +53,7 @@ class ShipmentWidget(QWidget):
         
         qty_title = QLabel("Qty-based Satisfaction Rate")
         qty_title.setFont(QFont("Arial", 10, QFont.Bold))
+        qty_title.setStyleSheet("background-color: transparent; border: none;")
         qty_card_layout.addWidget(qty_title)
         
         self.qty_progress = QProgressBar()
@@ -94,6 +75,7 @@ class ShipmentWidget(QWidget):
         
         self.qty_detail = QLabel("0 / 0 (0.0%)")  # 소수점 1자리 표시
         self.qty_detail.setAlignment(Qt.AlignCenter)
+        self.qty_detail.setStyleSheet("background-color: transparent; border: none;")
         qty_card_layout.addWidget(self.qty_detail)
         
         # 모델 기준 만족률 카드
@@ -104,6 +86,7 @@ class ShipmentWidget(QWidget):
         
         model_title = QLabel("Model-based Satisfaction Rate")
         model_title.setFont(QFont("Arial", 10, QFont.Bold))
+        model_title.setStyleSheet("background-color: transparent; border: none;")
         model_card_layout.addWidget(model_title)
         
         self.model_progress = QProgressBar()
@@ -125,20 +108,14 @@ class ShipmentWidget(QWidget):
         
         self.model_detail = QLabel("0 / 0 (0.0%)")  # 소수점 1자리 표시
         self.model_detail.setAlignment(Qt.AlignCenter)
+        self.model_detail.setStyleSheet("background-color: transparent; border: none;")
         model_card_layout.addWidget(self.model_detail)
         
         # 카드 추가
         cards_layout.addWidget(qty_card)
         cards_layout.addWidget(model_card)
-        top_layout.addWidget(cards_container)
-        
-        # 그래프 영역
-        self.figure = Figure(figsize=(5, 4), dpi=100)
-        self.canvas = FigureCanvas(self.figure)
-        # 캔버스에도 배경색 및 테두리 제거
-        self.canvas.setStyleSheet("background-color: transparent; border: none;")
-        top_layout.addWidget(self.canvas, 1)  # 나머지 공간을 차지하도록 stretch factor 1 설정
-        
+        main_layout.addWidget(cards_container)
+    
         # 통계 테이블
         self.stats_table = QTableWidget()
         self.stats_table.setColumnCount(4)
@@ -146,6 +123,9 @@ class ShipmentWidget(QWidget):
         self.stats_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.stats_table.verticalHeader().setVisible(False)
         self.stats_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.stats_table.setFrameStyle(QFrame.NoFrame)  # 테이블 프레임 제거
+        
+        # 통계 테이블 스타일 - 헤더 테두리 및 프레임 제거
         self.stats_table.setStyleSheet("""
             QTableWidget {
                 border: none;
@@ -162,6 +142,13 @@ class ShipmentWidget(QWidget):
             QTableWidget::item {
                 padding: 4px;
                 border-bottom: 1px solid #F0F0F0;
+                border-right: none;
+                border-left: none;
+                border-top: none;
+            }
+            QTableCornerButton::section {
+                border: none;
+                background-color: transparent;
             }
         """)
         
@@ -170,19 +157,24 @@ class ShipmentWidget(QWidget):
         self.stats_table.setItem(0, 0, QTableWidgetItem("Quantity (Qty)"))
         self.stats_table.setItem(1, 0, QTableWidgetItem("Model"))
         
-        top_layout.addWidget(self.stats_table)
+        # 테이블 높이 고정
+        self.stats_table.setMaximumHeight(100)
+        main_layout.addWidget(self.stats_table)
         
-        # 하단 섹션 - 출하 실패 모델 테이블
-        self.bottom_section = QWidget()
-        bottom_layout = QVBoxLayout(self.bottom_section)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
+        # 약간의 구분선 추가
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Plain)  # 음영 제거
+        separator.setStyleSheet("background-color: #E0E0E0; border: none;")
+        separator.setMaximumHeight(1)
+        main_layout.addWidget(separator)
+        main_layout.addSpacing(10)
         
-        # 배경색 및 테두리 제거
-        self.bottom_section.setStyleSheet("background-color: transparent; border: none;")
-        
+        # 출하 실패 모델 섹션
         bottom_title = QLabel("Failed Shipment Models")
         bottom_title.setFont(QFont("Arial", 12, QFont.Bold))
-        bottom_layout.addWidget(bottom_title)
+        bottom_title.setStyleSheet("background-color: transparent; border: none;")
+        main_layout.addWidget(bottom_title)
         
         self.failed_table = QTableWidget()
         self.failed_table.setColumnCount(5)
@@ -191,7 +183,9 @@ class ShipmentWidget(QWidget):
         self.failed_table.verticalHeader().setVisible(False)
         self.failed_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.failed_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.failed_table.setFrameStyle(QFrame.NoFrame)  # 테이블 프레임 제거
         
+        # 실패 테이블 스타일 - 헤더 테두리 및 프레임 제거
         self.failed_table.setStyleSheet("""
             QTableWidget {
                 border: none;
@@ -208,26 +202,24 @@ class ShipmentWidget(QWidget):
             QTableWidget::item {
                 padding: 4px;
                 border-bottom: 1px solid #F0F0F0;
+                border-right: none;
+                border-left: none;
+                border-top: none;
             }
             QTableWidget::item:selected {
                 background-color: #DEEBF7;
                 color: black;
             }
+            QTableCornerButton::section {
+                border: none;
+                background-color: transparent;
+            }
         """)
         
-        bottom_layout.addWidget(self.failed_table)
+        main_layout.addWidget(self.failed_table)
         
-        # 스플리터에 위젯 추가
-        splitter.addWidget(self.top_section)
-        splitter.addWidget(self.bottom_section)
-        
-        # 초기 비율 설정 (1:1)
-        splitter.setSizes([500, 500])
-        
-        main_layout.addWidget(splitter)
-        
+    """당주 출하 분석 실행"""
     def run_analysis(self, result_data=None):
-        """당주 출하 분석 실행"""
         try:
             # 분석 실행 - 외부에서 전달받은 결과 데이터가 있으면 사용
             self.result_df, self.summary, self.analysis_df = analyze_and_get_results(
@@ -243,9 +235,6 @@ class ShipmentWidget(QWidget):
             
             # 출하 실패 테이블 업데이트
             self.update_failed_table()
-            
-            # 그래프 업데이트
-            self.update_chart()
             
             # 실패 아이템 정보 전달
             self.detect_and_emit_failures()
@@ -394,63 +383,6 @@ class ShipmentWidget(QWidget):
             return "Qty<SOP"
         return "Unknown reason"
     
-    """차트 업데이트"""
-    def update_chart(self):
-        if not self.summary:
-            return
-        
-        # 그래프 초기화
-        self.figure.clear()
-        
-        # 그래프 생성
-        ax = self.figure.add_subplot(111)
-        
-        # 데이터 준비 (소수점 1자리로 반올림)
-        labels = ['Qty-based', 'Model-based']
-        success_rates = [round(self.summary.get('qty_success_rate', 0), 1), 
-                        round(self.summary.get('model_success_rate', 0), 1)]
-        failure_rates = [round(100 - rate, 1) for rate in success_rates]  # 소수점 1자리로 반올림
-        
-        # 색상 설정
-        colors = ['#1428A0', '#4CAF50']  
-        
-        # 바 차트 그리기
-        bar_width = 0.35
-        x = np.arange(len(labels))
-        
-        # 성공 바 그리기
-        success_bars = ax.bar(x, success_rates, bar_width, label='Success', color=colors)
-        
-        # 실패 바 그리기 (스택)
-        failure_bars = ax.bar(x, failure_rates, bar_width, bottom=success_rates, 
-                              label='Failure', color='#FFB6B6')
-        
-        # 차트 설정
-        ax.set_ylim(0, 100)
-        ax.set_ylabel('Satisfaction Rate (%)')
-        ax.set_title('This Week Shipment Satisfaction Rate')
-        ax.set_xticks(x)
-        ax.set_xticklabels(labels)
-        ax.legend()
-        
-        # 바 위에 텍스트 표시 (소수점 1자리로 표시)
-        for i, bar in enumerate(success_bars):
-            height = bar.get_height()
-            if height > 5:  # 5% 이상일 때만 텍스트 표시
-                ax.text(bar.get_x() + bar.get_width()/2., height/2,
-                        f'{height:.1f}%',
-                        ha='center', va='center', color='white', fontweight='bold')
-        
-        for i, bar in enumerate(failure_bars):
-            height = bar.get_height()
-            if height > 5:  # 5% 이상일 때만 텍스트 표시
-                ax.text(bar.get_x() + bar.get_width()/2., bar.get_y() + height/2,
-                        f'{height:.1f}%',
-                        ha='center', va='center', color='black', fontweight='bold')
-        
-        self.figure.tight_layout()
-        self.canvas.draw()
-    
     """출하 실패 아이템을 찾아 시그널 발생"""
     def detect_and_emit_failures(self):
         if self.result_df is None:
@@ -499,13 +431,6 @@ class ShipmentWidget(QWidget):
         self.failed_table.setItem(0, 0, empty_message)
         self.failed_table.setSpan(0, 0, 1, 5)
         
-        # 그래프 초기화
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        ax.text(0.5, 0.5, "No data available", ha='center', va='center', fontsize=14)
-        ax.set_axis_off()
-        self.canvas.draw()
-        
         # 출하 실패 항목 초기화 시그널 발생
         self.shipment_status_updated.emit({})
     
@@ -513,9 +438,3 @@ class ShipmentWidget(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         # 여기에 필요한 초기화 코드 추가
-        
-    # """위젯이 숨겨질 때 호출됨"""    
-    # def hideEvent(self, event):
-    #     super().hideEvent(event)
-    #     # 다른 탭으로 전환 시 출하 실패 표시 초기화
-    #     self.shipment_status_updated.emit({})
