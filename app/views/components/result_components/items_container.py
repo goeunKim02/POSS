@@ -4,10 +4,13 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
 from .item_edit_dialog import ItemEditDialog
 import json
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
+from .item_position_manager import ItemPositionManager
 
-
+"""
+아이템들을 담는 컨테이너 위젯
+"""
 class ItemsContainer(QWidget):
-    """아이템들을 담는 컨테이너 위젯"""
 
     itemsChanged = pyqtSignal()
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
@@ -30,25 +33,45 @@ class ItemsContainer(QWidget):
         self.drop_indicator_position = -1
         self.show_drop_indicator = False
 
+        self.default_style = "border: 1px solid #D9D9D9; background-color: white;"
+        self.empty_style = "background-color: rgba(245, 245, 245, 0.5); border: 1px dashed #cccccc;"
+
         # 늘어나는 공간을 위한 스페이서 추가
         self.spacer = QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.addSpacerItem(self.spacer)
 
+    """
+    아이템 상태 업데이트
+    """
+    def update_visibility(self) :
+        visible_count = 0
+
+        for item in self.items :
+            if item.isVisible() :
+                visible_count += 1
+
+        if visible_count == 0 and len(self.items) > 0 :
+            self.setStyleSheet(self.empty_style)
+        else :
+            self.setStyleSheet(self.default_style)
+
+    """
+    현재 컨테이너의 부모 찾기
+    """
     def find_parent_grid_widget(self):
-        """현재 컨테이너의 부모 ItemGridWidget을 찾습니다."""
         parent = self.parent()
+
         while parent:
             if hasattr(parent, 'containers') and isinstance(parent.containers, list):
                 return parent
             parent = parent.parent()
         return None
 
+    """
+    아이템을 추가합니다. index가 -1이면 맨 뒤에 추가, 그 외에는 해당 인덱스에 삽입
+    item_data: 아이템에 대한 추가 정보 (pandas Series 또는 딕셔너리)
+    """
     def addItem(self, item_text, index=-1, item_data=None):
-        """
-        아이템을 추가합니다. index가 -1이면 맨 뒤에 추가, 그 외에는 해당 인덱스에 삽입
-        item_data: 아이템에 대한 추가 정보 (pandas Series 또는 딕셔너리)
-        """
-        # 스페이서 제거
         self.layout.removeItem(self.spacer)
 
         item_label = DraggableItemLabel(item_text, self, item_data)
@@ -72,10 +95,14 @@ class ItemsContainer(QWidget):
         # 스페이서 다시 추가 (항상 맨 아래에 위치하도록)
         self.layout.addSpacerItem(self.spacer)
 
+        self.update_visibility()
+
         return item_label
 
+    """
+    아이템이 선택되었을 때 처리
+    """
     def on_item_selected(self, selected_item):
-        """아이템이 선택되었을 때 처리"""
         # 이전에 선택된 아이템이 있고, 현재 선택된 아이템과 다르다면 선택 해제
         if self.selected_item and self.selected_item != selected_item:
             self.selected_item.set_selected(False)
@@ -86,8 +113,10 @@ class ItemsContainer(QWidget):
         # 선택 이벤트 발생 (상위 위젯에서 다른 컨테이너의 선택 해제 등을 처리할 수 있도록)
         self.itemSelected.emit(selected_item, self)
 
+    """
+    아이템이 더블클릭되었을 때 처리
+    """
     def on_item_double_clicked(self, item):
-        """아이템이 더블클릭되었을 때 처리"""
         if not item or not hasattr(item, 'item_data'):
             return
 
@@ -111,14 +140,18 @@ class ItemsContainer(QWidget):
         
         return False, "유효하지 않은 아이템 또는 데이터"
 
+    """
+    모든 아이템 선택 해제
+    """
     def clear_selection(self):
-        """모든 아이템 선택 해제"""
         if self.selected_item:
             self.selected_item.set_selected(False)
             self.selected_item = None
 
+    """
+    특정 아이템 삭제
+    """
     def removeItem(self, item):
-        """특정 아이템 삭제"""
         if item in self.items:
             # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
             if item == self.selected_item:
@@ -129,20 +162,29 @@ class ItemsContainer(QWidget):
             item.deleteLater()
             self.itemsChanged.emit()
 
+            self.update_visibility()
+
+    """
+    모든 아이템 삭제
+    """
     def clearItems(self):
-        """모든 아이템 삭제"""
         self.selected_item = None  # 선택 상태 초기화
 
-        # 스페이서 제거 (임시)
+        # 스페이서 제거
         self.layout.removeItem(self.spacer)
 
-        for item in self.items:
+        items_to_remove = self.items.copy()
+
+        for item in items_to_remove :
             self.layout.removeWidget(item)
+            item.setParent(None)
             item.deleteLater()
         self.items.clear()
 
         # 스페이서 다시 추가
         self.layout.addSpacerItem(self.spacer)
+
+        self.update_visibility()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
@@ -150,25 +192,29 @@ class ItemsContainer(QWidget):
             # 드래그 시작 시 인디케이터 표시
             self.show_drop_indicator = True
             self.drop_indicator_position = self.findDropIndex(event.pos())
-            self.update()  # 화면 갱신
+            self.update()
 
+    """
+    드래그가 위젯을 벗어날 때 인디케이터 숨김
+    """
     def dragLeaveEvent(self, event):
-        """드래그가 위젯을 벗어날 때 인디케이터 숨김"""
         self.show_drop_indicator = False
         self.update()
 
+    """
+    드래그 중 드롭 가능한 위치에 시각적 표시
+    """
     def dragMoveEvent(self, event):
-        """드래그 중 이벤트 - 드롭 가능한 위치에 시각적 표시"""
         if event.mimeData().hasText():
             event.acceptProposedAction()
             # 드래그 중 인디케이터 위치 업데이트
             self.drop_indicator_position = self.findDropIndex(event.pos())
-            self.update()  # 화면 갱신
+            self.update()
 
+    """
+    드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
+    """
     def findDropIndex(self, pos):
-        """
-        드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
-        """
         if not self.items:
             return 0  # 아이템이 없으면 첫 번째 위치에 삽입
 
@@ -232,10 +278,10 @@ class ItemsContainer(QWidget):
                         self.update()
                         return
 
-                    # 스페이서 제거 (임시)
+                    # 스페이서 제거
                     self.layout.removeItem(self.spacer)
 
-                    # 원본 아이템 제거 (삭제하지 않고 UI에서만 제거)
+                    # 원본 아이템 제거
                     self.layout.removeWidget(source)
                     self.items.remove(source)
 
@@ -267,9 +313,6 @@ class ItemsContainer(QWidget):
 
                     # 새 위치에 대한 데이터 업데이트
                     if item_data and target_row >= 0 and target_col >= 0:
-                        # Import ItemPositionManager
-                        from .item_position_manager import ItemPositionManager
-
                         # 현재 행의 라인과 교대 정보 추출
                         if grid_widget and grid_widget.row_headers and target_row < len(grid_widget.row_headers):
                             row_key = grid_widget.row_headers[target_row]
@@ -325,7 +368,7 @@ class ItemsContainer(QWidget):
                     # 선택 상태 확인
                     was_selected = getattr(source, 'is_selected', False)
 
-                    # 새 위치에 아이템 추가 (업데이트된 데이터 포함)
+                    # 새 위치에 아이템 추가
                     new_item = self.addItem(item_text, drop_index, item_data)
 
                     # 새 아이템의 텍스트 업데이트
@@ -380,11 +423,15 @@ class ItemsContainer(QWidget):
             self.show_drop_indicator = False
             self.update()
 
+            self.update_visibility()
+
             event.acceptProposedAction()
             self.itemsChanged.emit()
 
+    """
+    컨테이너 위젯 그리기 - 드롭 인디케이터 표시
+    """
     def paintEvent(self, event):
-        """컨테이너 위젯 그리기 - 드롭 인디케이터 표시"""
         super().paintEvent(event)
 
         # 드롭 인디케이터 그리기
@@ -393,14 +440,14 @@ class ItemsContainer(QWidget):
             painter.setRenderHint(QPainter.Antialiasing)
 
             # 인디케이터 스타일 설정
-            pen = QPen(QColor(0, 120, 215))  # 파란색 인디케이터
+            pen = QPen(QColor(0, 120, 215))  # 파란색
             pen.setWidth(2)
             painter.setPen(pen)
 
             # 인디케이터 위치 계산
             if self.drop_indicator_position == 0:
                 # 첫 번째 위치
-                y = 2  # 상단 여백
+                y = 2
             elif self.drop_indicator_position >= len(self.items):
                 # 마지막 위치
                 if len(self.items) > 0:
@@ -419,7 +466,7 @@ class ItemsContainer(QWidget):
 
             # 화살표 그리기 (양쪽에 작은 삼각형)
             arrow_size = 5
-            painter.setBrush(QColor(0, 120, 215))  # 화살표 채우기
+            painter.setBrush(QColor(0, 120, 215))
 
             # 왼쪽 화살표
             points_left = [
@@ -437,9 +484,8 @@ class ItemsContainer(QWidget):
             ]
             painter.drawPolygon(points_right)
 
-    # 사용안하면 삭제 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     def get_container_position(self, grid_widget):
-        """현재 컨테이너가 그리드에서 어느 위치에 있는지 반환"""
         if not grid_widget or not hasattr(grid_widget, 'containers'):
             return -1, -1
         
@@ -449,8 +495,10 @@ class ItemsContainer(QWidget):
                     return row_idx, col_idx
         return -1, -1
 
+    """
+    그리드 위치를 기반으로 Line과 Time 계산
+    """
     def calculate_new_position(self, grid_widget, row_idx, col_idx):
-        """그리드 위치를 기반으로 Line과 Time 계산"""
         if not grid_widget or not hasattr(grid_widget, 'row_headers'):
             return None, None
         
