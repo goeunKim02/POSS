@@ -20,7 +20,7 @@ class ItemsContainer(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(2, 2, 2, 2)
-        self.layout.setSpacing(3)
+        self.layout.setSpacing(12)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
         self.selected_item = None  # 현재 선택된 아이템
@@ -44,16 +44,19 @@ class ItemsContainer(QWidget):
     아이템 상태 업데이트
     """
     def update_visibility(self) :
-        visible_count = 0
+        # 모든 아이템은 항상 visible 상태로 유지
+        # 필터링은 선의 표시 여부로만 처리
+        pass
+        # visible_count = 0
 
-        for item in self.items :
-            if item.isVisible() :
-                visible_count += 1
+        # for item in self.items :
+        #     if item.isVisible() :
+        #         visible_count += 1
 
-        if visible_count == 0 and len(self.items) > 0 :
-            self.setStyleSheet(self.empty_style)
-        else :
-            self.setStyleSheet(self.default_style)
+        # if visible_count == 0 and len(self.items) > 0 :
+        #     self.setStyleSheet(self.empty_style)
+        # else :
+        #     self.setStyleSheet(self.default_style)
 
     """
     현재 컨테이너의 부모 찾기
@@ -95,7 +98,9 @@ class ItemsContainer(QWidget):
         # 스페이서 다시 추가 (항상 맨 아래에 위치하도록)
         self.layout.addSpacerItem(self.spacer)
 
-        self.update_visibility()
+        # self.update_visibility()
+        # 모든 아이템이 항상 보이도록
+        item_label.show()
 
         return item_label
 
@@ -256,6 +261,17 @@ class ItemsContainer(QWidget):
             source = event.source()
             is_ctrl_pressed = event.keyboardModifiers() & Qt.ControlModifier  # [CTRL COPY]
 
+            # 기존 아이템 상태정복 백업 : 조정 또는 드래그 시 아이템 상태 유지
+            source_states = {}
+            if isinstance(source, DraggableItemLabel):
+                source_states = {
+                    'is_shortage' : getattr(source, 'is_shortage', False),
+                    'shortage_data' : getattr(source, 'shortage_data', None),
+                    'is_pre_assigned': getattr(source, 'is_pre_assigned', False),
+                    'is_shipment_failure': getattr(source, 'is_shipment_failure', False),
+                    'shipment_failure_reason': getattr(source, 'shipment_failure_reason', None)
+                }
+
             if is_ctrl_pressed and isinstance(source, DraggableItemLabel):
                 # print("아이템 컨트롤 드래그앤 드롭 이벤트 발생") 
                 source_container = source.parent()
@@ -293,6 +309,15 @@ class ItemsContainer(QWidget):
                 # 복사본 생성
                 item_name = item_data['Item'] + "    0"
                 new_item = self.addItem(item_name, drop_index, item_data)
+
+                # 복사본도 원본 상태 저장
+                if new_item and source_states:
+                    if source['is_shortage']:
+                        new_item.set_shortage_status(True, source_states['shortage_data'])
+                    if source['is_pre_assigned']:
+                        new_item.set_pre_assigned_status(True)
+                    if source['is_shipment_failure']:
+                        new_item.set_shipment_failure(True, source_states['shipment_failure_reason'])
 
                 self.itemDataChanged.emit(new_item, item_data, {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
 
@@ -417,6 +442,15 @@ class ItemsContainer(QWidget):
 
                     # 새 위치에 아이템 추가
                     new_item = self.addItem(item_text, drop_index, item_data)
+
+                    # 새 아이템에 기존 상태 설정
+                    if new_item and source_states:
+                        if source_states['is_shortage']:
+                            new_item.set_shortage_status(True, source_states['shortage_data'])
+                        if source_states['is_pre_assigned']:
+                            new_item.set_pre_assigned_status(True)
+                        if source_states['is_shipment_failure']:
+                            new_item.set_shipment_failure(True, source_states['shipment_failure_reason'])
 
                     # 새 아이템의 텍스트 업데이트
                     if new_item and hasattr(new_item, 'update_text_from_data'):

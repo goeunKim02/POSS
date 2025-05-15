@@ -340,6 +340,7 @@ class ModifiedLeftSection(QWidget):
                 
             old_data = old_data_for_validation  # 복원된 데이터를 사용
 
+        # 검증 관련 로직
         if hasattr(self, 'validator'):
             is_move = False
             source_line = None
@@ -349,6 +350,18 @@ class ModifiedLeftSection(QWidget):
                 is_move = True
                 source_line = old_data.get('Line')
                 source_time = old_data.get('Time')
+
+        # # 원본 아이템 상태 정보 저장 : 조정 및 변경 시 원본 상태를 똑같이 적용
+        # source_states = {}
+        # if hasattr(item, 'is_shortage'):
+        #     source_states['is_shortage'] = item.is_shortage
+        #     source_states['shortage_data'] = getattr(item, 'shortage_data')
+        # if hasattr(item, 'is_pre_assigned'):
+        #     source_states['is_pre_assigned'] = item.is_pre_assigned
+        # if hasattr(item, 'is_shipment_failure'):
+        #     source_states['is_shipment_failure'] = item.is_shipment_failure
+        #     source_states['shipment_failure_reason'] = getattr(item, 'shipment_failure_reason')
+
 
         # 검증 실행
         try:
@@ -470,6 +483,14 @@ class ModifiedLeftSection(QWidget):
                 if new_item:
                     # 복원 버튼 활성화
                     self.mark_as_modified()
+
+                    # # 새 아이템에 기존 상태 설정 
+                    # if source_states.get('is_shortage'):
+                    #     new_item.set_shortage_status(True, source_states.get('shortage_data'))
+                    # if source_states.get('is_pre_assigned'):
+                    #     new_item.set_pre_assigned_status(True)
+                    # if source_states.get('is_shipment_failure'):
+                    #     new_item.set_shipment_failure(True, source_states.get('shipment_failure_reason'))
 
                     # 아이템이 사전할당된 경우
                     if 'Item' in new_data and new_data['Item'] in self.pre_assigned_items:
@@ -819,16 +840,18 @@ class ModifiedLeftSection(QWidget):
         for row_containers in self.grid_widget.containers:
             for container in row_containers:
                 for item in container.items:
-                    should_show = self.should_show_item(item)
+                    # should_show = self.should_show_item(item)
+                    item.show()
+                    self.update_item_status_line_visibility(item)
                     
-                    # 아이템 가시성 설정
-                    if should_show:
-                        item.show()
-                    else:
-                        item.hide()
+                    # # 아이템 가시성 설정
+                    # if should_show:
+                    #     item.show()
+                    # else:
+                    #     item.hide()
                         
                 # 컨테이너 높이 재조정
-                container.adjustSize()
+                # container.adjustSize()
     
     """
     아이템이 표시
@@ -869,3 +892,34 @@ class ModifiedLeftSection(QWidget):
             should_show = False
         
         return should_show
+    
+    """
+    아이템의 상태선 업데이트
+    """
+    def update_item_status_line_visibility(self, item):
+        if not hasattr(self, 'current_filter_states'):
+            # 필터 상태가 없으면 기본값 표시??
+            if hasattr(item, 'show_shortage_line'):
+                item.show_shortage_line = True
+            if hasattr(item, 'show_shipment_line'):
+                item.show_shipment_line = True
+            if hasattr(item, 'show_pre_assigned_line'):
+                item.show_pre_assigned_line = True
+            return
+        
+        # 각 상태별 필터 확인
+        shortage_filter = self.current_filter_states.get('shortage', False)
+        shipment_filter = self.current_filter_states.get('shipment', False)
+        pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
+
+        # 각 상태선의 가시성 설정
+        if hasattr(item, 'show_shortage_line'):
+            item.show_shortage_line = shortage_filter and hasattr(item, 'is_shortage') and item.is_shortage
+        if hasattr(item, 'show_shipment_line'):
+            item.show_shipment_line = shipment_filter and hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+        if hasattr(item, 'show_pre_assigned_line'):
+            item.show_pre_assigned_line = pre_assigned_filter and hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+        
+        # 아이템에 repaint 요청하여 선을 다시 그리도록 함
+        if hasattr(item, 'update'):
+            item.update()

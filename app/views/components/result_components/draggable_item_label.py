@@ -19,7 +19,6 @@ class DraggableItemLabel(QFrame):
         super().__init__(parent)
 
         self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
-        # self.setAlignment(Qt.AlignCenter)
         
         # 출하 실패 상태 변수
         self.is_shipment_failure = False
@@ -42,9 +41,15 @@ class DraggableItemLabel(QFrame):
         self.drag_start_position = None
         self.setMinimumHeight(25)
         self.setMinimumWidth(300)
+        self.adjustSize()
 
         # 아이템 데이터 저장 (엑셀 행 정보)
         self.item_data = item_data
+
+        # 아이템 상태선 제어 속성
+        self.show_shortage_line = True  # 자재부족 선 표시 여부
+        self.show_shipment_line = True
+        self.show_pre_assigned_line = True
 
         # 내부 레이아웃 생성
         self.setup_layout(text)
@@ -501,11 +506,11 @@ class DraggableItemLabel(QFrame):
         # 상태에 따른 색상 순서 정의
         status_colors = []
         
-        if self.is_shortage:
-            status_colors.append(QColor("#f0afa8"))  # 빨간색
-        if self.is_shipment_failure:
-            status_colors.append(QColor("#faf3b1"))  # 노란색
-        if self.is_pre_assigned:
+        if self.is_shortage and self.show_shortage_line:
+            status_colors.append(QColor("#ff6e63"))  # 빨간색
+        if self.is_shipment_failure and self.show_shipment_line:
+            status_colors.append(QColor("#fcc858"))  # 주황색
+        if self.is_pre_assigned and self.show_pre_assigned_line:
             status_colors.append(QColor("#a8bbf0"))  # 파란색
         
         # 각 상태별로 선 그리기

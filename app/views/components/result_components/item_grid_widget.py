@@ -316,7 +316,8 @@ class ItemGridWidget(QWidget):
     컨테이너의 상태 업데이트
     """
     def update_container_visibility(self) :
-        for row_containers in self.containers :
-            for container in row_containers :
-                if hasattr(container, 'update_visibility') :
-                    container.update_visibility()
+        pass
+        # for row_containers in self.containers :
+        #     for container in row_containers :
+        #         if hasattr(container, 'update_visibility') :
+        #             container.update_visibility()

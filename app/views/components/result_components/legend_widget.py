@@ -32,8 +32,8 @@ class LegendWidget(QWidget):
         main_layout.setSpacing(40)
         
         # 범례 항목들
-        self.create_legend_item(main_layout, "shortage", "#f0afa8", 'shortage')
-        self.create_legend_item(main_layout, "shipment", "#faf3b1", 'shipment')  
+        self.create_legend_item(main_layout, "shortage", "#ff6e63", 'shortage')
+        self.create_legend_item(main_layout, "shipment", "#fcc858", 'shipment')  
         self.create_legend_item(main_layout, "pre_assigned", "#a8bbf0", 'pre_assigned')
         
         # 스페이서 추가
