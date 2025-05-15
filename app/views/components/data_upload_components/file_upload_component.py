@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QFileDial
 from PyQt5.QtGui import QCursor, QFont
 
 import os
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.settings_store import SettingsStore
 

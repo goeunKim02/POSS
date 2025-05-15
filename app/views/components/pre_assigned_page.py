@@ -15,6 +15,9 @@ from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
 from app.utils.fileHandler import create_from_master
 from app.utils.export_manager import ExportManager
 
+"""
+공통 버튼 생성
+"""
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
     font = QFont("Arial", 9); font.setBold(True)
@@ -75,6 +78,9 @@ class PlanningPage(QWidget):
 
         self.scroll_area.verticalScrollBar().rangeChanged.connect(lambda l,h: self._sync_header_margin())
 
+    """
+    스크롤바에 따른 margin 설정 
+    """
     def _sync_header_margin(self):
         if not hasattr(self, 'header'):
             return
@@ -94,6 +100,9 @@ class PlanningPage(QWidget):
                                   start_date=start, end_date=end,
                                   is_planning=True)
 
+    """
+    reset 버튼 클릭시 호출
+    """
     def on_reset_click(self):
         self._df = pd.DataFrame(columns=["Line","Time","Qty","Item","Project"])
 
@@ -124,10 +133,14 @@ class PlanningPage(QWidget):
         if hasattr(self, 'summary_widget'):
             self.summary_widget.deleteLater()
             del self.summary_widget
+
         if hasattr(self, 'header'):
             self.header.deleteLater()
             del self.header
 
+    """
+    run 버튼 클릭시 호출 
+    """
     def on_run_click(self):
         if self._df.empty:
             QMessageBox.warning(self, "Error", "You need to load the results by running it first.")
@@ -144,8 +157,12 @@ class PlanningPage(QWidget):
         )
         dlg.exec_()
 
+    """
+    projectGroupDialog에서 작업 완료 후 호출
+    """
     def _on_optimization_prepare(self, result_df, filtered_df):
         self.filtered_df = filtered_df
+
         if hasattr(self.main_window, 'result_page'):
             pre_items = filtered_df['Item'].unique().tolist()
             self.main_window.result_page.set_optimization_result({
@@ -156,6 +173,9 @@ class PlanningPage(QWidget):
         else:
             self.optimization_requested.emit({'assignment_result': result_df})
 
+    """
+    사전 할당 결과 표시 함수 
+    """
     def display_preassign_result(self, df: pd.DataFrame):
         self.on_reset_click()
 
@@ -197,7 +217,7 @@ class PlanningPage(QWidget):
         # 요약
         btn_summary = QPushButton("Summary")
         btn_summary.setCursor(QCursor(Qt.PointingHandCursor))
-        btn_summary.setStyleSheet(PRIMARY_BUTTON_STYLE)  # 처음엔 활성 상태
+        btn_summary.setStyleSheet(PRIMARY_BUTTON_STYLE)
         btn_summary.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         btn_summary.setFixedHeight(36)
         btn_bar.addWidget(btn_summary)

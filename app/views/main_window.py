@@ -5,8 +5,8 @@ import os
 from app.core.optimization import Optimization
 from app.views.components import Navbar, DataInputPage, PlanningPage, ResultPage
 from app.views.models.data_model import DataModel
-from app.models.common.fileStore import FilePaths
-from app.models.common.fileStore import DataStore
+from app.models.common.file_store import FilePaths
+from app.models.common.file_store import DataStore
 from app.views.components.help_dialogs.help_dialog import HelpDialog
 from app.views.components.settings_dialogs.settings_dialog import SettingsDialog
 from app.utils.error_handler import (

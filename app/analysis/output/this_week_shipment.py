@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 from datetime import datetime, timedelta
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 
 def analyze_and_get_results(use_flexible_matching=True, result_data=None):
     # 원본 분석 함수 호출
