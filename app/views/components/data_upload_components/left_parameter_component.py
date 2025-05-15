@@ -76,8 +76,7 @@ class LeftParameterComponent(QWidget):
                 background-color: #F5F5F5;
                 border: none;
                 border-bottom: {s(1)}px solid #E0E0E0;
-                border-bottom-left-radius: 0px;
-                border-bottom-right-radius: 0px;
+                border-radius: 0px;
             }}
         """)
 
@@ -182,7 +181,7 @@ class LeftParameterComponent(QWidget):
                     QFrame {
                         background-color: white;
                         border: 1px solid #E0E0E0;
-                        border-radius: 8px;
+                        border-radius: 0px;
                     }
                 """)
                 table_layout = QVBoxLayout(table_container)
@@ -197,7 +196,7 @@ class LeftParameterComponent(QWidget):
                         border: none; 
                         outline: none;
                         background-color: white;
-                        border-radius: 8px;
+                        border-radius: 0px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
                         font-size: {fs(18)}px;
                     }}
@@ -266,7 +265,7 @@ class LeftParameterComponent(QWidget):
                     QFrame {
                         background-color: #F8F9FA;
                         border: 1px solid #E0E0E0;
-                        border-radius: 8px;
+                        border-radius: 0px;
                         padding: 15px;
                     }
                 """)

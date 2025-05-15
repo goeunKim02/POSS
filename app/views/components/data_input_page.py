@@ -55,7 +55,7 @@ class DataInputPage(QWidget) :
         layout.setSpacing(0)
 
         main_container = QFrame()
-        main_container.setStyleSheet("border:none; border-radius: 5px;")
+        main_container.setStyleSheet("border:none; border-radius: 0px;")
         main_container_layout = QVBoxLayout(main_container)
         main_container_layout.setContentsMargins(0, 0, 0, 0)
         main_container_layout.setSpacing(0)
@@ -64,7 +64,7 @@ class DataInputPage(QWidget) :
         top_container_layout = QVBoxLayout(top_container)
         top_container_layout.setContentsMargins(m(10), m(10), m(10), m(10))
         top_container_layout.setSpacing(s(10))
-        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
+        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 0px;")
         top_container.setMinimumHeight(h(100))
 
         title_row = QFrame()
@@ -143,7 +143,7 @@ class DataInputPage(QWidget) :
 
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
-        input_section.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
+        input_section.setStyleSheet("background-color: white; border-radius: 0px; border: 3px solid #cccccc;")
         input_section.setFixedHeight(50)
 
         input_layout = QHBoxLayout(input_section)
@@ -173,7 +173,7 @@ class DataInputPage(QWidget) :
 
         right_area = QFrame()
         right_area.setFrameShape(QFrame.NoFrame)
-        right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border: none;")
+        right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 0px; border: none;")
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -193,14 +193,14 @@ class DataInputPage(QWidget) :
 
         self.tab_bar = QTabBar()
         self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-top-left-radius: 0px;")
+        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 0px;")
 
         tab_layout.addWidget(self.tab_bar)
         tab_layout.addWidget(self.stacked_widget)
 
         maximize_button = QPushButton()
         maximize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarShadeButton))
-        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 5px; margin-top: 5px; margin-right:12px")
+        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 0px; margin-top: 5px; margin-right:12px")
         maximize_button.clicked.connect(self.open_parameter_component) 
         maximize_button.setVisible(False)
         maximize_button.setObjectName("maximize_button")
