@@ -165,7 +165,7 @@ class DataInputPage(QWidget) :
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setHandleWidth(10)
+        main_splitter.setHandleWidth(5)
         main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_splitter.setContentsMargins(0, 0, 0, 0)
 
