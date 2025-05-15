@@ -66,9 +66,7 @@ class LeftParameterComponent(QWidget):
             "Production Capacity",
             "Materials",
             "Current Shipment",
-            "Preallocation",
             "Plan Retention",
-            "Shipment Capacity"
         ]
 
         # 버튼 영역을 위한 프레임
