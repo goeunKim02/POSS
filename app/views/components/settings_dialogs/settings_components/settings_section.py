@@ -1,4 +1,3 @@
-# app/views/components/settings_dialogs/settings_components/settings_section.py - 모던한 설정 섹션
 from PyQt5.QtWidgets import (QFrame, QVBoxLayout, QFormLayout, QLabel,
                              QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox,
                              QComboBox, QPushButton, QFileDialog, QWidget, QHBoxLayout,
@@ -7,19 +6,21 @@ from PyQt5.QtGui import QFont, QColor, QCursor, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt, pyqtSignal
 
 
+"""
+Settings 섹션 컴포넌트
+"""
 class ModernSettingsSectionComponent(QFrame):
-    """모던하게 디자인된 설정 섹션 컴포넌트"""
-    # 설정 변경 시그널 정의
-    setting_changed = pyqtSignal(str, object)  # 키, 값
+    setting_changed = pyqtSignal(str, object)
 
     def __init__(self, title, parent=None):
         super().__init__(parent)
         self.title = title
         self.init_ui()
 
+    """
+    UI 초기화
+    """
     def init_ui(self):
-        """UI 초기화"""
-        # 모던한 카드 스타일
         self.setStyleSheet("""
             ModernSettingsSectionComponent {
                 background-color: white;
@@ -30,7 +31,6 @@ class ModernSettingsSectionComponent(QFrame):
             }
         """)
 
-        # 그림자 효과 추가
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(8)
         shadow.setXOffset(0)
@@ -43,17 +43,16 @@ class ModernSettingsSectionComponent(QFrame):
         main_layout.setContentsMargins(24, 12, 24, 12)
         main_layout.setSpacing(0)
 
-        # 제목 레이블 생성
+        # 제목 레이블
         title_label = QLabel(self.title)
         title_label.setFont(QFont("Arial", 18, QFont.Bold))
         title_label.setStyleSheet(
             "color: #1428A0; border: none; margin-bottom: 10px; background: rgba(20, 40, 160, 0.05);")
 
-        # 설정 항목들을 담을 위젯
         self.settings_widget = QWidget()
         self.settings_widget.setStyleSheet("border: none; background-color: transparent;")
 
-        # QFormLayout 사용
+        # QFormLayout
         self.settings_layout = QFormLayout(self.settings_widget)
         self.settings_layout.setContentsMargins(0, 0, 0, 0)
         self.settings_layout.setSpacing(20)
@@ -61,21 +60,19 @@ class ModernSettingsSectionComponent(QFrame):
         self.settings_layout.setLabelAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.settings_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
 
-        # 레이아웃에 위젯 추가
         main_layout.addWidget(title_label)
         main_layout.addWidget(self.settings_widget)
 
+    """
+    모던한 스타일의 설정 항목 추가
+    """
     def add_setting_item(self, label_text, setting_key, widget_type, **kwargs):
-        """모던한 스타일의 설정 항목 추가"""
-
-        # 라벨 생성
         label = QLabel(label_text)
         label.setFont(QFont("Arial", 11, QFont.Medium))
         label.setStyleSheet("color: #333; padding: 0px; margin: 0px; font-weight: 500; ")
         label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         label.setMinimumWidth(250)
 
-        # 위젯 생성
         widget = None
 
         # 텍스트 입력
@@ -101,16 +98,13 @@ class ModernSettingsSectionComponent(QFrame):
             widget.setMaximumWidth(400)
             widget.setFixedHeight(40)
 
-            # 입력 데이터 타입 결정
-            input_type = kwargs.get('type', 'text')  # 기본값은 텍스트
+            input_type = kwargs.get('type', 'text')
 
-            # min/max 값이 있으면 정수형으로 간주
             if 'min' in kwargs and 'max' in kwargs:
                 input_type = 'int'
                 validator = QIntValidator(kwargs['min'], kwargs['max'])
                 widget.setValidator(validator)
 
-            # suffix가 %면 정수형으로 간주
             elif 'suffix' in kwargs and kwargs['suffix'] == '%':
                 input_type = 'int'
                 validator = QIntValidator(0, 100)
@@ -119,19 +113,26 @@ class ModernSettingsSectionComponent(QFrame):
             # 타입이 명시적으로 지정된 경우
             elif input_type == 'int':
                 validator = QIntValidator()
+
                 if 'min' in kwargs:
                     validator.setBottom(kwargs['min'])
+
                 if 'max' in kwargs:
                     validator.setTop(kwargs['max'])
+
                 widget.setValidator(validator)
             elif input_type == 'float':
                 validator = QDoubleValidator()
+
                 if 'min' in kwargs:
                     validator.setBottom(kwargs['min'])
+
                 if 'max' in kwargs:
                     validator.setTop(kwargs['max'])
+
                 if 'decimals' in kwargs:
                     validator.setDecimals(kwargs['decimals'])
+
                 widget.setValidator(validator)
 
             if 'default' in kwargs:
@@ -139,7 +140,7 @@ class ModernSettingsSectionComponent(QFrame):
 
             # 텍스트 변경 시 타입에 맞게 변환하여 시그널 발생
             def on_text_changed(text):
-                if text:  # 빈 문자열이 아닌 경우에만
+                if text:
                     try:
                         if input_type == 'int':
                             value = int(text)
@@ -147,12 +148,11 @@ class ModernSettingsSectionComponent(QFrame):
                             value = float(text)
                         else:
                             value = text
+
                         self.setting_changed.emit(setting_key, value)
                     except ValueError:
-                        # 변환 실패 시 원본 텍스트 전달
                         self.setting_changed.emit(setting_key, text)
                 else:
-                    # 빈 문자열인 경우 기본값 또는 빈 문자열 전달
                     if input_type == 'int' and 'default' in kwargs:
                         self.setting_changed.emit(setting_key, kwargs['default'])
                     elif input_type == 'float' and 'default' in kwargs:
@@ -206,18 +206,25 @@ class ModernSettingsSectionComponent(QFrame):
                     border-top: 4px solid #666;
                 }
             """)
+
             widget.setMinimumWidth(150)
             widget.setMaximumWidth(200)
             widget.setFixedHeight(40)
+
             widget.wheelEvent = lambda event: event.ignore()
+
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
+
             if 'max' in kwargs:
                 widget.setMaximum(kwargs['max'])
+
             if 'default' in kwargs:
                 widget.setValue(kwargs['default'])
+
             if 'suffix' in kwargs:
                 widget.setSuffix(kwargs['suffix'])
+
             widget.valueChanged.connect(lambda value: self.setting_changed.emit(setting_key, value))
 
         # 실수 스핀박스
@@ -248,22 +255,31 @@ class ModernSettingsSectionComponent(QFrame):
                     background-color: #e9ecef;
                 }
             """)
+
             widget.setMinimumWidth(150)
             widget.setMaximumWidth(200)
             widget.setFixedHeight(40)
+
             widget.wheelEvent = lambda event: event.ignore()
+
             if 'min' in kwargs:
                 widget.setMinimum(kwargs['min'])
+
             if 'max' in kwargs:
                 widget.setMaximum(kwargs['max'])
+
             if 'default' in kwargs:
                 widget.setValue(kwargs['default'])
+
             if 'decimals' in kwargs:
                 widget.setDecimals(kwargs['decimals'])
+
             if 'step' in kwargs:
                 widget.setSingleStep(kwargs['step'])
+
             if 'suffix' in kwargs:
                 widget.setSuffix(kwargs['suffix'])
+
             widget.valueChanged.connect(lambda value: self.setting_changed.emit(setting_key, value))
 
         # 체크박스
@@ -294,8 +310,10 @@ class ModernSettingsSectionComponent(QFrame):
                 }
             """)
             widget.setFixedHeight(30)
+
             if 'default' in kwargs and kwargs['default']:
                 widget.setChecked(True)
+
             widget.stateChanged.connect(lambda state: self.setting_changed.emit(setting_key, bool(state)))
 
         # 콤보박스
@@ -335,13 +353,17 @@ class ModernSettingsSectionComponent(QFrame):
                     selection-color: #1428A0;
                 }
             """)
+
             widget.setMinimumWidth(200)
             widget.setMaximumWidth(300)
             widget.setFixedHeight(40)
+
             if 'items' in kwargs:
                 widget.addItems(kwargs['items'])
+
             if 'default_index' in kwargs:
                 widget.setCurrentIndex(kwargs['default_index'])
+
             widget.currentIndexChanged.connect(
                 lambda index: self.setting_changed.emit(setting_key, widget.currentText() if kwargs.get('return_text',
                                                                                                         False) else index)
@@ -370,11 +392,14 @@ class ModernSettingsSectionComponent(QFrame):
                     border-color: #1428A0;
                 }
             """)
+
             path_input.setMinimumWidth(300)
             path_input.setMaximumWidth(400)
             path_input.setFixedHeight(40)
+
             if 'default' in kwargs:
                 path_input.setText(kwargs['default'])
+
             path_input.setReadOnly(kwargs.get('readonly', True))
 
             # 찾아보기 버튼
@@ -400,9 +425,13 @@ class ModernSettingsSectionComponent(QFrame):
             browse_button.setFixedHeight(40)
             browse_button.setCursor(QCursor(Qt.PointingHandCursor))
 
-            # 버튼 클릭 이벤트
+            
+            """
+            버튼 클릭 이벤트
+            """
             def browse_file():
                 dialog_type = kwargs.get('dialog_type', 'file')
+
                 if dialog_type == 'file':
                     if kwargs.get('save_mode', False):
                         file_path, _ = QFileDialog.getSaveFileName(
@@ -410,7 +439,7 @@ class ModernSettingsSectionComponent(QFrame):
                     else:
                         file_path, _ = QFileDialog.getOpenFileName(
                             self, "Open File", "", kwargs.get('filter', "All Files (*.*)"))
-                else:  # dialog_type == 'directory'
+                else:
                     file_path = QFileDialog.getExistingDirectory(
                         self, "Select Directory", "")
 
@@ -426,7 +455,7 @@ class ModernSettingsSectionComponent(QFrame):
 
             widget = container_file
 
-        # 버튼 그룹으로 다중 선택 (새로 추가)
+        # 버튼 그룹으로 다중 선택
         elif widget_type == 'button_group':
             container = QWidget()
             container.setStyleSheet("background-color: transparent; border: none;")
@@ -448,22 +477,20 @@ class ModernSettingsSectionComponent(QFrame):
             selected_label.setMaximumWidth(500)
             selected_label.setWordWrap(True)
 
-            # 버튼들을 담을 위젯
             button_container = QWidget()
             button_container.setStyleSheet("background-color: transparent; border: none;")
+
             grid_layout = QGridLayout(button_container)
             grid_layout.setContentsMargins(0, 0, 0, 0)
             grid_layout.setSpacing(8)
 
-            # 선택된 항목들 저장할 리스트
             selected_items = []
+
             if 'default' in kwargs and isinstance(kwargs['default'], list):
                 selected_items = kwargs['default'].copy()
 
-            # 버튼들을 저장할 딕셔너리
             buttons = {}
 
-            # 토글 버튼 스타일
             button_style_normal = """
                 QPushButton {
                     background-color: #ffffff;
@@ -501,18 +528,21 @@ class ModernSettingsSectionComponent(QFrame):
                 }
             """
 
-            # 선택된 항목 표시 업데이트 함수
+            """
+            선택된 항목 표시 업데이트 함수
+            """
             def update_selected_text():
                 if selected_items:
-                    # 문자열로 변환하고 숫자로 정렬
                     sorted_items = sorted([int(item) for item in selected_items])
                     selected_label.setText("Selected Items: " + ", ".join(map(str, sorted_items)))
                 else:
                     selected_label.setText("Selected Items: No items selected")
-                # 선택 항목 변경 이벤트 발생
+
                 self.setting_changed.emit(setting_key, [str(item) for item in selected_items])
 
-            # 버튼 클릭 이벤트 처리 함수
+            """
+            버튼 클릭 이벤트 처리 함수
+            """
             def toggle_button(item):
                 if item in selected_items:
                     selected_items.remove(item)
@@ -520,12 +550,13 @@ class ModernSettingsSectionComponent(QFrame):
                 else:
                     selected_items.append(item)
                     buttons[item].setStyleSheet(button_style_selected)
+
                 update_selected_text()
 
             # 버튼 생성
             if 'items' in kwargs:
                 items = kwargs['items']
-                cols = kwargs.get('columns', 7)  # 기본 7열
+                cols = kwargs.get('columns', 7)
 
                 for i, item in enumerate(items):
                     button = QPushButton(str(item))
@@ -537,21 +568,16 @@ class ModernSettingsSectionComponent(QFrame):
                     else:
                         button.setStyleSheet(button_style_normal)
 
-                    # 클릭 이벤트 연결
                     button.clicked.connect(lambda checked, val=item: toggle_button(val))
 
-                    # 그리드에 버튼 추가
                     row = i // cols
                     col = i % cols
                     grid_layout.addWidget(button, row, col)
 
-                    # 버튼 딕셔너리에 저장
                     buttons[item] = button
 
-            # 초기 선택 항목 표시
             update_selected_text()
 
-            # 레이아웃에 위젯 추가
             container_layout.addWidget(selected_label)
             container_layout.addWidget(button_container)
 
@@ -616,8 +642,10 @@ class ModernSettingsSectionComponent(QFrame):
                     border-top: 5px solid #666;
                 }
             """)
+
             combo.setMinimumWidth(150)
             combo.setFixedHeight(40)
+
             if 'items' in kwargs:
                 combo.addItems(kwargs['items'])
 
@@ -643,26 +671,30 @@ class ModernSettingsSectionComponent(QFrame):
             add_button.setFixedHeight(40)
             add_button.setCursor(QCursor(Qt.PointingHandCursor))
 
-            # 선택된 항목들
             selected_items = []
+
             if 'default' in kwargs and isinstance(kwargs['default'], list):
                 selected_items = kwargs['default'].copy()
 
-            # 선택된 항목 표시 업데이트
+            """
+            선택된 항목 표시 업데이트
+            """
             def update_selected_text():
                 if selected_items:
                     selected_label.setText("Selected Items: " + ", ".join(map(str, selected_items)))
                 else:
                     selected_label.setText("Selected Items: No items selected")
-                # 선택 항목 변경 이벤트 발생
+
                 self.setting_changed.emit(setting_key, selected_items.copy())
 
-            # 초기 선택 항목 표시
             update_selected_text()
 
-            # 항목 추가 버튼 클릭 이벤트
+            """
+            항목 추가 버튼 클릭 이벤트
+            """
             def add_selected_item():
                 current_item = combo.currentText()
+
                 if current_item and current_item not in selected_items:
                     selected_items.append(current_item)
                     update_selected_text()
@@ -694,13 +726,13 @@ class ModernSettingsSectionComponent(QFrame):
             # 항목 제거 버튼 클릭 이벤트
             def remove_selected_item():
                 current_item = combo.currentText()
+
                 if current_item in selected_items:
                     selected_items.remove(current_item)
                     update_selected_text()
 
             remove_button.clicked.connect(remove_selected_item)
 
-            # 위젯 추가
             combo_layout.addWidget(combo)
             combo_layout.addWidget(add_button)
             combo_layout.addWidget(remove_button)
@@ -711,9 +743,7 @@ class ModernSettingsSectionComponent(QFrame):
 
             widget = container_multi
 
-        # 위젯이 생성되었을 경우에만 폼 레이아웃에 추가
         if widget:
-            # QFormLayout에 라벨과 위젯 쌍으로 추가
             self.settings_layout.addRow(label, widget)
             return widget
 

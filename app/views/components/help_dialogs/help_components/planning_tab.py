@@ -1,21 +1,23 @@
-# help_components/planning_tab.py - 수정된 계획 수립 탭 컴포넌트
 from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
 from .help_section_component import HelpSectionComponent
 
 
+"""
+계획 수립 탭 컴포넌트
+"""
 class PlanningTabComponent(BaseTabComponent):
-    """계획 수립 탭 컴포넌트"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_content()
 
+    """
+    콘텐츠 초기화
+    """
     def init_content(self):
-        """콘텐츠 초기화"""
-        # 콘텐츠 프레임 생성
+        # 콘텐츠 프레임
         self.content_frame = QFrame()
         self.content_frame.setStyleSheet("""
             QFrame {
@@ -26,12 +28,12 @@ class PlanningTabComponent(BaseTabComponent):
             }
         """)
 
-        # 콘텐츠 프레임 레이아웃 생성
+        # 콘텐츠 프레임 레이아웃
         frame_layout = QVBoxLayout(self.content_frame)
         frame_layout.setContentsMargins(20, 20, 20, 20)
         frame_layout.setSpacing(15)
 
-        # 제목 레이블 생성
+        # 제목 레이블
         title_label = QLabel("Pre-Assigned Result")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
@@ -52,7 +54,7 @@ class PlanningTabComponent(BaseTabComponent):
         sections_frame.setStyleSheet("background-color: transparent; border:none;")
         sections_layout = QVBoxLayout(sections_frame)
         sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(15)  # 섹션간 간격
+        sections_layout.setSpacing(15)
 
         # 기능 섹션
         features_section = HelpSectionComponent(
@@ -61,7 +63,7 @@ class PlanningTabComponent(BaseTabComponent):
             description="The pre-assigned result page provides several key functions:"
         )
 
-        # 기능 항목 추가
+        # 기능 항목
         features_section.add_list_item("Results Verification: Check the pre-assigned tasks in the table.")
         features_section.add_list_item("Filtering: Click on headers to filter data by specific conditions.")
         features_section.add_list_item("Sorting: Click on headers to apply ascending/descending sorting.")
@@ -75,7 +77,7 @@ class PlanningTabComponent(BaseTabComponent):
             description="Providing accurate information during the data input stage is essential for obtaining optimal results."
         )
 
-        # 섹션 프레임에 모든 섹션 추가
+        # 섹션 프레임에 모든 섹션
         sections_layout.addWidget(features_section)
         sections_layout.addWidget(tips_section)
 
@@ -85,12 +87,12 @@ class PlanningTabComponent(BaseTabComponent):
         note_label.setStyleSheet(
             "font-style: italic; color: #666; margin-top: 20px; background-color: transparent; border:none;")
 
-        # 프레임 레이아웃에 위젯 추가
+        # 프레임 레이아웃에 위젯
         frame_layout.addWidget(title_label)
         frame_layout.addWidget(desc_label)
         frame_layout.addWidget(sections_frame)
         frame_layout.addWidget(note_label)
-        frame_layout.addStretch(1)  # 하단 여백용 스트레치 추가
+        frame_layout.addStretch(1)
 
-        # 메인 레이아웃에 콘텐츠 프레임 추가
+        # 메인 레이아웃에 콘텐츠 프레임
         self.content_layout.addWidget(self.content_frame)

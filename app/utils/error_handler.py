@@ -20,11 +20,10 @@ class ErrorType(Enum) :
     RUNTIME_ERROR = 'RUNTIME ERROR'
     UNKNOWN_ERROR = 'UNKNOWN_ERROR'
 
+"""
+사용자 정의 이외의 기본 클래스
+"""
 class AppError(Exception) :
-
-    """
-    사용자 정의 이외의 기본 클래스
-    """
     def __init__(self, message : str, error_type : ErrorType = ErrorType.UNKNOWN_ERROR,
                  details : Optional[Dict[str, Any]] = None) :
         self.message = message
