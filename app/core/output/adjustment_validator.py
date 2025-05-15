@@ -373,14 +373,14 @@ class PlanAdjustmentValidator:
         # 5. 가동률 계산
         utilization_rate = (new_total_allocation / line_capacity) * 100
         
-        print(f"[DEBUG] 가동률 계산:")
-        print(f"  - 아이템: {item}")
-        print(f"  - 전체할당: {current_total_allocation}")
-        print(f"  - 기존수량: {existing_item_qty}")
-        print(f"  - 새수량: {new_qty}")
-        print(f"  - 새총할당: {new_total_allocation}")
-        print(f"  - 용량: {line_capacity}")
-        print(f"  - 가동률: {utilization_rate:.1f}%")
+        # print(f"[DEBUG] 가동률 계산:")
+        # print(f"  - 아이템: {item}")
+        # print(f"  - 전체할당: {current_total_allocation}")
+        # print(f"  - 기존수량: {existing_item_qty}")
+        # print(f"  - 새수량: {new_qty}")
+        # print(f"  - 새총할당: {new_total_allocation}")
+        # print(f"  - 용량: {line_capacity}")
+        # print(f"  - 가동률: {utilization_rate:.1f}%")
         
         # 6. 최대 가동률 검증
         max_rate = max_utilization_by_shift.get(int(time), 100)
