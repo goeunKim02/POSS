@@ -72,7 +72,7 @@ class WeeklyCalendar(QWidget):
             # Line 레이블
             span = (1 if not day_data.empty else 0) \
                 + (1 if not night_data.empty else 0) \
-                + (1 if (not day_data.empty and not night_data.empty) else 0)  # 중간 구분선
+                # + (1 if (not day_data.empty and not night_data.empty) else 0)  # 중간 구분선
             line_label = QLabel(f"<b>{line}</b>")
             line_label.setAlignment(Qt.AlignCenter)
             line_label.setStyleSheet(LINE_LABEL_STYLE)
@@ -103,14 +103,14 @@ class WeeklyCalendar(QWidget):
                     layout.addWidget(cell, row_index, col)
                 row_index += 1
 
-            # Day/Night 중간 구분선
-            if not day_data.empty and not night_data.empty:
-                mid_sep = QFrame()
-                mid_sep.setFrameShape(QFrame.HLine)
-                mid_sep.setStyleSheet(SEPARATOR_STYLE)
-                mid_sep.setFixedHeight(1)
-                layout.addWidget(mid_sep, row_index, 1, 1, layout.columnCount()-1)
-                row_index += 1
+            # # Day/Night 중간 구분선
+            # if not day_data.empty and not night_data.empty:
+            #     mid_sep = QFrame()
+            #     mid_sep.setFrameShape(QFrame.HLine)
+            #     mid_sep.setStyleSheet(SEPARATOR_STYLE)
+            #     mid_sep.setFixedHeight(1)
+            #     layout.addWidget(mid_sep, row_index, 1, 1, layout.columnCount()-1)
+            #     row_index += 1
 
             # Night 섹션
             if not night_data.empty:

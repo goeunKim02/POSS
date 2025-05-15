@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushBut
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont, QColor, QBrush
 import pandas as pd
+
+from app.views.components.result_components.portcapa_widget import PortCapaWidget
 from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
 from ..components.visualization.visualization_updater import VisualizationUpdater
@@ -16,7 +18,7 @@ from app.views.components.result_components.shipment_widget import ShipmentWidge
 from app.resources.styles.result_style import ResultStyles 
 from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.items_container import ItemsContainer
-
+from app.views.components.result_components.summary_widget import SummaryWidget
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -34,6 +36,7 @@ class ResultPage(QWidget):
         self.split_allocation_widget = None # 분산 배치 분석 위젯 저장 변수
         self.validation_errors = {}  # 현재 발생한 검증 에러들
         self.error_items = set()   # 에러가 있는 아이템 목록
+        self.summary_widget = None
 
         self.init_ui()
         self.connect_signals()
@@ -166,7 +169,7 @@ class ResultPage(QWidget):
         button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
 
         self.viz_buttons = []
-        viz_types = ["Capa", "Material", "PortCapa", "Plan", "Shipment", "SplitView"]
+        viz_types = ["Summary", "Capa", "Material", "PortCapa", "Plan", "Shipment", "SplitView"]
 
         # 시각화 콘텐츠를 표시할 스택 위젯
         self.viz_stack = QStackedWidget()
@@ -182,7 +185,7 @@ class ResultPage(QWidget):
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
             btn.clicked.connect(lambda checked, idx=i: self.switch_viz_page(idx))
 
-             # 균등한 크기로 설정
+            # 균등한 크기로 설정
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             btn.setFixedHeight(40)  # 높이만 고정
             
@@ -198,7 +201,10 @@ class ResultPage(QWidget):
             page_layout = QVBoxLayout(page)
             
             # tab 유형 별 처리 
-            if btn_text == 'Capa':
+            if btn_text == 'Summary':
+                self.summary_widget = SummaryWidget()
+                page_layout.addWidget(self.summary_widget)
+            elif btn_text == 'Capa':
                 capa_canvas = MplCanvas(width=4, height=5, dpi=100)
                 page_layout.addWidget(capa_canvas)
                 self.viz_canvases.append(capa_canvas)
@@ -214,52 +220,15 @@ class ResultPage(QWidget):
                 self.plan_maintenance_widget = PlanMaintenanceWidget()
                 page_layout.addWidget(self.plan_maintenance_widget)
             elif btn_text == 'Material':
-                # 자재 부족량 분석 페이지
+                # 자재 부족량 분석 페이지 - 캔버스 제거하고 테이블만 표시
                 material_page = QWidget()
                 material_layout = QVBoxLayout(material_page)
                 material_layout.setContentsMargins(0, 0, 0, 0)  # 페이지 여백
                 
-                # 차트 컨테이너와 여백 추가
-                chart_container = QWidget()
-                chart_container.setStyleSheet("""
-                    QWidget { 
-                        border: none;
-                        outline: none;
-                        background-color: white;
-                    }
-                """)
-                chart_layout = QVBoxLayout(chart_container)
-                chart_layout.setContentsMargins(0, 10, 15, 10)  # 여백 다시 정상화
-                
-                # 자재 부족량 차트 추가
-                material_canvas = MplCanvas(width=6, height=3, dpi=100)  # 높이도 다시 정상화
-                # 캔버스 자체의 스타일 설정
-                material_canvas.setStyleSheet("""
-                    QWidget, QFrame { 
-                        border: none;
-                        outline: none;
-                        background-color: white;
-                        margin: 0px;
-                        padding: 0px;
-                    }
-                """)
-                # 차트 여백 최적화 - 이제 텍스트가 작으므로 여백 줄일 수 있음
-                material_canvas.fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.15)  # 0.15로 줄임
-                material_canvas.fig.patch.set_facecolor('white')
-                material_canvas.fig.patch.set_visible(True)
-                
-                chart_layout.addWidget(material_canvas)
-                
-                # 차트 컨테이너를 메인 레이아웃에 추가
-                material_layout.addWidget(chart_container, 2)
-                
-                # 테이블과 차트 사이에 최소한의 여백만 추가
-                material_layout.addSpacing(10)
-                
-                # 자재 부족 항목 테이블 추가
+                # 테이블 위젯만 추가 (캔버스 없음)
                 self.shortage_items_table = QTableWidget()
                 self.shortage_items_table.setColumnCount(4)
-                self.shortage_items_table.setHorizontalHeaderLabels(["Model", "Material", "Shortage", "Shortage Rate (%)"])
+                self.shortage_items_table.setHorizontalHeaderLabels(["Material", "Model", "Shortage", "Shift"])
                 self.shortage_items_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
                 
                 # 행 번호(맨 왼쪽 열) 중앙 정렬 설정
@@ -277,7 +246,7 @@ class ResultPage(QWidget):
                 
                 self.shortage_items_table.setStyleSheet("""
                     QTableWidget {
-                        border: 1px solid #ffffff;
+                        border: none;
                         gridline-color: #f0f0f0;
                         background-color: white;
                         border-radius: 0;
@@ -319,8 +288,8 @@ class ResultPage(QWidget):
                 self.shortage_items_table.setMouseTracking(True)
                 self.shortage_items_table.cellEntered.connect(self.show_shortage_tooltip)
                 
-                # 테이블 비중 크게 증가
-                material_layout.addWidget(self.shortage_items_table, 2) 
+                # 테이블만 레이아웃에 추가 (캔버스 제거)
+                material_layout.addWidget(self.shortage_items_table)
                 
                 # 페이지 자체에도 스타일 적용
                 material_page.setStyleSheet("""
@@ -331,14 +300,18 @@ class ResultPage(QWidget):
                     }
                 """)
                 page_layout.addWidget(material_page)
-                
-                # 캔버스 저장
-                self.viz_canvases.append(material_canvas)
+                self.viz_canvases.append(None)
+
             elif btn_text == 'PortCapa':
-                # PortCapa 캔버스 추가 (기존 로직 유지)
-                portcapa_canvas = MplCanvas(width=6, height=4, dpi=100)
-                page_layout.addWidget(portcapa_canvas)
-                self.viz_canvases.append(portcapa_canvas)
+                self.portcapa_widget = PortCapaWidget()
+                self.portcapa_widget.setStyleSheet("""
+                    QWidget { 
+                        border: none;
+                        outline: none;
+                        background-color: white;
+                    }
+                """)
+                page_layout.addWidget(self.portcapa_widget)
             elif btn_text == 'Shipment':
                 # 당주 출하 위젯
                 self.shipment_widget = ShipmentWidget()
@@ -494,11 +467,6 @@ class ResultPage(QWidget):
                         
     """시각화 페이지 전환 및 버튼 스타일 업데이트"""
     def switch_viz_page(self, index):
-        # # 이전 탭이 Shipment 탭이었으면 위젯 상태 초기화
-        # if self.viz_stack.currentIndex() == 4 and self.shipment_widget and index != 4:
-        #     # 다른 탭으로 전환할 때 Shipment 위젯 상태 초기화
-        #     self.shipment_widget.reset_state()
-
         self.viz_stack.setCurrentIndex(index)
 
         # 버튼 스타일 업데이트
@@ -506,24 +474,28 @@ class ResultPage(QWidget):
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == index else ResultStyles.INACTIVE_BUTTON_STYLE)
 
         # 각 탭별 특수 처리
-        if index == 0:  # Capa 탭
+        if index == 0:  # Summary 탭
+            # 데이터 업데이트 
+            if hasattr(self, 'summary_widget'):
+                self.summary_widget.run_analysis(self.result_data)
+        elif index == 1:  # Capa 탭
             # Capa 탭이 선택되면 두 캔버스(Capa, Utilization) 모두 업데이트
             if len(self.viz_canvases) >= 2 and self.result_data is not None:
                 VisualizationUpdater.update_capa_chart(self.viz_canvases[0], self.capa_ratio_data)
                 VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
-        elif index == 1 and self.result_data is not None:  # Material 탭 (1번) 인덱스
+        elif index == 2 and self.result_data is not None:  # Material 탭 (2번) 인덱스
             # Material 탭 데이터 업데이트
             self.update_material_shortage_analysis()
-        elif index == 4 and self.result_data is not None:  # Shipment 탭 (4번) 인덱스
+        elif index == 3 and self.result_data is not None:
+            self.portcapa_widget.render_table()
+        elif index == 5 and self.result_data is not None:  # Shipment 탭 (5번) 인덱스
             # Shipment 탭 데이터 업데이트
             self.shipment_widget.run_analysis(self.result_data)
-        elif index == 5 and self.result_data is not None:  # SplitView 탭 (5번) 인덱스
+        elif index == 6 and self.result_data is not None:  # SplitView 탭 (6번) 인덱스
             # SplitView 탭 데이터 업데이트
             if hasattr(self, 'split_allocation_widget'):
                 self.split_allocation_widget.run_analysis(self.result_data)
-        # else:
-        #     # 다른 탭으로 전환 시 자재 부족 상태 초기화
-        #     self.clear_left_widget_shortage_status()
+
 
     def clear_left_widget_shortage_status(self):
         """왼쪽 위젯의 모든 아이템들의 자재 부족 상태 초기화"""
@@ -621,6 +593,10 @@ class ResultPage(QWidget):
                 # 분산 배치 위젯 업데이트
                 if hasattr(self, 'split_allocation_widget'):
                     self.split_allocation_widget.run_analysis(data)
+
+                # summary 위젯 업데이트
+                if hasattr(self, 'summary_widget'):
+                    self.summary_widget.run_analysis(data)
 
                 # Capa 비율 분석
                 # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
@@ -798,7 +774,7 @@ class ResultPage(QWidget):
             VisualizationUpdater.update_utilization_chart(self.viz_canvases[1], self.utilization_data)
         
         # Material 탭 캔버스 업데이트 (2번 캔버스)
-        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 1:  # Material 탭이 현재 선택된 경우
+        if len(self.viz_canvases) >= 3 and self.viz_stack.currentIndex() == 2:  # Material 탭이 현재 선택된 경우
             # Material 탭의 경우 캔버스 업데이트 후 테이블 업데이트까지 함께 수행
             if self.result_data is not None and not self.result_data.empty:
                 self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(
@@ -831,7 +807,7 @@ class ResultPage(QWidget):
         elif viz_type == "PortCapa":
             # PortCapa 업데이트 로직 (구현 예정)
             pass
-
+    
 
     """최종 최적화 결과를 파일로 내보내는 메서드"""
     def export_results(self):
@@ -872,59 +848,63 @@ class ResultPage(QWidget):
             f"An error occurred during export:\n{str(e)}"
         )
 
-    """테이블 셀에 마우스 올릴 때 상세 정보 툴팁 표시"""
     def show_shortage_tooltip(self, row, column):
+        """테이블 셀에 마우스 올릴 때 상세 정보 툴팁 표시"""
         if self.shortage_items_table is None or self.material_analyzer is None:
             return
-            
+                
         # 현재 셀의 아이템
-        item = self.shortage_items_table.item(row, 0)
-        if item is None:
+        material_item = self.shortage_items_table.item(row, 0)  # Material 컬럼
+        model_item = self.shortage_items_table.item(row, 1)     # Model 컬럼
+        
+        if material_item is None or model_item is None:
             return
-            
+                
         # 모델 코드 가져오기
-        model_code = item.data(Qt.UserRole)
-        if not model_code:
+        model_code = model_item.text()
+        material_code = material_item.text()
+        
+        if not model_code or not material_code:
             return
-            
+                
         # 해당 모델의 부족 정보 가져오기
         shortages = self.material_analyzer.get_item_shortages(model_code)
         if not shortages:
             return
-            
+                
         # 툴팁 내용 생성
         tooltip_text = f"<b>{model_code}</b> Material Shortage Details:<br><br>"
         tooltip_text += "<table border='1' cellspacing='0' cellpadding='3'>"
-        tooltip_text += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Required</th><th>Available</th><th>Shortage</th></tr>"
+        tooltip_text += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Shift</th><th>Shortage</th></tr>"
         
         for shortage in shortages:
-            tooltip_text += f"<tr>"
-            tooltip_text += f"<td>{shortage['Material']}</td>"
-            tooltip_text += f"<td align='right'>{int(shortage['Required']):,}</td>"
-            tooltip_text += f"<td align='right'>{int(shortage['Available']):,}</td>"
-            tooltip_text += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td>"
-            tooltip_text += f"</tr>"
-            
+            if shortage.get('material') == material_code:  # 현재 선택된 자재와 일치하는 항목만 표시
+                tooltip_text += f"<tr>"
+                tooltip_text += f"<td>{shortage.get('material', 'Unknown')}</td>"
+                tooltip_text += f"<td align='center'>{shortage.get('shift', 0)}</td>"
+                tooltip_text += f"<td align='right' style='color:red'>{int(shortage.get('shortage', 0)):,}</td>"
+                tooltip_text += f"</tr>"
+                
         tooltip_text += "</table>"
         
         # 현재 마우스 위치에 툴팁 표시
         QToolTip.showText(QCursor.pos(), tooltip_text)
 
+
     """자재 부족량 분석 실행 및 UI 업데이트"""
 
     def update_material_shortage_analysis(self):
         """자재 부족량 분석 실행 및 UI 업데이트"""
-        if not hasattr(self, 'shortage_items_table') or self.shortage_items_table is None:
-            print("자재 부족 테이블이 초기화되지 않았습니다.")
-            return
-                
-        # Material 탭의 캔버스 찾기 - viz_canvases에서 올바른 인덱스 사용
+        # 자재 부족량 분석 실행
         material_canvas = None
         for i, canvas in enumerate(self.viz_canvases):
-            if i == 1:  # Material 탭 캔버스 인덱스 (0:Capa, 1:Utilization, 2:Material)
+            if i == 1:  # Material 탭 인덱스
                 material_canvas = canvas
                 break
-                    
+
+        self.viz_stack.setFrameShape(QFrame.NoFrame)
+        self.viz_stack.setStyleSheet("QStackedWidget { border: none; background-color: white; }")
+            
         if material_canvas is None:
             print("자재 부족량 분석을 위한 캔버스를 찾을 수 없습니다.")
             return
@@ -934,7 +914,7 @@ class ResultPage(QWidget):
             print("결과 데이터가 없습니다. 데이터를 먼저 로드해주세요.")
             material_canvas.axes.clear()
             material_canvas.axes.text(0.5, 0.5, "Please Load Result Data First", 
-                                ha="center", va="center", fontsize=20)
+                                    ha="center", va="center", fontsize=20)
             material_canvas.axes.set_frame_on(False)
             material_canvas.axes.get_xaxis().set_visible(False)
             material_canvas.axes.get_yaxis().set_visible(False)
@@ -948,10 +928,10 @@ class ResultPage(QWidget):
             self.shortage_items_table.setItem(0, 0, empty_item)
             self.shortage_items_table.setSpan(0, 0, 1, 4)  # 4개 컬럼 병합
             return
-                
+                    
         print(f"자재 부족량 분석 시작 - 데이터프레임 크기: {self.result_data.shape}")
 
-        # 자재 부족량 분석 실행 및 차트 업데이트 (결과 데이터 직접 전달)
+        # 자재 부족량 분석 실행
         self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(material_canvas, self.result_data)
             
         # 분석 결과가 없으면 종료
@@ -962,101 +942,130 @@ class ResultPage(QWidget):
         # 부족 모델을 왼쪽 위젯에 전달
         if self.material_analyzer.shortage_results:
             self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
-            # self.material_analysis_done = True
-
-        if not self.material_analyzer.shortage_results:
-            print("자재 부족량 분석 결과가 없습니다.")
-            self.shortage_items_table.setRowCount(0)
-            empty_item = QTableWidgetItem("자재 부족 항목이 없습니다.")
-            empty_item.setTextAlignment(Qt.AlignCenter)
-            self.shortage_items_table.setRowCount(1)
-            self.shortage_items_table.setItem(0, 0, empty_item)
-            self.shortage_items_table.setSpan(0, 0, 1, 4)  # 4개 컬럼 병합
-            return
         
-        print(f"자재 부족 항목 수: {len(self.material_analyzer.shortage_results)}")
-                
         # 부족 항목 테이블 업데이트
         self.update_shortage_items_table()
 
-    """자재 부족 항목 테이블 업데이트"""
     def update_shortage_items_table(self):
+        """자재 부족 항목 테이블 업데이트"""
         if not hasattr(self, 'shortage_items_table') or self.shortage_items_table is None or self.material_analyzer is None:
             print("테이블 또는 분석기 객체가 초기화되지 않았습니다.")
             return
                 
-        # 테이블 초기화
-        self.shortage_items_table.setRowCount(0)
-            
+        # 테이블 초기화 및 컬럼 구조 변경
+        self.shortage_items_table.clear()
+        self.shortage_items_table.setColumnCount(4)
+        self.shortage_items_table.setHorizontalHeaderLabels(["Material", "Model", "Shortage", "Shift"])
+        
         # 부족 항목 데이터 가져오기
         shortage_df = self.material_analyzer.get_all_shortage_data()
             
         if shortage_df.empty:
             print("자재 부족 항목 데이터가 비어있습니다.")
+            # 비어있는 경우 메시지 표시
+            self.shortage_items_table.setRowCount(1)
+            empty_item = QTableWidgetItem("No material shortage detected")
+            empty_item.setTextAlignment(Qt.AlignCenter)
+            self.shortage_items_table.setItem(0, 0, empty_item)
+            self.shortage_items_table.setSpan(0, 0, 1, 4)  # 4개 컬럼 병합
             return
                 
-        # print(f"자재 부족 항목 데이터 크기: {shortage_df.shape}")
-        # print(f"데이터 샘플:\n{shortage_df.head()}")
-                
-        # 부족률 계산 및 정렬 (부족률 높은 순)
-        shortage_df['Shortage_Pct'] = (shortage_df['Shortage'] / shortage_df['Required']) * 100
-        shortage_df = shortage_df.sort_values('Shortage_Pct', ascending=False)
-            
-        # 테이블 행 수 설정
-        row_count = min(20, len(shortage_df))  # 최대 20개 행만 표시
-        self.shortage_items_table.setRowCount(row_count)
+        print(f"자재 부족 항목 데이터 크기: {shortage_df.shape}")
+        print(f"부족 데이터 컬럼: {shortage_df.columns.tolist()}")
         
-        print(f"테이블에 표시할 행 수: {row_count}")
-            
+        # Material별로 그룹화하여 처리
+        material_groups = shortage_df.groupby('Material')
+        
+        # 전체 필요한 행 수 계산 
+        total_rows = sum(len(group) for _, group in material_groups)
+        self.shortage_items_table.setRowCount(total_rows)
+        
         # 테이블 데이터 추가
-        for row_idx, (_, data) in enumerate(shortage_df.head(row_count).iterrows()):
-            # 모델명 셀
-            item_cell = QTableWidgetItem(data['Item'][:15] + '...' if len(data['Item']) > 15 else data['Item'])
-            item_cell.setData(Qt.UserRole, data['Item'])  # 원본 모델 코드 저장
-                
-            # 자재 코드 셀
-            material_cell = QTableWidgetItem(data['Material'])
-                
-            # 부족량 셀
-            shortage_cell = QTableWidgetItem(f"{int(data['Shortage']):,}")
-            shortage_cell.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                
-            # 부족률 셀
-            shortage_pct_cell = QTableWidgetItem(f"{data['Shortage_Pct']:.1f}%")
-            shortage_pct_cell.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                
-            # 부족률에 따른 배경색 설정
-            if data['Shortage_Pct'] > 50:
-                # 심각한 부족 (빨간색 계열)
-                shortage_pct_cell.setBackground(QBrush(QColor('#FFAAAA')))
-            elif data['Shortage_Pct'] > 20:
-                # 중간 정도 부족 (노란색 계열)
-                shortage_pct_cell.setBackground(QBrush(QColor('#FFFFAA')))
-            else:
-                # 경미한 부족 (옅은 빨간색)
-                shortage_pct_cell.setBackground(QBrush(QColor('#FFE6E6')))
-                
-            # 테이블에 셀 추가
-            self.shortage_items_table.setItem(row_idx, 0, item_cell)
-            self.shortage_items_table.setItem(row_idx, 1, material_cell)
-            self.shortage_items_table.setItem(row_idx, 2, shortage_cell)
-            self.shortage_items_table.setItem(row_idx, 3, shortage_pct_cell)
+        current_row = 0
+        for material, group in material_groups:
+            # 그룹의 시작 행 인덱스 저장
+            material_start_row = current_row
             
-        # 행 높이 조정
-        for row in range(row_count):
+            # 이 자재에 대한 모든 모델 처리
+            for i, (_, data) in enumerate(group.iterrows()):
+                # 자재 코드 셀 (첫 번째 항목에만 표시)
+                if i == 0:
+                    material_cell = QTableWidgetItem(material)
+                    material_cell.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+                    self.shortage_items_table.setItem(current_row, 0, material_cell)
+                    
+                    # 부족량 셀 (첫 번째 항목에만 표시)
+                    shortage_amt = data['Shortage']
+                    shortage_cell = QTableWidgetItem(f"{int(shortage_amt):,}")
+                    shortage_cell.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                    self.shortage_items_table.setItem(current_row, 2, shortage_cell)
+                    
+                    # 시프트 셀 (첫 번째 항목에만 표시)
+                    shift = data['Shift']
+                    shift_cell = QTableWidgetItem(str(shift))
+                    shift_cell.setTextAlignment(Qt.AlignCenter)
+                    self.shortage_items_table.setItem(current_row, 3, shift_cell)
+                
+                # 모델명 셀 (각 항목마다 별도 표시)
+                item_code = data['Item']
+                item_cell = QTableWidgetItem(item_code)
+                item_cell.setData(Qt.UserRole, item_code)  # 원본 모델 코드 저장
+                self.shortage_items_table.setItem(current_row, 1, item_cell)
+                
+                # 다음 행으로 이동
+                current_row += 1
+            
+            # 그룹 내 행이 2개 이상인 경우 병합 수행
+            group_row_count = len(group)
+            if group_row_count > 1:
+                # Material 컬럼 병합
+                self.shortage_items_table.setSpan(material_start_row, 0, group_row_count, 1)
+                # Shortage 컬럼 병합
+                self.shortage_items_table.setSpan(material_start_row, 2, group_row_count, 1)
+                # Shift 컬럼 병합
+                self.shortage_items_table.setSpan(material_start_row, 3, group_row_count, 1)
+        
+        # 행 높이 및 컬럼 너비 조정
+        for row in range(total_rows):
             self.shortage_items_table.setRowHeight(row, 25)
-            
+        
+        # 컬럼 너비 자동 조정
+        self.shortage_items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)  # Material
+        self.shortage_items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)  # Model
+        self.shortage_items_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)  # Shortage
+        self.shortage_items_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)  # Shift
+        
+        # 테이블 스타일 업데이트
+        self.shortage_items_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #d0d0d0;
+                border: none;
+                border-radius: 4px;
+            }
+            QTableWidget::item {
+                padding: 4px;
+                border-bottom: 1px solid #f0f0f0;
+            }
+            QHeaderView::section {
+                background-color: #1428A0;
+                color: white;
+                padding: 6px;
+                font-weight: bold;
+                border: none;
+            }
+        """)
+        
         print("자재 부족 테이블 업데이트 완료")
 
 
-    """왼쪽 위젯의 아이템들에 자재 부족 상태 적용"""
     def update_left_widget_shortage_status(self, shortage_dict):
+        """왼쪽 위젯의 아이템들에 자재 부족 상태 적용
+        
+        Args:
+            shortage_dict: {item_code: [{shift: shift_num, material: material_code, shortage: shortage_amt}]}
+        """
         if not hasattr(self, 'left_section') or not hasattr(self.left_section, 'grid_widget'):
             return
-        
-        # left_section에 자재부족 정보 전달
-        if hasattr(self.left_section, 'set_current_shortage_items'):
-            self.left_section.set_current_shortage_items(shortage_dict)
         
         # 그리드의 모든 컨테이너 순회
         for row_containers in self.left_section.grid_widget.containers:
@@ -1065,13 +1074,28 @@ class ResultPage(QWidget):
                 for item in container.items:
                     if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
                         item_code = item.item_data['Item']
+                        item_time = item.item_data.get('Time')  # 시프트(Time) 정보 가져오기
                         
                         # 해당 아이템이 자재 부족 목록에 있는지 확인
                         if item_code in shortage_dict:
-                            # 자재 부족 상태로 설정
-                            item.set_shortage_status(True, shortage_dict[item_code])
+                            # 시프트별 부족 정보 검사
+                            shortages_for_item = shortage_dict[item_code]
+                            matching_shortages = []
+                            
+                            for shortage in shortages_for_item:
+                                shortage_shift = shortage.get('shift')
+                                
+                                # 시프트가 일치하면 부족 정보 저장
+                                if shortage_shift and item_time and int(shortage_shift) == int(item_time):
+                                    matching_shortages.append(shortage)
+                            
+                            # 일치하는 시프트의 부족 정보가 있으면 부족 상태로 설정
+                            if matching_shortages:
+                                item.set_shortage_status(True, matching_shortages)
+                            else:
+                                item.set_shortage_status(False)
                         else:
-                            # 정상 상태로 설정
+                            # 부족 목록에 없는 경우 부족 상태 해제
                             item.set_shortage_status(False)
 
 

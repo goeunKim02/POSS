@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem,
                              QLabel, QFrame, QHeaderView)
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QIcon, QFont, QColor
+from app.resources.fonts.font_manager import font_manager
 
 
 class FileExplorerSidebar(QWidget):
@@ -46,7 +47,7 @@ class FileExplorerSidebar(QWidget):
 
         title_label = QLabel("Files Explorer")
         title_label_font = QFont()
-        title_label_font.setFamily("Arial")
+        title_label_font.setFamily(font_manager.get_just_font("SamsungOne-700").family())
         title_label_font.setPointSize(10)
         title_label.setFont(title_label_font)
         title_label.setStyleSheet("color: black; font-weight: bold;")
@@ -75,6 +76,42 @@ class FileExplorerSidebar(QWidget):
             }
             QTreeWidget::item:hover {
                 background-color: #E0E0E0;
+            }
+            QScrollBar:vertical {
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #CCCCCC;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #CCCCCC;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
             }
         """)
 
@@ -122,13 +159,13 @@ class FileExplorerSidebar(QWidget):
             file_item.setData(0, Qt.UserRole, file_path)  # 파일 경로 저장
 
             # 폰트 설정
-            font = QFont("Arial", 9)
+            font = QFont(font_manager.get_just_font("SamsungOne-700").family(), 9)
             font.setBold(True)
             file_item.setFont(0, font)
 
             # 파일 타입에 따라 다른 색 적용
             if file_path.endswith(('.xls', '.xlsx')):
-                file_item.setForeground(0, QColor("#1D7144"))  # 엑셀 파일은 녹색
+                file_item.setForeground(0, QColor("#1428A0"))  # 엑셀 파일은 녹색
             elif file_path.endswith('.csv'):
                 file_item.setForeground(0, QColor("#8B4513"))  # CSV 파일은 갈색
 
@@ -171,7 +208,7 @@ class FileExplorerSidebar(QWidget):
             sheet_item.setText(0, sheet_text)
             sheet_item.setData(0, Qt.UserRole + 1, sheet)  # 시트 이름 저장
 
-            font = QFont("Arial", 9)
+            font = QFont(font_manager.get_just_font("SamsungOne-700").family(), 9)
             sheet_item.setFont(0, font)
 
             # 수정된 시트인 경우 색상 변경

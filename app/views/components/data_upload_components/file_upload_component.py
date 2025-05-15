@@ -4,7 +4,6 @@ from PyQt5.QtGui import QCursor, QFont
 
 import os
 from app.models.common.fileStore import FilePaths
-from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.settings_store import SettingsStore
 
@@ -40,8 +39,8 @@ class FileUploadComponent(QWidget):
         # 파일명들을 표시할 영역
         files_container = QWidget()
         self.files_display = QHBoxLayout(files_container)
-        self.files_display.setContentsMargins(m(5), 0, m(5), 0)
-        self.files_display.setSpacing(sp(5))
+        self.files_display.setContentsMargins(5, 0, 5, 0)
+        self.files_display.setSpacing(5)
         self.files_display.setAlignment(Qt.AlignLeft)
 
         # 안내 텍스트 표시
@@ -53,12 +52,11 @@ class FileUploadComponent(QWidget):
 
         # 파일 선택 버튼
         browse_btn = QPushButton(self.button_text)
-        browse_btn.setFixedWidth(w(80))
-        browse_btn.setFixedHeight(h(30))
+
         browse_btn.clicked.connect(self.on_file_btn_clicked)
         browse_btn.setCursor(QCursor(Qt.PointingHandCursor))
         browse_btn_font = QFont(font_manager.get_just_font("SamsungOne-700").family())
-        browse_btn_font.setPointSize(fs(12))
+        browse_btn_font.setPointSize(9)
         browse_btn_font.setBold(True)
         browse_btn.setFont(browse_btn_font)
         browse_btn.setStyleSheet(f"""
@@ -66,9 +64,11 @@ class FileUploadComponent(QWidget):
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
-                border-radius: {s(5)}px;
-                padding: {p(5)}px {p(10)}px;
+                border-radius: 5px;
+                padding: 5px 10px;
                 font-weight: bold;
+                min-width: 50px;
+                min-height : 20px;
             }}
             QPushButton:hover {{
                 background-color: #004C99;
@@ -99,18 +99,18 @@ class FileUploadComponent(QWidget):
         # 파일 라벨 생성
         file_frame = QFrame()
         file_frame.setStyleSheet("QFrame { background-color: #e0e0ff; border-radius: 10px; border:none; padding: 2px; }")
-        file_frame.setFixedHeight(h(27))
+        file_frame.setFixedHeight(27)
 
         file_layout = QHBoxLayout(file_frame)
-        file_layout.setContentsMargins(m(3), 0, m(3), 0)
-        file_layout.setSpacing(sp(2))
+        file_layout.setContentsMargins(3, 0, 3, 0)
+        file_layout.setSpacing(2)
 
         file_label = QLabel(file_name)
         file_label_font = QFont(font_manager.get_just_font("SamsungOne-700").family(),9)
         file_label.setFont(file_label_font)
 
         remove_btn = QPushButton("X")
-        remove_btn.setFixedSize(s(16), s(16))
+        remove_btn.setFixedSize(16, 16)
         remove_btn.setStyleSheet(
             "QPushButton { background-color: transparent; color: #555; border: none; font-weight: bold; } "
             "QPushButton:hover { color: red; }")

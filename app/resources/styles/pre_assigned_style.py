@@ -31,16 +31,17 @@ QPushButton:pressed {
 
 # 캘린더 헤더의 요일 레이블 스타일
 WEEKDAY_HEADER_STYLE = """
-background-color: #cccccc;
+background-color: #f0f0f0;
 color: black;
 font-weight: bold;
 padding: 10px;
 font-size: 14px;
+border-radius: 10px;
 """
 
 # 구분선 스타일
 SEPARATOR_STYLE = """
-background-color: #dcdcdc;
+background-color: #ffffff;
 border: none;
 """
 
@@ -51,21 +52,26 @@ color: white;
 font-weight: bold;
 padding: 8px;
 font-size: 13px;
+border-radius: 10px;
 """
 
 # Day/Night 레이블 스타일
 DAY_LABEL_STYLE = """
 font-size: 13px;
-color: #006400;
+background-color: #f8f8f8;
 font-weight: bold;
 padding: 6px;
+border: 1px solid #d9d9d9;
+border-radius: 10px;
 """
 
 NIGHT_LABEL_STYLE = """
 font-size: 13px;
-color: #8B0000;
+background-color: #f0f0f0;
 font-weight: bold;
 padding: 6px;
+border: 1px solid #d9d9d9;
+border-radius: 10px;
 """
 
 # 상세정보 스타일

@@ -28,7 +28,6 @@ from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
-from app.models.common.screen_manager import *
 
 class DataInputPage(QWidget) :
     file_selected = pyqtSignal(str)
@@ -62,23 +61,23 @@ class DataInputPage(QWidget) :
 
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
-        top_container_layout.setContentsMargins(m(10), m(10), m(10), m(10))
-        top_container_layout.setSpacing(sp(0))
-        top_container.setStyleSheet(f"background-color: #F5F5F5; border-radius: {s(5)}px;")  # border-radius도 스케일
-        top_container.setFixedHeight(h(100))  # 원래 높이로 변경
+        top_container_layout.setContentsMargins(10, 10, 10, 10)
+        top_container_layout.setSpacing(10)
+        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
+        top_container.setFixedHeight(150)
 
         title_row = QFrame()
-        title_row.setStyleSheet(f"background-color: transparent; padding-bottom:{s(10)}px;")
+        title_row.setStyleSheet(f"background-color: transparent; padding-bottom:10px;")
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, m(16), 0)
+        title_row_layout.setContentsMargins(0, 0, 16, 0)
         title_row_layout.setAlignment(Qt.AlignVCenter)
 
 
         title_label = QLabel("Upload Data")
         title_label.setStyleSheet("padding: 0px;")
-        title_label.setFixedHeight(h(30))  # 버튼과 동일한 높이
+        title_label.setFixedHeight(30)  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", fs(20))
+        title_font = font_manager.get_font("SamsungOne-700", 15)
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
@@ -92,9 +91,10 @@ class DataInputPage(QWidget) :
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
-                border-radius: {s(5)}px;
-                padding: {p(5)}px {p(10)}px;
-                font-weight: bold;
+                border-radius: 5px;
+                padding: 8px 16px;
+                min-width: 30px;
+                min-height: 10px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -103,8 +103,8 @@ class DataInputPage(QWidget) :
                 background-color: #0062cc;
             }}
         """)  # f-string으로 변경하고 모든 중괄호 두 개로 수정
-        save_btn.setFixedWidth(w(80))  # 원래 크기로
-        save_btn.setFixedHeight(h(30))  # 원래 크기로
+        # save_btn.setFixedWidth(80)  # 원래 크기로
+        # save_btn.setFixedHeight(30)  # 원래 크기로
 
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -113,9 +113,10 @@ class DataInputPage(QWidget) :
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
-                border-radius: {s(5)}px;
-                padding: {p(5)}px {p(10)}px;
-                font-weight: bold;
+                border-radius: 5px;
+                padding: 8px 16px;
+                min-width: 30px;
+                min-height: 10px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -124,11 +125,11 @@ class DataInputPage(QWidget) :
                 background-color: #0062cc;
             }}
         """)
-        run_btn.setFixedWidth(w(80))
-        run_btn.setFixedHeight(h(30))
+        # run_btn.setFixedWidth(80)
+        # run_btn.setFixedHeight(30)
 
         # font_manager 사용법 수정
-        run_font = font_manager.get_font("SamsungOne-700", fs(12))
+        run_font = font_manager.get_font("SamsungOne-700", 9)
         run_font.setBold(True)
         run_btn.setFont(run_font)
         save_btn.setFont(run_font)
@@ -142,7 +143,7 @@ class DataInputPage(QWidget) :
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
         input_section.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
-        input_section.setFixedHeight(h(50))
+        input_section.setFixedHeight(50)
 
         input_layout = QHBoxLayout(input_section)
         input_layout.setContentsMargins(10, 5, 10, 5)
@@ -158,7 +159,7 @@ class DataInputPage(QWidget) :
         top_container_layout.addWidget(input_section)
 
         bottom_container = QFrame()
-        bottom_container.setStyleSheet("background-color: #F5F5F5; border-radius: 10px;")
+        bottom_container.setStyleSheet("background-color: #F5F5F5;")
         bottom_container_layout = QVBoxLayout(bottom_container)
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
@@ -191,7 +192,8 @@ class DataInputPage(QWidget) :
 
         self.tab_bar = QTabBar()
         self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
+        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-top-left-radius: 0px;")
+
         tab_layout.addWidget(self.tab_bar)
         tab_layout.addWidget(self.stacked_widget)
 
@@ -207,23 +209,22 @@ class DataInputPage(QWidget) :
         tab_layout.addLayout(button_layout)
 
         parameter_container = QFrame()
-        parameter_container.setStyleSheet("background-color: white; padding: 0px; border: 3px solid #cccccc;")
+        parameter_container.setStyleSheet("background-color: white; padding: 0px; border:none;")
         parameter_container.setContentsMargins(0,0,0,0)
 
         parameter_layout = QHBoxLayout(parameter_container)
         parameter_layout.setContentsMargins(0,0,0,0)
 
         parameter_splitter = QSplitter(Qt.Horizontal)
-        parameter_splitter.setHandleWidth(3)
+        parameter_splitter.setHandleWidth(10)
         parameter_splitter.setStyleSheet("""
             QSplitter::handle {
-                background-color: #cccccc;
-                width: 1px;
+                background-color: #F5F5F5;
             }
         """)
 
         left_parameter_area = QFrame()
-        left_parameter_area.setStyleSheet("background-color: white; border: none;")
+        left_parameter_area.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         left_parameter_layout = QVBoxLayout(left_parameter_area)
         left_parameter_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -232,7 +233,7 @@ class DataInputPage(QWidget) :
         self.left_parameter_component.setVisible(True)
 
         right_parameter_area = QFrame()
-        right_parameter_area.setStyleSheet("background-color: white; border: none;")
+        right_parameter_area.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         right_parameter_layout = QVBoxLayout(right_parameter_area)
         right_parameter_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -257,7 +258,7 @@ class DataInputPage(QWidget) :
 
         main_splitter.addWidget(self.file_explorer)
         main_splitter.addWidget(right_area)
-        main_splitter.setSizes([120, 880])
+        main_splitter.setSizes([140, 860])
 
         bottom_container_layout.addWidget(main_splitter)
 

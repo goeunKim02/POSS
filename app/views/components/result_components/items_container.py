@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 from .draggable_item_label import DraggableItemLabel
 from .item_edit_dialog import ItemEditDialog
 import json
-from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from .item_position_manager import ItemPositionManager
 
 """

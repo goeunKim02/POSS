@@ -13,9 +13,6 @@ class DetailDialog(QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
 
-        # 다이얼로그 크기 설정
-        self.resize(1000, 600)
-
         # 메인 레이아웃
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -52,7 +49,7 @@ class DetailDialog(QDialog):
         # 스크롤 영역 생성
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setStyleSheet("background-color: #F9F9F9; border: none;")
+        scroll_area.setStyleSheet("background-color: #F9F9F9; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; border: none;")
         scroll_area.setWidget(content_widget)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
@@ -61,7 +58,8 @@ class DetailDialog(QDialog):
         data_frame.setStyleSheet("""
             QFrame {
                 background-color: white;
-                border-radius: 10px;
+                border-bottom-left-radius: 10px;
+                border-bottom-right-radius: 10px;
                 border: 1px solid #cccccc;
             }
         """)
@@ -143,9 +141,20 @@ class DetailDialog(QDialog):
             grid.addWidget(lbl_name, row_idx, col_idx, Qt.AlignRight)
             grid.addWidget(lbl_val, row_idx, col_idx + 1, Qt.AlignLeft)
 
+        details_list = row.get('details', [])
+        count = len(details_list)
+        count_name = QLabel("Detail items:")
+        count_name.setStyleSheet(field_name_style)
+        count_name.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        count_val = QLabel(str(count))
+        count_val.setStyleSheet(field_value_style)
+        count_val.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        detail_row = len(fields) // 2
+        grid.addWidget(count_name, detail_row, 0)
+        grid.addWidget(count_val,  detail_row, 1)
+        
         data_layout.addLayout(grid)
 
-        details_list = row.get('details', [])
         if details_list:
             tab_widget = QTabWidget()
             tab_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -189,7 +198,7 @@ class DetailDialog(QDialog):
 
         # 닫기 버튼
         close_button = QPushButton("Close")
-        close_button_font = QFont("Arial", 10)
+        close_button_font = QFont("Arial", 11)
         close_button_font.setBold(True)
         close_button.setFont(close_button_font)
         close_button.setStyleSheet("""
@@ -198,8 +207,6 @@ class DetailDialog(QDialog):
                 border: none;
                 color: white;
                 border-radius: 10px;
-                width: 130px;
-                height: 40px;
             }
             QPushButton:hover {
                 background-color: #1e429f;
@@ -208,7 +215,7 @@ class DetailDialog(QDialog):
             }
         """)
         close_button.setCursor(QCursor(Qt.PointingHandCursor))
-        close_button.setFixedSize(130, 60)
+        close_button.setFixedSize(100, 40)
         close_button.clicked.connect(self.accept)
 
         button_layout.addStretch(1)
@@ -217,3 +224,6 @@ class DetailDialog(QDialog):
         # 메인 레이아웃에 스크롤 영역과 버튼 프레임 추가
         main_layout.addWidget(scroll_area)
         main_layout.addWidget(button_frame)
+
+        self.setFixedWidth(1000)
+        self.adjustSize()
