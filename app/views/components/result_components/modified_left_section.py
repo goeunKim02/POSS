@@ -834,77 +834,69 @@ class ModifiedLeftSection(QWidget):
     
     """현재 필터 상태에 따라 아이템 가시성 조정"""
     def apply_visibility_filter(self):
+        print(f"[ModifiedLeftSection] 필터 적용 시작: {self.current_filter_states}")
         if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
             return
         
         for row_containers in self.grid_widget.containers:
             for container in row_containers:
                 for item in container.items:
-                    # should_show = self.should_show_item(item)
                     item.show()
                     self.update_item_status_line_visibility(item)
-                    
-                    # # 아이템 가시성 설정
-                    # if should_show:
-                    #     item.show()
-                    # else:
-                    #     item.hide()
-                        
-                # 컨테이너 높이 재조정
-                # container.adjustSize()
     
-    """
-    아이템이 표시
-    - shortage만 체크: 자재부족 아이템만 표시
-    - shipment만 체크: 출하실패 아이템만 표시
-    - pre_assigned만 체크: 사전할당 아이템만 표시
-    - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
-    - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
-    - 모든 체크박스 해제: 모든 아이템 표시
-    """
-    def should_show_item(self, item):
-        if not hasattr(self, 'current_filter_states'):
-            return True
+    
+    # """
+    # 아이템이 표시
+    # - shortage만 체크: 자재부족 아이템만 표시
+    # - shipment만 체크: 출하실패 아이템만 표시
+    # - pre_assigned만 체크: 사전할당 아이템만 표시
+    # - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
+    # - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
+    # - 모든 체크박스 해제: 모든 아이템 표시
+    # """
+    # def should_show_item(self, item):
+    #     if not hasattr(self, 'current_filter_states'):
+    #         return True
         
-        # 아이템의 상태 확인
-        is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
-        is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
-        is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+    #     # 아이템의 상태 확인
+    #     is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
+    #     is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+    #     is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
         
-        # 각 상태별 필터 확인
-        shortage_filter = self.current_filter_states.get('shortage', False)
-        shipment_filter = self.current_filter_states.get('shipment', False)
-        pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
+    #     # 각 상태별 필터 확인
+    #     shortage_filter = self.current_filter_states.get('shortage', False)
+    #     shipment_filter = self.current_filter_states.get('shipment', False)
+    #     pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
 
-        # 모든 필터가 해제되어 있으면 모든 아이템 표시
-        if not (shortage_filter or shipment_filter or pre_assigned_filter):
-            return True
+    #     # 모든 필터가 해제되어 있으면 모든 아이템 표시
+    #     if not (shortage_filter or shipment_filter or pre_assigned_filter):
+    #         return True
         
-        # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
-        should_show = True
+    #     # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
+    #     should_show = True
         
-        # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
-        if shortage_filter and not is_shortage:
-            should_show = False
-        if shipment_filter and not is_shipment:
-            should_show = False
-        if pre_assigned_filter and not is_pre_assigned:
-            should_show = False
+    #     # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
+    #     if shortage_filter and not is_shortage:
+    #         should_show = False
+    #     if shipment_filter and not is_shipment:
+    #         should_show = False
+    #     if pre_assigned_filter and not is_pre_assigned:
+    #         should_show = False
         
-        return should_show
+    #     return should_show
     
     """
     아이템의 상태선 업데이트
     """
     def update_item_status_line_visibility(self, item):
         if not hasattr(self, 'current_filter_states'):
-            # 필터 상태가 없으면 기본값 표시??
+            # 필터 상태가 없으면 아무것도 표시 안함.
             if hasattr(item, 'show_shortage_line'):
-                item.show_shortage_line = True
+                item.show_shortage_line = False
             if hasattr(item, 'show_shipment_line'):
-                item.show_shipment_line = True
+                item.show_shipment_line = False
             if hasattr(item, 'show_pre_assigned_line'):
-                item.show_pre_assigned_line = True
+                item.show_pre_assigned_line = False
             return
         
         # 각 상태별 필터 확인

@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                              QCheckBox, QFrame, QSizePolicy)
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
 
 """범례 및 필터 위젯"""
@@ -17,14 +17,19 @@ class LegendWidget(QWidget):
                 border: none;
             }
         """)
-        self.init_ui()
         
         # 필터 상태 추적
         self.filter_states = {
-            'shortage': False,      # 자재부족
+            'shortage': True,      # 자재부족은 기본 체크 
             'shipment': False,      # 출하실패  
             'pre_assigned': False   # 사전할당
         }
+
+        self.init_ui()
+
+        # 초기 필터 상태적용을 위해 시그널 발생 : QTimer로 UI 초기화 후 발생
+        QTimer.singleShot(0, lambda: self.filter_changed.emit(self.filter_states.copy()))
+
         
     def init_ui(self):
         main_layout = QHBoxLayout(self)
@@ -56,7 +61,7 @@ class LegendWidget(QWidget):
         
         # 체크박스
         checkbox = QCheckBox()
-        checkbox.setChecked(False)  # 기본값 : 체크해제 
+        checkbox.setChecked(True if status_type == 'shortage' else False)  # 기본값(자재부족) 
         checkbox.stateChanged.connect(lambda state, st=status_type: 
                                     self.on_filter_changed(st, state == Qt.Checked))
         item_layout.addWidget(checkbox)
