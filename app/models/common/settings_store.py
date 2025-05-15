@@ -1,12 +1,12 @@
 import json
 import os
-import copy  # 추가해야 함
+import copy
 
+"""
+설정값을 저장하고 관리하기 위한 중앙 저장소 클래스
+"""
 class SettingsStore:
-    """
-    설정값을 저장하고 관리하기 위한 중앙 저장소 클래스
-    """
-    # 기본 설정 값 정의 (불변)
+    # 기본 설정 값 정의
     _default_settings = {
         # Basic 설정
         "time_limit": 300,  # 수행시간(초)
@@ -42,48 +42,56 @@ class SettingsStore:
         "weight_day": [1.0, 1.0, 1.0]  # shift별 가중치 (기본값: 3개 shift)
     }
 
-    # 현재 설정을 별도 변수로 관리
     _settings = {}
-
-    # 생성자에서 기본값으로 초기화
     _settings = copy.deepcopy(_default_settings)
 
     _config_file = "settings.json"
 
+    """
+    설정값 조회
+    """
     @classmethod
     def get(cls, key, default=None):
-        """설정값 조회"""
         return cls._settings.get(key, default)
 
+    """
+    설정값 저장
+    """
     @classmethod
     def set(cls, key, value):
-        """설정값 저장"""
         cls._settings[key] = value
 
+    """
+    여러 설정값 일괄 업데이트
+    """
     @classmethod
     def update(cls, settings_dict):
-        """여러 설정값 일괄 업데이트"""
         cls._settings.update(settings_dict)
 
+    """
+    모든 설정값 조회
+    """
     @classmethod
     def get_all(cls):
-        """모든 설정값 조회"""
         return copy.deepcopy(cls._settings)
 
+    """
+    설정값을 파일에 저장
+    """
     @classmethod
     def save_settings(cls, file_path=None):
-        """설정값을 파일에 저장"""
         if file_path is None:
-            # config 디렉토리가 없으면 생성
             os.makedirs('config', exist_ok=True)
             file_path = os.path.join('config', cls._config_file)
 
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(cls._settings, f, indent=4, ensure_ascii=False)
 
+    """
+    파일에서 설정값 로드
+    """
     @classmethod
     def load_settings(cls, file_path=None):
-        """파일에서 설정값 로드"""
         if file_path is None:
             file_path = os.path.join('config', cls._config_file)
 
@@ -98,11 +106,12 @@ class SettingsStore:
             print(f"설정 파일 로드 중 오류 발생: {e}")
             return False
 
+    """
+    설정값을 기본값으로 초기화
+    """
     @classmethod
     def reset_to_default(cls):
-        """설정값을 기본값으로 초기화"""
-        # 기본값의 깊은 복사본을 사용하여 초기화
         cls._settings = copy.deepcopy(cls._default_settings)
-        # 초기화된 설정을 파일에 저장
         cls.save_settings()
+        
         return copy.deepcopy(cls._settings)

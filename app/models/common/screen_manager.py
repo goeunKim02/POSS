@@ -1,11 +1,9 @@
-# utils/screen_manager.py
 from PyQt5.QtWidgets import QApplication, QWidget, QDesktopWidget
-from PyQt5.QtCore import QPoint, QTimer
 from PyQt5.QtGui import QScreen, QGuiApplication
-import sys
-import platform
 
-
+"""
+해상도를 설정하는 클래스
+"""
 class ScreenManager:
     # 기준 해상도
     BASE_WIDTH = 1920
@@ -18,15 +16,17 @@ class ScreenManager:
     def __init__(self):
         pass
 
+    """
+    현재 위젯이 있는 스크린 또는 마우스 커서가 있는 스크린 반환
+    """
     @staticmethod
     def get_current_screen(widget: QWidget = None) -> QScreen:
-        """현재 위젯이 있는 스크린 또는 마우스 커서가 있는 스크린 반환"""
         app = QApplication.instance() or QGuiApplication.instance()
         if not app:
             return None
 
+        # 위젯의 중심점으로 스크린 찾기
         if widget:
-            # 위젯의 중심점으로 스크린 찾기
             center = widget.geometry().center()
             global_center = widget.mapToGlobal(center) if hasattr(widget, 'mapToGlobal') else center
             screen = app.screenAt(global_center)
@@ -38,9 +38,11 @@ class ScreenManager:
         cursor_pos = desktop.cursor().pos()
         return app.screenAt(cursor_pos)
 
+    """
+    스크린의 상세 정보 반환
+    """
     @staticmethod
     def get_screen_info(screen: QScreen = None) -> dict:
-        """스크린의 상세 정보 반환"""
         if not screen:
             screen = ScreenManager.get_current_screen()
 
@@ -68,9 +70,11 @@ class ScreenManager:
             'is_primary': screen == QGuiApplication.primaryScreen()
         }
 
+    """
+    현재 스크린의 스케일 팩터 계산 (FHD를 QHD처럼 보이게 하는 용도)
+    """
     @staticmethod
     def get_scale_factor(screen: QScreen = None) -> float:
-        """현재 스크린의 스케일 팩터 계산 (FHD를 QHD처럼 보이게 하는 용도)"""
         if not screen:
             screen = ScreenManager.get_current_screen()
 
@@ -87,59 +91,79 @@ class ScreenManager:
         else:
             return 1
 
+    """
+    크기 값을 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def size(value: int, widget: QWidget = None) -> int:
-        """크기 값을 현재 스크린에 맞게 조정"""
         scale = ScreenManager.get_scale_factor(ScreenManager.get_current_screen(widget))
         return round(value * scale)
 
+    """
+    폰트 크기를 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def font_size(value: int, widget: QWidget = None) -> int:
-        """폰트 크기를 현재 스크린에 맞게 조정"""
         scale = ScreenManager.get_scale_factor(ScreenManager.get_current_screen(widget))
         return round(value * scale)
 
+    """
+    너비 값을 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def width(value: int, widget: QWidget = None) -> int:
-        """너비 값을 현재 스크린에 맞게 조정"""
         return ScreenManager.size(value, widget)
 
+    """
+    높이 값을 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def height(value: int, widget: QWidget = None) -> int:
-        """높이 값을 현재 스크린에 맞게 조정"""
         return ScreenManager.size(value, widget)
 
+    """
+    여백 값을 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def margin(value: int, widget: QWidget = None) -> int:
-        """여백 값을 현재 스크린에 맞게 조정"""
         return ScreenManager.size(value, widget)
 
+    """
+    패딩 값을 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def padding(value: int, widget: QWidget = None) -> int:
-        """패딩 값을 현재 스크린에 맞게 조정"""
         return ScreenManager.size(value, widget)
 
+    """
+    간격 값을 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def spacing(value: int, widget: QWidget = None) -> int:
-        """간격 값을 현재 스크린에 맞게 조정"""
         return ScreenManager.size(value, widget)
 
+    """
+    아이콘 크기를 현재 스크린에 맞게 조정
+    """
     @staticmethod
     def icon_size(value: int, widget: QWidget = None) -> int:
-        """아이콘 크기를 현재 스크린에 맞게 조정"""
         return ScreenManager.size(value, widget)
 
+    """
+    너비와 높이를 튜플로 반환
+    """
     @staticmethod
     def get_size_tuple(width: int, height: int, widget: QWidget = None) -> tuple:
-        """너비와 높이를 튜플로 반환"""
         return (
             ScreenManager.width(width, widget),
             ScreenManager.height(height, widget)
         )
 
+    """
+    여백을 튜플로 반환
+    """
     @staticmethod
     def get_margins(top: int, right: int, bottom: int, left: int, widget: QWidget = None) -> tuple:
-        """여백을 튜플로 반환"""
         scale = ScreenManager.get_scale_factor(ScreenManager.get_current_screen(widget))
         return (
             round(top * scale),
@@ -148,8 +172,6 @@ class ScreenManager:
             round(left * scale)
         )
 
-
-# 싱글톤 인스턴스
 screen_mgr = ScreenManager()
 
 # 편의를 위한 짧은 별칭
