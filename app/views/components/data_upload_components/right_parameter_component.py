@@ -96,7 +96,7 @@ class RightParameterComponent(QWidget):
             }
         """)
         content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(m(10), m(10), m(10), m(10))
+        content_layout.setContentsMargins(0, 0, 0, 0)
 
         # 리스트 컨테이너
         list_container = QFrame()
