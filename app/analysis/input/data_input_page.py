@@ -1,5 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, QDate, Qt
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
+from PyQt5.QtWidgets import (QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
                              QSplitter, QStackedWidget, QTabBar,
                              QMessageBox)
 from PyQt5.QtGui import QCursor
