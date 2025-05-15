@@ -48,8 +48,8 @@ class DraggableItemLabel(QFrame):
 
         # 아이템 상태선 제어 속성
         self.show_shortage_line = True  # 자재부족 선 표시 여부
-        self.show_shipment_line = True
-        self.show_pre_assigned_line = True
+        self.show_shipment_line = False
+        self.show_pre_assigned_line = False
 
         # 내부 레이아웃 생성
         self.setup_layout(text)
@@ -471,21 +471,9 @@ class DraggableItemLabel(QFrame):
         self.shipment_failure_reason = reason if is_failure else None
         self.update_style()  # 스타일 업데이트
         
-        # 툴팁 업데이트 - 전체 툴팁 다시 생성
+        # 툴팁 업데이트 
         self.setToolTip(self._create_tooltip_text())
         
-        # # 툴팁 업데이트
-        # if is_failure and reason:
-        #     # 기존 툴팁에 출하 실패 정보 추가
-        #     base_tooltip = self._create_tooltip_text()
-        #     # failure_info = f"<tr><td colspan='2' style='background-color:#FFCCCC; color:red;'><b>Shipment Failure:</b> {reason}</td></tr>"
-            
-        #     # 테이블 닫기 태그 앞에 실패 정보 삽입
-        #     # new_tooltip = base_tooltip.replace("</table>", failure_info + "</table>")
-        #     # self.setToolTip(new_tooltip)
-        # else:
-        #     # 기본 툴팁으로 복원
-        #     self.setToolTip(self._create_tooltip_text())
 
     """아이템 상태별 색상 선 표시"""
     def paintEvent(self, event):
