@@ -18,9 +18,9 @@ class OptimizationProgressDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("최적화 진행중")
+        self.setWindowTitle("Optimization is in progress.")
         self.setModal(True)
-        self.setFixedSize(w(500), h(300))
+        self.setFixedSize(w(1000), h(600))
 
         # WindowStaysOnTopHint 제거하고 대신 다른 플래그 사용
         self.setWindowFlags(Qt.Dialog | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
@@ -59,22 +59,25 @@ class OptimizationProgressDialog(QDialog):
             QFrame {{
                 background-color: #1428A0;
                 border: none;
-                padding: {p(20)}px;
+                padding: 0px;
             }}
         """)
         title_frame.setFixedHeight(h(80))
 
+        # 제목 프레임의 레이아웃을 먼저 생성하고 설정
         title_layout = QVBoxLayout(title_frame)
         title_layout.setContentsMargins(m(20), 0, m(20), 0)
-        title_layout.setAlignment(Qt.AlignCenter)
+        title_layout.setAlignment(Qt.AlignLeft | Qt.AlignCenter)
 
         # 제목 레이블
-        title_label = QLabel("최적화 진행중")
-        title_font = font_manager.get_font("SamsungSharpSans-Bold", fs(16))
+        title_label = QLabel("First Optimization")
+        title_font = font_manager.get_font("SamsungSharpSans-Bold", fs(15))
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
         title_label.setStyleSheet("color: white;")
+
+        # 레이아웃에 레이블 추가
         title_layout.addWidget(title_label)
 
         main_layout.addWidget(title_frame)
@@ -92,7 +95,7 @@ class OptimizationProgressDialog(QDialog):
         content_layout.setSpacing(s(20))
 
         # 진행 상태 레이블
-        self.status_label = QLabel("1차 최적화를 수행중입니다...")
+        self.status_label = QLabel("First optimization is currently underway...")
         status_font = font_manager.get_font("SamsungOne-700", fs(12))
         self.status_label.setFont(status_font)
         self.status_label.setAlignment(Qt.AlignCenter)
@@ -129,7 +132,7 @@ class OptimizationProgressDialog(QDialog):
         content_layout.addWidget(self.progress_bar)
 
         # 시간 정보 레이블
-        self.time_label = QLabel(f"예상 소요 시간: {self.total_time}초")
+        self.time_label = QLabel(f"Estimated time: {self.total_time}(s)")
         time_font = font_manager.get_font("SamsungOne-700", fs(10))
         self.time_label.setFont(time_font)
         self.time_label.setAlignment(Qt.AlignCenter)
@@ -162,7 +165,7 @@ class OptimizationProgressDialog(QDialog):
         button_layout.addStretch()
 
         # 취소 버튼
-        self.cancel_button = QPushButton("취소")
+        self.cancel_button = QPushButton("cancel")
         self.cancel_button.setCursor(Qt.PointingHandCursor)
         cancel_font = font_manager.get_font("SamsungOne-700", fs(10))
         cancel_font.setBold(True)
@@ -210,7 +213,7 @@ class OptimizationProgressDialog(QDialog):
 
         # 남은 시간 계산
         remaining_time = max(self.total_time - elapsed_time, 0)
-        self.time_label.setText(f"남은 시간: {remaining_time:.1f}초")
+        self.time_label.setText(f"Estimated time: {remaining_time:.1f}(s)")
 
         # 진행률 증가
         self.current_progress += 1
@@ -224,10 +227,10 @@ class OptimizationProgressDialog(QDialog):
         self.is_running = False
         self.timer.stop()
 
-        self.status_label.setText("최적화가 완료되었습니다!")
+        self.status_label.setText("Optimization is complete!")
         self.progress_bar.setValue(100)
-        self.time_label.setText("완료")
-        self.cancel_button.setText("닫기")
+        self.time_label.setText("Complete")
+        self.cancel_button.setText("Close")
 
         # 완료 시그널 발생
         self.optimization_completed.emit()
@@ -237,15 +240,13 @@ class OptimizationProgressDialog(QDialog):
 
     def cancel_optimization(self):
         """최적화 취소"""
-        print("Cancel button clicked!")  # 디버깅용
         if self.is_running:
             self.is_running = False
             self.timer.stop()
-            print("Timer stopped")  # 디버깅용
 
             # 시그널 발생 전에 다이얼로그 상태 변경
-            self.status_label.setText("최적화가 취소되었습니다.")
-            self.cancel_button.setText("닫기")
+            self.status_label.setText("Optimization has been canceled.")
+            self.cancel_button.setText("Close")
 
             # 즉시 시그널 발생하고 다이얼로그 닫기
             self.optimization_cancelled.emit()
@@ -255,7 +256,6 @@ class OptimizationProgressDialog(QDialog):
 
     def closeEvent(self, event):
         """다이얼로그 닫기 이벤트 처리"""
-        print("Close event triggered")  # 디버깅용
         if self.is_running:
             self.is_running = False
             if self.timer and self.timer.isActive():
