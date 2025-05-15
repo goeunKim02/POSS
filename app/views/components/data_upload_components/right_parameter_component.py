@@ -288,11 +288,24 @@ class RightParameterComponent(QWidget):
                 self.list_widget.addItem(header_item)
 
                 for error in preassign_failures:
-                    line = error.get('line', 'Unknown')
-                    reason = error.get('reason', 'Unknown')
-                    excess = error.get('excess', 'Unknown')
+                    tgt = error.get('Target', 'Unknown')
+                    sh = error.get('Shift', 'Unknown')
+                    reason = error.get('Reason', 'Unknown')
+                    amt = error.get('ViolationAmt', 'Unknown')
 
-                    item = QListWidgetItem(f"{line} 라인이 {reason} 을 {excess} 초과했습니다")
+                    reason_to_phrase = {
+                        'equipment capacity': 'equipment capacity',
+                        'number of concurrent lines': 'concurrent line count',
+                        'maximum production quantity': 'maximum production quantity'
+                    }
+
+                    if amt is not None:
+                        phrase = reason_to_phrase.get(reason, reason)
+                        text = f"Line {tgt} has exceeded its {phrase} by {amt} at shift {sh}."
+                    else:
+                        text = f"{reason} for item {tgt}."
+
+                    item = QListWidgetItem(text)
                     item_font = font_manager.get_font('SamsungOne-700', 10)
                     item.setFont(item_font)
                     item.setForeground(QColor('#E74C3C'))
