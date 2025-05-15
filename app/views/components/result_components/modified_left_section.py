@@ -6,7 +6,7 @@ import pandas as pd
 from .item_grid_widget import ItemGridWidget
 from .item_position_manager import ItemPositionManager
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)

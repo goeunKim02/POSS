@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 
 class CapaRatioAnalyzer:  
     @staticmethod

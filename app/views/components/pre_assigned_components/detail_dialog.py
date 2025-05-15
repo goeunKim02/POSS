@@ -9,7 +9,7 @@ class DetailDialog(QDialog):
     def __init__(self, row: dict, time_map: dict, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Project Detail")
-        # 도움말 아이콘(물음표) 제거 - 윈도우 플래그 설정
+        # 윈도우 플래그 설정
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setModal(True)
 
@@ -37,7 +37,6 @@ class DetailDialog(QDialog):
         title_label.setStyleSheet("color: white;")
         title_layout.addWidget(title_label)
 
-        # 메인 레이아웃에 제목 프레임 추가
         main_layout.addWidget(title_frame)
 
         # 콘텐츠 영역
@@ -46,7 +45,7 @@ class DetailDialog(QDialog):
         content_layout.setContentsMargins(30, 30, 30, 30)
         content_layout.setSpacing(20)
 
-        # 스크롤 영역 생성
+        # 스크롤 영역
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("background-color: #F9F9F9; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; border: none;")
@@ -67,27 +66,27 @@ class DetailDialog(QDialog):
         data_layout.setContentsMargins(20, 20, 20, 20)
         data_layout.setSpacing(15)
 
-        # 그리드 레이아웃 생성 - 열 너비 조정
+        # 그리드 레이아웃
         grid = QGridLayout()
         grid.setHorizontalSpacing(20)
         grid.setVerticalSpacing(12)
 
         # 열 너비 설정: 0열(라벨명), 1열(값), 2열(라벨명), 3열(값)
-        grid.setColumnMinimumWidth(0, 100)  # 첫 번째 라벨열 최소 너비
-        grid.setColumnMinimumWidth(1, 300)  # 첫 번째 값열 최소 너비
-        grid.setColumnMinimumWidth(2, 100)  # 두 번째 라벨열 최소 너비
-        grid.setColumnMinimumWidth(3, 300)  # 두 번째 값열 최소 너비
+        grid.setColumnMinimumWidth(0, 100)
+        grid.setColumnMinimumWidth(1, 300)
+        grid.setColumnMinimumWidth(2, 100)
+        grid.setColumnMinimumWidth(3, 300)
 
         # 각 열의 늘어나는 비율 설정
-        grid.setColumnStretch(0, 0)  # 첫 번째 라벨열은 늘어나지 않음
-        grid.setColumnStretch(1, 2)  # 첫 번째 값열은 약간 늘어남
-        grid.setColumnStretch(2, 0)  # 두 번째 라벨열은 늘어나지 않음
-        grid.setColumnStretch(3, 2)  # 두 번째 값열은 약간 늘어남
+        grid.setColumnStretch(0, 0)
+        grid.setColumnStretch(1, 2)
+        grid.setColumnStretch(2, 0) 
+        grid.setColumnStretch(3, 2)
 
         # 안전하게 값을 가져오는 함수
         def safe_get(key, default="-"):
             value = row.get(key, default)
-            # None, NaN 등을 확인하여 기본값으로 대체
+
             if value is None or (hasattr(value, 'isna') and value.isna()) or value == "?" or str(
                     value).lower() == "nan":
                 return default
@@ -100,7 +99,6 @@ class DetailDialog(QDialog):
             ("Qty", safe_get("qty")),
         ]
 
-        # 필드 스타일 정의
         field_name_style = """
             font-family: Arial;
             font-size: 10pt;
@@ -120,7 +118,6 @@ class DetailDialog(QDialog):
             max-width: 280px;
         """
 
-        # 그리드에 필드 추가
         for i, (name, val) in enumerate(fields):
             lbl_name = QLabel(f"{name}:")
             lbl_name.setStyleSheet(field_name_style)
@@ -128,28 +125,30 @@ class DetailDialog(QDialog):
 
             lbl_val = QLabel(str(val))
             lbl_val.setStyleSheet(field_value_style)
-            lbl_val.setFixedWidth(280)  # 고정 너비 설정
+            lbl_val.setFixedWidth(280)
             lbl_val.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-            # 값이 너무 길면 자동으로 줄바꿈
             lbl_val.setWordWrap(True)
 
-            # 2열 그리드로 배치 (홀수/짝수 열 구분)
             row_idx = i // 2
-            col_idx = (i % 2) * 2  # 0, 2, 0, 2, ...
+            col_idx = (i % 2) * 2
 
             grid.addWidget(lbl_name, row_idx, col_idx, Qt.AlignRight)
             grid.addWidget(lbl_val, row_idx, col_idx + 1, Qt.AlignLeft)
 
         details_list = row.get('details', [])
+
         count = len(details_list)
         count_name = QLabel("Detail items:")
         count_name.setStyleSheet(field_name_style)
         count_name.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
         count_val = QLabel(str(count))
         count_val.setStyleSheet(field_value_style)
         count_val.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
         detail_row = len(fields) // 2
+
         grid.addWidget(count_name, detail_row, 0)
         grid.addWidget(count_val,  detail_row, 1)
         
@@ -173,16 +172,17 @@ class DetailDialog(QDialog):
                     name_lbl.setFont(QFont("Arial", 9, QFont.Bold))
                     name_lbl.setStyleSheet("border: none;")
                     name_lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                    
                     val_lbl = QLabel(str(value))
                     val_lbl.setStyleSheet("border: none;")
                     val_lbl.setFont(QFont("Arial", 9))
 
                     row_idx = i // 2
                     col_idx = (i % 2) * 2
+
                     tab_layout.addWidget(name_lbl, row_idx, col_idx, Qt.AlignLeft)
                     tab_layout.addWidget(val_lbl, row_idx, col_idx + 1, Qt.AlignLeft)
 
-                # 탭 라벨
                 demand_label = str(rec.get("Demand", "-"))
                 tab_widget.addTab(tab, demand_label)
 
@@ -190,6 +190,7 @@ class DetailDialog(QDialog):
 
         content_layout.addWidget(data_frame)
         content_layout.addStretch(1)
+
         # 버튼 프레임
         button_frame = QFrame()
         button_frame.setStyleSheet("background-color: #F0F0F0; border: none;")
@@ -221,7 +222,6 @@ class DetailDialog(QDialog):
         button_layout.addStretch(1)
         button_layout.addWidget(close_button)
 
-        # 메인 레이아웃에 스크롤 영역과 버튼 프레임 추가
         main_layout.addWidget(scroll_area)
         main_layout.addWidget(button_frame)
 
