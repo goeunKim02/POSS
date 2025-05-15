@@ -1,7 +1,11 @@
-# 프로젝트 그룹화
+"""
+프로젝트 그룹화 시키는 클래스
+"""
 class ProjectGroupManager:
     
-    # 프로젝트별로 라인을 공유하는 프로젝트 그룹화
+    """
+    프로젝트별로 라인을 공유하는 프로젝트 그룹화
+    """
     @staticmethod
     def create_project_groups(line_available_df) :
         project_groups = {}
@@ -40,7 +44,9 @@ class ProjectGroupManager:
 
         return project_groups
     
-    # 그룹에 속한 프로젝트들이 사용하는 라인 찾는 함수
+    """
+    그룹에 속한 프로젝트들이 사용하는 라인 찾는 함수
+    """
     @staticmethod
     def get_group_lines(group_projects, line_available_df) :
         used_lines = set()
@@ -55,7 +61,9 @@ class ProjectGroupManager:
         
         return used_lines
     
-    # 특정 프로젝트가 사용하는 라인 찾기
+    """
+    특정 프로젝트가 사용하는 라인 찾기
+    """
     @staticmethod
     def get_project_lines(project, line_available_df):
         project_lines = []
@@ -68,7 +76,9 @@ class ProjectGroupManager:
                 project_lines.append(col)
         return project_lines
     
-    # 라인 공유 분석을 위한 메서드
+    """
+    라인 공유 분석
+    """
     @staticmethod
     def get_shared_lines(group_projects, line_available_df) :
         if 'Project' in line_available_df.columns :

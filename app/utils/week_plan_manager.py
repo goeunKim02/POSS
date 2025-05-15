@@ -1,11 +1,8 @@
 import os
-import re
 import json
-import glob
 import pandas as pd
 from datetime import datetime
 from PyQt5.QtCore import QDate
-from app.analysis.output.plan_maintenance import PlanMaintenanceRate
 
 """
 주차 정보 관리 클래스
@@ -13,20 +10,25 @@ from app.analysis.output.plan_maintenance import PlanMaintenanceRate
 """
 class WeeklyPlanManager:
 
-    """WeeklyPlanManager 초기화"""
+    """
+    WeeklyPlanManager 초기화
+    
+    Parameters:
+            output_dir (str): 결과 저장 디렉토리
+    """
     def __init__(self, output_dir="data/export"):
-        # Parameters:
-        #     output_dir (str): 결과 저장 디렉토리
 
         self.output_dir = output_dir
         self.registry_file = os.path.join("data", "plan_registry.json")
 
-        os.makedirs(output_dir, exist_ok=True)  # 결과 디렉토리 생성
+        os.makedirs(output_dir, exist_ok=True)
         os.makedirs(os.path.dirname(self.registry_file), exist_ok=True)
 
         self.registry = self._load_registry()
 
-    """레지스트리 로드"""
+    """
+    레지스트리 로드
+    """
     def _load_registry(self):
         if os.path.exists(self.registry_file):
             try:
@@ -38,12 +40,12 @@ class WeeklyPlanManager:
         else:
             return {"plans" : []}
         
-    """레지스트리 저장"""
+    """
+    레지스트리 저장
+    """
     def _save_registry(self):
-        # 디렉토리 생성
         os.makedirs(os.path.dirname(self.registry_file), exist_ok=True)
         
-        # 레지스트리 저장
         with open(self.registry_file, 'w') as f:
             json.dump(self.registry, f, indent=2)
 
@@ -57,8 +59,6 @@ class WeeklyPlanManager:
         tuple: (week_info, week_start, week_end) - 주차 정보 문자열과 주 시작/종료일
     """
     def get_week_info(self, start_date, end_date):
-
-        # QDate를 datetime으로 변환
         if isinstance(start_date, QDate):
             week_start = start_date.toPyDate()
         else:
@@ -79,9 +79,10 @@ class WeeklyPlanManager:
 
         return week_info, week_start, week_end
     
-    """계획 등록"""
+    """
+    계획 등록
+    """
     def register_plan(self, file_path, week_info, start_date, end_date):
-        # 계획 정보 생성
         plan_info = {
             "path" :file_path,
             "week" : week_info,
@@ -90,11 +91,9 @@ class WeeklyPlanManager:
             "mod_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
 
-        # 레지스트리에 추가
         self.registry["plans"].append(plan_info)
         self._save_registry()
     
-
     """
     계획 데이터 저장 및 메타데이터 추가
 
@@ -107,7 +106,6 @@ class WeeklyPlanManager:
         str: 저장된 파일 경로
     """
     def save_plan_with_metadata(self, plan_df, start_date, end_date, previous_plan=None):
-        # 주차 정보 계산
         week_info, week_start, week_end = self.get_week_info(start_date, end_date)
 
         # 현재 날짜 및 시간
@@ -115,24 +113,15 @@ class WeeklyPlanManager:
         date_str = now.strftime("%Y%m%d")
         time_str = now.strftime("%H%M%S")
 
-        # 주차별 폴더 경로 생성
         week_folder = os.path.join(self.output_dir, week_info)
-
-        # 폴더가 없으면 생성
         os.makedirs(week_folder, exist_ok=True)
 
-        # 파일명 생성
         file_name = f"Plan_{week_info}_{date_str}_{time_str}.xlsx"
-
-        # 전체 경로
         file_path = os.path.join(week_folder, file_name)
 
-        # 엑셀 작성자 생성
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-            # 계획 데이터 저장
             plan_df.to_excel(writer, sheet_name='result', index=False)
 
-            # 메타데이터 시트 생성
             metadata = {
                 '속성': [
                     'week_info',
@@ -155,15 +144,6 @@ class WeeklyPlanManager:
             metadata_df = pd.DataFrame(metadata)
             metadata_df.to_excel(writer, sheet_name='Metadata', index=False)
 
-        # 레지스트리에 새 계획 등록
         self.register_plan(file_path, week_info, week_start, week_end)
 
         return file_path
-    
-
-
-        
-
-
-
-

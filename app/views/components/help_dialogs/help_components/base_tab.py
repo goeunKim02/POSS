@@ -1,10 +1,11 @@
-# help_components/base_tab.py - 수정된 기본 탭 컴포넌트
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
 from PyQt5.QtCore import Qt
 
 
+"""
+도움말 탭의 기본 클래스
+"""
 class BaseTabComponent(QWidget):
-    """도움말 탭의 기본 클래스"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -12,12 +13,11 @@ class BaseTabComponent(QWidget):
         self.layout.setContentsMargins(15, 15, 15, 15)
         self.layout.setSpacing(10)
 
-        # 스크롤 영역 생성
+        # 스크롤 영역
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QScrollArea.NoFrame)
 
-        # 스크롤바 스타일 추가
         self.scroll_area.setStyleSheet("""
             QScrollArea {
                 background-color:#F9F9F9; 
@@ -71,5 +71,4 @@ class BaseTabComponent(QWidget):
         # 스크롤 영역에 콘텐츠 위젯 설정
         self.scroll_area.setWidget(self.content_widget)
 
-        # 메인 레이아웃에 스크롤 영역 추가
         self.layout.addWidget(self.scroll_area)

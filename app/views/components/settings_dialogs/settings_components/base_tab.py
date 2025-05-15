@@ -1,13 +1,12 @@
-# app/views/components/settings_dialogs/settings_components/base_tab.py - 모던한 기본 탭 컴포넌트
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QPalette, QColor
 
 
+"""
+설정 탭 기본 클래스
+"""
 class BaseTabComponent(QWidget):
-    """모던한 디자인의 설정 탭 기본 클래스"""
-    # 설정 변경 시그널 정의
-    settings_changed = pyqtSignal(str, object)  # 키, 값
+    settings_changed = pyqtSignal(str, object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -15,12 +14,11 @@ class BaseTabComponent(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        # 스크롤 영역 생성 (모던 스타일)
+        # 스크롤 영역
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QScrollArea.NoFrame)
 
-        # 배경색 설정
         self.scroll_area.setStyleSheet("""
             QScrollArea {
                 background-color: #ffffff;
@@ -82,12 +80,12 @@ class BaseTabComponent(QWidget):
         self.content_layout.setSpacing(24)
         self.content_layout.setAlignment(Qt.AlignTop)
 
-        # 스크롤 영역에 콘텐츠 위젯 설정
         self.scroll_area.setWidget(self.content_widget)
 
-        # 메인 레이아웃에 스크롤 영역 추가
         self.layout.addWidget(self.scroll_area)
 
+    """
+    설정 변경 시그널 발생
+    """
     def emit_setting_change(self, key, value):
-        """설정 변경 시그널 발생"""
         self.settings_changed.emit(key, value)
