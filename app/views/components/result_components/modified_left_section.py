@@ -94,6 +94,17 @@ class ModifiedLeftSection(QWidget):
         self.reset_button.setEnabled(False)
         first_control_layout.addWidget(self.reset_button)
 
+        # 나머지 공간 채우기
+        first_control_layout.addStretch(1)
+
+
+        # 범례 위젯 추가
+        self.legend_widget = LegendWidget()
+        self.legend_widget.filter_changed.connect(self.on_filter_changed)
+        main_layout.addWidget(self.legend_widget)
+
+        main_layout.addLayout(first_control_layout)
+
         first_control_layout.addSpacing(20)
 
         search_label = QLabel('model search : ')
@@ -839,7 +850,6 @@ class ModifiedLeftSection(QWidget):
 
         # 모든 필터가 해제되어 있으면 모든 아이템 표시
         if not (shortage_filter or shipment_filter or pre_assigned_filter):
-            print(f"  - 결과: 모든 필터 해제 → 표시")
             return True
         
         # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
