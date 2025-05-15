@@ -415,7 +415,7 @@ class DataInputPage(QWidget) :
     파일 분석 실행
     """
     def run_combined_analysis(self) :
-        solution, failures = run_allocation()
+        failures = run_allocation()
 
         item_plan_retention, rmc_plan_retention = calc_plan_retention()
     

@@ -1,10 +1,21 @@
 import fnmatch
-from collections import defaultdict
+import pulp
+
 from typing import Tuple
 
 import pandas as pd
+import numpy as np
 
-from ...models.input.pre_assign import Request, PreAssignSolution, PreAssignFailures, DataLoader
+df_opts = {
+    'display.max_columns': None,
+    'display.max_rows': None,
+    'display.width': 0,
+    'display.expand_frame_repr': False
+}
+for k, v in df_opts.items():
+    pd.set_option(k, v)
+
+from ...models.input.pre_assign import PreAssignFailures, DataLoader
 
 """dynamic, demand, master 데이터를 로드"""
 def load_data():
@@ -36,8 +47,8 @@ def load_data():
 
     return fixed_opt, pre_assign, demand, line_avail, capa_qty
 
+"""pre_assign 데이터 fixed_option 이동"""
 def expand_pre_assign(fixed_opt: pd.DataFrame, pre_assign: pd.DataFrame) -> pd.DataFrame:
-    """fixed_option 확장(pre_assign > fixed_option)"""
     records = []
     for _, row in pre_assign.iterrows():
         shift = row['Shift']
@@ -51,211 +62,567 @@ def expand_pre_assign(fixed_opt: pd.DataFrame, pre_assign: pd.DataFrame) -> pd.D
                     'Fixed_Time' : t,
                     'Qty'        : qty
                 })
+    # print("expand_pre_assign")
+    # print(pd.concat([fixed_opt, pd.DataFrame(records)], ignore_index=True, sort=False))
     return pd.concat([fixed_opt, pd.DataFrame(records)], ignore_index=True, sort=False)
 
+"""Fixed_Line이 NaN인 경우 사용 가능한 모든 라인으로 대체"""
+def fill_missing_lines(fixed_opt: pd.DataFrame, line_available: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for _, row in fixed_opt.iterrows():
+        fl = row.get('Fixed_Line')
+        if pd.isna(fl):
+            proj_code = row['Fixed_Group'][3:7]
+            avail = line_available[line_available['Project'] == proj_code]
+            if not avail.empty:
+                cols = [col for col, val in avail.iloc[0].items() if col != 'Project' and val == 1]
+                new_line = cols
+            else:
+                new_line = []
+        else:
+            if isinstance(fl, str) and ',' in fl:
+                new_line = [x.strip() for x in fl.split(',') if x.strip()]
+            else:
+                new_line = [fl]
+        new_row = row.copy()
+        new_row['Fixed_Line'] = new_line
+        records.append(new_row)
+    # print("fill_missing_lines")
+    # print(pd.DataFrame(records, columns=fixed_opt.columns))
+    return pd.DataFrame(records, columns=fixed_opt.columns)
+
+"""Fixed_Time이 NaN인 경우 모든 시프트로 대체"""
+def fill_missing_times(fixed_opt: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for _, row in fixed_opt.iterrows():
+        ft = row.get('Fixed_Time')
+        if pd.isna(ft):
+            new_val = list(range(1, 15))
+        elif isinstance(ft, str) and ',' in ft:
+            new_val = [int(x.strip()) for x in ft.split(',') if x.strip().isdigit()]
+        else:
+            try:
+                new_val = [int(ft)]
+            except:
+                new_val = []
+        new_row = row.copy()
+        new_row['Fixed_Time'] = new_val
+        records.append(new_row)
+    # print("fill_missing_times")
+    # print(pd.DataFrame(records, columns=fixed_opt.columns))
+    return pd.DataFrame(records, columns=fixed_opt.columns)
+
+"""Qty == 'ALL'일 때 demand 합계로 대체"""
 def process_all_qty(fixed_opt: pd.DataFrame, demand: pd.DataFrame) -> pd.DataFrame:
-    """Qty == 'ALL'일 때 demand 합계로 대체"""
-    def resolve_qty(row):
-        q = row['Qty']
-        if isinstance(q,str) and q.lower() == 'all':
-            pat = row['Fixed_Group'].replace('*','?')
+    def resolve_qty(qg, fixed_group):
+        if isinstance(qg, str) and qg.lower() == 'all':
+            pat = fixed_group.replace('*', '?')
             return demand.loc[
                 demand['Item'].apply(lambda s: fnmatch.fnmatch(s, pat)),
                 'MFG'
             ].sum()
-        return q
+        return qg
 
-    fixed_opt['Qty'] = fixed_opt.apply(resolve_qty, axis=1)
-    return fixed_opt.dropna(subset=['Qty']).copy()
+    new_records = []
+    for _, row in fixed_opt.iterrows():
+        qty_resolved = resolve_qty(row['Qty'], row['Fixed_Group'])
+        new_row = row.copy()
+        new_row['Qty'] = qty_resolved
+        new_records.append(new_row)
+    # print("process_all_qty")
+    # print(pd.DataFrame(new_records, columns=fixed_opt.columns))
+    return pd.DataFrame(new_records, columns=fixed_opt.columns)
 
-"""Fixed_Line 검증 & 정리"""
-def validate_fixed_lines(
-    fixed_opt: pd.DataFrame,
-    line_avail: pd.DataFrame
-) -> pd.DataFrame:
-    drops = []
-    for idx, row in fixed_opt.iterrows():
-        proj_code = row['Fixed_Group'][3:7]
-        raw_line  = str(row.get('Fixed_Line', '')).strip()
-
-        # 해당 프로젝트를 포함하는 행 검색
-        avail_df = line_avail[line_avail['Project'].str.contains(proj_code, na=False)]
-        if avail_df.empty:
-            drops.append(idx)
+"""1번 제약사항: 라인/시프트별 생산 용량"""
+def get_capacity_constraints(capa_qty: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for line, row in capa_qty.iterrows():
+        if isinstance(line, str) and line.startswith('Max_'):
             continue
+        for shift_str, cap in row.items():
+            try:
+                shift = int(shift_str)
+            except:
+                continue
+            records.append({'Line': line, 'Shift': shift, 'Capacity': cap})
+    return pd.DataFrame(records)
 
-        avail = avail_df.iloc[0]
 
-        # Fixed_Line이 비어있거나 'nan'인 경우, 상태가 1인 모든 라인 선택
-        if not raw_line or raw_line.lower() == 'nan':
-            lines = [ln for ln, v in avail.drop('Project').items() if v == 1]
-        else:
-            lines = [ln.strip() for ln in raw_line.split(',') if ln.strip()]
+"""2번 제약사항: 그룹별 동시 가동 가능한 최대 라인 개수"""
+def get_max_line_constraints(capa_qty: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for idx, row in capa_qty.iterrows():
+        if isinstance(idx, str) and idx.startswith('Max_line_'):
+            parts = idx.split('_')
+            prefix = parts[-1]
+            for shift_str, max_ln in row.items():
+                try:
+                    shift = int(shift_str)
+                except:
+                    continue
+                max_ln_val = None if pd.isna(max_ln) else int(max_ln)
+                records.append({'GroupPrefix': prefix, 'Shift': shift, 'MaxLines': max_ln_val})
+    return pd.DataFrame(records)
 
-        # 허용되지 않는 라인 검사
-        invalid = [ln for ln in lines if avail.get(ln, 0) != 1]
-        if invalid:
-            drops.append(idx)
-        else:
-            fixed_opt.at[idx, 'Fixed_Line'] = ','.join(lines)
 
-    return fixed_opt.drop(index=drops).reset_index(drop=True)
+"""3번 제약사항: 그룹별 최대 생산량"""
+def get_max_qty_constraints(capa_qty: pd.DataFrame) -> pd.DataFrame:
+    records = []
+    for idx, row in capa_qty.iterrows():
+        if isinstance(idx, str) and idx.startswith('Max_qty_'):
+            parts = idx.split('_')
+            prefix = parts[-1]
+            for shift_str, max_q in row.items():
+                try:
+                    shift = int(shift_str)
+                except:
+                    continue
+                max_q_val = None if pd.isna(max_q) else float(max_q)
+                records.append({'GroupPrefix': prefix, 'Shift': shift, 'MaxQty': max_q_val})
+    return pd.DataFrame(records)
 
-def validate_capacity_and_time(fixed_opt: pd.DataFrame, capa_qty: pd.DataFrame) -> pd.DataFrame:
-    """용량 검증 & Fixed_Time 정리"""
-    drops = []
-    all_times = [int(t) for t in capa_qty.columns]
-    for idx, row in fixed_opt.iterrows():
-        lines = row['Fixed_Line'].split(',')
-        rawt  = str(row['Fixed_Time'])
-        times = all_times if not rawt or rawt.lower()=='nan' else [int(t) for t in rawt.split(',')]
-        total_cap = sum(capa_qty.at[l,t] for l in lines for t in times)
-        if float(row['Qty']) > total_cap:
-            drops.append(idx)
-        else:
-            fixed_opt.at[idx,'Fixed_Time'] = ','.join(map(str,times))
-    return fixed_opt.drop(index=drops)
+"""
+fixed_opt에서 에러(결측 또는 빈 리스트)인 행만 error_fx에,
+나머지 정상 행은 valid_fx에 담아 반환
+"""
+def extract_error_records(fx: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def is_bad(val):
+        if isinstance(val, (list, np.ndarray)):
+            return len(val) == 0
+        return pd.isna(val)
 
-def parse_group_constraints(capa_qty: pd.DataFrame):
-    """그룹별 제약 파싱"""
-    max_line, max_qty = {}, {}
-    for row_idx in capa_qty.index:
-        if isinstance(row_idx, str) and row_idx.startswith('Max_line_'):
-            grp = row_idx.split('_')[-1]
-            max_line[grp] = {int(t): int(v) for t,v in capa_qty.loc[row_idx].items() if pd.notna(v)}
-        if isinstance(row_idx, str) and row_idx.startswith('Max_qty_'):
-            grp = row_idx.split('_')[-1]
-            max_qty[grp]  = {int(t): float(v) for t,v in capa_qty.loc[row_idx].items() if pd.notna(v)}
-    return max_line, max_qty
+    mask_line = fx['Fixed_Line'].apply(is_bad)
+    mask_time = fx['Fixed_Time'].apply(is_bad)
+    mask_qty = fx['Qty'].apply(is_bad)
 
-def build_requests(fixed_opt: pd.DataFrame) -> list[Request]:
-    """요청 리스트 생성"""
-    requests = []
-    for idx, row in fixed_opt.iterrows():
-        req = Request(
-            idx=idx,
-            lines=row['Fixed_Line'].split(','),
-            times=[int(t) for t in row['Fixed_Time'].split(',')],
-            qty=float(row['Qty'])
+    mask_error = mask_line | mask_time | mask_qty
+    error_fx = fx[mask_error].copy()
+    valid_fx = fx[~mask_error].copy()
+    return valid_fx, error_fx
+
+"""1번 제약조건 검사: 요청량(Qty)이 설비용량 합(Capacity)보다 초과하는지 확인"""
+def check_capacity_violations(
+    fx: pd.DataFrame,
+    cap: pd.DataFrame
+) -> pd.DataFrame:
+    # 요청별로 가능한 모든 (라인, 교대) 조합을 준비합니다.
+    combos = {
+        r: [(ln, sh)
+            for ln in fx.at[r, 'Fixed_Line']
+            for sh in fx.at[r, 'Fixed_Time']]
+        for r in fx.index
+    }
+
+    # 용량 조회를 위한 (라인, 교대) -> 용량 딕셔너리를 만듭니다.
+    cap_dict = cap.set_index(['Line','Shift'])['Capacity'].to_dict()
+
+    # 최적화 문제를 생성하고, 슬랙 최소화를 목표로 설정합니다.
+    prob = pulp.LpProblem("CapacityCheck", pulp.LpMinimize)
+
+    # 각 요청·조합별 할당량 변수와, 요청별 미할당량 슬랙 변수를 선언합니다.
+    x_vars = {
+        (r, ln, sh): pulp.LpVariable(f"x_{r}_{ln}_{sh}", lowBound=0)
+        for r, cmb in combos.items()
+        for ln, sh in cmb
+    }
+    slack = {
+        r: pulp.LpVariable(f"s_req_{r}", lowBound=0)
+        for r in fx.index
+    }
+
+    # 모든 요청의 미할당량 합을 최소화하도록 목적식을 추가합니다.
+    prob += pulp.lpSum(slack[r] for r in fx.index)
+
+    # 각 요청이 요구량만큼 할당되거나 슬랙으로 보완되도록 제약을 설정합니다.
+    for r, cmb in combos.items():
+        prob += (
+            pulp.lpSum(x_vars[(r, ln, sh)] for ln, sh in cmb)
+            + slack[r]
+            == fx.at[r, 'Qty']
         )
-        requests.append(req)
-    return requests
 
-def init_capacity(capa_qty: pd.DataFrame):
-    """초기 용량 할당 상태 생성"""
-    cap = {(l, int(t)): capa_qty.at[l,t] for l in capa_qty.index if not str(l).startswith('Max_') for t in capa_qty.columns}
-    return cap, defaultdict(int), defaultdict(float)
+    # 각 설비(라인,교대)에 대한 총 할당량이 용량을 넘지 않도록 제약을 설정합니다.
+    for (ln, sh), cap_val in cap_dict.items():
+        prob += (
+            pulp.lpSum(x_vars.get((r, ln, sh), 0) for r in fx.index)
+            <= cap_val
+        )
 
-def allocate_split(req: Request, cap: dict, used_l: dict, used_q: dict,
-                   max_line: dict, max_qty: dict,
-                   solution: PreAssignSolution) -> Tuple[bool, list[dict]]:
-    """
-    분할할당 함수
-    Returns:
-      ok: bool
-      failures: list of {
-          "line": str,        # ex. "I_04-10"
-          "reason": str,      # ex. "qty 한도"
-          "available": float, # 현재 cap[(l,t)]
-          "excess": float     # 남은 q_rem
-      }
-    """
-    q_rem = req.qty
-    failures = []
+    # 최적화를 실행합니다.
+    prob.solve()
 
-    for l in req.lines:
-        for t in req.times:
-            avail = cap[(l, t)]
-            grp   = l.split('_')[0]
-
-            # qty 제한
-            print(avail)
-            if avail <= 0:
-                failures.append({
-                    "line":      f"{l}-{t}",
-                    "reason":    "qty 제한",
-                    "available": avail,
-                    "excess":    q_rem
+    # 슬랙이 발생한 요청에 대해, 해당 요청의 모든 조합별로 SlackQty를 기록합니다.
+    records = []
+    for r in fx.index:
+        slack_val = slack[r].varValue or 0
+        if slack_val > 1e-6:
+            for ln, sh in combos[r]:
+                records.append({
+                    'Line':     ln,
+                    'Shift':    sh,
+                    'Capacity': cap_dict.get((ln, sh)),
+                    'SlackQty': slack_val
                 })
-                continue
 
-            # max_line 제한
-            if t in max_line.get(grp, {}) and used_l[(grp, t)] >= max_line[grp][t]:
-                failures.append({
-                    "line":      f"{l}-{t}",
-                    "reason":    "max_line 제한",
-                    "available": avail,
-                    "excess":    q_rem
-                })
-                continue
+    return pd.DataFrame(records)
 
-            # max_qty 한도
-            if t in max_qty.get(grp, {}) and used_q[(grp, t)] >= max_qty[grp][t]:
-                failures.append({
-                    "line":      f"{l}-{t}",
-                    "reason":    "max_qty 제한",
-                    "available": avail,
-                    "excess":    q_rem
-                })
-                return False, failures
+"""2번 제약조건 검사: 그룹별 동시 가동 가능한 최대 라인 수(MaxLines)를 초과하는지 확인"""
+def check_max_line_violations(
+    fx: pd.DataFrame,
+    max_lines: pd.DataFrame
+) -> pd.DataFrame:
+    # 요청별로 가능한 (그룹접두사, 교대) 조합을 만듭니다.
+    combos = {
+        r: [(ln.split('_')[0], sh)
+            for ln in fx.at[r, 'Fixed_Line']
+            for sh in fx.at[r, 'Fixed_Time']]
+        for r in fx.index
+    }
 
-            # 실제 할당 가능한 최대량 계산
-            cap_lim = avail
-            qty_lim = (max_qty[grp][t] - used_q[(grp, t)]) if t in max_qty.get(grp, {}) else float('inf')
-            alloc   = min(q_rem, cap_lim, qty_lim)
+    # 그룹별·교대별 최대 라인 수 딕셔너리로 변환합니다.
+    ml_dict = max_lines.set_index(['GroupPrefix','Shift'])['MaxLines'].to_dict()
 
-            if alloc <= 0:
-                failures.append({
-                    "line":      f"{l}-{t}",
-                    "reason":    "할당 가능량 0",
-                    "available": cap_lim,
-                    "excess":    q_rem
-                })
-                continue
+    # 목적함수에 슬랙 최소화를 설정한 최적화 문제를 생성합니다.
+    prob = pulp.LpProblem("MaxLineCheck", pulp.LpMinimize)
 
-            # 실제 할당
-            cap[(l, t)]      -= alloc
-            used_l[(grp, t)] += 1
-            used_q[(grp, t)] += alloc
-            solution.setdefault(req.idx, []).append((l, t, alloc))
-            q_rem -= alloc
+    # 조합 선택 변수와 각 (그룹,교대)별 초과 슬랙 변수를 선언합니다.
+    z_vars = {
+        (r, p, sh): pulp.LpVariable(f"z_{r}_{p}_{sh}", cat="Binary")
+        for r, cmb in combos.items()
+        for p, sh in cmb
+    }
+    slack = {
+        (p, sh): pulp.LpVariable(f"s_line_{p}_{sh}", lowBound=0)
+        for (p, sh), max_ln in ml_dict.items()
+        if pd.notna(max_ln)
+    }
 
-            # 전부 할당되면 성공 리턴
-            if q_rem <= 0:
-                return True, []
+    # 모든 슬랙의 합을 최소화하도록 목적식을 설정합니다.
+    prob += pulp.lpSum(slack.values())
 
-    # 남은 물량이 있으면 TOTAL 항목으로 기록
-    if q_rem > 0:
-        failures.append({
-            "line":      f"{l}-{t}",
-            "reason":    "qty 제한",
-            "available": None,
-            "excess":    q_rem
-        })
+    # 각 요청은 반드시 하나의 (그룹,교대) 조합을 선택하도록 제약합니다.
+    for r in fx.index:
+        prob += pulp.lpSum(z_vars[(r, p, sh)] for p, sh in combos[r]) == 1
 
-    return False, failures
+    # 그룹별 동시 가동 라인 수 제약: 초과 시 슬랙변수로 보완합니다.
+    for (p, sh), max_ln in ml_dict.items():
+        if pd.isna(max_ln):
+            continue
+        prob += (
+            pulp.lpSum(z_vars.get((r, p, sh), 0) for r in fx.index)
+            <= max_ln + slack[(p, sh)]
+        )
 
-def run_allocation() -> Tuple[PreAssignSolution, PreAssignFailures]:
-    """전체 할당 실행"""
+    # 최적화를 실행합니다.
+    prob.solve()
+
+    # 슬랙이 발생한 (그룹,교대)별로 SlackCount를 기록합니다.
+    records = []
+    for (p, sh), var in slack.items():
+        val = var.varValue or 0
+        if val > 1e-6:
+            records.append({
+                'GroupPrefix': p,
+                'Shift':       sh,
+                'MaxLines':    ml_dict[(p, sh)],
+                'SlackCount':  val
+            })
+
+    return pd.DataFrame(records)
+
+"""3번 제약조건 검사: 그룹별 최대 생산량(MaxQty)을 초과하는지 확인"""
+def check_max_qty_violations(
+    fx: pd.DataFrame,
+    max_qtys: pd.DataFrame
+) -> pd.DataFrame:
+    # 요청별로 가능한 (그룹접두사, 교대) 조합을 생성합니다.
+    combos = {
+        r: [(ln.split('_')[0], sh)
+            for ln in fx.at[r, 'Fixed_Line']
+            for sh in fx.at[r, 'Fixed_Time']]
+        for r in fx.index
+    }
+
+    # 그룹별·교대별 최대 생산량 딕셔너리로 변환합니다.
+    mq_dict = max_qtys.set_index(['GroupPrefix','Shift'])['MaxQty'].to_dict()
+
+    # 슬랙 최소화를 목표로 한 최적화 문제를 생성합니다.
+    prob = pulp.LpProblem("MaxQtyCheck", pulp.LpMinimize)
+
+    # 조합 선택 변수와 초과 슬랙 변수를 선언합니다.
+    z_vars = {
+        (r, p, sh): pulp.LpVariable(f"z_{r}_{p}_{sh}", cat="Binary")
+        for r, cmb in combos.items()
+        for p, sh in cmb
+    }
+    slack = {
+        (p, sh): pulp.LpVariable(f"s_qty_{p}_{sh}", lowBound=0)
+        for (p, sh), max_q in mq_dict.items()
+        if pd.notna(max_q)
+    }
+
+    # 모든 슬랙의 합을 최소화하도록 목적식을 설정합니다.
+    prob += pulp.lpSum(slack.values())
+
+    # 각 요청은 반드시 하나의 (그룹,교대) 조합을 선택하도록 제약합니다.
+    for r in fx.index:
+        prob += pulp.lpSum(z_vars[(r, p, sh)] for p, sh in combos[r]) == 1
+
+    # 그룹별 최대 생산량 제약: 생산 수량을 곱해 합산하고, 초과 시 슬랙으로 보완합니다.
+    for (p, sh), max_q in mq_dict.items():
+        if pd.isna(max_q):
+            continue
+        prob += (
+            pulp.lpSum(
+                z_vars.get((r, p, sh), 0) * fx.at[r, 'Qty']
+                for r in fx.index
+            )
+            <= max_q + slack[(p, sh)]
+        )
+
+    # 최적화를 실행합니다.
+    prob.solve()
+
+    # 슬랙이 발생한 (그룹,교대)별로 SlackQty를 기록합니다.
+    records = []
+    for (p, sh), var in slack.items():
+        val = var.varValue or 0
+        if val > 1e-6:
+            records.append({
+                'GroupPrefix': p,
+                'Shift':       sh,
+                'MaxQty':      mq_dict[(p, sh)],
+                'SlackQty':    val
+            })
+
+    return pd.DataFrame(records)
+
+"""모든 제약조건(Capacity, MaxLine, MaxQty)을 동시에 검사하여 위반 제약을 반환합니다."""
+def check_all_violations(
+    fx: pd.DataFrame,
+    cap: pd.DataFrame,
+    max_lines: pd.DataFrame,
+    max_qtys: pd.DataFrame
+) -> pd.DataFrame:
+    # 가능한 모든 (라인, 교대) 조합을 준비합니다.
+    combos = {
+        r: [(ln, sh)
+            for ln in fx.at[r, 'Fixed_Line']
+            for sh in fx.at[r, 'Fixed_Time']]
+        for r in fx.index
+    }
+
+    # 제약치 조회용 딕셔너리를 생성합니다.
+    cap_dict = cap.set_index(['Line','Shift'])['Capacity'].to_dict()
+    ml_dict  = max_lines.set_index(['GroupPrefix','Shift'])['MaxLines'].to_dict()
+    mq_dict  = max_qtys.set_index(['GroupPrefix','Shift'])['MaxQty'].to_dict()
+
+    # MILP 모델 생성 (모든 슬랙 최소화)
+    prob = pulp.LpProblem("AllConstraintsCheck", pulp.LpMinimize)
+
+    # 분할 할당을 위한 연속 변수 x_vars[(r,ln,sh)] ≥ 0
+    x_vars = {
+        (r, ln, sh): pulp.LpVariable(f"x_{r}_{ln}_{sh}", lowBound=0)
+        for r, cmb in combos.items()
+        for ln, sh in cmb
+    }
+
+    # Capacity 초과 슬랙 변수
+    s_cap = {
+        (ln, sh): pulp.LpVariable(f"s_cap_{ln}_{sh}", lowBound=0)
+        for (ln, sh) in cap_dict
+    }
+    # MaxLine 초과 슬랙 변수 (제약 없는 항목은 제외)
+    s_line = {
+        (p, sh): pulp.LpVariable(f"s_line_{p}_{sh}", lowBound=0)
+        for (p, sh), v in ml_dict.items() if pd.notna(v)
+    }
+    # MaxQty 초과 슬랙 변수 (제약 없는 항목은 제외)
+    s_qty = {
+        (p, sh): pulp.LpVariable(f"s_qty_{p}_{sh}", lowBound=0)
+        for (p, sh), v in mq_dict.items() if pd.notna(v)
+    }
+
+    # MaxLine 활성화를 위한 이진변수 y_vars[(r,ln,sh)] 과 라인·교대별 활성화 z_line[(ln,sh)]
+    M   = fx['Qty'].sum()
+    eps = 1e-6
+    y_vars  = {}
+    z_line  = {}
+    for r, cmb in combos.items():
+        for ln, sh in cmb:
+            # 요청별 활성화 여부
+            y = pulp.LpVariable(f"y_{r}_{ln}_{sh}", cat="Binary")
+            y_vars[(r, ln, sh)] = y
+            # 라인·교대별 활성화 여부
+            if (ln, sh) not in z_line:
+                z_line[(ln, sh)] = pulp.LpVariable(f"z_line_{ln}_{sh}", cat="Binary")
+            # Big-M 연계제약
+            prob += x_vars[(r, ln, sh)] <= M * y
+            prob += x_vars[(r, ln, sh)] >= eps * y
+            # y_vars ≤ z_line (same ln,sh 그룹화)
+            prob += y <= z_line[(ln, sh)]
+
+    # 목적식: Capacity, MaxLine, MaxQty 슬랙만 최소화
+    prob += (
+        pulp.lpSum(s_cap.values()) +
+        pulp.lpSum(s_line.values()) +
+        pulp.lpSum(s_qty.values())
+    )
+
+    # 요청량 제약: 분할 할당 합 == Qty
+    for r, cmb in combos.items():
+        prob += (
+            pulp.lpSum(x_vars[(r, ln, sh)] for ln, sh in cmb)
+            == fx.at[r, 'Qty']
+        )
+
+    # Capacity 제약: 각 (라인,교대)별 할당합 ≤ Capacity + s_cap
+    for (ln, sh), cap_val in cap_dict.items():
+        prob += (
+            pulp.lpSum(x_vars.get((r, ln, sh), 0) for r in fx.index)
+            <= cap_val + s_cap[(ln, sh)]
+        )
+
+    # MaxLine 제약: 서로 다른 라인 z_line 합 ≤ MaxLines + s_line
+    for (p, sh), max_ln in ml_dict.items():
+        if pd.isna(max_ln):
+            continue
+        prob += (
+            pulp.lpSum(
+                z_line[(ln, ss)]
+                for (ln, ss) in z_line
+                if ln.split('_')[0] == p and ss == sh
+            )
+            <= max_ln + s_line[(p, sh)]
+        )
+
+    # MaxQty 제약: 할당량 합 ≤ MaxQty + s_qty
+    for (p, sh), max_q in mq_dict.items():
+        if pd.isna(max_q):
+            continue
+        prob += (
+            pulp.lpSum(
+                x_vars.get((r, ln, ss), 0) * fx.at[r, 'Qty']
+                for r in fx.index
+                for ln, ss in combos[r]
+                if ln.split('_')[0] == p and ss == sh
+            )
+            <= max_q + s_qty[(p, sh)]
+        )
+
+    # 최적화 실행
+    prob.solve()
+
+    # 발생한 슬랙을 모두 모아 테이블로 반환
+    records = []
+    for (ln, sh), var in s_cap.items():
+        v = var.varValue or 0
+        if v > 1e-6:
+            records.append({
+                'Constraint':   'Capacity',
+                'Line(GroupPrefix)':         ln,
+                'Shift':        sh,
+                'Limit':        cap_dict[(ln, sh)],
+                'ViolationAmt': v
+            })
+    for (p, sh), var in s_line.items():
+        v = var.varValue or 0
+        if v > 1e-6:
+            records.append({
+                'Constraint':   'MaxLine',
+                'Line(GroupPrefix)':  p,
+                'Shift':        sh,
+                'Limit':        ml_dict[(p, sh)],
+                'ViolationAmt': v
+            })
+    for (p, sh), var in s_qty.items():
+        v = var.varValue or 0
+        if v > 1e-6:
+            records.append({
+                'Constraint':   'MaxQty',
+                'Line(GroupPrefix)':  p,
+                'Shift':        sh,
+                'Limit':        mq_dict[(p, sh)],
+                'ViolationAmt': v
+            })
+
+    return pd.DataFrame(records)
+
+"""전체 할당 실행"""
+def run_allocation() -> PreAssignFailures:
+    # 데이터 로드 및 전처리
     fx, pa, dm, la, cq = load_data()
     fx = expand_pre_assign(fx, pa)
+    fx = fill_missing_lines(fx, la)
+    fx = fill_missing_times(fx)
     fx = process_all_qty(fx, dm)
-    fx = validate_fixed_lines(fx, la)
-    fx = validate_capacity_and_time(fx, cq)
 
-    max_ln, max_q = parse_group_constraints(cq)
-    requests = build_requests(fx)
-    cap, used_l, used_q = init_capacity(cq)
+    # 제약조건 테이블 생성
+    cap = get_capacity_constraints(cq)
+    max_lines = get_max_line_constraints(cq)
+    max_qtys  = get_max_qty_constraints(cq)
 
-    solution = {}
-    failures = {}
+    # 결측 에러 분리
+    fx, missing_fixed = extract_error_records(fx)
 
-    all_errors = []
-    for req in requests:
-        ok, errs = allocate_split(req, cap, used_l, used_q, max_ln, max_q, solution)
-        if not ok:
-            all_errors.extend(errs)
+    # 개별 검사 함수
+    # bad_cap = check_capacity_violations(fx, cap)
+    # bad_max_line = check_max_line_violations(fx, max_lines)
+    # bad_max_qty = check_max_qty_violations(fx, max_qtys)
 
-    failures["preassign"] = all_errors
+    # print("bad_cap")
+    # print(bad_cap)
+    # print("bad_max_line")
+    # print(bad_max_line)
+    # print("bad_max_qty")
+    # print(bad_max_qty)
 
-    return solution, failures
+    # 통합 검사 함수
+    violations = check_all_violations(fx, cap, max_lines, max_qtys)
+
+    failures: PreAssignFailures = {
+        'preassign': []
+    }
+
+    # 결측 에러 처리
+    for _, row in missing_fixed.iterrows():
+        target = row['Fixed_Group']
+        if not row['Fixed_Line']:
+            failures['pre_assign'].append({
+                'Target': target,
+                'Reason': 'Fixed_Line 값 없음',
+                'ViolationAmt': None
+            })
+        if not row['Fixed_Time']:
+            failures['pre_assign'].append({
+                'Target': target,
+                'Reason': 'Fixed_Time 값 없음',
+                'ViolationAmt': None
+            })
+        if pd.isna(row['Qty']):
+            failures['pre_assign'].append({
+                'Target': target,
+                'Reason': 'Qty 값 없음',
+                'ViolationAmt': None
+            })
+
+    # 제약 위반 에러 처리
+    for vr in violations.to_dict('records'):
+        tgt = vr.get('Line') or vr.get('GroupPrefix')
+        record = {
+            'Target': tgt,
+            'Reason': None,
+            'ViolationAmt': vr['ViolationAmt']
+        }
+        if vr['Constraint'] == 'Capacity':
+            record['Reason'] = 'Capacity 초과'
+        elif vr['Constraint'] == 'MaxLine':
+            record['Reason'] = 'MaxLine 초과'
+        elif vr['Constraint'] == 'MaxQty':
+            record['Reason'] = 'MaxQty 초과'
+
+        failures['pre_assign'].append(record)
+    
+    print(failures)
+
+    return failures
