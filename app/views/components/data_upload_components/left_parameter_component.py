@@ -274,24 +274,6 @@ class LeftParameterComponent(QWidget):
                 summary_layout.setContentsMargins(0, 0, 0, 0)
                 summary_layout.setSpacing(5)
 
-                # Summary 타이틀
-                summary_title = QLabel("Analysis Summary")
-                summary_title.setStyleSheet(f"""
-                    QLabel {{
-                        color: #1428A0;
-                        font-size: {fs(20)}px;
-                        font-weight: bold;
-                        background-color: transparent;
-                        border: none;
-                        padding-bottom: {p(5)}px;
-                        font-family: {font_manager.get_just_font("SamsungSharpSans-Bold").family()};
-                    }}
-                """)
-                summary_title_font = font_manager.get_font("SamsungSharpSans-Bold", fs(14))
-                summary_title_font.setBold(True)
-                summary_title.setFont(summary_title_font)
-                summary_layout.addWidget(summary_title)
-
                 # Summary 테이블 생성
                 summary_table = QTreeWidget()
                 summary_table.setRootIsDecorated(False)
