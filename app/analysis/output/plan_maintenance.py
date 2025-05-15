@@ -13,24 +13,16 @@ class PlanMaintenanceRate:
         self.prev_plan = None # 초기 계획
         self.current_plan = None # 현재 계획(새로 수정한 계획)
         self.adjusted_plan = None # 조정 후 계획
-        self.is_first_plan = True # 첫번째 계획 여부
-
-    """첫 번째 계획 여부를 설정"""
-    def set_first_plan(self, is_first):
-        # Parameters:
-        #     is_first_plan (bool) : 첫 번째 계획 여부
-
-        self.is_first_plan = is_first
-        return True
     
-    """초기 계획 설정"""
+    """
+    초기 계획 설정
+
+    Parameters:
+        plan_data (DataFrame) : 생산계획 결과 데이터
+    Return:
+        bool : 설정 성공 여부
+    """
     def set_prev_plan(self, plan_data):
-        # Parameters:
-        #     plan_data (DataFrame) : 생산계획 결과 데이터
-
-        # Return:
-        #     bool : 설정 성공 여부
-
         if plan_data is None or plan_data.empty:
             return False
         
@@ -38,14 +30,15 @@ class PlanMaintenanceRate:
         self.current_plan = plan_data.copy()
         return True
     
-    """새로 수정한 계획 데이터 설정"""
+    """
+    새로 수정한 계획 데이터 설정
+    
+    Parameters:
+        plan_data (DataFrame): 새 계획 데이터
+    Returns:
+        bool: 설정 성공 여부
+    """
     def set_current_plan(self, plan_data):
-        # Parameters:
-        #     plan_data (DataFrame): 새 계획 데이터
-            
-        # Returns:
-        #     bool: 설정 성공 여부
-        
         if plan_data is None or plan_data.empty:
             return False
         
@@ -62,7 +55,6 @@ class PlanMaintenanceRate:
         time (str): 시프트 번호
         item (str): 제품 코드
         new_qty (str): 새로운 수량
-        
     Returns:
         bool: 업데이트 성공 여부
     """
@@ -159,9 +151,8 @@ class PlanMaintenanceRate:
         tuple: (결과 DataFrame, 유지율 %)
     """
     def calculate_items_maintenance_rate(self, compare_with_adjusted=False):
-        
-        # 첫 번째 계획이고 조정되지 않았다면 계산 제외
-        if self.is_first_plan or self.prev_plan is None:
+        # 이전 계획이 없으면 계산 제외 
+        if self.prev_plan is None:
             return pd.DataFrame(), None
         
         # 비교 대상 결정
@@ -235,10 +226,10 @@ class PlanMaintenanceRate:
         tuple: (결과 DataFrame, 유지율 %)
     """
     def calculate_rmc_maintenance_rate(self, compare_with_adjusted=False):
-        # 첫 번째 수행이고 조정된 계획과의 비교가 아니면 유지율 계산 제외
-        if self.is_first_plan or self.prev_plan is None:
+        # 이전 계획이 없으면 계산 제외 
+        if self.prev_plan is None:
             return pd.DataFrame(), None
-            
+        
         # 비교 대상 결정
         if compare_with_adjusted:
             # 조정된 계획과 비교
@@ -315,7 +306,6 @@ class PlanMaintenanceRate:
 
     Parameters:
         compare_with_adjusted (bool): 조정된 계획과 비교할지 여부
-    
     Returns:
         DataFrame: 변경된 항목 목록
     """

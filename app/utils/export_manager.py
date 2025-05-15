@@ -69,11 +69,6 @@ class ExportManager:
                 try:
                     plan_manager = WeeklyPlanManager(output_dir=desktop_path)
 
-                    # 이전 계획 감지
-                    is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
-                        start_date, end_date
-                    )
-
                     # 조정된 계획 확인
                     export_data = data_df
                     if hasattr(parent, 'plan_maintenance_widget'):
@@ -86,17 +81,16 @@ class ExportManager:
 
                     # 메타데이터와 함께 저장
                     saved_path = plan_manager.save_plan_with_metadata(
-                        export_data, start_date, end_date, previous_plan_path
+                        export_data, start_date, end_date
                     )
 
                     print(f"Final result saved with metadata to desktop in {week_info} folder: {saved_path}")
-                    print(message)
 
                     # 사용자에게 성공 메시지 표시
                     QMessageBox.information(
                         parent, 
                         "Export Success", 
-                        f"File saved to desktop in {week_info} folder:\n{saved_path}\n\n{message}"
+                        f"File saved to desktop in {week_info} folder:\n{saved_path}"
                     )
 
                     return saved_path
