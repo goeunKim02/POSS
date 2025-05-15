@@ -35,7 +35,7 @@ class CalendarCard(QFrame):
         self.selected_style = f"""
             QFrame {{
                 background-color: {sel_color};
-                border: 2px solid {sel_color};
+                border: 1px solid {sel_color};
                 border-radius: 6px;
             }}
         """
