@@ -438,7 +438,7 @@ class DraggableItemLabel(QLabel):
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
-            self.update_text_from_data()
+            # self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
             
         return False, "데이터가 없습니다."

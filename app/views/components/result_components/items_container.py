@@ -208,6 +208,53 @@ class ItemsContainer(QWidget):
 
             # 원본 위젯 (드래그된 아이템)
             source = event.source()
+            is_ctrl_pressed = event.keyboardModifiers() & Qt.ControlModifier  # [CTRL COPY]
+
+            if is_ctrl_pressed and isinstance(source, DraggableItemLabel):
+                print("아이템 컨트롤 드래그앤 드롭 이벤트 발생")  # [CTRL COPY]
+                
+                source_container = source.parent()
+
+                # 아이템 데이터가 없으면 원본에서 복사
+                if item_data is None and hasattr(source, 'item_data') and source.item_data:
+                    item_data = source.item_data.copy()
+
+                # 복사본 생성: Qty = 0 설정
+                if item_data:
+                    item_data['Qty'] = 0  # [CTRL COPY]
+                    # 불필요한 속성 제거
+                    item_data.pop('_drop_pos_x',None)
+                    item_data.pop('_drop_pos_y',None)
+
+                    # 부모 찾기 및 위치 계산
+                    grid_widget = self.find_parent_grid_widget()
+                    if grid_widget:
+                        for row_idx, row in enumerate(grid_widget.containers):
+                            if self in row:
+                                target_row = row_idx
+                                target_col = row.index(self)
+                                break
+
+                        if '_(' in grid_widget.row_headers[target_row]:
+                            line_part = grid_widget.row_headers[target_row].split('_(')[0]
+                            shift_part = grid_widget.row_headers[target_row].split('_(')[1].rstrip(')')
+
+                            item_data['Line'] = line_part
+                            day_idx = target_col
+                            is_day_shift = shift_part == "주간"
+                            new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+                            item_data['Time'] = str(new_time)
+
+                # 복사본 생성
+                new_item = self.addItem(item_text, drop_index, item_data)
+
+                self.itemDataChanged.emit(new_item, item_data, {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
+
+                self.show_drop_indicator = False
+                self.update()
+                event.acceptProposedAction()
+                self.itemsChanged.emit()
+                return  # [CTRL COPY] Ctrl copy는 여기서 종료
 
             # 원본 아이템이 같은 컨테이너 내에 있는지 확인
             same_container = False
