@@ -5,7 +5,7 @@ class ItemStyle:
             background-color: #F8F9FA;
             border: 1px solid #DEE2E6;
             border-radius: 4px;
-            padding: 5px 5px 5px 15px;  
+            padding: 5px 5px 5px 5px;  
             margin: 2px;
         }
         QLabel {
@@ -19,7 +19,7 @@ class ItemStyle:
             background-color: #E3F2FD;
             border: 2px solid #1976D2;
             border-radius: 4px;
-            padding: 5x 5px 5px 15px;  
+            padding: 5x 5px 5px 5px;  
             margin: 2px;
         }
         QLabel {
@@ -33,7 +33,7 @@ class ItemStyle:
             background-color: #E3F2FD;
             border: 1px solid #1976D2;
             border-radius: 4px;
-            padding: 5px 5x 5px 15px;
+            padding: 5px 5x 5px 5px;
             margin: 2px;
         }
         QLabel {
