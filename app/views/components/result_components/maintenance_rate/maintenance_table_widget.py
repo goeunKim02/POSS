@@ -1,10 +1,8 @@
-from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QHeaderView)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QFont
 import pandas as pd
 from app.views.components.common.custom_table import CustomTable
-from app.models.common.screen_manager import *
-from app.resources.fonts.font_manager import font_manager
+from app.utils.sort_line import sort_line
 
 """유지율 표시를 위한 테이블 위젯 기본 클래스"""
 class MaintenanceTableWidget(CustomTable):
@@ -19,7 +17,6 @@ class MaintenanceTableWidget(CustomTable):
         
     """유지율 테이블 전용 스타일 설정"""
     def setup_maintenance_style(self):
-        # CustomTable의 기본 스타일에 유지율 테이블 특화 스타일 추가
         additional_style = """
             QHeaderView::section {
                 padding: 6px 8px;
@@ -36,7 +33,7 @@ class MaintenanceTableWidget(CustomTable):
         # CustomTable의 setup_header 호출
         super().setup_header(
             header_labels,
-            fixed_columns={0: 80, 1: 80},  # Line과 Shift 열을 고정 너비로 설정
+            fixed_columns={0: 80, 1: 80, 2: 250},  # Line과 Shift 열을 고정 너비로 설정
             resizable=False  # 나머지는 균등 분할
         )
         
@@ -52,12 +49,8 @@ class MaintenanceTableWidget(CustomTable):
             f"{maintenance_sum:,.0f}"
         ]
         
-        # 라인별 그룹 헤더 배경색 선택
-        group_header_colors = [
-            QColor('#ffffff'),  # 흰색
-            QColor('#f5f5f5'),  # 연한 회색
-        ]
-        bg_color = group_header_colors[group_index % len(group_header_colors)]
+        # 라인별 그룹 헤더 배경색 
+        bg_color = QColor('#E8E8E8')
 
         # 스타일 정의
         styles = {}
@@ -67,9 +60,10 @@ class MaintenanceTableWidget(CustomTable):
                 style['alignment'] = Qt.AlignRight | Qt.AlignVCenter
             else:
                 style['alignment'] = Qt.AlignCenter | Qt.AlignVCenter
+
             styles[col] = style
         
-        self.add_custom_row(row_data, styles, is_header=True)
+        self.add_custom_row(row_data, styles, is_total=True, is_header=True)
         
     """일반 데이터 행 생성"""
     def create_data_row(self, line="", shift="", item_text="", prev_plan=0, 
@@ -100,9 +94,9 @@ class MaintenanceTableWidget(CustomTable):
             if is_modified and col == 4:  # curr_plan 열
                 style['foreground'] = QColor('#F8AC59')
                 # 폰트 굵게 만들기
-                # font = QFont()
-                # font.setBold(True)
-                # style['font'] = font
+                font = QFont()
+                font.setBold(True)
+                style['font'] = font
             
             styles[col] = style
         
@@ -112,8 +106,8 @@ class MaintenanceTableWidget(CustomTable):
     def create_total_row(self, total_prev, total_curr, total_maintenance):
         row_data = [
             "Total",
-            "",
-            "",
+            "Total",
+            "Total",
             f"{total_prev:,.0f}",
             f"{total_curr:,.0f}",
             f"{total_maintenance:,.0f}"
@@ -180,69 +174,135 @@ class MaintenanceTableWidget(CustomTable):
             if line_shift_key not in line_shift_groups:
                 line_shift_groups[line_shift_key] = len(line_shift_groups)  # 라인-교대 조합이 처음 나올 때 인덱스 부여
         
-        # 테이블 행 추가
+        # Line별 그룹 정보 수집 (같은 Line끼리 묶기 위함)
+        line_groups = {}
         for group_key, group_data in sorted(groups.items()):
-            # 라인별 그룹 인덱스 사용
             line = group_data['line']
-            shift = group_data['shift']
-            line_shift_key = f"{line}_{shift}"  
-            line_group_index = line_shift_groups[line_shift_key]
+            if line not in line_groups:
+                line_groups[line] = []
+            line_groups[line].append(group_key)
 
-            # 그룹 헤더 행 추가
-            self.create_group_row(
-                group_data['line'],
-                group_data['shift'],
-                group_data['prev_sum'],
-                group_data['curr_sum'],
-                group_data['maintenance_sum'],
-                line_group_index
-            )
+        # Line 순서대로 정렬 
+        sorted_lines = sorted(line_groups.keys(), key=lambda x: sort_line(x))
+        ordered_line_groups = {}
+
+        # 각 라인 내 시프트 순서대로 정렬
+        for line in sorted_lines:
+            group_keys = line_groups[line]
+            # 시프트 순서대로 정렬
+            sorted_group_keys = sorted(group_keys, key=lambda x:int(groups[x]['shift']) if groups[x]['shift'].isdigit() else 999)
+            ordered_line_groups[line] = sorted_group_keys
+
+        # 병합을 위한 딕셔너리
+        line_spans = {}
+        shift_spans = {}
+        
+        # 테이블 행 추가 및 병합 정보 수집
+        for line, group_keys in ordered_line_groups.items():
+            line_start_row = self.rowCount()  # 라인의 시작 행
             
-            # 데이터 행 추가
-            item_key = item_field.lower()
-            for item_data in sorted(group_data['items'], key=lambda x: x[item_key]):
-                # 수정 여부 확인
-                item_value = item_data[item_key]
-                line = group_data['line']
+            for group_key in group_keys:
+                group_data = groups[group_key]
                 shift = group_data['shift']
-                
-                is_modified = False
-                for key in modified_item_keys:
-                    parts = key.split('_')
-                    if len(parts) >= 3:
-                        # 라인 코드 처리
-                        if parts[0] in ["I", "D", "K", "M"] and len(parts) > 3:
-                            key_line = f"{parts[0]}_{parts[1]}"
-                            key_shift = parts[2]
-                            key_item = "_".join(parts[3:])  # 나머지 모든 부분이 아이템
-                        else:
-                            key_line = parts[0]
-                            key_shift = parts[1]
-                            key_item = "_".join(parts[2:])  # 나머지 모든 부분이 아이템
-                        
-                        if item_field == 'Item' and key_line == line and key_shift == shift and key_item == item_value:
-                            is_modified = True
-                            break
-                        elif item_field == 'RMC':
-                            # RMC 비교는 부분 문자열 일치 검사
-                            if key_line == line and key_shift == shift and (key_item == item_value or item_value in key_item or key_item in item_value):
-                                is_modified = True
-                                break
-                
-                # 데이터 행 생성
-                self.create_data_row(
-                    "",  # line은 그룹 헤더에만 표시
-                    "",  # shift는 그룹 헤더에만 표시
-                    item_value,
-                    item_data['prev_plan'],
-                    item_data['curr_plan'],
-                    item_data['maintenance'],
-                    is_modified,
+                line_shift_key = f"{line}_{shift}"  
+                line_group_index = line_shift_groups[line_shift_key]
+
+                # 교대별 시작 행 인덱스 기록
+                shift_start_row = self.rowCount()
+
+                # 그룹 헤더 행 추가
+                self.create_group_row(
+                    group_data['line'],
+                    group_data['shift'],
+                    group_data['prev_sum'],
+                    group_data['curr_sum'],
+                    group_data['maintenance_sum'],
                     line_group_index
                 )
+                
+                # 데이터 행 추가
+                item_key = item_field.lower()
+                for item_data in sorted(group_data['items'], key=lambda x: x[item_key]):
+                    # 수정 여부 확인
+                    item_value = item_data[item_key]
+                    
+                    is_modified = False
+                    for key in modified_item_keys:
+                        parts = key.split('_')
+                        if len(parts) >= 3:
+                            # 라인 코드 처리
+                            if parts[0] in ["I", "D", "K", "M"] and len(parts) > 3:
+                                key_line = f"{parts[0]}_{parts[1]}"
+                                key_shift = parts[2]
+                                key_item = "_".join(parts[3:])  # 나머지 모든 부분이 아이템
+                            else:
+                                key_line = parts[0]
+                                key_shift = parts[1]
+                                key_item = "_".join(parts[2:])  # 나머지 모든 부분이 아이템
+                            
+                            if item_field == 'Item' and key_line == line and key_shift == shift and key_item == item_value:
+                                is_modified = True
+                                break
+                            elif item_field == 'RMC':
+                                # RMC 비교는 부분 문자열 일치 검사
+                                if key_line == line and key_shift == shift and (key_item == item_value or item_value in key_item or key_item in item_value):
+                                    is_modified = True
+                                    break
+                    
+                    # 데이터 행 생성
+                    self.create_data_row(
+                        "-",  # line은 그룹 헤더에만 표시
+                        "-",  # shift는 그룹 헤더에만 표시
+                        item_value,
+                        item_data['prev_plan'],
+                        item_data['curr_plan'],
+                        item_data['maintenance'],
+                        is_modified,
+                        line_group_index
+                    )
+
+                # 교대별 행 수 계산 및 Shift 병합 정보 저장
+                shift_end_row = self.rowCount() - 1
+                shift_row_count = shift_end_row - shift_start_row + 1
+
+                if shift_row_count > 1:
+                    shift_spans[shift_start_row] = {
+                        'row_count': shift_row_count,
+                        'shift': shift
+                    }
+
+            # 라인별 행 수 계산 및 Line 병합 정보 저장
+            line_end_row = self.rowCount() - 1
+            line_row_count = line_end_row - line_start_row + 1
+                
+            if line_row_count > 1:
+                line_spans[line_start_row] = {
+                    'row_count': line_row_count,
+                    'line': line
+                }
         
         # 총계 행 추가
         self.create_total_row(total_prev, total_curr, total_maintenance)
+
+        # Line 열 병합 적용 (먼저 적용)
+        for start_row, span_info in line_spans.items():
+            row_count = span_info['row_count']
+            
+            # Line 열 (0번) 병합
+            self.merge_cells(start_row, 0, row_count, 1)
+            line_item = self.item(start_row, 0)
+            if line_item:
+                line_item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+        
+        # Shift 열 병합 적용 (나중에 적용)
+        for start_row, span_info in shift_spans.items():
+            row_count = span_info['row_count']
+            
+            # Shift 열 (1번) 병합
+            self.merge_cells(start_row, 1, row_count, 1)
+            shift_item = self.item(start_row, 1)
+            if shift_item:
+                shift_item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
 
 
 """Item별 유지율 테이블 위젯"""
