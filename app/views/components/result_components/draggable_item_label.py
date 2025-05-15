@@ -7,7 +7,7 @@ from app.resources.styles.item_style import ItemStyle
 
 
 """드래그 가능한 아이템 라벨"""
-class DraggableItemLabel(QLabel):
+class DraggableItemLabel(QFrame):
 
     # 아이템 선택 이벤트를 위한 시그널 추가
     itemSelected = pyqtSignal(object)  # 선택된 아이템 참조를 전달
@@ -16,26 +16,14 @@ class DraggableItemLabel(QLabel):
     itemDoubleClicked = pyqtSignal(object)  # 더블클릭된 아이템 참조를 전달
 
     def __init__(self, text, parent=None, item_data=None):
-        super().__init__(text, parent)
+        super().__init__(parent)
 
         self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
-        self.setAlignment(Qt.AlignLeft)
-
+        # self.setAlignment(Qt.AlignCenter)
         
         # 출하 실패 상태 변수
         self.is_shipment_failure = False
         self.shipment_failure_reason = None
-
-
-
-        # 위젯 속성 설정
-        self.setCursor(Qt.OpenHandCursor)
-        self.setAcceptDrops(False)
-        self.drag_start_position = None
-        self.setWordWrap(False)
-        self.setMinimumHeight(25)
-        self.adjustSize()
-
         
         # 사전할당 상태 관련 속성 
         self.is_pre_assigned = False
@@ -43,15 +31,26 @@ class DraggableItemLabel(QLabel):
         # 선택 상태 추가
         self.is_selected = False
 
-        # 툴팁 관련 설정
-        QToolTip.setFont(QFont('Arial', 10))
-
         # 자재 부족 상태 관련 속성 추가
         self.is_shortage = False
         self.shortage_data = None
 
+        # 기본 설정
+        self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
+        self.setCursor(Qt.OpenHandCursor)
+        self.setAcceptDrops(False)
+        self.drag_start_position = None
+        self.setMinimumHeight(25)
+        self.setMinimumWidth(300)
+
         # 아이템 데이터 저장 (엑셀 행 정보)
         self.item_data = item_data
+
+        # 내부 레이아웃 생성
+        self.setup_layout(text)
+
+        # 툴팁 관련 설정
+        QToolTip.setFont(QFont('Arial', 10))
 
         # 아이템 데이터가 있으면 툴팁 생성
         if self.item_data is not None:
@@ -61,6 +60,68 @@ class DraggableItemLabel(QLabel):
 
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
+
+
+    """내부 레이아웃 설정 - 아이템명과 수량을 분리"""
+    def setup_layout(self, text):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 4, 8, 4)
+        layout.setSpacing(4)
+
+        # 텍스트에서 아이템명과 수량 분리
+        if self.item_data and 'Item' in self.item_data:
+            item_name = str(self.item_data['Item'])
+            qty = self.item_data.get('Qty', '') if self.item_data else ''
+        else:
+            # 기존 텍스트 파싱 (Item    Qty 형태)
+            parts = text.split()
+            if len(parts) >= 2:
+                item_name = parts[0]
+                qty = parts[-1]
+            else:
+                item_name = text
+                qty = ''
+
+        # 아이템명 라벨 (왼쪽 정렬)
+        self.item_label = QLabel(item_name)
+        self.item_label.setFont(QFont("Arial", 9, QFont.Bold))
+        self.item_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.item_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.item_label.setStyleSheet("background: transparent; border: none;")
+        self.item_label.setWordWrap(True)  # WordWrap 활성화 : 활성화해야 컨테이너 높이 자동화 가능 
+
+        # 수량 라벨 (오른쪽 정렬)
+        self.qty_label = QLabel(str(qty) if qty else '')
+        self.qty_label.setFont(QFont("Arial", 9))
+        self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.qty_label.setStyleSheet("background: transparent; border: none;")
+        self.item_label.setWordWrap(True)  # WordWrap 활성화
+
+        layout.addWidget(self.item_label)
+        layout.addWidget(self.qty_label)
+
+    """QLabel 호환성을 위한 text() 메서드"""
+    def text(self):
+        item_text = self.item_label.text() if hasattr(self, 'item_label') else ''
+        qty_text = self.qty_label.text() if hasattr(self, 'qty_label') else ''
+        return f"{item_text}    {qty_text}" if qty_text else item_text
+
+    def setText(self, text):
+        """QLabel 호환성을 위한 setText() 메서드"""
+        # 텍스트 파싱해서 아이템명과 수량 분리
+        parts = text.split()
+        if len(parts) >= 2:
+            item_name = parts[0]
+            qty = parts[-1]
+        else:
+            item_name = text
+            qty = ''
+        
+        if hasattr(self, 'item_label'):
+            self.item_label.setText(item_name)
+        if hasattr(self, 'qty_label'):
+            self.qty_label.setText(qty)
+
 
     def _create_tooltip_text(self):
         if self.item_data is None:
@@ -333,10 +394,12 @@ class DraggableItemLabel(QLabel):
     def update_text_from_data(self):        
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
-            if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']):
-                item_info += f"    {self.item_data['Qty']}"
-        
-            self.setText(item_info)
+            qty = str(self.item_data['Qty']) if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']) else ''
+            
+            if hasattr(self, 'item_label'):
+                self.item_label.setText(item_info)
+            if hasattr(self, 'qty_label'):
+                self.qty_label.setText(qty)
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):
@@ -404,18 +467,18 @@ class DraggableItemLabel(QLabel):
         # 툴팁 업데이트 - 전체 툴팁 다시 생성
         self.setToolTip(self._create_tooltip_text())
         
-        # 툴팁 업데이트
-        if is_failure and reason:
-            # 기존 툴팁에 출하 실패 정보 추가
-            base_tooltip = self._create_tooltip_text()
-            # failure_info = f"<tr><td colspan='2' style='background-color:#FFCCCC; color:red;'><b>Shipment Failure:</b> {reason}</td></tr>"
+        # # 툴팁 업데이트
+        # if is_failure and reason:
+        #     # 기존 툴팁에 출하 실패 정보 추가
+        #     base_tooltip = self._create_tooltip_text()
+        #     # failure_info = f"<tr><td colspan='2' style='background-color:#FFCCCC; color:red;'><b>Shipment Failure:</b> {reason}</td></tr>"
             
-            # 테이블 닫기 태그 앞에 실패 정보 삽입
-            # new_tooltip = base_tooltip.replace("</table>", failure_info + "</table>")
-            # self.setToolTip(new_tooltip)
-        else:
-            # 기본 툴팁으로 복원
-            self.setToolTip(self._create_tooltip_text())
+        #     # 테이블 닫기 태그 앞에 실패 정보 삽입
+        #     # new_tooltip = base_tooltip.replace("</table>", failure_info + "</table>")
+        #     # self.setToolTip(new_tooltip)
+        # else:
+        #     # 기본 툴팁으로 복원
+        #     self.setToolTip(self._create_tooltip_text())
 
     """아이템 상태별 색상 선 표시"""
     def paintEvent(self, event):
@@ -428,7 +491,7 @@ class DraggableItemLabel(QLabel):
         
         # 선의 시작 위치와 너비
         line_width = 10
-        line_gap = 5
+        line_gap = 0
         current_x = 0  # 왼쪽 여백
 
         # 상하 여백
@@ -439,11 +502,11 @@ class DraggableItemLabel(QLabel):
         status_colors = []
         
         if self.is_shortage:
-            status_colors.append(QColor("#fc3838"))  # 빨간색
+            status_colors.append(QColor("#f0afa8"))  # 빨간색
         if self.is_shipment_failure:
-            status_colors.append(QColor("#fcb438"))  # 주황색
+            status_colors.append(QColor("#faf3b1"))  # 노란색
         if self.is_pre_assigned:
-            status_colors.append(QColor("#7a9ff5"))  # 파란색
+            status_colors.append(QColor("#a8bbf0"))  # 파란색
         
         # 각 상태별로 선 그리기
         for color in status_colors:
@@ -452,3 +515,10 @@ class DraggableItemLabel(QLabel):
             current_x += line_width + line_gap
         
         painter.end()
+
+    def setWordWrap(self, wrap):
+        """QLabel 호환성을 위한 setWordWrap() 메서드"""
+        if hasattr(self, 'item_label'):
+            self.item_label.setWordWrap(wrap)
+        if hasattr(self, 'qty_label'):
+            self.qty_label.setWordWrap(wrap)

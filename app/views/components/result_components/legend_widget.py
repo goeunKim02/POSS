@@ -11,6 +11,12 @@ class LegendWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         self.init_ui()
         
         # 필터 상태 추적
@@ -22,18 +28,13 @@ class LegendWidget(QWidget):
         
     def init_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(10, 5, 10, 5)
-        main_layout.setSpacing(20)
-        
-        # # 타이틀
-        # title_label = QLabel("Status Legend")
-        # title_label.setFont(QFont("Arial", 10, QFont.Bold))
-        # main_layout.addWidget(title_label)
+        main_layout.setContentsMargins(5, 5, 10, 5)
+        main_layout.setSpacing(40)
         
         # 범례 항목들
-        self.create_legend_item(main_layout, "shortage", "#fc3838", 'shortage')
-        self.create_legend_item(main_layout, "shipment", "#fcb438", 'shipment')  
-        self.create_legend_item(main_layout, "pre_assigned", "#7a9ff5", 'pre_assigned')
+        self.create_legend_item(main_layout, "shortage", "#f0afa8", 'shortage')
+        self.create_legend_item(main_layout, "shipment", "#faf3b1", 'shipment')  
+        self.create_legend_item(main_layout, "pre_assigned", "#a8bbf0", 'pre_assigned')
         
         # 스페이서 추가
         main_layout.addStretch(1)
@@ -41,9 +42,8 @@ class LegendWidget(QWidget):
         # 위젯 스타일
         self.setStyleSheet("""
             QWidget {
-                background-color: white;
-                border-radius: 5px;
-                border: 1px solid #E0E0E0;
+                background-color: transparent;
+                border: none;
             }
         """)
         
@@ -61,9 +61,9 @@ class LegendWidget(QWidget):
                                     self.on_filter_changed(st, state == Qt.Checked))
         item_layout.addWidget(checkbox)
         
-        # 색상 표시 (선 형태)
+        # 색상 표시
         color_frame = QFrame()
-        color_frame.setFixedSize(20, 15)
+        color_frame.setFixedSize(30, 30)
         color_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {color};
