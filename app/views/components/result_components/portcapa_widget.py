@@ -36,12 +36,12 @@ class PortCapaWidget(QWidget):
         self.table.verticalHeader().setDefaultSectionSize(35)
 
         self.chart_container = QWidget()
-        self.chart_container.setFixedHeight(250)
         self.chart_layout = QVBoxLayout(self.chart_container)
         self.main_layout.addWidget(self.chart_container)
         self.main_layout.addWidget(self.table)
-
+    """port capa 테이블 그리는 함수"""
     def render_table(self):
+        """port capa 테이블 그리는 함수"""
         self.organized_dataframes = DataStore.get("organized_dataframes",{})
         if not self.organized_dataframes:
             return 
@@ -51,7 +51,8 @@ class PortCapaWidget(QWidget):
         self.df_capa_outgoing = self.organized_dataframes['master'].get('capa_outgoing',pd.DataFrame())
         if self.df_capa_outgoing.empty:
             return
-
+        
+        # 화면에 그릴 테이블의 데이터프레임 만들기 
         self.df_demand = self.df_demand.drop(columns='Item').groupby('To_Site').sum()
         df_portcapa = self.df_capa_outgoing.drop_duplicates(subset='Tosite_port').reset_index(drop=True)
         df_portcapa['Port Capa'] = df_portcapa.iloc[:, 2:9].sum(axis=1)
@@ -71,6 +72,7 @@ class PortCapaWidget(QWidget):
             if widget: widget.deleteLater()
 
         # 새 차트 추가
+        self.chart_container.setFixedHeight(250)
         self.chart_layout.addWidget(PortCapaChartWidget(df_portcapa))
 
 class PortCapaChartWidget(QWidget):
@@ -88,7 +90,6 @@ class PortCapaChartWidget(QWidget):
     def plot(self):
         ax = self.canvas.figure.add_subplot(111)
         ax.clear()
-
         labels = self.df['Tosite_port']
         x = range(len(labels))
         width = 0.35
@@ -101,16 +102,14 @@ class PortCapaChartWidget(QWidget):
         ax.set_xticks(x)
         ax.set_xticklabels(labels, rotation=45, ha='right')
         ax.set_title("Port Capa", fontsize=14)
-
-        # 범례 추가
-        ax.legend()
-
+        ax.legend() # 범례 
+        ax.yaxis.grid(True, linestyle='--', color='gray', alpha=0.7)
+        
         # 불필요한 테두리 및 축 제거
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
-
-        ax.yaxis.grid(True, linestyle='--', color='gray', alpha=0.7)
-
+        
+        # 글자 짤리지 않게 상하 여백 추가 
         self.canvas.figure.subplots_adjust(bottom=0.2,top=0.8)
 
         self.canvas.draw()
