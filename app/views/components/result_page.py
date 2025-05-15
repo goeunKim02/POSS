@@ -586,7 +586,7 @@ class ResultPage(QWidget):
                     # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
                     start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
                     
-                    # 한 번에 데이터 설정 (자동으로 이전 계획 감지 및 로드)
+                    # 데이터 설정 (FilePaths에서 자동으로 이전 계획 파일 확인)
                     self.plan_maintenance_widget.set_data(data, start_date, end_date)
                     print("계획 유지율 위젯 데이터 업데이트 완료")
                 

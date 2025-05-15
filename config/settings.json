@@ -22,12 +22,19 @@
     "itemcnt_limit_max_o_ox": 0,
     "itemcnt_limit_max_o": 1,
     "mat_use": 0,
-    "P999_line_ox": 0,
-    "P999_line": "",
-    "weight_day_ox": 0,
+    "P999_line_ox": true,
+    "P999_line": "I_01",
+    "weight_day_ox": true,
     "weight_day": [
         1.0,
         1.0,
-        1.0
+        1.0,
+        2.0,
+        3.0,
+        0.7,
+        0.2,
+        0.4,
+        0.5,
+        0.6
     ]
 }
