@@ -4,6 +4,7 @@ import pandas as pd
 from app.analysis.output.plan_maintenance import PlanMaintenanceRate
 from app.utils.week_plan_manager import WeeklyPlanManager
 from app.utils.conversion import convert_value
+from app.models.common.fileStore import FilePaths
 
 """계획 데이터 관리 클래스"""    
 class PlanDataManager:
@@ -11,7 +12,6 @@ class PlanDataManager:
         self.plan_analyzer = PlanMaintenanceRate()
         self.current_plan = None
         self.previous_plan_path = None
-        self.is_first_plan = True
         self.modified_item_keys = set()
         
     """현재 계획 설정"""
@@ -30,48 +30,34 @@ class PlanDataManager:
             
             if not previous_df.empty:
                 self.previous_plan_path = file_path
-                self.is_first_plan = False
-                self.plan_analyzer.set_first_plan(False)
                 self.plan_analyzer.set_prev_plan(previous_df)
                 return True, os.path.basename(file_path)
             else:
                 return False, "Empty file"
         except Exception as e:
             return False, str(e)
+            
     
-    """이전 계획 자동 탐색"""
-    def detect_previous_plan(self, start_date, end_date):
-        if start_date is None or end_date is None:
-            return False, "No date information"
-            
-        try:
-            plan_manager = WeeklyPlanManager()
-            print(f"WeeklyPlanManager 생성됨, output_dir: {plan_manager.output_dir}")
-            is_first_plan, previous_plan_path, message = plan_manager.detect_previous_plan(
-                start_date, end_date
-            )
+    """
+    이전 계획 설정
+    FilePaths에서 이전 계획 파일 경로를 가져와서 자동 로드
+    """
+    def set_previous_plan(self):
+        upload_plan = FilePaths.get("result_file")
 
-            print(f"detect_previous_plan 결과:")
-            print(f"  - is_first_plan: {is_first_plan}")
-            print(f"  - previous_plan_path: {previous_plan_path}")
-            print(f"  - message: {message}")
-            
-            self.is_first_plan = is_first_plan
-            self.previous_plan_path = previous_plan_path
-            self.plan_analyzer.set_first_plan(is_first_plan)
-            
-            if not is_first_plan and previous_plan_path and os.path.exists(previous_plan_path):
-                success, message = self.load_previous_plan(previous_plan_path)
-                print(f"이전 계획 로드 결과: success={success}, message={message}")
-                return success, message
+        if upload_plan and os.path.exists(upload_plan):
+            print(f"업로드된 이전 계획 파일 자동 로드: {upload_plan}")
+            success, message = self.load_previous_plan(upload_plan)
+            if success:
+                return success, f"Uploaded previous plan: {message}"
             else:
-                # 첫 번째 계획인 경우 현재 계획을 이전 계획으로 설정
-                if self.current_plan is not None:
-                    self.plan_analyzer.set_prev_plan(self.current_plan)
-                return False, message
-        except Exception as e:
-            print(f"detect_previous_plan 오류: {str(e)}")
-            return False, str(e)
+                print(f"업로드된 파일 로드 실패: {message}")
+                return False, f"Failed to load uploaded file: {message}"      
+        else:
+            # 업로드된 이전 계획 파일이 없음
+            return False, "No previous plan uploaded"
+        
+
     
     """수량 업데이트"""
     def update_quantity(self, line, time, item, new_qty):
@@ -124,7 +110,6 @@ class PlanDataManager:
             return None, None, None, None
         
         print(f"현재 계획: {self.current_plan is not None}")
-        print(f"첫 번째 계획 여부: {self.is_first_plan}")
             
         item_df, item_rate = self.plan_analyzer.calculate_items_maintenance_rate(
             compare_with_adjusted=compare_with_adjusted

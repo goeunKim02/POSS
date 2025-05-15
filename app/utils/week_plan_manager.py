@@ -47,14 +47,16 @@ class WeeklyPlanManager:
         with open(self.registry_file, 'w') as f:
             json.dump(self.registry, f, indent=2)
 
-    """선택한 날짜로부터 주차 정보 계산"""
+    """
+    선택한 날짜로부터 주차 정보 계산
+
+    Parameters:
+        start_date (QDate 또는 datetime): 사용자가 선택한 시작일
+        end_date (QDate 또는 datetime): 사용자가 선택한 종료일
+    Returns:
+        tuple: (week_info, week_start, week_end) - 주차 정보 문자열과 주 시작/종료일
+    """
     def get_week_info(self, start_date, end_date):
-        # Parameters:
-        #     start_date (QDate 또는 datetime): 사용자가 선택한 시작일
-        #     end_date (QDate 또는 datetime): 사용자가 선택한 종료일
-            
-        # Returns:
-        #     tuple: (week_info, week_start, week_end) - 주차 정보 문자열과 주 시작/종료일
 
         # QDate를 datetime으로 변환
         if isinstance(start_date, QDate):
@@ -92,84 +94,19 @@ class WeeklyPlanManager:
         self.registry["plans"].append(plan_info)
         self._save_registry()
     
-    """선택한 날짜 범위를 기반으로 이전 계획 파일 탐색"""
-    def detect_previous_plan(self, start_date, end_date):
-        # Parameters:
-        #     start_date (QDate): 사용자가 선택한 시작일
-        #     end_date (QDate): 사용자가 선택한 종료일
-            
-        # Returns:
-        #     tuple: (is_first_plan, previous_plan_path, message)
 
-        # 주차 정보 및 폴더 계산
-        week_info, week_start, week_end = self.get_week_info(start_date, end_date)
-        week_folder = os.path.join(self.output_dir, week_info)
+    """
+    계획 데이터 저장 및 메타데이터 추가
 
-        # 레지스트리에서 주차가 일치하는 계획 찾기
-        week_plans = []
-        for plan in self.registry["plans"]:
-            if plan["week"] == week_info:
-                if os.path.exists(plan["path"]):
-                    week_plans.append(plan)
-
-        if not week_plans:
-            # 주차 폴더가 없으면 기본 output_dir에서 검색
-            if not os.path.exists(week_folder):
-                plan_pattern = os.path.join(self.output_dir, f"*_plan_*.xlsx")
-            else:
-                # 주차 폴더 내 파일 검색
-                plan_pattern = os.path.join(week_folder, f"*.xlsx")
-
-            existing_plans = glob.glob(plan_pattern)
-
-            for plan_file in existing_plans:
-                file_name = os.path.basename(plan_file)
-                mod_time = os.path.getmtime(plan_file)
-
-                # 파일명에서 주차 정보 추출
-                week_pattern = r'W(\d+\d)'
-                week_match = re.search(week_pattern, file_name)
-
-                if week_match and week_match.group(0) == week_info:
-                    # 레지스트리에 추가
-                    self.register_plan(
-                        plan_file, 
-                        week_info, 
-                        week_start, 
-                        week_end
-                    )
-                    week_plans.append({
-                        'path': plan_file,
-                        'week': week_info,
-                        'mod_time': datetime.fromtimestamp(mod_time).strftime("%Y-%m-%d %H:%M:%S")
-                    })
-
-        if not week_info or not week_plans:
-            return True, None, f"No maintenance rate comparison"
-        
-        # 시간순 정렬
-        week_plans.sort(key=lambda x: x["mod_time"], reverse=True)
-        
-        # 가장 최근 계획 반환
-        if len(week_plans) >= 2:
-            prev_plan = week_plans[0]
-            return False, prev_plan["path"], f"Comparing with previous plan ({prev_plan['week']}, {prev_plan['mod_time']})"
-        else:
-            # 첫 계획인 경우
-            return True, None, f"No previous plan to compare"
-
-
-    """계획 데이터 저장 및 메타데이터 추가"""
+    Parameters:
+        plan_df (DataFrame): 계획 데이터
+        start_date (QDate): 사용자가 선택한 시작일
+        end_date (QDate): 사용자가 선택한 종료일
+        previous_plan (str): 이전 계획 파일 경로 (있는 경우)
+    Returns:
+        str: 저장된 파일 경로
+    """
     def save_plan_with_metadata(self, plan_df, start_date, end_date, previous_plan=None):
-        # Parameters:
-        #     plan_df (DataFrame): 계획 데이터
-        #     start_date (QDate): 사용자가 선택한 시작일
-        #     end_date (QDate): 사용자가 선택한 종료일
-        #     previous_plan (str): 이전 계획 파일 경로 (있는 경우)
-        
-        # Returns:
-        #     str: 저장된 파일 경로
-
         # 주차 정보 계산
         week_info, week_start, week_end = self.get_week_info(start_date, end_date)
 
@@ -189,14 +126,6 @@ class WeeklyPlanManager:
 
         # 전체 경로
         file_path = os.path.join(week_folder, file_name)
-
-        #  # 계획 유지율 계산
-        # plan_maintenance_rate = None
-        # is_first_plan = True
-        
-        # if previous_plan and os.path.exists(previous_plan):
-        #     is_first_plan = False
-        #     plan_maintenance_rate = self._calculate_plan_maintenance(plan_df, previous_plan)
 
         # 엑셀 작성자 생성
         with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
@@ -230,49 +159,6 @@ class WeeklyPlanManager:
         self.register_plan(file_path, week_info, week_start, week_end)
 
         return file_path
-    
-
-    # """계획 유지율 계산"""
-    # def _calculate_plan_maintenance(self, current_df, previous_plan_path):
-    #     # Parameters:
-    #     #     current_df (DataFrame): 현재 계획 데이터
-    #     #     previous_plan_path (str): 이전 계획 파일 경로
-            
-    #     # Returns:
-    #     #     float: 계획 유지율 
-   
-    #     try:
-    #         # 이전 계획 데이터 로드
-    #         prev_df = pd.read_excel(previous_plan_path, sheet_name='Result')
-            
-    #         # 분석기 초기화
-    #         analyzer = PlanMaintenanceRate()
-            
-    #         # 첫 번째 계획이 아닐 경우만
-    #         analyzer.set_first_plan(False)
-            
-    #         # 이전 계획 설정
-    #         analyzer.set_original_plan(prev_df)
-            
-    #         # 현재 계획 설정
-    #         analyzer.set_current_plan(current_df)
-            
-    #         # Item별 유지율 계산
-    #         _, item_rate = analyzer.calculate_items_maintenance_rate(compare_with_adjusted=False)
-            
-    #         # RMC별 유지율 계산
-    #         _, rmc_rate = analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted=False)
-            
-    #         return {
-    #             'item_rate': item_rate,
-    #             'rmc_rate': rmc_rate
-    #         }
-    #     except Exception as e:
-    #         print(f"계획 유지율 계산 오류: {e}")
-    #         return {
-    #             'item_rate': None,
-    #             'rmc_rate': None
-    #         }
     
 
 

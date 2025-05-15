@@ -1,3 +1,4 @@
+import os
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                           QTabWidget, QPushButton, QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt
@@ -46,8 +47,8 @@ class PlanMaintenanceWidget(QWidget):
         self.content_container.hide()
         
         # UI 컴포넌트 생성
-        self.create_toolbar()
         self.create_info_section()
+        self.create_toolbar()
         self.create_tabs()
         
     """툴바 영역 생성"""
@@ -62,11 +63,11 @@ class PlanMaintenanceWidget(QWidget):
         self.select_plan_btn.setCursor(QCursor(Qt.PointingHandCursor))
         self.select_plan_btn.setStyleSheet("""
             QPushButton {
-                background-color: #1428A0; 
+                background-color: #808080; 
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: 8px 8px;
+                padding: 10px 10px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -227,7 +228,27 @@ class PlanMaintenanceWidget(QWidget):
         text_width = font_metrics.width(tab_text)
         return QSize(text_width)  # 여백 추가
     
-    """이전 계획 선택"""
+
+    """긴 파일명을 생략하여 표시"""
+    def truncate_filename(self, filename, max_length=30):
+        if len(filename) <= max_length:
+            return filename
+        
+        # 확장자 제거
+        name_part, ext = os.path.splitext(filename)
+        
+        # 생략 후 길이 계산 (... + 확장자를 고려)
+        available_length = max_length - 3 - len(ext)
+        
+        if available_length > 0:
+            # 앞부분만 유지하고 ... 추가
+            return name_part[:available_length] + "..." + ext
+        else:
+            # 매우 짧은 max_length인 경우
+            return filename[:max_length-3] + "..."
+    
+
+    """result 페이지에서 이전 계획 업로드"""
     def select_previous_plan(self):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
@@ -243,8 +264,13 @@ class PlanMaintenanceWidget(QWidget):
             
             if success:
                 # 상태 레이블 업데이트
-                self.plan_status_label.setText(f"Previous plan: {message}")
+                # 파일명 생략 처리
+                display_message = self.truncate_filename(message, max_length=35)
+                self.plan_status_label.setText(f"Previous plan: {display_message}")
                 self.plan_status_label.setStyleSheet("color: #1428A0; font-weight: bold;")
+
+                # 전체 파일명을 툴팁으로 표시
+                self.plan_status_label.setToolTip(f"Full path: {message}")
                 
                 # 유지율 다시 계산
                 self.refresh_maintenance_rate()
@@ -255,38 +281,75 @@ class PlanMaintenanceWidget(QWidget):
                     f"Previous plan has been loaded successfully:\n{message}"
                 )
             else:
+                self.plan_status_label.setText(message)
+                self.plan_status_label.setStyleSheet("color: #6c757d; font-style: italic;")
+                self.plan_status_label.setToolTip("")  # 툴팁 제거
+                
                 EnhancedMessageBox.show_validation_error(
                     self, 
                     "Load Failed", 
                     f"Failed to load previous plan: {message}"
                 )
                 
+
     """탭 인덱스에 따라 유지율 레이블 업데이트"""
     def update_rate_label(self, index):
         if index == 0:  # Item별 탭
             self.rate_title_label.setText("Item Maintenance Rate :")
             rate_value = getattr(self, 'item_maintenance_rate', None)
+            adjusted_rate_value = getattr(self, 'adjusted_item_maintenance_rate', None)
         else:  # RMC별 탭
             self.rate_title_label.setText("RMC Maintenance Rate :")
             rate_value = getattr(self, 'rmc_maintenance_rate', None)
-            
+            adjusted_rate_value = getattr(self, 'adjusted_rmc_maintenance_rate', None)
+
+        # 초기 유지율이 있는 경우
         if rate_value is not None:
-            # 정수로 표시
-            rate_int = int(rate_value)
-            self.item_rate_label.setText(f"{rate_int}%")
-            
-            # 색상 설정
-            if rate_int >= 90:
-                self.item_rate_label.setStyleSheet("color: #1AB394;")  # 녹색
-            elif rate_int >= 70:
-                self.item_rate_label.setStyleSheet("color: #1428A0;")  # 파란색
+            original_rate_int = int(rate_value)
+
+            # 조정된 유지율이 있는 경우 (조정 후)
+            if adjusted_rate_value is not None:
+                adjusted_rate_int = int(adjusted_rate_value)
+                # 초기 유지율 → 조정 유지율 형태로 표시
+                self.item_rate_label.setText(f"{original_rate_int}% → {adjusted_rate_int}%")
+                
+                # 조정된 유지율의 색상 설정 (향상/악화에 따라)
+                if adjusted_rate_int > original_rate_int:
+                    self.item_rate_label.setStyleSheet("color: #1AB394; font-weight: bold;")  # 개선된 경우 녹색
+                elif adjusted_rate_int < original_rate_int:
+                    self.item_rate_label.setStyleSheet("color: #F8AC59; font-weight: bold;")  # 악화된 경우 주황색
+                else:
+                    self.item_rate_label.setStyleSheet("color: #1428A0; font-weight: bold;")  # 동일한 경우 파란색
+                    
+                # 툴팁으로 변화량 표시
+                change = adjusted_rate_int - original_rate_int
+                if change > 0:
+                    self.item_rate_label.setToolTip(f"Improved by +{change}%")
+                elif change < 0:
+                    self.item_rate_label.setToolTip(f"Decreased by {change}%")
+                else:
+                    self.item_rate_label.setToolTip("No change")
+                    
+            # 초기 유지율만 있는 경우 (조정 전)
             else:
-                self.item_rate_label.setStyleSheet("color: #F8AC59;")  # 주황색
+                self.item_rate_label.setText(f"{original_rate_int}%")
+                self.item_rate_label.setToolTip("")  # 툴팁 제거
+                
+                # 색상 설정
+                if original_rate_int >= 90:
+                    self.item_rate_label.setStyleSheet("color: #1AB394;")  # 녹색
+                elif original_rate_int >= 70:
+                    self.item_rate_label.setStyleSheet("color: #1428A0;")  # 파란색
+                else:
+                    self.item_rate_label.setStyleSheet("color: #F8AC59;")  # 주황색
         else:
             self.item_rate_label.setText("None")
+            self.item_rate_label.setToolTip("")
             
+            
+
+    """결과 데이터 설정"""
     def set_data(self, result_data, start_date=None, end_date=None):
-        """결과 데이터 설정"""
         if result_data is None or result_data.empty:
             # 데이터가 없는 경우
             self.no_data_message.show()
@@ -302,23 +365,23 @@ class PlanMaintenanceWidget(QWidget):
         # 현재 계획 설정
         self.data_manager.set_current_plan(result_data)
         
-        # 이전 계획 자동 탐색
-        if start_date is not None and end_date is not None:
-            success, message = self.data_manager.detect_previous_plan(start_date, end_date)
-            print(f"이전 계획 감지 결과: success={success}, message={message}")
-
-
-            # 이전 계획 감지 상태 확인
-            print(f"plan_manager.is_first_plan: {self.data_manager.is_first_plan}")
-            print(f"plan_manager.previous_plan_path: {self.data_manager.previous_plan_path}")
+        # 이전 계획 설정
+        success, message = self.data_manager.set_previous_plan()
+        print(f"이전 계획 설정 결과: success={success}, message={message}")
             
-            # 상태 레이블 업데이트
-            if success:
-                self.plan_status_label.setText(f"Previous plan: {message}")
-                self.plan_status_label.setStyleSheet("color: #1428A0; font-weight: bold;")
-            else:
-                self.plan_status_label.setText(message)
-                self.plan_status_label.setStyleSheet("color: #6c757d; font-style: italic;")
+        # 상태 레이블 업데이트
+        if success:
+            # 파일명 생략 처리
+            display_message = self.truncate_filename(message, max_length=35)
+            self.plan_status_label.setText(f"Previous plan: {display_message}")
+            self.plan_status_label.setStyleSheet("color: #1428A0; font-weight: bold;")
+
+            # 전체 파일명을 툴팁으로 표시
+            self.plan_status_label.setToolTip(f"Full path: {message}")
+        else:
+            self.plan_status_label.setText(message)
+            self.plan_status_label.setStyleSheet("color: #6c757d; font-style: italic;")
+            self.plan_status_label.setToolTip("")  # 툴팁 제거
         
         # 유지율 계산 및 UI 업데이트
         self.refresh_maintenance_rate()
@@ -330,17 +393,35 @@ class PlanMaintenanceWidget(QWidget):
         # 유지율 계산
         item_df, item_rate, rmc_df, rmc_rate = self.data_manager.calculate_maintenance_rates()
 
-        # 계산된 유지율 저장
+        # 조정 후 유지율 계산 (modified_item_keys가 있는 경우에만)
+        adjusted_item_df, adjusted_item_rate, adjusted_rmc_df, adjusted_rmc_rate = None, None, None, None
+        if self.data_manager.modified_item_keys:
+            adjusted_item_df, adjusted_item_rate, adjusted_rmc_df, adjusted_rmc_rate = self.data_manager.calculate_maintenance_rates(compare_with_adjusted=True)
+
+        # 계산된 유지율 저장 (조정 전)
         self.item_maintenance_rate = item_rate if item_rate is not None else 0.0
         self.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
-        
-        # 테이블 위젯 데이터 설정
-        if item_df is not None and not item_df.empty:
+
+        # 계산된 조정 후 유지율 저장
+        if self.data_manager.modified_item_keys:
+            self.adjusted_item_maintenance_rate = adjusted_item_rate if adjusted_item_rate is not None else 0.0
+            self.adjusted_rmc_maintenance_rate = adjusted_rmc_rate if adjusted_rmc_rate is not None else 0.0
+        else:
+            # 조정이 없었으면 조정 후 유지율은 None으로 설정
+            self.adjusted_item_maintenance_rate = None
+            self.adjusted_rmc_maintenance_rate = None
+
+        # 테이블 위젯 데이터 설정 (조정된 계획이 있으면 그것을 사용)
+        if self.data_manager.modified_item_keys and adjusted_item_df is not None and not adjusted_item_df.empty:
+            self.item_table.populate_data(adjusted_item_df, self.data_manager.modified_item_keys)
+        elif item_df is not None and not item_df.empty:
             self.item_table.populate_data(item_df, self.data_manager.modified_item_keys)
         else:
             print("Item별 유지율 데이터가 없습니다.")
-            
-        if rmc_df is not None and not rmc_df.empty:
+        
+        if self.data_manager.modified_item_keys and adjusted_rmc_df is not None and not adjusted_rmc_df.empty:
+            self.rmc_table.populate_data(adjusted_rmc_df, self.data_manager.modified_item_keys)
+        elif rmc_df is not None and not rmc_df.empty:
             self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys)
         else:
             print("RMC별 유지율 데이터가 없습니다.")
@@ -381,3 +462,4 @@ class PlanMaintenanceWidget(QWidget):
             if hasattr(self.data_manager, 'plan_analyzer') and self.data_manager.plan_analyzer is not None:
                 return self.data_manager.plan_analyzer.get_adjusted_plan()
         return None
+    
