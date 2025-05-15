@@ -1,14 +1,16 @@
-from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog)
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog,
+                             QLineEdit, QLabel, QSizePolicy)
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QTimer
 from PyQt5.QtGui import QCursor
 import pandas as pd
 from .item_grid_widget import ItemGridWidget
+from .item_position_manager import ItemPositionManager
 from app.views.components.result_components.enhanced_message_box import EnhancedMessageBox
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
-    item_selected = pyqtSignal(object, object)  # 아이템 선택 이벤트 추가 (아이템, 컨테이너)
-    item_data_changed = pyqtSignal(object, dict)  # 아이템 데이터 변경 이벤트 추가
+    item_selected = pyqtSignal(object, object)  # 아이템 선택 이벤트 (아이템, 컨테이너)
+    item_data_changed = pyqtSignal(object, dict)  # 아이템 데이터 변경 이벤트
     cell_moved = pyqtSignal(object, dict, dict)  # 이전 아이템, 이전 데이터, 새 데이터
     validation_error_occured = pyqtSignal(dict, str)  
     validation_error_resolved = pyqtSignal(dict)
@@ -18,24 +20,30 @@ class ModifiedLeftSection(QWidget):
         self.data = None
         self.original_data = None
         self.grouped_data = None
-        self.days = ['월', '화', '수', '목', '금', '토', '일']
-        self.time_periods = ['주간', '야간']
+        self.days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        self.time_periods = ['Day', 'Night']
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
-        self.shipment_failure_items = {}  # 출하 실패 아이템 저장 (추가됨)
+        self.shipment_failure_items = {}  # 출하 실패 아이템 저장
         self.init_ui()
 
         # 아이템 이동을 위한 정보 저장
         self.row_headers = []
+
+        # 검색 관련 변수
+        self.search_active = False
+        self.last_search_text = ''
+        self.all_items = []
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
         # 컨트롤 레이아웃
-        control_layout = QHBoxLayout()
+        first_control_layout = QHBoxLayout()
+        first_control_layout.setContentsMargins(10, 5, 10, 5)
 
         # 엑셀 파일 불러오기 버튼
-        self.load_button = QPushButton("엑셀 파일 불러오기")
+        self.load_button = QPushButton("Import Excel file")
         self.load_button.setStyleSheet("""
             QPushButton {
                 background-color: #1428A0;
@@ -53,7 +61,7 @@ class ModifiedLeftSection(QWidget):
         """)
         self.load_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.load_button.clicked.connect(self.load_excel_file)
-        control_layout.addWidget(self.load_button)
+        first_control_layout.addWidget(self.load_button)
 
         # 원본 복원 버튼 
         self.reset_button = QPushButton("Reset to Original")
@@ -74,32 +82,225 @@ class ModifiedLeftSection(QWidget):
         """)
         self.reset_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.reset_button.clicked.connect(self.reset_to_original)
-        self.reset_button.setEnabled(False)  # 초기에는 비활성화
-        control_layout.addWidget(self.reset_button)
+        self.reset_button.setEnabled(False)
+        first_control_layout.addWidget(self.reset_button)
 
-        # 나머지 공간 채우기
-        control_layout.addStretch(1)
+        first_control_layout.addSpacing(20)
 
-        main_layout.addLayout(control_layout)
+        search_label = QLabel('model search : ')
+        search_label.setStyleSheet("""
+            QLabel {
+                color: #333333;
+                font-weight: bold;
+                font-size: 14px;
+                border: None;
+            }
+        """)
+        first_control_layout.addWidget(search_label)
+
+        # 검색 필드
+        self.search_field = QLineEdit()
+        self.search_field.setPlaceholderText('searching...')
+        self.search_field.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #CCCCCC;
+                border-radius: 4px;
+                background-color: white;
+                selection-background-color: #1428A0;
+                font-size: 14px;
+                min-height: 30px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #1428A0;
+            }
+        """)
+        self.search_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.search_field.setFixedHeight(36)
+        self.search_field.returnPressed.connect(self.search_items)
+        first_control_layout.addWidget(self.search_field)
+
+        # 검색 버튼
+        self.search_button = QPushButton('Search')
+        self.search_button.setStyleSheet("""
+            QPushButton {
+                background-color: #1428A0;
+                color: white;
+                font-weight: bold;
+                padding: 8px 15px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #004C99;
+            }
+            QPushButton:pressed {
+                background-color: #003366;
+            }
+        """)
+
+        self.search_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.search_button.clicked.connect(self.search_items)
+        first_control_layout.addWidget(self.search_button)
+
+        # 검색 초기화 버튼
+        self.clear_search_button = QPushButton('Search Reset')
+        self.clear_search_button.setStyleSheet("""
+            QPushButton {
+                background-color: #808080;
+                color: white;
+                font-weight: bold;
+                padding: 8px 15px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #606060;
+            }
+            QPushButton:pressed {
+                background-color: #404040;
+            }
+        """)
+        self.clear_search_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.clear_search_button.clicked.connect(self.clear_search)
+        self.clear_search_button.setEnabled(False)
+        first_control_layout.addWidget(self.clear_search_button)
+
+        main_layout.addLayout(first_control_layout)
+
+        # 검색 상태 표시 레이아웃
+        self.search_status_layout = QHBoxLayout()
+        self.search_status_layout.setContentsMargins(10, 0, 10, 5)
+
+        # 검색 결과 수 표시
+        self.search_result_label = QLabel('')
+        self.search_result_label.setStyleSheet("""
+            QLabel {
+                color: #1428A0;
+                font-weight: bold;
+                font-size: 13px;
+                border: None;
+            }
+        """)
+
+        self.search_status_layout.addStretch(1)
+        self.search_status_layout.addWidget(self.search_result_label)
+
+        self.search_result_label.hide()
+        main_layout.addLayout(self.search_status_layout)
 
         # 새로운 그리드 위젯 추가
         self.grid_widget = ItemGridWidget()
         self.grid_widget.itemSelected.connect(self.on_grid_item_selected)  # 아이템 선택 이벤트 연결
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
+        self.grid_widget.itemCreated.connect(self.register_item)
+
+        main_layout.addWidget(self.grid_widget, 1)
+
+    """
+    새로 생성된 아이템 등록
+    """
+    def register_item(self, item) :
+        if item not in self.all_items :
+            self.all_items.append(item)
+
+            if self.search_active and self.last_search_text :
+                self.apply_search_to_item(item, self.last_search_text)
+
+    """
+    검색 기능 실행
+    """
+    def search_items(self) :
+        search_text = self.search_field.text().strip().lower()
+
+        if not search_text :
+            self.clear_search()
+            return
         
-        main_layout.addWidget(self.grid_widget)
+        self.search_active = True
+        self.last_search_text = search_text
+        self.clear_search_button.setEnabled(True)
+
+        visible_count = 0
+        invalid_items = []
+
+        for item in self.all_items[:] :
+            try:
+                if self.apply_search_to_item(item, search_text):
+                    visible_count += 1
+            except RuntimeError:
+                invalid_items.append(item)
+            except Exception as e:
+                print(f"검색 중 오류 발생: {e}")
+        
+        for item in invalid_items:
+            if item in self.all_items:
+                self.all_items.remove(item)
+
+        self.grid_widget.update_container_visibility()
+
+        if visible_count > 0 :
+            self.search_result_label.setText(f'result : {visible_count}')
+        else :
+            self.search_result_label.setText('result : No matching items')
+        
+        self.search_result_label.show()
+
+    """
+    아이템에 검색 조건 적용
+    """
+    def apply_search_to_item(self, item, search_text) :
+        try :
+            if not item or not hasattr(item, 'item_data') or not item.item_data :
+                return False
+            
+            try:
+                _ = item.isVisible()
+            except RuntimeError:
+                if item in self.all_items:
+                    self.all_items.remove(item)
+
+                return False
+            
+            item_code = str(item.item_data.get('Item', '')).lower()
+            is_match = search_text in item_code
+
+            item.setVisible(is_match)
+
+            container = item.parent()
+
+            if container :
+                if hasattr(container, 'update_visibility') :
+                    container.update_visibility()
+
+            return is_match
+        except RuntimeError:
+            return False
+        except Exception as e:
+            print(f"아이템 검색 중 오류: {e}")
+            return False
+    
+    """
+    검색 초기화
+    """
+    def clear_search(self) :
+        if not self.search_active :
+            return
+        
+        self.search_active = False
+        self.last_search_text = ''
+        self.search_field.clear()
+        self.clear_search_button.setEnabled(False)
+        self.search_result_label.hide()
+
+        for item in self.all_items :
+            item.setVisible(True)
+        
+        self.grid_widget.update_container_visibility()
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""
     def on_grid_item_selected(self, selected_item, container):
-        # 선택 이벤트만 전달하고 정보 표시 관련 코드는 제거
         self.item_selected.emit(selected_item, container)
 
     """아이템 데이터가 변경되면 호출되는 함수"""
     def on_item_data_changed(self, item, new_data, changed_fields=None):
-        print("===== on_item_data_changed 함수 호출 시작 =====")
-        print(f"아이템 타입: {type(item)}")
-        print(f"변경된 필드: {changed_fields}")
-        print(f"새 데이터: {new_data}")
 
         if not item or not new_data or not hasattr(item, 'item_data'):
             print("아이템 또는 데이터가 없음")
@@ -112,7 +313,6 @@ class ModifiedLeftSection(QWidget):
             old_data_for_validation = old_data.copy()
 
             for field, change_info in changed_fields.items():
-                # 검증 관련 필드는 건너뛰기
                 if field.startswith('_validation') or field.startswith('_drop_pos'):
                     continue
 
@@ -120,10 +320,8 @@ class ModifiedLeftSection(QWidget):
                         old_data_for_validation[field] = change_info['from']
                 
             old_data = old_data_for_validation  # 복원된 데이터를 사용
-        print(f"복원된 이전 데이터: {old_data}")
 
         if hasattr(self, 'validator'):
-            # 어디가 변경인지 확인
             is_move = False
             source_line = None
             source_time = None
@@ -147,28 +345,25 @@ class ModifiedLeftSection(QWidget):
             if not valid:
                 validation_failed = True
                 validation_error_message = message
-                print(f"검증 실패: {message}")
                 
                 # 시그널 발생
                 self.validation_error_occured.emit(new_data, message)
             else:
-                print("검증 성공 - 에러 해결 시그널 발생")
                 # changed_fields에서 이전 값 복원
                 old_data_for_removal = old_data.copy()
                 if changed_fields:
                     for field, change_info in changed_fields.items():
                         if field not in ['_drop_pos'] and isinstance(change_info, dict) and 'from' in change_info:
                             old_data_for_removal[field] = change_info['from']
-                
-                print(f"에러 제거를 위한 이전 데이터: {old_data_for_removal}")
+
                 self.validation_error_resolved.emit(old_data_for_removal)
 
         except Exception as e:
             print(f"검증 오류 발생: {e}")
         
-        # 검증 통과 시
-        # Line 또는 Time 값 변경 체크 - 위치 변경 필요한지 확인
+        # Line 또는 Time 값 변경 체크
         position_change_needed = False
+
         if changed_fields:
             # Time 변경 확인
             if 'Time' in changed_fields:
@@ -176,7 +371,6 @@ class ModifiedLeftSection(QWidget):
                 time_change = changed_fields['Time']
                 old_time = time_change['from']
                 new_time = time_change['to']
-                print(f"Time 값 변경 감지: {old_time} -> {new_time}")
 
             # Line 변경 확인
             if 'Line' in changed_fields:
@@ -184,17 +378,14 @@ class ModifiedLeftSection(QWidget):
                 line_change = changed_fields['Line']
                 old_line = line_change['from']
                 new_line = line_change['to']
-                print(f"Line 값 변경 감지: {old_line} -> {new_line}")
             else:
                 print("Line 변경 없음")
 
         # 위치 변경이 필요한 경우
         if position_change_needed:
-            # 기존 container에서 아이템 제거 준비
             old_container = item.parent() if hasattr(item, 'parent') else None
 
             if not isinstance(old_container, QWidget):
-                # print("유효한 컨테이너가 아님")
                 return
 
             # 변경된 Line과 Time에 따른 새 위치 계산
@@ -202,28 +393,18 @@ class ModifiedLeftSection(QWidget):
             new_time = new_data.get('Time')
 
             if not line or not new_time:
-                # print("Line 또는 Time 정보 없음")
                 return
 
             # 새 위치 계산을 위한 정보 가져오기
             old_time = old_time if 'Time' in changed_fields else new_time
             old_line = old_line if 'Line' in changed_fields else line
 
-            # 새 위치 계산
-            from .item_position_manager import ItemPositionManager
-
             old_day_idx, old_shift = ItemPositionManager.get_day_and_shift(old_time)
             new_day_idx, new_shift = ItemPositionManager.get_day_and_shift(new_time)
-
-            # print(f"이전 위치: 요일 인덱스 {old_day_idx}, 교대 {old_shift}")
-            # print(f"새 위치: 요일 인덱스 {new_day_idx}, 교대 {new_shift}")
 
             # 새 행/열 인덱스 계산
             old_row_key = ItemPositionManager.get_row_key(old_line, old_shift)
             new_row_key = ItemPositionManager.get_row_key(line, new_shift)
-
-            # print(f"이전 행 키: {old_row_key}, 새 행 키: {new_row_key}")
-            # print(f"현재 row_headers: {self.row_headers}")
 
             old_row_idx = ItemPositionManager.find_row_index(old_row_key, self.row_headers)
             new_row_idx = ItemPositionManager.find_row_index(new_row_key, self.row_headers)
@@ -231,32 +412,28 @@ class ModifiedLeftSection(QWidget):
             old_col_idx = ItemPositionManager.get_col_from_day_idx(old_day_idx, self.days)
             new_col_idx = ItemPositionManager.get_col_from_day_idx(new_day_idx, self.days)
 
-            # print(f"이전 위치: 행 {old_row_idx}, 열 {old_col_idx}")
-            # print(f"새 위치: 행 {new_row_idx}, 열 {new_col_idx}")
-
             # 유효한 인덱스인 경우 아이템 이동
             if old_row_idx >= 0 and old_col_idx >= 0 and new_row_idx >= 0 and new_col_idx >= 0:
-                print("아이템 이동 시도")
 
                 # 이전 위치에서 아이템 제거
                 if old_container:
-                    print(f"컨테이너에서 아이템 제거 시도: {old_container}")
                     old_container.removeItem(item)
 
                 # 새 위치에 아이템 추가
                 item_text = ""
                 if 'Item' in new_data:
                     item_text = str(new_data['Item'])
+
                     if 'Qty' in new_data and pd.notna(new_data['Qty']):
-                        item_text += f" ({new_data['Qty']}개)"
+                        item_text += f" ({new_data['Qty']})"
 
-                print(f"새 위치에 아이템 추가 시도: 행 {new_row_idx}, 열 {new_col_idx}, 텍스트 {item_text}")
-
-                # 드롭 위치 정보 가져오기 (changed_fields에서)
+                # 드롭 위치 정보 가져오기
                 drop_index = 0
+
                 if changed_fields and '_drop_pos' in changed_fields:
                     try:
                         drop_pos_info = changed_fields['_drop_pos']
+
                         x = int(drop_pos_info['x'])
                         y = int(drop_pos_info['y'])
 
@@ -264,27 +441,22 @@ class ModifiedLeftSection(QWidget):
                         target_container = self.grid_widget.containers[new_row_idx][new_col_idx]
 
                         # 로컬 위치로 변환하여 드롭 인덱스 계산
-                        from PyQt5.QtCore import QPoint
                         drop_index = target_container.findDropIndex(QPoint(x, y))
-                        print(f"계산된 드롭 인덱스: {drop_index}, 위치: ({x}, {y})")
                     except Exception as e:
-                        print(f"드롭 위치 계산 오류: {e}")
-                        drop_index = 0  # 오류 시 첫 번째 위치
+                        drop_index = 0
 
                 # 새 위치에 아이템 추가
                 new_item = self.grid_widget.addItemAt(new_row_idx, new_col_idx, item_text, new_data,drop_index)
 
                 if new_item:
-                    # print("새 아이템 생성 성공")
-
                     # 복원 버튼 활성화
                     self.mark_as_modified()
 
-                    # 아이템이 사전할당된 경우 상태 적용
+                    # 아이템이 사전할당된 경우
                     if 'Item' in new_data and new_data['Item'] in self.pre_assigned_items:
                         new_item.set_pre_assigned_status(True)
                         
-                    # 아이템이 출하 실패인 경우 상태 적용
+                    # 아이템이 출하 실패인 경우
                     if 'Item' in new_data and new_data['Item'] in self.shipment_failure_items:
                         failure_info = self.shipment_failure_items[new_data['Item']]
                         new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
@@ -296,10 +468,6 @@ class ModifiedLeftSection(QWidget):
 
                     # 셀 이동 이벤트 발생 (시각화 차트 업데이트)
                     self.cell_moved.emit(new_item, old_data, new_data)
-
-                    print(f"\n=== cell_moved 시그널 발생 ===")
-                    print(f"이전 데이터: {old_data}")
-                    print(f"새 데이터: {new_data}")
                     return  
                 else:
                     print("새 아이템 생성 실패")
@@ -308,7 +476,6 @@ class ModifiedLeftSection(QWidget):
         else:
             # 위치 변경이 필요 없는 경우 - 데이터만 업데이트
             if hasattr(item, 'update_item_data'):
-                # 수정: update_item_data 메서드의 반환값 처리
                 success, error_message = item.update_item_data(new_data)
                 if not success:
                     print(f"아이템 데이터 업데이트 실패: {error_message}")
@@ -329,30 +496,41 @@ class ModifiedLeftSection(QWidget):
 
         if file_path:
             try:
-                # 엑셀 파일 로드
+                self.clear_all_items()
+
                 self.data = pd.read_excel(file_path)
                 self.update_table_from_data()
 
-                # 데이터 로드 성공 메시지
                 EnhancedMessageBox.show_validation_success(self, "File Loaded Successfully",
                                         f"File has been successfully loaded.\nRows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
-
             except Exception as e:
-                # 에러 메시지 표시
                 EnhancedMessageBox.show_validation_error(self, "File Loding Error", f"An error occurred while loading the file.\n{str(e)}")
+
+    """
+    아이템 목록과 그리드 초기화하는 메서드
+    """
+    def clear_all_items(self) :
+        self.all_items = []
+        self.search_active = False
+        self.last_search_text = ''
+        self.search_field.clear()
+        self.clear_search_button.setEnabled(False)
+        self.search_result_label.hide()
+
+        if hasattr(self, 'grid_widget'):
+            self.grid_widget.clearAllItems()
 
     """엑셀 파일에서 데이터를 읽어와 테이블 업데이트"""
     def update_table_from_data(self):
         if self.data is None:
             return
 
-        # 파일 불러오자마자 바로 그룹화된 테이블 표시
         self.group_data()
 
         # 데이터 변경 신호 발생
         self.data_changed.emit(self.data)
 
-    """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시 (라인별 셀 병합 형태로)"""
+    """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시"""
     def group_data(self): 
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
             EnhancedMessageBox.show_validation_error(self, "Grouping Failed",
@@ -366,28 +544,27 @@ class ModifiedLeftSection(QWidget):
 
             # 여기서는 원래 Line 값을 유지하고, 표시만 바뀌도록 처리
             # 내부적으로는 원래 라인명(예: "1", "A" 등)을 사용하되,
-            # 화면에는 "ㅣ-01" 형식으로 표시됨
+            # 화면에는 "ㅣ-01" 형식으로 표시
 
             # 교대 시간 구분
             shifts = {}
             for time in times:
-                if int(time) % 2 == 1:  # 홀수
-                    shifts[time] = "주간"
-                else:  # 짝수
-                    shifts[time] = "야간"
+                if int(time) % 2 == 1:
+                    shifts[time] = "Day"
+                else:
+                    shifts[time] = "Night"
 
-            # 라인별 교대 정보 구성
+            # 라인별 교대 정보
             line_shifts = {}
             for line in lines:
-                line_shifts[line] = ["주간", "야간"]  # 모든 라인에 주간/야간 교대 추가
+                line_shifts[line] = ["Day", "Night"]
 
-            # 행 헤더 생성 (내부 데이터 관리용)
+            # 행 헤더
             self.row_headers = []
             for line in lines:
-                for shift in ["주간", "야간"]:
+                for shift in ["Day", "Night"]:
                     self.row_headers.append(f"{line}_({shift})")
 
-            # 수정된 그리드 설정 (라인별 셀 병합 형태)
             self.grid_widget.setupGrid(
                 rows=len(self.row_headers),
                 columns=len(self.days),
@@ -416,7 +593,7 @@ class ModifiedLeftSection(QWidget):
                 if 'Item' in row_data and pd.notna(row_data['Item']):
                     item_info = str(row_data['Item'])
 
-                    # MFG 정보가 있으면 수량 정보로 추가 (표시 텍스트에만)
+                    # MFG 정보가 있으면 수량 정보로 추가
                     if 'Qty' in row_data and pd.notna(row_data['Qty']):
                         item_info += f" ({row_data['Qty']}개)"
 
@@ -425,36 +602,27 @@ class ModifiedLeftSection(QWidget):
                         row_idx = self.row_headers.index(row_key)
                         col_idx = self.days.index(day)
 
-                        # 전체 행 데이터를 아이템 데이터로 전달
-                        # pandas Series를 딕셔너리로 변환하여 전달
+                        # 전체 행 데이터를 아이템 데이터(dict 형태)로 전달
                         item_full_data = row_data.to_dict()
                         new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
 
-                        # 새 아이템에 모든 상태 적용
                         if new_item:
                             item_code = item_full_data.get('Item', '')
 
-                            # 사전할당 아이템인 경우 스타일 적용
+                            # 사전할당 아이템인 경우
                             if item_code in self.pre_assigned_items:
                                 new_item.set_pre_assigned_status(True)
                                 
-                            # 출하 실패 아이템인 경우 스타일 적용 
+                            # 출하 실패 아이템인 경우
                             if item_code in self.shipment_failure_items:
                                 item_code = item_full_data.get('Item')
                                 failure_info = self.shipment_failure_items[item_code]
                                 new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
 
-                            # 자재부족 아이템인 경우 스타일 적용
+                            # 자재부족 아이템인 경우
                             if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
                                 shortage_info = self.current_shortage_items[item_code]
                                 new_item.set_shortage_status(True, shortage_info)
-
-                            # # 검증 에러 상태인 겨우 스타일 적용
-                            # if hasattr(self, 'current_validation_errors'):
-                            #     error_key = f"{item_full_data.get('Line')}_{item_full_data.get('Time')}_{item_code}"
-                            #     if error_key in self.current_validation_errors:
-                            #         error_info = self.current_validation_errors[error_key]
-                            #         new_item.set_validation_error(True, error_info.get('message', ''))
 
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
@@ -469,24 +637,14 @@ class ModifiedLeftSection(QWidget):
             self.data_changed.emit(self.grouped_data)
 
         except Exception as e:
-            # 에러 메시지 표시
-            print(f"")
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
 
 
     """외부에서 데이터 설정"""
     def set_data_from_external(self, new_data):
-        # 데이터 타입 통일
         if not new_data.empty:
-            # 정수 변환
             new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce')
             new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce')
-            
-        print("데이터 타입 통일 후:")
-        if 'Time' in new_data.columns:
-            print(f"Time 열 타입: {new_data['Time'].dtype}")
-        if 'Qty' in new_data.columns:
-            print(f"Qty 열 타입: {new_data['Qty'].dtype}")
         
         self.data = new_data
         self.original_data = self.data.copy()
@@ -584,7 +742,6 @@ class ModifiedLeftSection(QWidget):
             EnhancedMessageBox.show_validation_success(
                 self, "Reset Complete", "Data has been successfully reset to the original values."
             )
-
     
     """데이터가 수정되었음을 표시하는 메서드"""
     def mark_as_modified(self):
@@ -595,11 +752,6 @@ class ModifiedLeftSection(QWidget):
     def set_current_shortage_items(self, shortage_items):
         self.current_shortage_items = shortage_items
         self.apply_all_states()
-
-    # """현재 검증 에러 정보 저장"""
-    # def set_current_validation_errors(self, validation_errors):
-    #     self.current_validation_errors = validation_errors
-    #     self.apply_all_states()
 
     """모든 상태 정보를 현재 아이템들에 적용"""
     def apply_all_states(self):
@@ -625,10 +777,3 @@ class ModifiedLeftSection(QWidget):
                         if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
                             shortage_info = self.current_shortage_items[item_code]
                             item.set_shortage_status(True, shortage_info)
-
-                        # # 검증 에러 상태인 겨우 스타일 적용
-                        # if hasattr(self, 'current_validation_errors'):
-                        #     error_key = f"{item.item_data.get('Line')}_{item.item_data.get('Time')}_{item_code}"
-                        #     if error_key in self.current_validation_errors:
-                        #         error_info = self.current_validation_errors[error_key]
-                        #         item.set_validation_error(True, error_info.get('message', ''))
