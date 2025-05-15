@@ -321,7 +321,7 @@ class ItemsContainer(QWidget):
 
                 # 텍스트 업데이트 호출
                 new_item.update_text_from_data()
-                
+
                 self.itemDataChanged.emit(new_item, item_data, {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
 
                 self.show_drop_indicator = False
@@ -432,13 +432,13 @@ class ItemsContainer(QWidget):
 
                                      # 검증 실패 시 드롭 거부하고 함수 종료
                                     if not valid:
-                                        print(f"[DEBUG] 검증 실패하지만 진행: {message}")
+                                        # print(f"[DEBUG] 검증 실패하지만 진행: {message}")
                                         item_data['_validation_failed'] = True
                                         item_data['_validation_message'] = message
-                                else:
-                                    print("[DEBUG] validator가 없어서 검증 스킵")
+                                # else:
+                                #     print("[DEBUG] validator가 없어서 검증 스킵")
 
-                                print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
+                                # print(f"드래그 위치에 맞게 데이터 업데이트: Line={line_part}, Time={new_time}")
 
                     # 선택 상태 확인
                     was_selected = getattr(source, 'is_selected', False)

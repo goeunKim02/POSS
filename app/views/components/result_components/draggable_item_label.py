@@ -408,9 +408,6 @@ class DraggableItemLabel(QFrame):
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):
-        print(f"[DEBUG] ItemsContainer.update_item_data 호출됨")
-        print(f"[DEBUG]  new_data: {new_data}")
-        
         if new_data:
             # 데이터 변경 전 검증 (부모 위젯을 통해 validator 찾기)
             validator = None
@@ -454,13 +451,13 @@ class DraggableItemLabel(QFrame):
                     print(f"검증 실패지만 변경 허용: {message}")
                 
             # 검증 상관없이 데이터 업데이트 진행
-            print("[DEBUG] 데이터 업데이트 시작")
+            # print("[DEBUG] 데이터 업데이트 시작")
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
             self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
-            print("[DEBUG] 데이터 업데이트 완료")
+            # print("[DEBUG] 데이터 업데이트 완료")
             return True, ""
             
         return False, "데이터가 없습니다."
