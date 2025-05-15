@@ -1,12 +1,16 @@
-from PyQt5.QtWidgets import (QMessageBox, QVBoxLayout, QLabel, QPushButton, 
-                             QHBoxLayout, QDialog, QApplication, QFrame)
-from PyQt5.QtGui import QFont, QIcon, QCursor
+from PyQt5.QtWidgets import (QVBoxLayout, QLabel, QPushButton, 
+                             QHBoxLayout, QDialog)
+from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt
 
-"""메시지 박스 클래스"""
+"""
+메시지 박스 클래스
+"""
 class EnhancedMessageBox:
     
-    """검증 오류 메시지 박스 표시"""
+    """
+    검증 오류 메시지 박스 표시
+    """
     @staticmethod
     def show_validation_error(parent, title, message):
         dialog = QDialog(parent)
@@ -16,7 +20,6 @@ class EnhancedMessageBox:
         
         layout = QVBoxLayout(dialog)
         
-        # 스타일 시트
         dialog.setStyleSheet("""
             QDialog {
                 background-color: white;
@@ -72,8 +75,9 @@ class EnhancedMessageBox:
         
         return dialog.exec_() == QDialog.Accepted
     
-    
-    """검증 성공 메시지 박스 표시"""
+    """
+    검증 성공 메시지 박스 표시
+    """
     @staticmethod
     def show_validation_success(parent, title, message):
         dialog = QDialog(parent)
@@ -83,7 +87,6 @@ class EnhancedMessageBox:
         
         layout = QVBoxLayout(dialog)
         
-        # 스타일 시트
         dialog.setStyleSheet("""
             QDialog {
                 background-color: white;
@@ -140,7 +143,9 @@ class EnhancedMessageBox:
         return dialog.exec_() == QDialog.Accepted
     
 
-    """확인 다이얼로그 (Yes/No)"""
+    """
+    확인 다이얼로그 (Yes/No)
+    """
     @staticmethod
     def show_confirmation(parent, title, message):
         dialog = QDialog(parent)
@@ -150,7 +155,6 @@ class EnhancedMessageBox:
         
         layout = QVBoxLayout(dialog)
         
-        # 스타일 시트
         dialog.setStyleSheet("""
             QDialog {
                 background-color: white;
@@ -172,8 +176,8 @@ class EnhancedMessageBox:
             }
         """)
         
-        # 제목 (선택사항)
-        if title:  # 제목이 있을 때만 표시
+        # 제목 (제목이 있을 때만 표시)
+        if title:
             title_label = QLabel(title)
             title_label.setAlignment(Qt.AlignCenter)
             title_label.setFont(QFont("Arial", 18, QFont.Bold))
@@ -202,7 +206,6 @@ class EnhancedMessageBox:
         yes_button.clicked.connect(dialog.accept)
         button_layout.addWidget(yes_button)
         
-        # 간격 추가
         button_layout.addSpacing(10)
         
         # No 버튼

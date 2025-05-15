@@ -1,9 +1,7 @@
-# help_dialog.py - 메인 다이얼로그 클래스
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTabWidget, QFrame
 from PyQt5.QtGui import QFont, QCursor
-from PyQt5.QtCore import Qt, QFile, QTextStream
+from PyQt5.QtCore import Qt
 
-# 분리된 탭 컴포넌트 import
 from app.views.components.help_dialogs import (
     OverviewTabComponent,
     DataInputTabComponent,
@@ -11,9 +9,10 @@ from app.views.components.help_dialogs import (
     ResultTabComponent
 )
 
-
+"""
+도움말 다이얼로그 창
+"""
 class HelpDialog(QDialog):
-    """도움말 다이얼로그 창"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,26 +31,24 @@ class HelpDialog(QDialog):
         title_frame.setStyleSheet("background-color: #1428A0; border: none;")
         title_frame.setFixedHeight(60)
 
-        # 프레임 레이아웃 생성
+        # 프레임 레이아웃
         title_frame_layout = QVBoxLayout(title_frame)
         title_frame_layout.setContentsMargins(20, 0, 10, 0)
         title_frame_layout.setAlignment(Qt.AlignLeft)
 
-        # 제목 레이블 생성
+        # 제목 레이블
         title_label = QLabel("Help Guide")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet("color: white;")  # 텍스트 색상 설정
+        title_label.setStyleSheet("color: white;")
 
-        # 레이아웃에 레이블 추가
         title_frame_layout.addWidget(title_label)
 
-        # 메인 레이아웃에 프레임 추가
         main_layout.addWidget(title_frame)
 
-        # 탭 위젯 생성
+        # 탭 위젯
         tab_widget = QTabWidget()
         tab_widget.setStyleSheet(
             """      
@@ -79,13 +76,11 @@ class HelpDialog(QDialog):
                 """
         )
 
-        # 분리된 컴포넌트 추가
         overview_tab = OverviewTabComponent()
         data_input_tab = DataInputTabComponent()
         planning_tab = PlanningTabComponent()
         result_tab = ResultTabComponent()
 
-        # 탭 추가
         tab_widget.addTab(overview_tab, "OverView")
         tab_widget.addTab(data_input_tab, "Data Input")
         tab_widget.addTab(planning_tab, "Pre-Assigned")
@@ -117,11 +112,10 @@ class HelpDialog(QDialog):
         }
         """)
         close_button.setCursor(QCursor(Qt.PointingHandCursor))
-        close_button.clicked.connect(self.accept)  # 다이얼로그 닫기
+        close_button.clicked.connect(self.accept)
 
         button_layout.addStretch(1)
         button_layout.addWidget(close_button)
 
-        # 메인 레이아웃에 위젯 추가
         main_layout.addWidget(tab_widget)
-        main_layout.addWidget(button_frame)  # addLayout에서 addWidget으로 수정
+        main_layout.addWidget(button_frame)

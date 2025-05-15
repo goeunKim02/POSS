@@ -1,10 +1,12 @@
 from PyQt5.QtWidgets import QCalendarWidget
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, QLocale
+from PyQt5.QtCore import QLocale
 
 
+"""
+커스텀 캘린더 위젯
+"""
 class CustomCalendarWidget(QCalendarWidget):
-    """커스텀 캘린더 위젯"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -12,7 +14,6 @@ class CustomCalendarWidget(QCalendarWidget):
 
     def init_ui(self):
         try:
-            # 영어 로케일 설정
             english_locale = QLocale(QLocale.English, QLocale.UnitedStates)
             self.setLocale(english_locale)
 
@@ -25,10 +26,8 @@ class CustomCalendarWidget(QCalendarWidget):
             font = QFont("Arial", 9)
             self.setFont(font)
 
-            # 시그널 연결 추가
             self.clicked.connect(self.on_date_clicked)
 
-            # 스타일시트 적용
             self.setStyleSheet("""
                 /* 전체 캘린더 배경 */
                 QCalendarWidget {
@@ -84,9 +83,11 @@ class CustomCalendarWidget(QCalendarWidget):
         except Exception as e:
             print(f"캘린더 초기화 오류: {e}")
 
+    """
+    날짜를 클릭했을 때 호출되는 메서드 (필요 시 구현)
+    """
     def on_date_clicked(self, date):
-        """날짜를 클릭했을 때 호출되는 메서드"""
         try:
-            print(f"선택된 날짜: {date.toString('yyyy-MM-dd')}")
+            pass
         except Exception as e:
             print(f"날짜 클릭 처리 오류: {e}")
