@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import pyqtSignal, Qt
 
 from .open_dynamic_properties_dialog import DynamicPropertiesDialog
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from app.models.common.event_bus import EventBus
 from app.resources.fonts.font_manager import font_manager
 

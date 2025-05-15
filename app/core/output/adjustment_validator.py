@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from app.models.common.fileStore import DataStore, FilePaths
+from app.models.common.file_store import DataStore, FilePaths
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.utils.conversion import convert_value
 

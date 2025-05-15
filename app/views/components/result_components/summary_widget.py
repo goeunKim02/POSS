@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QColor, QBrush
 import pandas as pd
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from app.utils.fileHandler import load_file
 
 """결과 요약 정보 표시 위젯"""

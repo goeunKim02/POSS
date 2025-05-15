@@ -1,6 +1,6 @@
 import pandas as pd
 from app.utils.fileHandler import load_file
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from dataclasses import dataclass
 from typing import Any, List, Tuple, Dict
 

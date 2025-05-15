@@ -1,7 +1,7 @@
 import pandas as pd
 import os
-from app.models.common.fileStore import FilePaths
-from app.models.common.projectGrouping import ProjectGroupManager
+from app.models.common.file_store import FilePaths
+from app.models.common.project_grouping import ProjectGroupManager
 
 """
 파일 유형 감지하는 함수
