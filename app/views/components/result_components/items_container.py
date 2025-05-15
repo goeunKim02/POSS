@@ -17,13 +17,13 @@ class ItemsContainer(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(2, 2, 2, 2)
-        self.layout.setSpacing(2)
+        self.layout.setSpacing(3)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
         self.selected_item = None  # 현재 선택된 아이템
 
         self.base_height = 100
-        self.item_height = 45  # 각 아이템의 예상 높이
+        self.item_height = 30  # 각 아이템의 예상 높이
         self.setMinimumHeight(self.base_height)
 
         # 드롭 인디케이터 관련 변수

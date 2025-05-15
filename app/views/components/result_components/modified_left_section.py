@@ -478,7 +478,7 @@ class ModifiedLeftSection(QWidget):
 
         except Exception as e:
             # 에러 메시지 표시
-            print(f"")
+            print(f"그룹핑 에러: {e}")
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
 
 

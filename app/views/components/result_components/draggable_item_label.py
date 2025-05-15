@@ -34,18 +34,17 @@ class DraggableItemLabel(QFrame):
         # 아이템 라벨 (왼쪽)
         self.item_label = QLabel()
         self.item_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.item_label.setFont(QFont('Arial', 9, QFont.Normal))
+        self.item_label.setFont(QFont('Arial', 9))
         self.item_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.item_label.setStyleSheet("background: transparent; border: none;")
-        self.item_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(self.item_label)
         
         # 수량 라벨 (오른쪽)
         self.qty_label = QLabel()
         self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.qty_label.setFont(QFont('Arial', 9, QFont.Bold))
+        self.qty_label.setFont(QFont('Arial', 9))
+        self.qty_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.qty_label.setStyleSheet("background: transparent; border: none;")
-        self.qty_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(self.qty_label)
 
         # 위젯 속성 설정
@@ -55,7 +54,7 @@ class DraggableItemLabel(QFrame):
         
         # 위젯 크기 설정
         self.setMinimumHeight(80)
-        self.setMaximumHeight(100)  # 새로 추가
+        # self.setMaximumHeight(100)  # 새로 추가
         self.setMinimumWidth(320)
         
         # 사전할당 상태 관련 속성 
@@ -110,7 +109,7 @@ class DraggableItemLabel(QFrame):
             
         # 기존 형식의 텍스트를 파싱해서 두 라벨에 분배
         if '(' in text and text.endswith(')'):
-            # "ItemCode (123개)" 형식
+            # "ItemCode (123)" 형식
             parts = text.rsplit('(', 1)
             self.item_label.setText(parts[0].strip())
             self.qty_label.setText(parts[1].rstrip(')'))
@@ -166,49 +165,49 @@ class DraggableItemLabel(QFrame):
         return tooltip
 
 
-    def _create_shortage_tooltip(self):
-        if not self.shortage_data:
-            return self._create_tooltip_text()
+    # def _create_shortage_tooltip(self):
+    #     if not self.shortage_data:
+    #         return self._create_tooltip_text()
         
-        item_code = self.item_data.get('Item', 'Unknown Item') if self.item_data else 'Unknown Item'
-        tooltip = """
-        <style>
-            table.tooltip-table {
-                border-collapse: collapse;
-                font-family: Arial, sans-serif;
-                font-size: 10pt;
-            }
-            table.tooltip-table th {
-                background-color: #1428A0;
-                color: white;
-                padding: 4px 8px;
-            }
-            table.tooltip-table td {
-                background-color: #F5F5F5;
-                padding: 4px 8px;
-                border-bottom: 1px solid #E0E0E0;
-            }
-            table.tooltip-table tr:last-child td {
-                border-bottom: none;
-            }
-        </style>
-        <table class='tooltip-table'>
-            <tr><th colspan='4'>{item_code} Material Shortage Details</th></tr>
-            <tr>
-                <th>Material</th>
-                <th>Required</th>
-                <th>Available</th>
-                <th>Shortage</th>
-            </tr>
-        """
-        for shortage in self.shortage_data:
-            tooltip += f"<tr><td>{shortage['Material']}</td>"
-            tooltip += f"<td align='right'>{int(shortage['Required']):,}</td>"
-            tooltip += f"<td align='right'>{int(shortage['Available']):,}</td>"
-            tooltip += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td></tr>"
-        tooltip += "</table><br/>"
-        tooltip += self._create_tooltip_text()
-        return tooltip
+    #     item_code = self.item_data.get('Item', 'Unknown Item') if self.item_data else 'Unknown Item'
+    #     tooltip = """
+    #     <style>
+    #         table.tooltip-table {
+    #             border-collapse: collapse;
+    #             font-family: Arial, sans-serif;
+    #             font-size: 10pt;
+    #         }
+    #         table.tooltip-table th {
+    #             background-color: #1428A0;
+    #             color: white;
+    #             padding: 4px 8px;
+    #         }
+    #         table.tooltip-table td {
+    #             background-color: #F5F5F5;
+    #             padding: 4px 8px;
+    #             border-bottom: 1px solid #E0E0E0;
+    #         }
+    #         table.tooltip-table tr:last-child td {
+    #             border-bottom: none;
+    #         }
+    #     </style>
+    #     <table class='tooltip-table'>
+    #         <tr><th colspan='4'>{item_code} Material Shortage Details</th></tr>
+    #         <tr>
+    #             <th>Material</th>
+    #             <th>Required</th>
+    #             <th>Available</th>
+    #             <th>Shortage</th>
+    #         </tr>
+    #     """
+    #     for shortage in self.shortage_data:
+    #         tooltip += f"<tr><td>{shortage['Material']}</td>"
+    #         tooltip += f"<td align='right'>{int(shortage['Required']):,}</td>"
+    #         tooltip += f"<td align='right'>{int(shortage['Available']):,}</td>"
+    #         tooltip += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td></tr>"
+    #     tooltip += "</table><br/>"
+    #     tooltip += self._create_tooltip_text()
+    #     return tooltip
 
 
     def mousePressEvent(self, event):
