@@ -47,6 +47,11 @@ class ModifiedLeftSection(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # 범례 위젯 추가
+        self.legend_widget = LegendWidget()
+        self.legend_widget.filter_changed.connect(self.on_filter_changed)
+        main_layout.addWidget(self.legend_widget)
+
         # 컨트롤 레이아웃
         first_control_layout = QHBoxLayout()
         first_control_layout.setContentsMargins(10, 5, 10, 5)
@@ -97,16 +102,7 @@ class ModifiedLeftSection(QWidget):
         # 나머지 공간 채우기
         first_control_layout.addStretch(1)
 
-
-        # 범례 위젯 추가
-        self.legend_widget = LegendWidget()
-        self.legend_widget.filter_changed.connect(self.on_filter_changed)
-        main_layout.addWidget(self.legend_widget)
-
-        main_layout.addLayout(first_control_layout)
-
-        first_control_layout.addSpacing(20)
-
+        # 검색 레이블
         search_label = QLabel('model search : ')
         search_label.setStyleSheet("""
             QLabel {
@@ -129,6 +125,7 @@ class ModifiedLeftSection(QWidget):
                 selection-background-color: #1428A0;
                 font-size: 14px;
                 min-height: 30px;
+                padding: 0 10px;  /* 좌우 패딩 추가 */
             }
             QLineEdit:focus {
                 border: 1px solid #1428A0;
@@ -137,7 +134,7 @@ class ModifiedLeftSection(QWidget):
         self.search_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.search_field.setFixedHeight(36)
         self.search_field.returnPressed.connect(self.search_items)
-        first_control_layout.addWidget(self.search_field)
+        first_control_layout.addWidget(self.search_field, 2)
 
         # 검색 버튼
         self.search_button = QPushButton('Search')
