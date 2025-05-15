@@ -257,8 +257,7 @@ class ItemsContainer(QWidget):
             is_ctrl_pressed = event.keyboardModifiers() & Qt.ControlModifier  # [CTRL COPY]
 
             if is_ctrl_pressed and isinstance(source, DraggableItemLabel):
-                print("아이템 컨트롤 드래그앤 드롭 이벤트 발생")  # [CTRL COPY]
-                
+                # print("아이템 컨트롤 드래그앤 드롭 이벤트 발생") 
                 source_container = source.parent()
 
                 # 아이템 데이터가 없으면 원본에서 복사

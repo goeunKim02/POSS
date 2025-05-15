@@ -39,7 +39,7 @@ class PortCapaWidget(QWidget):
         self.chart_layout = QVBoxLayout(self.chart_container)
         self.main_layout.addWidget(self.chart_container)
         self.main_layout.addWidget(self.table)
-
+    """port capa 테이블 그리는 함수"""
     def render_table(self):
         """port capa 테이블 그리는 함수"""
         self.organized_dataframes = DataStore.get("organized_dataframes",{})
