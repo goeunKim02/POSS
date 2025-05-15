@@ -390,6 +390,18 @@ class PlanMaintenanceWidget(QWidget):
         
     def refresh_maintenance_rate(self):
         """유지율 다시 계산하고 UI 업데이트"""
+        # 이전 계획이 없는 경우 처리
+        if not hasattr(self.data_manager, 'plan_analyzer') or not self.data_manager.plan_analyzer:
+            print("계획 분석기가 없습니다.")
+            return
+            
+        if not hasattr(self.data_manager.plan_analyzer, 'prev_plan') or self.data_manager.plan_analyzer.prev_plan is None:
+            print("이전 계획이 없어서 유지율 계산을 건너뜁니다.")
+            # 데이터가 없음을 표시
+            self.item_rate_label.setText("No previous plan")
+            self.item_rate_label.setStyleSheet("color: #6c757d; font-style: italic;")
+            return
+        
         # 유지율 계산
         item_df, item_rate, rmc_df, rmc_rate = self.data_manager.calculate_maintenance_rates()
 

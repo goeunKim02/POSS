@@ -7,6 +7,7 @@ from .item_grid_widget import ItemGridWidget
 from .item_position_manager import ItemPositionManager
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from app.models.common.fileStore import FilePaths
+from .legend_widget import LegendWidget
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
@@ -35,9 +36,21 @@ class ModifiedLeftSection(QWidget):
         self.last_search_text = ''
         self.all_items = []
 
+        # 필터 상태 저장 
+        self.current_filter_states = {
+            'shortage': False,
+            'shipment': False,  
+            'pre_assigned': False
+        }
+
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        # 범례 위젯 추가
+        self.legend_widget = LegendWidget()
+        self.legend_widget.filter_changed.connect(self.on_filter_changed)
+        main_layout.addWidget(self.legend_widget)
 
         # 컨트롤 레이아웃
         first_control_layout = QHBoxLayout()
@@ -86,8 +99,10 @@ class ModifiedLeftSection(QWidget):
         self.reset_button.setEnabled(False)
         first_control_layout.addWidget(self.reset_button)
 
-        first_control_layout.addSpacing(20)
+        # 나머지 공간 채우기
+        first_control_layout.addStretch(1)
 
+        # 검색 레이블
         search_label = QLabel('model search : ')
         search_label.setStyleSheet("""
             QLabel {
@@ -110,6 +125,7 @@ class ModifiedLeftSection(QWidget):
                 selection-background-color: #1428A0;
                 font-size: 14px;
                 min-height: 30px;
+                padding: 0 10px;  /* 좌우 패딩 추가 */
             }
             QLineEdit:focus {
                 border: 1px solid #1428A0;
@@ -118,7 +134,7 @@ class ModifiedLeftSection(QWidget):
         self.search_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.search_field.setFixedHeight(36)
         self.search_field.returnPressed.connect(self.search_items)
-        first_control_layout.addWidget(self.search_field)
+        first_control_layout.addWidget(self.search_field, 2)
 
         # 검색 버튼
         self.search_button = QPushButton('Search')
@@ -295,6 +311,7 @@ class ModifiedLeftSection(QWidget):
             item.setVisible(True)
         
         self.grid_widget.update_container_visibility()
+
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""
     def on_grid_item_selected(self, selected_item, container):
@@ -639,6 +656,8 @@ class ModifiedLeftSection(QWidget):
             self.data_changed.emit(self.grouped_data)
 
         except Exception as e:
+            # 에러 메시지 표시
+            print(f"그룹핑 에러: {e}")
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
 
 
@@ -749,7 +768,6 @@ class ModifiedLeftSection(QWidget):
     def mark_as_modified(self):
         self.reset_button.setEnabled(True)
 
-
     """현재 자재부족 아이템 정보 저장"""
     def set_current_shortage_items(self, shortage_items):
         self.current_shortage_items = shortage_items
@@ -779,3 +797,67 @@ class ModifiedLeftSection(QWidget):
                         if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
                             shortage_info = self.current_shortage_items[item_code]
                             item.set_shortage_status(True, shortage_info)
+
+    """범례 위젯에서 필터가 변경될 때 호출"""
+    def on_filter_changed(self, filter_states):
+        self.current_filter_states = filter_states
+        self.apply_visibility_filter()
+    
+    """현재 필터 상태에 따라 아이템 가시성 조정"""
+    def apply_visibility_filter(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    should_show = self.should_show_item(item)
+                    
+                    # 아이템 가시성 설정
+                    if should_show:
+                        item.show()
+                    else:
+                        item.hide()
+                        
+                # 컨테이너 높이 재조정
+                container.adjustSize()
+    
+    """
+    아이템이 표시
+    - shortage만 체크: 자재부족 아이템만 표시
+    - shipment만 체크: 출하실패 아이템만 표시
+    - pre_assigned만 체크: 사전할당 아이템만 표시
+    - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
+    - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
+    - 모든 체크박스 해제: 모든 아이템 표시
+    """
+    def should_show_item(self, item):
+        if not hasattr(self, 'current_filter_states'):
+            return True
+        
+        # 아이템의 상태 확인
+        is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
+        is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+        is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+        
+        # 각 상태별 필터 확인
+        shortage_filter = self.current_filter_states.get('shortage', False)
+        shipment_filter = self.current_filter_states.get('shipment', False)
+        pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
+
+        # 모든 필터가 해제되어 있으면 모든 아이템 표시
+        if not (shortage_filter or shipment_filter or pre_assigned_filter):
+            return True
+        
+        # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
+        should_show = True
+        
+        # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
+        if shortage_filter and not is_shortage:
+            should_show = False
+        if shipment_filter and not is_shipment:
+            should_show = False
+        if pre_assigned_filter and not is_pre_assigned:
+            should_show = False
+        
+        return should_show

@@ -20,7 +20,7 @@ class ItemsContainer(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(2, 2, 2, 2)
-        self.layout.setSpacing(2)
+        self.layout.setSpacing(3)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
         self.selected_item = None  # 현재 선택된 아이템
@@ -75,7 +75,7 @@ class ItemsContainer(QWidget):
         self.layout.removeItem(self.spacer)
 
         item_label = DraggableItemLabel(item_text, self, item_data)
-        item_label.setFont(QFont('Arial', 8, QFont.Normal))
+        # item_label.setFont(QFont('Arial', 8, QFont.Normal))
 
         # 아이템 선택 이벤트 연결
         item_label.itemSelected.connect(self.on_item_selected)
@@ -531,9 +531,6 @@ class ItemsContainer(QWidget):
             painter.drawPolygon(points_right)
 
 
-    """
-    현재 컨테이너가 그리드에서 어느 위치에 있는지 반환
-    """
     def get_container_position(self, grid_widget):
         if not grid_widget or not hasattr(grid_widget, 'containers'):
             return -1, -1
@@ -565,3 +562,4 @@ class ItemsContainer(QWidget):
                 return line_part, new_time
         
         return None, None
+    
