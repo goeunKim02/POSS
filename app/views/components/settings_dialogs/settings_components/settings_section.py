@@ -540,9 +540,15 @@ class ModernSettingsSectionComponent(QFrame):
                     # 클릭 이벤트 연결
                     button.clicked.connect(lambda checked, val=item: toggle_button(val))
 
-                    # 그리드에 버튼 추가
-                    row = i // cols
-                    col = i % cols
+                    # 홀수/짝수에 따라 행과 열 위치 결정
+                    num = int(item)  # 숫자로 변환
+                    if num % 2 == 1:  # 홀수
+                        row = 0
+                        col = (num - 1) // 2
+                    else:  # 짝수
+                        row = 1
+                        col = (num // 2) - 1
+
                     grid_layout.addWidget(button, row, col)
 
                     # 버튼 딕셔너리에 저장

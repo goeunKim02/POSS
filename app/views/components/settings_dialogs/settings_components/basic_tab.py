@@ -47,8 +47,13 @@ class ModernBasicTabComponent(BaseTabComponent):
 
         # 러닝 타임 설정 항목 추가
         running_section.add_setting_item(
-            "Processing Time(s)", "time_limit", "input",
-            min=1, max=86400, default=SettingsStore.get("time_limit", 300),
+            "First Processing Time(s)", "time_limit1", "input",
+            min=1, max=86400, default=SettingsStore.get("time_limit1", 10),
+        )
+
+        running_section.add_setting_item(
+            "Second Processing Time(s)", "time_limit2", "input",
+            min=1, max=86400, default=SettingsStore.get("time_limit2", 300),
         )
 
         # 가중치 섹션 (모던 스타일)
