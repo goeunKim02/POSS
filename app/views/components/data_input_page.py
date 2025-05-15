@@ -22,9 +22,9 @@ from app.views.components.data_upload_components.data_input_components import Si
 from app.views.components.data_upload_components.right_parameter_component import RightParameterComponent
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
-from app.analysis.input.capa_analysis import PjtGroupAnalyzer
-from app.analysis.input.material_analyzer import MaterialAnalyzer
-from app.analysis.input.shipment_analysis import calculate_fulfillment_rate
+from app.core.input.capa_analysis import PjtGroupAnalyzer
+from app.core.input.material_analyzer import MaterialAnalyzer
+from app.core.input.shipment_analysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
