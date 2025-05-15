@@ -443,7 +443,7 @@ class ModifiedLeftSection(QWidget):
                     item_text = str(new_data['Item'])
 
                     if 'Qty' in new_data and pd.notna(new_data['Qty']):
-                        item_text += f" ({new_data['Qty']})"
+                        item_text += f"    {new_data['Qty']}"
 
                 # 드롭 위치 정보 가져오기
                 drop_index = 0
@@ -614,7 +614,7 @@ class ModifiedLeftSection(QWidget):
 
                     # MFG 정보가 있으면 수량 정보로 추가
                     if 'Qty' in row_data and pd.notna(row_data['Qty']):
-                        item_info += f" ({row_data['Qty']}개)"
+                        item_info += f"    {row_data['Qty']}"
 
                     try:
                         # 그리드에 아이템 추가
