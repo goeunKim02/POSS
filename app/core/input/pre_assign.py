@@ -588,40 +588,43 @@ def run_allocation() -> PreAssignFailures:
     for _, row in missing_fixed.iterrows():
         target = row['Fixed_Group']
         if not row['Fixed_Line']:
-            failures['pre_assign'].append({
+            failures['preassign'].append({
                 'Target': target,
-                'Reason': 'Fixed_Line 값 없음',
+                'Reason': 'No fixed line specified',
                 'ViolationAmt': None
             })
         if not row['Fixed_Time']:
-            failures['pre_assign'].append({
+            failures['preassign'].append({
                 'Target': target,
-                'Reason': 'Fixed_Time 값 없음',
+                'Shift': None,
+                'Reason': 'No fixed time specified',
                 'ViolationAmt': None
             })
         if pd.isna(row['Qty']):
-            failures['pre_assign'].append({
+            failures['preassign'].append({
                 'Target': target,
-                'Reason': 'Qty 값 없음',
+                'Reason': 'No quantity specified',
                 'ViolationAmt': None
             })
 
     # 제약 위반 에러 처리
     for vr in violations.to_dict('records'):
-        tgt = vr.get('Line') or vr.get('GroupPrefix')
+        tgt = vr.get('Line(GroupPrefix)')
+        sh = vr.get('Shift')
         record = {
             'Target': tgt,
+            'Shift': sh,
             'Reason': None,
             'ViolationAmt': vr['ViolationAmt']
         }
         if vr['Constraint'] == 'Capacity':
-            record['Reason'] = 'Capacity 초과'
+            record['Reason'] = 'equipment capacity'
         elif vr['Constraint'] == 'MaxLine':
-            record['Reason'] = 'MaxLine 초과'
+            record['Reason'] = 'number of concurrent lines'
         elif vr['Constraint'] == 'MaxQty':
-            record['Reason'] = 'MaxQty 초과'
+            record['Reason'] = 'maximum production quantity'
 
-        failures['pre_assign'].append(record)
+        failures['preassign'].append(record)
     
     print(failures)
 
