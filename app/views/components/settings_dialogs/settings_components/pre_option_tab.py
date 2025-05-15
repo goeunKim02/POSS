@@ -115,26 +115,26 @@ class ModernPreOptionTabComponent(BaseTabComponent):
             if not checkbox_widget.isChecked():
                 combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
 
-            """
-            체크박스 상태 변경 시 콤보박스 활성/비활성화
-            """
-            def on_checkbox_state_changed(state):
-                is_checked = bool(state)
-                combobox_widget.setEnabled(is_checked)
+            # 체크박스 상태 변경 시 콤보박스 활성/비활성화
+                # 체크박스 상태 변경 시 콤보박스 활성/비활성화
+                def on_checkbox_state_changed(state):
+                    is_checked = bool(state)
+                    combobox_widget.setEnabled(is_checked)
 
-                if is_checked:
-                    combobox_widget.setStyleSheet(self._get_enabled_combobox_style())
-                else:
-                    combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
-                    combobox_widget.setCurrentIndex(0)
-
-                    self.on_setting_changed("max_min_margin", 0)
+                    # 활성화/비활성화에 따른 스타일 변경
+                    if is_checked:
+                        combobox_widget.setStyleSheet(self._get_enabled_combobox_style())
+                    else:
+                        combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
+                        # 비활성화되어도 값은 그대로 유지
 
             checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
 
+        # 섹션 추가
+        self.content_layout.addWidget(pre_allocation_section)
         self.content_layout.addWidget(plan_retention1_section)
         self.content_layout.addWidget(plan_retention2_section)
-        self.content_layout.addWidget(pre_allocation_section)
+
 
         self.content_layout.addStretch(1)
 

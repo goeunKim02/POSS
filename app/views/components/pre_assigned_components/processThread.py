@@ -14,7 +14,8 @@ class ProcessThread(QThread):
         super().__init__()
         self.df = df
         self.projects = projects
-        self.time_limit = time_limit or SettingsStore._settings.get("time_limit", 300)
+        # 설정된 time_limit 없으면 기본값 사용
+        self.time_limit = time_limit or SettingsStore._settings.get("time_limit2", 300)
         self._opt_result = None
 
     def run(self):

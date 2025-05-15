@@ -11,6 +11,7 @@ from app.utils.error_handler import (
     error_handler, safe_operation,
     DataError, ValidationError
 )
+from app.models.common.screen_manager import *
 
 """
 좌측 파라미터 영역에 프로젝트 분석 결과 표시
@@ -18,10 +19,6 @@ from app.utils.error_handler import (
 
 
 class LeftParameterComponent(QWidget):
-    """
-    클래스 초기화
-    """
-
     def __init__(self):
         super().__init__()
 
@@ -46,7 +43,7 @@ class LeftParameterComponent(QWidget):
                 table = page['table']
                 table.clear()
                 table.setColumnCount(0)
-                page['summary_label'].setText('No analysis data')
+                page['summary_table'].clear()
 
     """
     UI 요소 초기화 및 배치
@@ -69,65 +66,66 @@ class LeftParameterComponent(QWidget):
             "Production Capacity",
             "Materials",
             "Current Shipment",
-            "Preallocation",
             "Plan Retention",
-            "Shipment Capacity"
         ]
 
         # 버튼 영역을 위한 프레임
         button_frame = QFrame()
-        button_frame.setStyleSheet("""
-            QFrame {
+        button_frame.setStyleSheet(f"""
+            QFrame {{
                 background-color: #F5F5F5;
                 border: none;
-                border-bottom: 1px solid #E0E0E0;
-            }
+                border-bottom: {s(1)}px solid #E0E0E0;
+                border-radius: 0px;
+            }}
         """)
 
         button_group_layout = QHBoxLayout(button_frame)
-        button_group_layout.setSpacing(2)
-        button_group_layout.setContentsMargins(10, 8, 10, 8)
+        button_group_layout.setSpacing(s(2))
+        button_group_layout.setContentsMargins(m(10), m(8), m(10), m(8))
 
         for i, btn_text in enumerate(self.metrics):
             btn = QPushButton(btn_text)
-            btn_font = font_manager.get_font("SamsungOne-700", 10)
+            btn_font = font_manager.get_font("SamsungOne-700", fs(11))
             btn_font.setBold(True)
             btn.setFont(btn_font)
             btn.setCursor(QCursor(Qt.PointingHandCursor))
 
+            btn.setMinimumWidth(w(80))
+
             # 버튼 스타일 업데이트
             if i == 0:
                 btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #1428A0;
-                        color: white;
-                        border: none;
-                        border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #0F1F8A;
-                    }
-                """)
+                            QPushButton {
+                                background-color: #1428A0;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                padding: 4px 8px;
+                                min-height: 26px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #0F1F8A;
+                            }
+                        """)
             else:
                 btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: white;
-                        color: #666666;
-                        border: 1px solid #E0E0E0;
-                        border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #F5F5F5;
-                        color: #1428A0;
-                        border-color: #1428A0;
-                    }
-                """)
+                            QPushButton {
+                                background-color: white;
+                                color: #666666;
+                                border: 1px solid #E0E0E0;
+                                border-radius: 5px;
+                                padding: 4px 8px;
+                                min-height: 26px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #F5F5F5;
+                                color: #1428A0;
+                                border-color: #1428A0;
+                            }
+                        """)
 
             btn.clicked.connect(lambda checked, idx=i: self.switch_tab(idx))
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -183,7 +181,7 @@ class LeftParameterComponent(QWidget):
                     QFrame {
                         background-color: white;
                         border: 1px solid #E0E0E0;
-                        border-radius: 8px;
+                        border-radius: 0px;
                     }
                 """)
                 table_layout = QVBoxLayout(table_container)
@@ -193,112 +191,152 @@ class LeftParameterComponent(QWidget):
                 table.setRootIsDecorated(False)
                 table.setSortingEnabled(True)
                 table.setHeaderHidden(True)
-                table.setStyleSheet("""
-                    QTreeWidget { 
+                table.setStyleSheet(f"""
+                    QTreeWidget {{ 
                         border: none; 
                         outline: none;
                         background-color: white;
-                        border-radius: 8px;
-                        font-family: %s;
-                        font-size: 20px;
-                    }
-                    QTreeWidget::item {
-                        padding: 6px;
+                        border-radius: 0px;
+                        font-family: {font_manager.get_just_font("SamsungOne-700").family()};
+                        font-size: {fs(18)}px;
+                    }}
+                    QTreeWidget::item {{
+                        padding: 6px; 
                         border-bottom: 1px solid #F5F5F5;
-                    }
-                    QTreeWidget::item:selected {
+                    }}
+                    QTreeWidget::item:selected {{
                         background-color: #E8ECFF;
                         color: black;
-                    }
-                    QTreeWidget::item:hover {
+                        font-size: {fs(21)}px;
+                    }}
+                    QTreeWidget::item:hover {{
                         background-color: #F5F7FF;
-                    }
-                    QHeaderView::section { 
+                    }}
+                    QHeaderView::section {{ 
                         background-color: #F5F5F5;
                         color: #333333;
                         border: none;
-                        padding: 8px;
+                        padding: 6px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
-                    }
-                    QScrollBar:vertical {
+                        font-size: {fs(24)}px;
+                    }}
+                    QScrollBar:vertical {{
                         border: none;
                         width: 10px;
                         margin: 0px;
-                    }
-                    QScrollBar::handle:vertical {
+                    }}
+                    QScrollBar::handle:vertical {{
                         background: #CCCCCC;
                         min-height: 20px;
                         border-radius: 5px;
-                    }
-                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    }}
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                         border: none;
                         background: none;
                         height: 0px;
-                    }
-                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    }}
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                         background: none;
-                    }
-                    QScrollBar:horizontal {
+                    }}
+                    QScrollBar:horizontal {{
                         border: none;
                         height: 10px;
                         margin: 0px;
-                    }
-                    QScrollBar::handle:horizontal {
+                    }}
+                    QScrollBar::handle:horizontal {{
                         background: #CCCCCC;
                         min-width: 20px;
                         border-radius: 5px;
-                    }
-                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                    }}
+                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                         border: none;
                         background: none;
                         width: 0px;
-                    }
-                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                    }}
+                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
                         background: none;
-                    }
-                """ % font_manager.get_just_font("SamsungOne-700").family())
+                    }}
+                """)
 
                 table_layout.addWidget(table)
 
-                # 오른쪽: Summary 레이블 컨테이너
+                # 오른쪽: Summary 테이블 컨테이너
                 summary_container = QFrame()
                 summary_container.setStyleSheet("""
                     QFrame {
                         background-color: #F8F9FA;
                         border: 1px solid #E0E0E0;
-                        border-radius: 8px;
-                        padding: 15px;
+                        border-radius: 0px;
                     }
                 """)
                 summary_layout = QVBoxLayout(summary_container)
-                summary_layout.setContentsMargins(15, 15, 15, 15)
+                summary_layout.setContentsMargins(0, 0, 0, 0)
+                summary_layout.setSpacing(5)
 
-                summary_label = QLabel("Analysis Summary")
-                summary_label.setStyleSheet("""
-                    QLabel {
-                        color: #333333;
-                        font-size: 14px;
-                        line-height: 1.5;
+                # Summary 타이틀
+                summary_title = QLabel("Analysis Summary")
+                summary_title.setStyleSheet(f"""
+                    QLabel {{
+                        color: #1428A0;
+                        font-size: {fs(20)}px;
+                        font-weight: bold;
                         background-color: transparent;
                         border: none;
-                    }
+                        padding-bottom: {p(5)}px;
+                        font-family: {font_manager.get_just_font("SamsungSharpSans-Bold").family()};
+                    }}
                 """)
-                summary_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-                summary_label.setWordWrap(True)
+                summary_title_font = font_manager.get_font("SamsungSharpSans-Bold", fs(14))
+                summary_title_font.setBold(True)
+                summary_title.setFont(summary_title_font)
+                summary_layout.addWidget(summary_title)
 
-                summary_font = font_manager.get_font("SamsungOne-700", 12)
-                summary_font.setBold(True)
-                summary_label.setFont(summary_font)
+                # Summary 테이블 생성
+                summary_table = QTreeWidget()
+                summary_table.setRootIsDecorated(False)
+                summary_table.setHeaderHidden(True)
+                summary_table.setAlternatingRowColors(True)
+                summary_table.setStyleSheet(f"""
+                    QTreeWidget {{ 
+                        border: none; 
+                        outline: none;
+                        background-color: white;
+                        border-radius: 6px;
+                        font-family: {font_manager.get_just_font("SamsungOne-700").family()};
+                        font-size: {fs(11)}px;
+                    }}
+                    QTreeWidget::item {{
+                        padding: 6px 10px;
+                        border-bottom: 1px solid #F0F0F0;
+                    }}
+                    QTreeWidget::item:alternate {{
+                        background-color: #FAFAFA;
+                    }}
+                    QTreeWidget::item:hover {{
+                        background-color: #F5F7FF;
+                    }}
+                    QScrollBar:vertical {{
+                        border: none;
+                        width: 6px;
+                        margin: 0px;
+                    }}
+                    QScrollBar::handle:vertical {{
+                        background: #CCCCCC;
+                        min-height: 20px;
+                        border-radius: 3px;
+                    }}
+                """)
+                summary_table.setColumnCount(2)
 
-                summary_layout.addWidget(summary_label)
+                summary_layout.addWidget(summary_table)
 
-                # 스플리터에 위젯 추가 (왼쪽: 테이블, 오른쪽: 써머리)
+                # 스플리터에 위젯 추가
                 horizontal_splitter.addWidget(table_container)
                 horizontal_splitter.addWidget(summary_container)
 
                 # 초기 비율 설정 (7:3)
-                horizontal_splitter.setSizes([800, 200])
+                horizontal_splitter.setSizes([700, 300])
 
                 # 페이지 레이아웃에 스플리터 추가
                 page_layout.addWidget(horizontal_splitter)
@@ -307,7 +345,7 @@ class LeftParameterComponent(QWidget):
 
                 self.pages[metric] = {
                     "table": table,
-                    "summary_label": summary_label,
+                    "summary_table": summary_table,  # 변경된 부분
                     "splitter": horizontal_splitter
                 }
 
@@ -377,7 +415,8 @@ class LeftParameterComponent(QWidget):
                 safe_operation(table.setColumnCount, 'Error setting column count', 0)
                 safe_operation(table.setHeaderHidden, 'Error hiding header', True)
 
-                page_widgets["summary_label"].setText("analysis summary")
+                summary_table = page_widgets["summary_table"]
+                safe_operation(summary_table.clear, 'Error clearing summary table')
             return
 
         display_df = data.get('display_df')
@@ -389,7 +428,8 @@ class LeftParameterComponent(QWidget):
         if display_df is None or (hasattr(display_df, 'empty') and display_df.empty):
             safe_operation(table.setColumnCount, 'Error setting column count', 0)
             safe_operation(table.setHeaderHidden, 'Error hiding header', True)
-            page_widgets['summary_label'].setText('No analysis data')
+            summary_table = page_widgets["summary_table"]
+            safe_operation(summary_table.clear, 'Error clearing summary table')
             return
 
         safe_operation(table.setHeaderHidden, 'Error setting header visibility', False)
@@ -480,46 +520,94 @@ class LeftParameterComponent(QWidget):
         except Exception as e:
             raise DataError(f'Error displaying data : {str(e)}', {'metric': metric})
 
-        summary_label = page_widgets["summary_label"]
+        # Summary 테이블 업데이트
+        summary_table = page_widgets["summary_table"]
+        safe_operation(summary_table.clear, 'Error clearing summary table')
 
-        # 표에 들어갈 데이터 출력
-        try:
-            if summary is not None:
-                if metric == 'Production Capacity':
-                    text = (
-                        f"Total number of groups : {summary.get('Total number of groups', 0)}<br>"
-                        f"Number of error groups : {summary.get('Number of error groups', 0)}<br>"
-                        f"Total MFG : {summary.get('Total MFG', 0):,}<br>"
-                        f"Total SOP : {summary.get('Total SOP', 0):,}<br>"
-                        f"Total CAPA : {summary.get('Total CAPA', 0):,}<br>"
-                        f"Total MFG/CAPA ratio : {summary.get('Total MFG/CAPA ratio', '0%')}<br>"
-                        f"Total SOP/CAPA ratio : {summary.get('Total SOP/CAPA ratio', '0%')}"
-                    )
-                elif metric == 'Materials':
-                    text = (
-                        f"Total materials: {summary.get('Total materials', 0)}<br>"
-                        f"Weekly shortage materials: {summary.get('Weekly shortage materials', 0)}<br>"
-                        f"Full period shortage materials: {summary.get('Full period shortage materials', 0)}<br>"
-                        f"Shortage rate: {summary.get('Shortage rate (%)', 0)}%<br>"
-                        f"Period: {summary.get('Period', 'N/A')}<br>"
-                    )
-                elif metric == 'Current Shipment':
-                    text = (
-                        f"Overall fulfillment rate: {summary.get('Overall fulfillment rate', '0%')}<br>"
-                        f"Total demand (SOP): {summary.get('Total demand(SOP)', 0):,}<br>"
-                        f"Total production: {summary.get('Total production', 0):,}<br>"
-                        f"Project count: {summary.get('Project count', 0)}<br>"
-                        f"Site count: {summary.get('Site count', 0)}<br>"
-                        f"Bottleneck items: {summary.get('Bottleneck items', 0)}"
-                    )
-                else:
-                    text = 'Analysis summary'
+        if summary is not None:
+            # 메트릭별 summary 데이터 구조화
+            summary_data = []
 
-                summary_label.setText(text)
-            else:
-                summary_label.setText("Analysis summary")
-        except Exception as summary_error:
-            summary_label.setText('Error displaying summary')
+            if metric == 'Production Capacity':
+                summary_data = [
+                    ("Total Groups", f"{summary.get('Total number of groups', 0)}"),
+                    ("Error Groups", f"{summary.get('Number of error groups', 0)}"),
+                    ("Total MFG", f"{summary.get('Total MFG', 0):,}"),
+                    ("Total SOP", f"{summary.get('Total SOP', 0):,}"),
+                    ("Total CAPA", f"{summary.get('Total CAPA', 0):,}"),
+                    ("MFG/CAPA Ratio", f"{summary.get('Total MFG/CAPA ratio', '0%')}"),
+                    ("SOP/CAPA Ratio", f"{summary.get('Total SOP/CAPA ratio', '0%')}")
+                ]
+
+            elif metric == 'Materials':
+                summary_data = [
+                    ("Total Materials", f"{summary.get('Total materials', 0):,}"),
+                    ("Weekly Shortage", f"{summary.get('Weekly shortage materials', 0):,}"),
+                    ("Full Period Shortage", f"{summary.get('Full period shortage materials', 0):,}"),
+                    ("Shortage Rate", f"{summary.get('Shortage rate (%)', 0)}%"),
+                    ("Analysis Period", f"{summary.get('Period', 'N/A')}")
+                ]
+
+                # Top shortage materials가 있다면 추가
+                top_materials = summary.get('Top shortage materials', 'None')
+                if top_materials and top_materials != 'None':
+                    summary_data.append(("Top Shortages", top_materials))
+
+            elif metric == 'Current Shipment':
+                summary_data = [
+                    ("Fulfillment Rate", f"{summary.get('Overall fulfillment rate', '0%')}"),
+                    ("Total Demand (SOP)", f"{summary.get('Total demand(SOP)', 0):,}"),
+                    ("Total Production", f"{summary.get('Total production', 0):,}"),
+                    ("Project Count", f"{summary.get('Project count', 0)}"),
+                    ("Site Count", f"{summary.get('Site count', 0)}"),
+                    ("Bottleneck Items", f"{summary.get('Bottleneck items', 0)}")
+                ]
+
+            # Summary 테이블에 데이터 추가
+            for label, value in summary_data:
+                item = QTreeWidgetItem([label, str(value)])
+
+                # 라벨 스타일링
+                label_font = font_manager.get_font("SamsungOne-700", 11)
+                label_font.setBold(True)
+                item.setFont(0, label_font)
+                item.setForeground(0, QColor("#666666"))
+
+                # 값 스타일링
+                value_font = font_manager.get_font("SamsungOne-700", 11)
+                item.setFont(1, value_font)
+
+                # 특정 값에 대한 색상 설정
+                if metric == 'Production Capacity' and label == "Error Groups":
+                    if int(str(value).replace(',', '')) > 0:
+                        item.setForeground(1, QColor("#E74C3C"))
+                elif metric == 'Materials' and label == "Shortage Rate":
+                    rate_value = float(str(value).replace('%', ''))
+                    if rate_value > 10:
+                        item.setForeground(1, QColor("#E74C3C"))
+                    elif rate_value > 5:
+                        item.setForeground(1, QColor("#F39C12"))
+                    else:
+                        item.setForeground(1, QColor("#2ECC71"))
+                elif metric == 'Current Shipment' and label == "Fulfillment Rate":
+                    rate_value = float(str(value).replace('%', ''))
+                    if rate_value < 90:
+                        item.setForeground(1, QColor("#E74C3C"))
+                    elif rate_value < 95:
+                        item.setForeground(1, QColor("#F39C12"))
+                    else:
+                        item.setForeground(1, QColor("#2ECC71"))
+
+                summary_table.addTopLevelItem(item)
+
+            # 열 너비 자동 조정
+            summary_table.resizeColumnToContents(0)
+            summary_table.resizeColumnToContents(1)
+        else:
+            # 데이터가 없을 때 기본 메시지
+            empty_item = QTreeWidgetItem(["No data", ""])
+            empty_item.setForeground(0, QColor("#999999"))
+            summary_table.addTopLevelItem(empty_item)
 
     """
     선택된 탭 새로고침
@@ -544,8 +632,8 @@ class LeftParameterComponent(QWidget):
                         color: white;
                         border: none;
                         border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
+                        padding: 4px 8px;
+                        min-height: 26px;
                         font-weight: bold;
                     }
                     QPushButton:hover {
@@ -559,8 +647,8 @@ class LeftParameterComponent(QWidget):
                         color: #666666;
                         border: 1px solid #E0E0E0;
                         border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
+                        padding: 4px 8px;
+                        min-height: 26px;
                         font-weight: bold;
                     }
                     QPushButton:hover {
