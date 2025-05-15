@@ -8,6 +8,7 @@ from .item_position_manager import ItemPositionManager
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from app.models.common.fileStore import FilePaths
 from .legend_widget import LegendWidget
+from app.utils.fileHandler import load_file
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
@@ -516,7 +517,14 @@ class ModifiedLeftSection(QWidget):
             try:
                 self.clear_all_items()
 
-                self.data = pd.read_excel(file_path)
+                self.data = load_file(file_path)
+
+                # 만약 여러 시트가 반환되면 첫 번째 시트 사용
+                if isinstance(self.data, dict):
+                    # 첫 번째 시트 선택
+                    first_sheet_name = list(self.data.keys())[0]
+                    self.data = self.data[first_sheet_name]
+                    
                 FilePaths.set("result_file", file_path)
                 self.update_table_from_data()
 
@@ -664,8 +672,8 @@ class ModifiedLeftSection(QWidget):
     """외부에서 데이터 설정"""
     def set_data_from_external(self, new_data):
         if not new_data.empty:
-            new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce')
-            new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce')
+            new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce').fillna(0).round().astype(int)
+            new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce').fillna(0).round().astype(int)
         
         self.data = new_data
         self.original_data = self.data.copy()
