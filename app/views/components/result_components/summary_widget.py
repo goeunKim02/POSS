@@ -6,6 +6,8 @@ import pandas as pd
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.models.common.fileStore import FilePaths
 from app.utils.fileHandler import load_file
+from app.views.components.common.custom_table import CustomTable
+from app.utils.sort_line import sort_line
 
 """결과 요약 정보 표시 위젯"""
 class SummaryWidget(QWidget):
@@ -21,32 +23,8 @@ class SummaryWidget(QWidget):
         main_layout.setSpacing(10)
 
         # 요약 테이블
-        self.summary_table = QTableWidget()
-        self.setup_table_style()
+        self.summary_table = CustomTable()
         main_layout.addWidget(self.summary_table)
-
-
-    """테이블 스타일 설정"""
-    def setup_table_style(self):
-        self.summary_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #E0E0E0;
-                border: 1px solid #D0D0D0;
-                border-radius: 5px;
-            }
-            QHeaderView::section {
-                background-color: #1428A0;
-                color: white;
-                padding: 8px;
-                font-weight: bold;
-            }
-        """)
-        
-        # 헤더 설정
-        self.summary_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.summary_table.verticalHeader().setVisible(False)
-        # self.summary_table.setAlternatingRowColors(True)
-        self.summary_table.setSelectionBehavior(QTableWidget.SelectRows)
 
 
     """master 파일에서 라인별 생산능력 로드"""
@@ -82,6 +60,7 @@ class SummaryWidget(QWidget):
             
         except Exception as e:
             print(f"라인별 생산능력 로드 오류: {e}")
+
 
     """라인별 가동률 계산"""
     def calculate_line_utilization(self, result_data):
@@ -159,10 +138,9 @@ class SummaryWidget(QWidget):
             'Capa': f"{total_capacity:,}" if total_capacity > 0 else '',
             'Line_Qty': f"{total_qty:,}",  
             'Utilization(%)': f"{total_utilization:.1f}%" if total_utilization > 0 else '',
-            'Project': '',
-            'Region': '',
-            'Pjt_Qty': '',  # 프로젝트별 수량은 총합행에서는 빈값
-            'Qty_raw': total_qty,  # 정렬용
+            'Project': '-',
+            'Region': '-',
+            'Pjt_Qty': '-',  # 프로젝트별 수량은 총합행에서는 빈값
             'is_total': True  # Total 행 표시용
         })
 
@@ -201,7 +179,6 @@ class SummaryWidget(QWidget):
                 'Project': '-',
                 'Region': '-',
                 'Pjt_Qty': '-',  # 프로젝트별 수량은 총합행에서는 빈값
-                'Qty_raw': total_qty,  # 정렬용 
                 'is_total': True  # Total 행 표시용
             })
 
@@ -212,8 +189,8 @@ class SummaryWidget(QWidget):
                 'Item': 'first'  # 지역 추출용
             }).reset_index()
 
-            # 라인을 수량순으로 정렬
-            line_data = line_data.sort_values('Qty', ascending=False)
+            # 라인 순서로 정렬
+            line_data = line_data.sort_values('Line', key=lambda x:x.map(sort_line))
 
             for _, row in line_data.iterrows():
                 line = row['Line']
@@ -257,7 +234,6 @@ class SummaryWidget(QWidget):
                                 'Project': project,
                                 'Region': region,
                                 'Pjt_Qty': f"{project_qty:,}",  # 프로젝트별 수량
-                                'Qty_raw': project_qty,  # 정렬용
                                 'is_total': False
                             })
                         else:
@@ -271,7 +247,6 @@ class SummaryWidget(QWidget):
                                 'Project': project,
                                 'Region': region,
                                 'Pjt_Qty': f"{project_qty:,}",  # 프로젝트별 수량만 표시
-                                'Qty_raw': project_qty,  # 정렬용
                                 'is_total': False
                             })
             
@@ -280,9 +255,6 @@ class SummaryWidget(QWidget):
 
         if summary_df.empty:
             return pd.DataFrame()
-        
-        # 정렬용 컬럼 제거
-        summary_df = summary_df.drop('Qty_raw', axis=1)
         
         return summary_df
     
@@ -295,165 +267,97 @@ class SummaryWidget(QWidget):
         
         # 표시용 컬럼만 추출 (is_total은 제외하고 표시)
         display_columns = [col for col in summary_df.columns if col != 'is_total']
-        display_df = summary_df[display_columns]
-
-        # 테이블 설정
-        self.summary_table.setRowCount(len(display_df))
-        self.summary_table.setColumnCount(len(display_df.columns))
+        fixed_columns = {
+            0: 150,  # Building(Portion) 컬럼만 고정
+        }
 
         # 헤더 설정
-        self.summary_table.setHorizontalHeaderLabels(display_df.columns.tolist())
+        self.summary_table.setup_header(display_columns, fixed_columns=fixed_columns, resizable=False)
+        self.summary_table.setRowCount(0)  # 기존 데이터 클리어
 
         # 제조동별 병합 
         building_spans = {}
+        line_spans = {}
         
         # 제조동별 행 범위 찾기
         for row_idx, (_, row) in enumerate(summary_df.iterrows()):
-            building_portion = row['Building(Portion)']
+            is_total_row = row.get('is_total', False)
+
+            # 행 데이터 생성 (is_total 제외)
+            row_data = [str(row[col]) if pd.notna(row[col]) else "" for col in summary_df.columns if col != 'is_total']
             
+            # Total 행은 is_total=True로 추가
+            if is_total_row:
+                self.summary_table.add_custom_row(row_data, is_total=True)
+            else:
+                # 일반 행은 기본 스타일로 추가
+                self.summary_table.add_custom_row(row_data)
+            
+            # 제조동별 병합 정보 수집
+            building_portion = row['Building(Portion)']
             if building_portion and '(' in building_portion and building_portion != 'Total':
-                # Building(Portion) 열에 값이 있는 경우 (제조동 Total 행)
                 building_name = building_portion.split('(')[0]
+                building_spans[building_name] = {'start_row': row_idx, 'rows': [row_idx]}
                 
-                # 해당 제조동의 시작 행 저장
-                building_spans[building_name] = {
-                    'start_row': row_idx,
-                    'end_row': row_idx,  # 일단 현재 행으로 설정
-                    'rows': [row_idx]
-                }
-                
-                # 다음 제조동이 나올 때까지의 모든 행 찾기
+                # 같은 제조동의 다음 행들 찾기
                 for next_idx in range(row_idx + 1, len(summary_df)):
                     next_row = summary_df.iloc[next_idx]
                     next_building = next_row['Building(Portion)']
-                    
-                    # 다음 제조동의 Total 행이 나오면 중단
                     if next_building and '(' in next_building:
                         break
-                    
-                    # 현재 제조동에 속하는 행 추가
-                    building_spans[building_name]['end_row'] = next_idx
                     building_spans[building_name]['rows'].append(next_idx)
-
-        # 제조동별 셀 병합
-        for building_name, span_info in building_spans.items():
-            start_row = span_info['start_row']
-            end_row = span_info['end_row']
-            row_count = end_row - start_row + 1
             
-            if row_count > 1:  # 2개 이상의 행이 있는 경우만 병합
-                # Building(Portion) 컬럼 (컬럼 인덱스 0) 병합
-                self.summary_table.setSpan(start_row, 0, row_count, 1)
+            # 라인별 병합 정보 수집
+            line_name = row['Line'].strip()
+            if line_name and line_name != 'Total' and '_' in line_name:
+                if line_name not in line_spans:
+                    line_spans[line_name] = {'start_row': row_idx, 'rows': [row_idx]}
+                else:
+                    line_spans[line_name]['rows'].append(row_idx)
+        
+        # 제조동별 병합 적용
+        for building_name, span_info in building_spans.items():
+            rows = span_info['rows']
+            if len(rows) > 1:
+                start_row = min(rows)
+                row_count = len(rows)
+                self.summary_table.merge_cells(start_row, 0, row_count, 1)
                 
-                # 병합된 셀의 정렬을 중앙으로 설정
+                # 병합된 셀 중앙 정렬
                 item = self.summary_table.item(start_row, 0)
                 if item:
                     item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
-
-        # 라인별 행 정보 수집 (병합을 위해)
-        line_spans = {}
-
-        # 데이터 입력
-        for row_idx, (_, row) in enumerate(summary_df.iterrows()):
-            display_row = display_df.iloc[row_idx]
-
-            for col_idx, value in enumerate(row):
-                item = QTableWidgetItem(str(value) if pd.notna(value) else "")
-
-                # 텍스트 정렬 설정
-                if col_idx in [2, 3, 4]:  # Capa, Qty, Utilization 컬럼 (우측 정렬)
-                    item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                else:
-                    item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
-
-                # Total 행 스타일 적용 (중요한 부분!)
-                if row.get('is_total', False):
-                    font = QFont()
-                    font.setBold(True)
-                    item.setFont(font)
-                    # 배경색을 회색으로 설정
-                    item.setBackground(QBrush(QColor("#E8E8E8")))
-                    # 텍스트 색상도 진하게
-                    item.setForeground(QBrush(QColor("#333333")))
-                
-                # 스타일 적용
-                # self.apply_cell_style(item, row_idx, col_idx, row)
-                
-                self.summary_table.setItem(row_idx, col_idx, item)
-
-        # 두 번째 패스: 라인별 정보 수집 (들여쓰기 제거된 실제 라인명으로)
-        for row_idx, (_, row) in enumerate(summary_df.iterrows()):
-            line_name = row['Line'].strip()  # 들여쓰기 제거
-            
-            # 실제 라인명인지 확인 (공백이 아니고, Total이 아니며, 실제 라인 형태인지)
-            if line_name and line_name != 'Total' and '_' in line_name:
-                if line_name not in line_spans:
-                    line_spans[line_name] = {
-                        'start_row': row_idx,
-                        'rows': [row_idx],
-                        'capa': row['Capa'],
-                        'line_qty': row['Line_Qty'],
-                        'utilization': row['Utilization(%)']
-                    }
-                else:
-                    line_spans[line_name]['rows'].append(row_idx)
-
-        # 셀 병합 적용
+        
+        # 라인별 병합 적용
         for line_name, span_info in line_spans.items():
             rows = span_info['rows']
-            
-            if len(rows) > 1:  # 2개 이상의 행이 있는 라인만 병합
+            if len(rows) > 1 and rows == list(range(min(rows), min(rows) + len(rows))):
                 start_row = min(rows)
                 row_count = len(rows)
                 
-                # 연속된 행인지 확인
-                if rows == list(range(start_row, start_row + row_count)):
-                    # Line 컬럼 (컬럼 인덱스 1) 병합
-                    self.summary_table.setSpan(start_row, 1, row_count, 1)
-                    
-                    # Capa 컬럼 (컬럼 인덱스 2) 병합
-                    if span_info['capa']:  # Capa 값이 있는 경우만 병합
-                        self.summary_table.setSpan(start_row, 2, row_count, 1)
-                    
-                    # Line_Qty 컬럼 (컬럼 인덱스 3) 병합
-                    if span_info['line_qty']:  # Line_Qty 값이 있는 경우만 병합
-                        self.summary_table.setSpan(start_row, 3, row_count, 1)
-                    
-                    # Utilization 컬럼 (컬럼 인덱스 4) 병합
-                    if span_info['utilization']:  # Utilization 값이 있는 경우만 병합
-                        self.summary_table.setSpan(start_row, 4, row_count, 1)
-                    
-                    # 병합된 셀의 정렬을 중앙으로 설정
-                    for col_idx in [1, 2, 3, 4]:
-                        item = self.summary_table.item(start_row, col_idx)
-                        if item:
-                            if col_idx == 1:  # Line 컬럼은 센터 정렬
-                                item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
-                            else:  # 나머지는 우측 정렬
-                                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
+                # Line, Capa, Line_Qty, Utilization 컬럼 병합
+                for col_idx in [1, 2, 3, 4]:  # Line, Capa, Line_Qty, Utilization
+                    self.summary_table.merge_cells(start_row, col_idx, row_count, 1)
+                    item = self.summary_table.item(start_row, col_idx)
+                    if item:
+                        if col_idx == 1:  # Line 컬럼은 센터 정렬
+                            item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
+                        else:  # 나머지는 우측 정렬
+                            item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        
         # 행 높이 조정
-        for row in range(len(summary_df)):
+        for row in range(self.summary_table.rowCount()):
             self.summary_table.setRowHeight(row, 30)
-            
+        
         # 첫 번째 컬럼은 조금 더 넓게
         self.summary_table.setColumnWidth(0, 150)
 
-
-    # """셀 스타일 적용"""
-    # def apply_cell_style(self, item, row_idx, col_idx, row_data):
-    #     # Total 행에만 배경색과 폰트 적용
-    #     if row_data.get('is_total', False):
-    #         font = QFont()
-    #         font.setBold(True)
-    #         item.setFont(font)
-    #         item.setBackground(QBrush(QColor("#F0F0F0")))
-        
 
     """테이블 초기화"""
     def clear_table(self):
         self.summary_table.setRowCount(0)
         self.summary_table.setColumnCount(0)
+
 
 
 
