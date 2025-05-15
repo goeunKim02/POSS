@@ -6,6 +6,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
+from app.views.components.common.custom_table import CustomTable
 
 """출하 capa 분석 위젯"""
 class PortCapaWidget(QWidget):
@@ -13,43 +14,34 @@ class PortCapaWidget(QWidget):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
         self.main_layout = QVBoxLayout(self)
-        self.table = QTableWidget(2,4,self)
-        self.table.setHorizontalHeaderLabels(['Tosite_port','SOP','Port Capa','Rate(%)'])
-        self.table.verticalHeader().setVisible(False)
-        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.table.setSelectionMode(QTableWidget.NoSelection)
-        self.table.setAlternatingRowColors(False)
-        self.table.setStyleSheet("QTableWidget { background-color: white; gridline-color: #dddddd; }")
 
-        # 헤더 스타일 및 폰트
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
-        header.setStyleSheet(
-            "QHeaderView::section { background-color: #1428A0; color: white; border: none; }"
-        )
-        header_font = QFont(font_manager.get_just_font("SamsungOne-700").family(), 14, QFont.Bold)
-        header.setFont(header_font)
-        # 헤더 높이 고정
-        header.setFixedHeight(40)
 
-        # 행 높이 고정 
-        self.table.verticalHeader().setDefaultSectionSize(35)
+        self.table = CustomTable()
 
+        # 차트 컨테이너
         self.chart_container = QWidget()
         self.chart_layout = QVBoxLayout(self.chart_container)
+
+        # 레이아웃 추가
         self.main_layout.addWidget(self.chart_container)
         self.main_layout.addWidget(self.table)
+
+
     """port capa 테이블 그리는 함수"""
     def render_table(self):
-        """port capa 테이블 그리는 함수"""
         self.organized_dataframes = DataStore.get("organized_dataframes",{})
         if not self.organized_dataframes:
+            self.table.set_message("No data available")
             return 
+        
         self.df_demand = self.organized_dataframes['demand'].get('demand',pd.DataFrame())
         if self.df_demand.empty:
+            self.table.set_message("No demand data available")
             return 
+        
         self.df_capa_outgoing = self.organized_dataframes['master'].get('capa_outgoing',pd.DataFrame())
         if self.df_capa_outgoing.empty:
+            self.table.set_message("No capacity data available")
             return
         
         # 화면에 그릴 테이블의 데이터프레임 만들기 
