@@ -132,7 +132,7 @@ class FileTabManager:
             self.tab_bar.setCurrentIndex(tab_index)  # 새 탭으로 전환
 
             # DataStore에 데이터 저장
-            from app.models.common.fileStore import DataStore
+            from app.models.common.file_store import DataStore
             df_dict = DataStore.get("dataframes", {})
             key = f"{file_path}:{sheet_name}" if sheet_name else file_path
             df_dict[key] = df

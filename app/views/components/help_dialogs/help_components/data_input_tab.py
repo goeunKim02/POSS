@@ -1,21 +1,23 @@
-# help_components/data_input_tab.py 수정 코드
 from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
-from .help_section_component import HelpSectionComponent  # 새 컴포넌트 import
+from .help_section_component import HelpSectionComponent
 
 
+"""
+데이터 입력 탭 컴포넌트
+"""
 class DataInputTabComponent(BaseTabComponent):
-    """데이터 입력 탭 컴포넌트"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_content()
 
+    """
+    콘텐츠 초기화
+    """
     def init_content(self):
-        """콘텐츠 초기화"""
-        # 콘텐츠 프레임 생성
+        # 콘텐츠 프레임
         self.content_frame = QFrame()
         self.content_frame.setStyleSheet("""
             QFrame {
@@ -26,12 +28,12 @@ class DataInputTabComponent(BaseTabComponent):
             }
         """)
 
-        # 콘텐츠 프레임 레이아웃 생성
+        # 콘텐츠 프레임 레이아웃
         frame_layout = QVBoxLayout(self.content_frame)
         frame_layout.setContentsMargins(20, 20, 20, 20)
         frame_layout.setSpacing(15)
 
-        # 제목 레이블 생성
+        # 제목 레이블
         title_label = QLabel("Data Entry Guidelines")
         title_font = QFont("Arial", 14)
         title_font.setBold(True)
@@ -70,7 +72,6 @@ class DataInputTabComponent(BaseTabComponent):
             image_path="app/resources/help_images/browse_btn.png"
         )
 
-        # 섹션 2에 리스트 아이템 추가
         section2.add_list_item("master_*.xlsx ")
         section2.add_list_item("demand_*.xlsx ")
         section2.add_list_item("dynamic_*.xlsx ")
@@ -115,7 +116,6 @@ class DataInputTabComponent(BaseTabComponent):
         frame_layout.addWidget(desc_label)
         frame_layout.addWidget(sections_frame)
         frame_layout.addWidget(note_label)
-        frame_layout.addStretch(1)  # 하단 여백용 스트레치 추가
+        frame_layout.addStretch(1)
 
-        # 메인 레이아웃에 콘텐츠 프레임 추가
         self.content_layout.addWidget(self.content_frame)

@@ -29,7 +29,7 @@ class SidebarManager:
                 sheet_names = excel.sheet_names
 
                 # 모든 시트 로드하여 저장
-                from app.models.common.fileStore import DataStore
+                from app.models.common.file_store import DataStore
                 df_dict = DataStore.get("dataframes", {})
 
                 # 첫 번째 시트는 기본값으로 로드
@@ -60,7 +60,7 @@ class SidebarManager:
                 }
 
                 # DataStore에 등록
-                from app.models.common.fileStore import DataStore
+                from app.models.common.file_store import DataStore
                 df_dict = DataStore.get("dataframes", {})
                 df_dict[file_path] = df
                 DataStore.set("dataframes", df_dict)
@@ -91,7 +91,7 @@ class SidebarManager:
             del self.parent.data_modifier.modified_data_dict[file_path]
 
         # DataStore에서도 관련 데이터프레임 제거
-        from app.models.common.fileStore import DataStore
+        from app.models.common.file_store import DataStore
         df_dict = DataStore.get("dataframes", {})
         keys_to_remove = []
         for key in df_dict.keys():

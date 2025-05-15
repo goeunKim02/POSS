@@ -1,22 +1,24 @@
-# app/views/components/settings_dialogs/settings_components/pre_option_tab.py - 모던한 Pre-Option 탭
 from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QComboBox, QCheckBox
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
 from .settings_section import ModernSettingsSectionComponent
 from app.models.common.settings_store import SettingsStore
 from app.resources.fonts.font_manager import font_manager
 
 
+"""
+Pre-Option 탭 컴포넌트
+"""
 class ModernPreOptionTabComponent(BaseTabComponent):
-    """모던한 디자인의 사전 옵션 탭 컴포넌트"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_content()
 
+    """
+    콘텐츠 초기화
+    """
     def init_content(self):
-        """콘텐츠 초기화"""
         # 헤더 섹션
         header_frame = QFrame()
         header_frame.setStyleSheet("""
@@ -39,7 +41,6 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         title_label.setStyleSheet("color: #1428A0; border: none;")
         header_layout.addWidget(title_label)
 
-        # 컨텐츠에 헤더 추가
         self.content_layout.addWidget(header_frame)
 
         # 날짜 선택 옵션 (1~14일)
@@ -49,11 +50,10 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         plan_retention1_section = ModernSettingsSectionComponent("Plan Retention Rate 1")
         plan_retention1_section.setting_changed.connect(self.on_setting_changed)
 
-        # 버튼 그룹으로 변경
         plan_retention1_section.add_setting_item(
             "Plan Retention Rate 1", "op_timeset_1", "button_group",
             items=days, default=SettingsStore.get("op_timeset_1", []),
-            columns=7  # 7열로 표시
+            columns=7
         )
 
         plan_retention1_section.add_setting_item(
@@ -72,11 +72,10 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         plan_retention2_section = ModernSettingsSectionComponent("Plan Retention Rate 2")
         plan_retention2_section.setting_changed.connect(self.on_setting_changed)
 
-        # 버튼 그룹으로 변경
         plan_retention2_section.add_setting_item(
             "Plan Retention Rate 2", "op_timeset_2", "button_group",
             items=days, default=SettingsStore.get("op_timeset_2", []),
-            columns=7  # 7열로 표시
+            columns=7
         )
 
         plan_retention2_section.add_setting_item(
@@ -95,16 +94,13 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         pre_allocation_section = ModernSettingsSectionComponent("Pre-Assignment")
         pre_allocation_section.setting_changed.connect(self.on_setting_changed)
 
-        # 체크박스 추가
         checkbox_widget = pre_allocation_section.add_setting_item(
             "Apply Pre-Assignment Ratio", "max_min_ratio_ox", "checkbox",
             default=bool(SettingsStore.get("max_min_ratio_ox", 0))
         )
 
-        # 0~50 범위의 숫자 리스트 생성
         margins = [str(i) for i in range(0, 51)]
 
-        # 콤보박스 추가 (기본값 0)
         default_margin = SettingsStore.get("max_min_margin", 0)
         combobox_widget = pre_allocation_section.add_setting_item(
             "Pre-Assignment Ratio for Primary Execution", "max_min_margin", "combobox",
@@ -114,10 +110,8 @@ class ModernPreOptionTabComponent(BaseTabComponent):
 
         # 체크박스와 콤보박스 연결
         if isinstance(checkbox_widget, QCheckBox) and isinstance(combobox_widget, QComboBox):
-            # 초기 상태 설정
             combobox_widget.setEnabled(checkbox_widget.isChecked())
 
-            # 비활성화 시 스타일 적용
             if not checkbox_widget.isChecked():
                 combobox_widget.setStyleSheet(self._get_disabled_combobox_style())
 
@@ -142,11 +136,12 @@ class ModernPreOptionTabComponent(BaseTabComponent):
         self.content_layout.addWidget(plan_retention2_section)
 
 
-        # 스트레치 추가
         self.content_layout.addStretch(1)
 
+    """
+    활성화된 콤보박스 스타일
+    """
     def _get_enabled_combobox_style(self):
-        """활성화된 콤보박스 스타일"""
         return """
             QComboBox {
                 background-color: #ffffff;
@@ -182,8 +177,10 @@ class ModernPreOptionTabComponent(BaseTabComponent):
             }
         """
 
+    """
+    비활성화된 콤보박스 스타일
+    """
     def _get_disabled_combobox_style(self):
-        """비활성화된 콤보박스 스타일"""
         return """
             QComboBox {
                 background-color: #f5f5f5;
@@ -208,9 +205,9 @@ class ModernPreOptionTabComponent(BaseTabComponent):
             }
         """
 
+    """
+    설정 변경 시 호출되는 콜백
+    """
     def on_setting_changed(self, key, value):
-        """설정 변경 시 호출되는 콜백"""
-        # 설정 저장소에 변경사항 저장
         SettingsStore.set(key, value)
-        # 상위 위젯에 변경 사항 전파
         self.settings_changed.emit(key, value)

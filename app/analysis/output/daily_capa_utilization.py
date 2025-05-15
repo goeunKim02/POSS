@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from app.utils.fileHandler import load_file
 import os
 import traceback

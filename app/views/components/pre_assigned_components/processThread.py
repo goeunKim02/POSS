@@ -20,7 +20,10 @@ class ProcessThread(QThread):
 
     def run(self):
         start = time.time()
-        # 최적화 작업
+        
+        """
+        최적화 작업
+        """
         def do_opt():
             results = Optimizer().run_optimization({
                 'pre_assigned_df': self.df,
@@ -31,14 +34,12 @@ class ProcessThread(QThread):
         opt_thread = threading.Thread(target=do_opt, daemon=True)
         opt_thread.start()
 
-        # 진행률 업데이트
         while True:
             elapsed = time.time() - start
             pct = min(100, int(elapsed / self.time_limit * 100))
             remaining = max(0, int(self.time_limit - elapsed))
             self.progress.emit(pct, remaining)
 
-            # 최적화 끝났거나 타임아웃
             if self._opt_result is not None or elapsed >= self.time_limit:
                 break
             time.sleep(1)

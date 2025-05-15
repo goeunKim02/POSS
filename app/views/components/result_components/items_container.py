@@ -291,7 +291,8 @@ class ItemsContainer(QWidget):
                             item_data['Time'] = str(new_time)
 
                 # 복사본 생성
-                new_item = self.addItem(item_text, drop_index, item_data)
+                item_name = item_data['Item'] + "    0"
+                new_item = self.addItem(item_name, drop_index, item_data)
 
                 self.itemDataChanged.emit(new_item, item_data, {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
 

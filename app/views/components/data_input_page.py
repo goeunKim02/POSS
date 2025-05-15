@@ -2,14 +2,14 @@ from PyQt5.QtCore import pyqtSignal, QDate, Qt
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
                              QSplitter, QStackedWidget, QTabBar,
                              QMessageBox)
-from PyQt5.QtGui import QCursor, QFont
+from PyQt5.QtGui import QCursor
 import pandas as pd
 import os
 import re
 
 from app.core.input.pre_assign import run_allocation
 from app.core.input.maintenance import calc_plan_retention
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
@@ -22,9 +22,9 @@ from app.views.components.data_upload_components.data_input_components import Si
 from app.views.components.data_upload_components.right_parameter_component import RightParameterComponent
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
-from app.core.input.capaAnalysis import PjtGroupAnalyzer
-from app.core.input.materialAnalyzer import MaterialAnalyzer
-from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
+from app.analysis.input.capa_analysis import PjtGroupAnalyzer
+from app.analysis.input.material_analyzer import MaterialAnalyzer
+from app.analysis.input.shipment_analysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
@@ -415,7 +415,7 @@ class DataInputPage(QWidget) :
     파일 분석 실행
     """
     def run_combined_analysis(self) :
-        solution, failures = run_allocation()
+        failures = run_allocation()
 
         item_plan_retention, rmc_plan_retention = calc_plan_retention()
     

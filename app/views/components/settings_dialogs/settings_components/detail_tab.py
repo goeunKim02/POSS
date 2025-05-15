@@ -1,22 +1,24 @@
-# app/views/components/settings_dialogs/settings_components/detail_tab.py - 모던한 Detail 탭
 from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QLineEdit, QCheckBox
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
 from .settings_section import ModernSettingsSectionComponent
 from app.models.common.settings_store import SettingsStore
 from app.resources.fonts.font_manager import font_manager
 
 
+"""
+Detail 탭 컴포넌트
+"""
 class ModernDetailTabComponent(BaseTabComponent):
-    """모던한 디자인의 상세 설정 탭 컴포넌트"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.init_content()
 
+    """
+    콘텐츠 초기화
+    """
     def init_content(self):
-        """콘텐츠 초기화"""
         # 헤더 섹션
         header_frame = QFrame()
         header_frame.setStyleSheet("""
@@ -39,7 +41,6 @@ class ModernDetailTabComponent(BaseTabComponent):
 
         header_layout.addWidget(title_label)
 
-        # 컨텐츠에 헤더 추가
         self.content_layout.addWidget(header_frame)
 
         # 저장 경로 섹션
@@ -163,27 +164,24 @@ class ModernDetailTabComponent(BaseTabComponent):
         self._connect_checkbox_to_input(shift_weight_checkbox, shift_weights_input,
                                         default_value="1.0, 1.0, 1.0")
 
-        # 섹션 추가
         self.content_layout.addWidget(path_section)
         self.content_layout.addWidget(line_change_section)
         self.content_layout.addWidget(material_section)
         self.content_layout.addWidget(line_assign_section)
         self.content_layout.addWidget(operation_rate_section)
 
-        # 스트레치 추가
         self.content_layout.addStretch(1)
 
+    """
+    체크박스와 입력 필드를 연결하는 헬퍼 메서드
+    """
     def _connect_checkbox_to_input(self, checkbox_widget, input_widget, default_value=""):
-        """체크박스와 입력 필드를 연결하는 헬퍼 메서드"""
         if isinstance(checkbox_widget, QCheckBox) and isinstance(input_widget, QLineEdit):
-            # 초기 상태 설정
             input_widget.setEnabled(checkbox_widget.isChecked())
 
-            # 비활성화 시 스타일 적용
             if not checkbox_widget.isChecked():
                 input_widget.setStyleSheet(self._get_disabled_input_style())
 
-            # 기본값 저장
             input_widget.setProperty('default_value', default_value)
 
             # 체크박스 상태 변경 시 입력 필드 활성/비활성화
@@ -201,8 +199,10 @@ class ModernDetailTabComponent(BaseTabComponent):
 
             checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
 
+    """
+    활성화된 입력 필드 스타일
+    """
     def _get_enabled_input_style(self):
-        """활성화된 입력 필드 스타일"""
         return """
             QLineEdit {
                 background-color: #ffffff;
@@ -220,8 +220,10 @@ class ModernDetailTabComponent(BaseTabComponent):
             }
         """
 
+    """
+    비활성화된 입력 필드 스타일
+    """
     def _get_disabled_input_style(self):
-        """비활성화된 입력 필드 스타일"""
         return """
             QLineEdit {
                 background-color: #f5f5f5;
@@ -234,9 +236,10 @@ class ModernDetailTabComponent(BaseTabComponent):
             }
         """
 
+    """
+    설정 변경 시 호출되는 콜백
+    """
     def on_setting_changed(self, key, value):
-        """설정 변경 시 호출되는 콜백"""
-        # weight_day_str의 경우 리스트로 변환하여 저장
         if key == "weight_day_str":
             try:
                 # 쉼표로 구분된 문자열을 리스트로 변환
@@ -249,7 +252,5 @@ class ModernDetailTabComponent(BaseTabComponent):
                 SettingsStore.set("weight_day", [1.0, 1.0, 1.0])
                 self.settings_changed.emit("weight_day", [1.0, 1.0, 1.0])
         else:
-            # 일반 설정값 저장
             SettingsStore.set(key, value)
-            # 상위 위젯에 변경 사항 전파
             self.settings_changed.emit(key, value)

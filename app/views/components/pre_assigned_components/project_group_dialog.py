@@ -11,6 +11,9 @@ from ....resources.styles.pre_assigned_style import (
 )
 from .processThread import ProcessThread
 
+"""
+프로젝트 그룹을 선택하는 팝업
+"""
 class ProjectGroupDialog(QDialog):
     optimizationDone = pyqtSignal(pd.DataFrame, pd.DataFrame)
 
@@ -24,7 +27,6 @@ class ProjectGroupDialog(QDialog):
             self.optimizationDone.connect(on_done_callback)
 
         self.setStyleSheet(DETAIL_DIALOG_STYLE)
-        # 다이얼로그에 ? 버튼 없애는 코드
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         self.setWindowTitle("Select Project Groups")
         self.setModal(True)
@@ -53,7 +55,6 @@ class ProjectGroupDialog(QDialog):
         title_label.setStyleSheet("color: white;")
         title_layout.addWidget(title_label)
 
-        # 메인 레이아웃에 제목 프레임 추가
         main_layout.addWidget(title_frame)
 
         # 콘텐츠 영역
@@ -70,7 +71,6 @@ class ProjectGroupDialog(QDialog):
         desc_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         desc_frame.setMinimumHeight(20)
         
-        # 스택 레이아웃 생성
         self.desc_stack = QStackedLayout(desc_frame)
 
         # 설명 라벨
@@ -100,8 +100,8 @@ class ProjectGroupDialog(QDialog):
         """)
         pp_layout.addWidget(self.progress_bar)
         pp_layout.setStretch(pp_layout.indexOf(self.progress_bar), 1)
+        
         self.desc_stack.addWidget(page_prog)
-        # 초기에는 설명 페이지
         self.desc_stack.setCurrentIndex(0)
 
         content_layout.addWidget(desc_frame)
@@ -119,7 +119,7 @@ class ProjectGroupDialog(QDialog):
         checkbox_layout.setContentsMargins(20, 20, 20, 20)
         checkbox_layout.setSpacing(10)
 
-        # 스크롤 영역 (체크박스가 많을 경우 대비)
+        # 스크롤 영역
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet("background-color: transparent; border: none;")
@@ -132,6 +132,7 @@ class ProjectGroupDialog(QDialog):
 
         # 체크박스 생성
         self.checkboxes = {}
+
         for group_id, projects in project_groups.items():
             cb = QCheckBox(f"{', '.join(projects)}")
             cb.setStyleSheet("""
@@ -163,14 +164,13 @@ class ProjectGroupDialog(QDialog):
         content_layout.addWidget(checkbox_frame)
         content_layout.addStretch(1)
 
-        # 스크롤 영역 생성 (전체 콘텐츠)
+        # 스크롤 영역
         main_scroll_area = QScrollArea()
         main_scroll_area.setWidgetResizable(True)
         main_scroll_area.setStyleSheet("background-color: #F9F9F9; border: none;")
         main_scroll_area.setWidget(content_widget)
         main_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
-        # 메인 레이아웃에 스크롤 영역 추가
         main_layout.addWidget(main_scroll_area)
 
         # 버튼 프레임
@@ -185,8 +185,10 @@ class ProjectGroupDialog(QDialog):
         # OK 버튼
         self.ok_button = QPushButton("OK")
         self.ok_button.setFixedSize(100, 40)
+
         ok_font = QFont("Arial", 11)
         ok_font.setBold(True)
+
         self.ok_button.setFont(ok_font)
         self.ok_button.setStyleSheet("""
             QPushButton {
@@ -230,14 +232,15 @@ class ProjectGroupDialog(QDialog):
         button_layout.addSpacing(15)
         button_layout.addWidget(self.cancel_button)
 
-        # 메인 레이아웃에 버튼 프레임 추가
         main_layout.addWidget(button_frame)
 
         self.setFixedWidth(1000)
         self.adjustSize()
 
+    """
+    OK 버튼 활성화 상태 업데이트
+    """
     def _update_ok_button(self):
-        # 체크된 항목에 따른 버튼 활성화
         any_checked = any(cb.isChecked() for cb in self.checkboxes.values())
         self.ok_button.setEnabled(any_checked)
 
@@ -247,10 +250,15 @@ class ProjectGroupDialog(QDialog):
         else:
             self.ok_button.setCursor(Qt.ArrowCursor)
 
+    """
+    사용자가 선택한 프로젝트 그룹 리스트 반환
+    """
     def selected_groups(self):
-        # 사용자가 선택한 프로젝트 그룹 리스트
         return [gid for gid, cb in self.checkboxes.items() if cb.isChecked()]
 
+    """
+    OK 버튼 클릭 시 호출출
+    """
     def _on_ok_clicked(self):
         gids = [gid for gid, cb in self.checkboxes.items() if cb.isChecked()]
         projects = sum((self.project_groups[gid] for gid in gids), [])
@@ -267,6 +275,9 @@ class ProjectGroupDialog(QDialog):
         self.thread.finished.connect(self._on_finished)
         self.thread.start()
 
+    """
+    프로세스 진행 사항 업데이트
+    """
     @pyqtSlot(int, int)
     def _on_progress(self, pct: int, remaining: int):
         self.progress_bar.setValue(pct)
@@ -274,6 +285,9 @@ class ProjectGroupDialog(QDialog):
         m, s = divmod(remaining, 60)
         self.progress_bar.setFormat(f"{pct}%   remaining time {m}:{s:02d}")
 
+    """
+    프로세스 완료 시 호출 
+    """
     @pyqtSlot(pd.DataFrame)
     def _on_finished(self, result_df: pd.DataFrame):
         self._on_progress(100, 0)
