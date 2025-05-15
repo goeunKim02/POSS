@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import re
 from collections import defaultdict
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 
 def extract_region_from_item(item, project):
     """

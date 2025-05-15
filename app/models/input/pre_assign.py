@@ -1,6 +1,6 @@
 import pandas as pd
 from app.utils.fileHandler import load_file
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from dataclasses import dataclass
 from typing import Any, List, Tuple, Dict
 
@@ -44,20 +44,7 @@ class DataLoader:
         capa_qty   = raw.get('capa_qty',       pd.DataFrame())
         return line_avail, capa_qty
 
-
-@dataclass
-class Request:
-    """
-    :param idx: 요청 인덱스
-    :param lines: 할당 가능한 라인 목록
-    :param times: 할당 가능한 시간(슬롯) 목록
-    :param qty: 요청 수량
-    """
-    idx: Any
-    lines: List[str]
-    times: List[int]
-    qty: float
-
 # 할당 결과 모델
-type PreAssignSolution = Dict[Any, List[Tuple[str, int, float]]]
-type PreAssignFailures = Dict[Any, List[str]]
+type PreAssignFailures = Dict[str, List[Dict[str, Any]]]
+
+# 세상이 무너지고 끝날거만 같아도 건강하고 웃고 사랑하고 그대로 찬란하게 있어줘

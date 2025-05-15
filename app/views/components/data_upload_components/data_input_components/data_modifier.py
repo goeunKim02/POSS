@@ -3,7 +3,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
-from app.models.common.fileStore import DataStore
+from app.models.common.file_store import DataStore
 
 class DataModifier:
     """데이터 수정 관련 로직을 처리하는 클래스"""

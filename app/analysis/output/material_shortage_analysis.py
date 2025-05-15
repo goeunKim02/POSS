@@ -3,7 +3,7 @@ import numpy as np
 import re
 import os
 from app.utils.fileHandler import load_file
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 
 """
 자재 부족량 분석 클래스

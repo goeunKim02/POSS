@@ -1,5 +1,5 @@
 import pandas as pd
-from app.models.common.projectGrouping import ProjectGroupManager
+from app.models.common.project_grouping import ProjectGroupManager
 from app.utils.error_handler import (
     error_handler, safe_operation,
     DataError, CalculationError

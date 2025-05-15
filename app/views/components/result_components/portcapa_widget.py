@@ -1,7 +1,7 @@
 import pandas as pd
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget, QTableWidgetItem,QSizePolicy,QHeaderView)
 from PyQt5.QtGui import QColor, QFont
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from app.models.common.screen_manager import *

@@ -295,11 +295,7 @@ class SettingsDialog(QDialog):
                         weight_material_spinbox.setStyleSheet(self._get_enabled_doublespinbox_style())
                     else:
                         weight_material_spinbox.setStyleSheet(self._get_disabled_doublespinbox_style())
-
-                        if weight_material_spinbox.property('default_value'):
-                            weight_material_spinbox.setValue(weight_material_spinbox.property('default_value'))
-                            self.on_setting_changed("weight_mat_qty", weight_material_spinbox.property('default_value'))
-
+                        # 비활성화되어도 값은 그대로 유지
                 material_constraint_checkbox.stateChanged.connect(on_material_constraint_changed)
 
         except Exception as e:
