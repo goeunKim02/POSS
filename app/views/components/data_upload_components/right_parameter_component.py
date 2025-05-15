@@ -9,6 +9,7 @@ from app.utils.error_handler import (
     error_handler, safe_operation, DataError, ValidationError, AppError
 )
 from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 
 class RightParameterComponent(QWidget):
@@ -47,10 +48,12 @@ class RightParameterComponent(QWidget):
                 background-color: #F5F5F5;
                 border: none;
                 border-bottom: 1px solid #E0E0E0;
+                border-bottom-left-radius: 0px; 
+                border-bottom-right-radius: 0px;
             }
         """)
         title_layout = QHBoxLayout(title_frame)
-        title_layout.setContentsMargins(10, 8, 10, 8)
+        title_layout.setContentsMargins(m(10), m(8), m(10), m(8))
 
         title_label = QLabel("Problems")
         title_font = font_manager.get_font("SamsungOne-700", 12)
@@ -60,22 +63,22 @@ class RightParameterComponent(QWidget):
 
         minimize_button = QPushButton()
         minimize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarMinButton))
-        minimize_button.setFixedSize(24, 24)
+        minimize_button.setFixedSize(w(24), h(24))
         minimize_button.setCursor(Qt.PointingHandCursor)
-        minimize_button.setStyleSheet("""
-            QPushButton {
+        minimize_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: white;
                 border: 1px solid #E0E0E0;
-                border-radius: 4px;
+                border-radius: s(4)px;
                 padding: 4px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #F5F5F5;
                 border-color: #1428A0;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed{{
                 background-color: #E0E0E0;
-            }
+            }}
         """)
         minimize_button.clicked.connect(self.close_button_clicked.emit)
 
@@ -89,86 +92,121 @@ class RightParameterComponent(QWidget):
         # 컨텐츠 영역
         content_frame = QFrame()
         content_frame.setStyleSheet("""
-            QFrame {
+            QFrame{
                 background-color: white;
                 border: none;
             }
         """)
         content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setContentsMargins(m(10), m(10), m(10), m(10))
 
         # 리스트 컨테이너
         list_container = QFrame()
         list_container.setStyleSheet("""
-            QFrame {
+            QFrame{{
                 background-color: white;
                 border: none;
                 border-radius: 8px;
             }
+            QScrollBar:vertical{{
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:vertical{{
+                background: #CCCCCC;
+                min-height: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical{{
+                border: none;
+                background: none;
+                height: 0px;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical{{
+                background: none;
+            }}
+            QScrollBar:horizontal{{
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:horizontal{{
+                background: #CCCCCC;
+                min-width: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{{
+                border: none;
+                background: none;
+                width: 0px;
+            }}
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal{{
+                background: none;
+            }}
         """)
         list_layout = QVBoxLayout(list_container)
         list_layout.setContentsMargins(0, 0, 0, 0)
 
         self.list_widget = QListWidget()
-        self.list_widget.setStyleSheet("""
-            QListWidget { 
+        self.list_widget.setStyleSheet(f"""
+            QListWidget{{ 
                 border: none; 
                 outline: none;
                 background-color: white;
                 border-radius: 8px;
-                font-family: %s;
-                font-size: 11px;
-            }
-            QListWidget::item {
-                padding: 8px 12px;
-                border-bottom: 1px solid #F5F5F5;
-                border-radius: 4px;
-                margin: 2px 4px;
-            }
-            QListWidget::item:selected {
+                font-family: {font_manager.get_just_font("SamsungOne-700").family()};
+                font-size: {fs(10)}px;
+            }}
+            QListWidget::item{{
+                padding: {p(8)}px {p(12)}px;
+                border-bottom: 1px solid #cccccc;
+                border-radius: {s(4)}px;
+            }}
+            QListWidget::item:selected{{
                 background-color: #E8ECFF;
                 color: black;
-            }
-            QListWidget::item:hover {
+            }}
+            QListWidget::item:hover{{
                 background-color: #F5F7FF;
-            }
-            QScrollBar:vertical {
+            }}
+            QScrollBar:vertical{{
                 border: none;
                 width: 10px;
                 margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: #CCCCCC;
+            }}
+            QScrollBar::handle:vertical{{
+                background: #cccccc;
                 min-height: 20px;
                 border-radius: 5px;
-            }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical{{
                 border: none;
                 background: none;
                 height: 0px;
-            }
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical{{
                 background: none;
-            }
-            QScrollBar:horizontal {
+            }}
+            QScrollBar:horizontal{{
                 border: none;
                 height: 10px;
                 margin: 0px;
-            }
-            QScrollBar::handle:horizontal {
-                background: #CCCCCC;
+            }}
+            QScrollBar::handle:horizontal{{
+                background: #cccccc;
                 min-width: 20px;
                 border-radius: 5px;
-            }
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal{{
                 border: none;
                 background: none;
                 width: 0px;
-            }
-            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+            }}
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal{{
                 background: none;
-            }
-        """ % font_manager.get_just_font("SamsungOne-700").family())
+            }}
+        """ )
 
         list_layout.addWidget(self.list_widget)
         content_layout.addWidget(list_container)
@@ -224,7 +262,7 @@ class RightParameterComponent(QWidget):
                     item_text = f'{reason} : {line}{center_info}, Available capacity : {available}, Excess amount : {excess}'
 
                     item = QListWidgetItem(item_text)
-                    item_font = font_manager.get_font('SamsungOne-700', 10)
+                    item_font = font_manager.get_font('SamsungOne-700', fs(10))
                     item.setFont(item_font)
 
                     # 에러 아이템 스타일링
@@ -248,7 +286,7 @@ class RightParameterComponent(QWidget):
 
                 # 섹션 헤더 추가
                 header_item = QListWidgetItem("Plan Retention")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
+                header_item.setFont(font_manager.get_font('SamsungOne-700', fs(11)))
                 header_item.setBackground(QColor('#F5F5F5'))
                 header_item.setForeground(QColor('#333333'))
                 header_item.setFlags(Qt.ItemIsEnabled)
@@ -293,7 +331,7 @@ class RightParameterComponent(QWidget):
                     excess = error.get('excess', 'Unknown')
 
                     item = QListWidgetItem(f"{line} 라인이 {reason} 을 {excess} 초과했습니다")
-                    item_font = font_manager.get_font('SamsungOne-700', 10)
+                    item_font = font_manager.get_font('SamsungOne-700', fs(10))
                     item.setFont(item_font)
                     item.setForeground(QColor('#E74C3C'))
 
@@ -312,7 +350,7 @@ class RightParameterComponent(QWidget):
 
                 # 섹션 헤더 추가
                 header_item = QListWidgetItem("Materials - Negative Stock")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
+                header_item.setFont(font_manager.get_font('SamsungOne-700', fs(11)))
                 header_item.setBackground(QColor('#F5F5F5'))
                 header_item.setForeground(QColor('#333333'))
                 header_item.setFlags(Qt.ItemIsEnabled)
@@ -321,7 +359,7 @@ class RightParameterComponent(QWidget):
                 for date, materials in negative_stock_materials.items():
                     # 날짜 헤더
                     date_item = QListWidgetItem(f'Negative initial stock materials:')
-                    date_item.setFont(font_manager.get_font('SamsungOne-700', 10))
+                    date_item.setFont(font_manager.get_font('SamsungOne-700', fs(10)))
                     date_item.setForeground(QColor('#E74C3C'))
                     self.list_widget.addItem(date_item)
 
@@ -330,7 +368,7 @@ class RightParameterComponent(QWidget):
                         stock = material.get('stock', 0)
 
                         detail_item = QListWidgetItem(f'  • {material_id} : {stock}')
-                        detail_item.setFont(font_manager.get_font('SamsungOne-700', 10))
+                        detail_item.setFont(font_manager.get_font('SamsungOne-700', fs(10)))
                         detail_item.setForeground(QColor('#E74C3C'))
 
                         safe_operation(

@@ -11,6 +11,7 @@ from app.utils.error_handler import (
     error_handler, safe_operation,
     DataError, ValidationError
 )
+from app.models.common.screen_manager import *
 
 """
 좌측 파라미터 영역에 프로젝트 분석 결과 표시
@@ -18,10 +19,6 @@ from app.utils.error_handler import (
 
 
 class LeftParameterComponent(QWidget):
-    """
-    클래스 초기화
-    """
-
     def __init__(self):
         super().__init__()
 
@@ -76,61 +73,65 @@ class LeftParameterComponent(QWidget):
 
         # 버튼 영역을 위한 프레임
         button_frame = QFrame()
-        button_frame.setStyleSheet("""
-            QFrame {
+        button_frame.setStyleSheet(f"""
+            QFrame {{
                 background-color: #F5F5F5;
                 border: none;
-                border-bottom: 1px solid #E0E0E0;
-            }
+                border-bottom: {s(1)}px solid #E0E0E0;
+                border-bottom-left-radius: 0px;
+                border-bottom-right-radius: 0px;
+            }}
         """)
 
         button_group_layout = QHBoxLayout(button_frame)
-        button_group_layout.setSpacing(2)
-        button_group_layout.setContentsMargins(10, 8, 10, 8)
+        button_group_layout.setSpacing(s(2))
+        button_group_layout.setContentsMargins(m(10), m(8), m(10), m(8))
 
         for i, btn_text in enumerate(self.metrics):
             btn = QPushButton(btn_text)
-            btn_font = font_manager.get_font("SamsungOne-700", 10)
+            btn_font = font_manager.get_font("SamsungOne-700", fs(11))  # 폰트 크기 9로 축소
             btn_font.setBold(True)
             btn.setFont(btn_font)
             btn.setCursor(QCursor(Qt.PointingHandCursor))
 
+            btn.setMinimumWidth(w(80))  # 최소 너비 80px
+
             # 버튼 스타일 업데이트
             if i == 0:
                 btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: #1428A0;
-                        color: white;
-                        border: none;
-                        border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #0F1F8A;
-                    }
-                """)
+                            QPushButton {
+                                background-color: #1428A0;
+                                color: white;
+                                border: none;
+                                border-radius: 5px;
+                                padding: 4px 8px;
+                                min-height: 26px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #0F1F8A;
+                            }
+                        """)
             else:
                 btn.setStyleSheet("""
-                    QPushButton {
-                        background-color: white;
-                        color: #666666;
-                        border: 1px solid #E0E0E0;
-                        border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
-                        font-weight: bold;
-                    }
-                    QPushButton:hover {
-                        background-color: #F5F5F5;
-                        color: #1428A0;
-                        border-color: #1428A0;
-                    }
-                """)
+                            QPushButton {
+                                background-color: white;
+                                color: #666666;
+                                border: 1px solid #E0E0E0;
+                                border-radius: 5px;
+                                padding: 4px 8px;
+                                min-height: 26px;
+                                font-weight: bold;
+                            }
+                            QPushButton:hover {
+                                background-color: #F5F5F5;
+                                color: #1428A0;
+                                border-color: #1428A0;
+                            }
+                        """)
 
             btn.clicked.connect(lambda checked, idx=i: self.switch_tab(idx))
-            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)  # Fixed로 변경
             button_group_layout.addWidget(btn)
             self.tab_buttons.append(btn)
 
@@ -193,71 +194,71 @@ class LeftParameterComponent(QWidget):
                 table.setRootIsDecorated(False)
                 table.setSortingEnabled(True)
                 table.setHeaderHidden(True)
-                table.setStyleSheet("""
-                    QTreeWidget { 
+                table.setStyleSheet(f"""
+                    QTreeWidget {{ 
                         border: none; 
                         outline: none;
                         background-color: white;
                         border-radius: 8px;
-                        font-family: %s;
-                        font-size: 20px;
-                    }
-                    QTreeWidget::item {
+                        font-family: {font_manager.get_just_font("SamsungOne-700").family()};
+                        font-size: {fs(18)}px;
+                    }}
+                    QTreeWidget::item {{
                         padding: 6px;
                         border-bottom: 1px solid #F5F5F5;
-                    }
-                    QTreeWidget::item:selected {
+                    }}
+                    QTreeWidget::item:selected {{
                         background-color: #E8ECFF;
                         color: black;
-                    }
-                    QTreeWidget::item:hover {
+                    }}
+                    QTreeWidget::item:hover {{
                         background-color: #F5F7FF;
-                    }
-                    QHeaderView::section { 
+                    }}
+                    QHeaderView::section {{ 
                         background-color: #F5F5F5;
                         color: #333333;
                         border: none;
                         padding: 8px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
-                    }
-                    QScrollBar:vertical {
+                    }}
+                    QScrollBar:vertical {{
                         border: none;
                         width: 10px;
                         margin: 0px;
-                    }
-                    QScrollBar::handle:vertical {
+                    }}
+                    QScrollBar::handle:vertical {{
                         background: #CCCCCC;
                         min-height: 20px;
                         border-radius: 5px;
-                    }
-                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    }}
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                         border: none;
                         background: none;
                         height: 0px;
-                    }
-                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                    }}
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
                         background: none;
-                    }
-                    QScrollBar:horizontal {
+                    }}
+                    QScrollBar:horizontal {{
                         border: none;
                         height: 10px;
                         margin: 0px;
-                    }
-                    QScrollBar::handle:horizontal {
+                    }}
+                    QScrollBar::handle:horizontal {{
                         background: #CCCCCC;
                         min-width: 20px;
                         border-radius: 5px;
-                    }
-                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                    }}
+                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                         border: none;
                         background: none;
                         width: 0px;
-                    }
-                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                    }}
+                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
                         background: none;
-                    }
-                """ % font_manager.get_just_font("SamsungOne-700").family())
+                    }}
+                """ )
 
                 table_layout.addWidget(table)
 
@@ -544,8 +545,8 @@ class LeftParameterComponent(QWidget):
                         color: white;
                         border: none;
                         border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
+                        padding: 4px 8px;
+                        min-height: 26px;
                         font-weight: bold;
                     }
                     QPushButton:hover {
@@ -559,8 +560,8 @@ class LeftParameterComponent(QWidget):
                         color: #666666;
                         border: 1px solid #E0E0E0;
                         border-radius: 5px;
-                        padding: 6px 12px;
-                        min-height: 28px;
+                        padding: 4px 8px;
+                        min-height: 26px;
                         font-weight: bold;
                     }
                     QPushButton:hover {

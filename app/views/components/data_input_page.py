@@ -227,7 +227,7 @@ class DataInputPage(QWidget) :
         left_parameter_area = QFrame()
         left_parameter_area.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         left_parameter_layout = QVBoxLayout(left_parameter_area)
-        left_parameter_layout.setContentsMargins(5, 5, 5, 5)
+        left_parameter_layout.setContentsMargins(0, 0, 0, 0)
 
         self.left_parameter_component = LeftParameterComponent()
         left_parameter_layout.addWidget(self.left_parameter_component)
@@ -245,7 +245,7 @@ class DataInputPage(QWidget) :
         parameter_splitter.addWidget(left_parameter_area)
         parameter_splitter.addWidget(right_parameter_area)
         
-        parameter_splitter.setSizes([700, 300])
+        parameter_splitter.setSizes([600, 400])
 
         parameter_layout.addWidget(parameter_splitter)
 
