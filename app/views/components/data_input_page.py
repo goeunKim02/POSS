@@ -28,6 +28,7 @@ from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 class DataInputPage(QWidget) :
     file_selected = pyqtSignal(str)
@@ -61,23 +62,23 @@ class DataInputPage(QWidget) :
 
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
-        top_container_layout.setContentsMargins(10, 10, 10, 10)
-        top_container_layout.setSpacing(10)
+        top_container_layout.setContentsMargins(m(10), m(10), m(10), m(10))
+        top_container_layout.setSpacing(s(10))
         top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
-        top_container.setFixedHeight(150)
+        top_container.setMinimumHeight(h(100))
 
         title_row = QFrame()
         title_row.setStyleSheet(f"background-color: transparent; padding-bottom:10px;")
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, 16, 0)
+        title_row_layout.setContentsMargins(0, 0, m(16), 0)
         title_row_layout.setAlignment(Qt.AlignVCenter)
 
 
         title_label = QLabel("Upload Data")
         title_label.setStyleSheet("padding: 0px;")
-        title_label.setFixedHeight(30)  # 버튼과 동일한 높이
+        title_label.setMinimumWidth(h(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", 15)
+        title_font = font_manager.get_font("SamsungOne-700", fs(15))
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
