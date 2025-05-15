@@ -247,10 +247,10 @@ class ItemsContainer(QWidget):
                     item_data = json.loads(json_str)
                     print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
 
-                    if isinstance(item_data, dict):
-                        item_data['_drop_pos_x'] = event.pos().x()
-                        item_data['_drop_pos_y'] = event.pos().y()
-                    print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
+                    # if isinstance(item_data, dict):
+                    #     item_data['_drop_pos_x'] = event.pos().x()
+                    #     item_data['_drop_pos_y'] = event.pos().y()
+                    # print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
                 except Exception as e:
                     print(f"아이템 데이터 파싱 오류: {e}")
 
@@ -312,13 +312,16 @@ class ItemsContainer(QWidget):
 
                 # 복사본도 원본 상태 저장
                 if new_item and source_states:
-                    if source['is_shortage']:
+                    if source_states['is_shortage']:
                         new_item.set_shortage_status(True, source_states['shortage_data'])
-                    if source['is_pre_assigned']:
+                    if source_states['is_pre_assigned']:
                         new_item.set_pre_assigned_status(True)
-                    if source['is_shipment_failure']:
+                    if source_states['is_shipment_failure']:
                         new_item.set_shipment_failure(True, source_states['shipment_failure_reason'])
 
+                # 텍스트 업데이트 호출
+                new_item.update_text_from_data()
+                
                 self.itemDataChanged.emit(new_item, item_data, {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
 
                 self.show_drop_indicator = False
