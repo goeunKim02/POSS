@@ -256,23 +256,15 @@ class EnhancedTableFilterComponent(QWidget):
         header = FilterHeader(Qt.Horizontal, self.table_view)
         header.setStyleSheet("""
             QHeaderView {
-                border: 1px solid #cccccc;
+                border: none;
                 background-color: transparent;
-                border-radius: 5px;
+                border-radius: 0px;
             }
             QHeaderView::section {
                 background-color: #F5F5F5;
                 border-right: 1px solid #cccccc;
                 padding: 4px;
                 border-radius: 0px;  /* 각 섹션의 라운드 코너 */
-            }
-            QHeaderView::section:first {
-                border-top-left-radius: 10px;
-                border-bottom-left-radius: 10px;
-            }
-            QHeaderView::section:last {
-                border-top-right-radius: 10px;
-                border-bottom-right-radius: 10px;
             }
         """)
         self.table_view.setHorizontalHeader(header)
