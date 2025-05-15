@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel, QApplication, QToolTip
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QToolTip, QSizePolicy
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag, QPixmap, QPainter, QColor, QFont
 import pandas as pd
@@ -17,20 +17,26 @@ class DraggableItemLabel(QLabel):
 
     def __init__(self, text, parent=None, item_data=None):
         super().__init__(text, parent)
+
+        self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
+        self.setAlignment(Qt.AlignLeft)
+
         
         # 출하 실패 상태 변수
         self.is_shipment_failure = False
         self.shipment_failure_reason = None
 
-        self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
-        self.setAlignment(Qt.AlignCenter)
+
+
+        # 위젯 속성 설정
         self.setCursor(Qt.OpenHandCursor)
-        self.setAcceptDrops(False)  # 아이템 자체는 드롭 받지 않도록 변경
+        self.setAcceptDrops(False)
         self.drag_start_position = None
-        self.setWordWrap(True)
+        self.setWordWrap(False)
         self.setMinimumHeight(25)
         self.adjustSize()
 
+        
         # 사전할당 상태 관련 속성 
         self.is_pre_assigned = False
 
@@ -51,7 +57,7 @@ class DraggableItemLabel(QLabel):
         if self.item_data is not None:
             self.setToolTip(self._create_tooltip_text())
         else:
-            self.setToolTip(text)  # 데이터가 없으면 텍스트만 표시
+            self.setToolTip(text if text else "")
 
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
@@ -101,51 +107,6 @@ class DraggableItemLabel(QLabel):
 
         tooltip += "</table>"
         return tooltip
-
-
-    def _create_shortage_tooltip(self):
-        if not self.shortage_data:
-            return self._create_tooltip_text()
-        item_code = self.item_data.get('Item', 'Unknown Item') if self.item_data else 'Unknown Item'
-        tooltip = """
-        <style>
-            table.tooltip-table {
-                border-collapse: collapse;
-                font-family: Arial, sans-serif;
-                font-size: 10pt;
-            }
-            table.tooltip-table th {
-                background-color: #1428A0;
-                color: white;
-                padding: 4px 8px;
-            }
-            table.tooltip-table td {
-                background-color: #F5F5F5;
-                padding: 4px 8px;
-                border-bottom: 1px solid #E0E0E0;
-            }
-            table.tooltip-table tr:last-child td {
-                border-bottom: none;
-            }
-        </style>
-        <table class='tooltip-table'>
-            <tr><th colspan='4'>{item_code} Material Shortage Details</th></tr>
-            <tr>
-                <th>Material</th>
-                <th>Required</th>
-                <th>Available</th>
-                <th>Shortage</th>
-            </tr>
-        """
-        for shortage in self.shortage_data:
-            tooltip += f"<tr><td>{shortage['Material']}</td>"
-            tooltip += f"<td align='right'>{int(shortage['Required']):,}</td>"
-            tooltip += f"<td align='right'>{int(shortage['Available']):,}</td>"
-            tooltip += f"<td align='right' style='color:red'>{int(shortage['Shortage']):,}</td></tr>"
-        tooltip += "</table><br/>"
-        tooltip += self._create_tooltip_text()
-        return tooltip
-
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -372,19 +333,10 @@ class DraggableItemLabel(QLabel):
     def update_text_from_data(self):        
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
-
-            # MFG 정보가 있으면 수량 정보로 추가
             if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']):
-                item_info += f" ({self.item_data['Qty']}개)"
-                
-            # 시프트(Time) 정보 추가 - 필요에 따라 활성화
-            if 'Time' in self.item_data and pd.notna(self.item_data['Time']):
-                item_info += f" [Shift {self.item_data['Time']}]"  # 시프트 정보 추가
-
+                item_info += f"    {self.item_data['Qty']}"
+        
             self.setText(item_info)
-
-            # 툴팁도 업데이트
-            self.setToolTip(self._create_tooltip_text())
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):
@@ -438,7 +390,7 @@ class DraggableItemLabel(QLabel):
             self.item_data = new_data.copy() if new_data else None
 
             # 텍스트와 툴팁 업데이트
-            self.update_text_from_data()
+            # self.update_text_from_data()
             self.setToolTip(self._create_tooltip_text())
             
         return False, "데이터가 없습니다."
@@ -465,4 +417,38 @@ class DraggableItemLabel(QLabel):
             # 기본 툴팁으로 복원
             self.setToolTip(self._create_tooltip_text())
 
+    """아이템 상태별 색상 선 표시"""
+    def paintEvent(self, event):
+        # 기본 QLabel 의 paintEvent 호출
+        super().paintEvent(event)
+        
+        # 상태별 색상 선 그리기
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # 선의 시작 위치와 너비
+        line_width = 10
+        line_gap = 5
+        current_x = 0  # 왼쪽 여백
 
+        # 상하 여백
+        top_margin = 0
+        bottom_margin = 0
+        
+        # 상태에 따른 색상 순서 정의
+        status_colors = []
+        
+        if self.is_shortage:
+            status_colors.append(QColor("#fc3838"))  # 빨간색
+        if self.is_shipment_failure:
+            status_colors.append(QColor("#fcb438"))  # 주황색
+        if self.is_pre_assigned:
+            status_colors.append(QColor("#7a9ff5"))  # 파란색
+        
+        # 각 상태별로 선 그리기
+        for color in status_colors:
+            painter.fillRect(current_x, top_margin, line_width, 
+                        self.height() - top_margin - bottom_margin, color)
+            current_x += line_width + line_gap
+        
+        painter.end()

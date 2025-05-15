@@ -20,7 +20,7 @@ class ItemsContainer(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(2, 2, 2, 2)
-        self.layout.setSpacing(2)
+        self.layout.setSpacing(3)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
         self.selected_item = None  # 현재 선택된 아이템
@@ -75,7 +75,7 @@ class ItemsContainer(QWidget):
         self.layout.removeItem(self.spacer)
 
         item_label = DraggableItemLabel(item_text, self, item_data)
-        item_label.setFont(QFont('Arial', 8, QFont.Normal))
+        # item_label.setFont(QFont('Arial', 8, QFont.Normal))
 
         # 아이템 선택 이벤트 연결
         item_label.itemSelected.connect(self.on_item_selected)
@@ -254,6 +254,53 @@ class ItemsContainer(QWidget):
 
             # 원본 위젯 (드래그된 아이템)
             source = event.source()
+            is_ctrl_pressed = event.keyboardModifiers() & Qt.ControlModifier  # [CTRL COPY]
+
+            if is_ctrl_pressed and isinstance(source, DraggableItemLabel):
+                # print("아이템 컨트롤 드래그앤 드롭 이벤트 발생") 
+                source_container = source.parent()
+
+                # 아이템 데이터가 없으면 원본에서 복사
+                if item_data is None and hasattr(source, 'item_data') and source.item_data:
+                    item_data = source.item_data.copy()
+
+                # 복사본 생성: Qty = 0 설정
+                if item_data:
+                    item_data['Qty'] = 0  # [CTRL COPY]
+                    # 불필요한 속성 제거
+                    item_data.pop('_drop_pos_x',None)
+                    item_data.pop('_drop_pos_y',None)
+
+                    # 부모 찾기 및 위치 계산
+                    grid_widget = self.find_parent_grid_widget()
+                    if grid_widget:
+                        for row_idx, row in enumerate(grid_widget.containers):
+                            if self in row:
+                                target_row = row_idx
+                                target_col = row.index(self)
+                                break
+
+                        if '_(' in grid_widget.row_headers[target_row]:
+                            line_part = grid_widget.row_headers[target_row].split('_(')[0]
+                            shift_part = grid_widget.row_headers[target_row].split('_(')[1].rstrip(')')
+
+                            item_data['Line'] = line_part
+                            day_idx = target_col
+                            is_day_shift = shift_part == "주간"
+                            new_time = (day_idx * 2) + (1 if is_day_shift else 2)
+                            item_data['Time'] = str(new_time)
+
+                # 복사본 생성
+                item_name = item_data['Item'] + "    0"
+                new_item = self.addItem(item_name, drop_index, item_data)
+
+                self.itemDataChanged.emit(new_item, item_data, {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
+
+                self.show_drop_indicator = False
+                self.update()
+                event.acceptProposedAction()
+                self.itemsChanged.emit()
+                return  # [CTRL COPY] Ctrl copy는 여기서 종료
 
             # 원본 아이템이 같은 컨테이너 내에 있는지 확인
             same_container = False
@@ -485,9 +532,6 @@ class ItemsContainer(QWidget):
             painter.drawPolygon(points_right)
 
 
-    """
-    현재 컨테이너가 그리드에서 어느 위치에 있는지 반환
-    """
     def get_container_position(self, grid_widget):
         if not grid_widget or not hasattr(grid_widget, 'containers'):
             return -1, -1
@@ -519,3 +563,4 @@ class ItemsContainer(QWidget):
                 return line_part, new_time
         
         return None, None
+    
