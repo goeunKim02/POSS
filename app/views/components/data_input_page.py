@@ -482,12 +482,22 @@ class DataInputPage(QWidget) :
     def run_combined_analysis(self) :
         failures = run_allocation()
 
-        item_plan_retention, rmc_plan_retention = calc_plan_retention()
-    
+
+        summary = {'SKU Plan Retention':'SKU Plan Retention','RMC Plan Retention':'RMC Plan Retention'}
+        display_df = pd.DataFrame([1,3,5,7,9,11])
+        current_data = self.left_parameter_component.all_project_analysis_data.copy()
+        current_data['Plan Retention'] = {
+                'display_df' : display_df,
+                'summary' : summary
+            }
+        self.left_parameter_component.set_project_analysis_data(current_data)
+
+        item_plan_retention, rmc_plan_retention = calc_plan_retention()    
         failures["plan_retention"] = {
             "item_plan_retention": item_plan_retention,
             "rmc_plan_retention": rmc_plan_retention
         }
+
 
         try :
             shipment_data = preprocess_data_for_fulfillment_rate()

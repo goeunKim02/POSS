@@ -21,11 +21,11 @@ def exception_hook(exctype, value, traceback_obj):
 
 
 if __name__ == "__main__":
-    # # High DPI 설정 (선택사항)
+    # High DPI 설정 (선택사항)
     # if hasattr(Qt, 'AA_EnableHighDpiScaling'):
     #     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
-    # if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
-    #     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+    if hasattr(Qt, 'AA_UseHighDpiPixmaps'):
+        QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
     app = QApplication(sys.argv)
 

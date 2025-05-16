@@ -427,6 +427,8 @@ class LeftParameterComponent(QWidget):
                     headers = list(display_df.columns)
                 elif metric == 'Current Shipment':
                     headers = ["Category", "Name", "SOP", "Production", "Fulfillment Rate", "Status"]
+                elif metric == 'Plan Retention':
+                    headers =['RMC','Item','Previous','Max Qty','shortage','Total']
                 else:
                     headers = list(display_df.columns) if hasattr(display_df, 'columns') else []
 
@@ -494,11 +496,12 @@ class LeftParameterComponent(QWidget):
                             elif status == 'OK':
                                 for col in range(len(headers)):
                                     item.setForeground(col, green_brush)
+                        elif metric == 'Plan Retention':
+                            pass
                     except Exception as style_error:
                         pass
 
                     table.addTopLevelItem(item)
-
         except Exception as e:
             raise DataError(f'Error displaying data : {str(e)}', {'metric': metric})
 
@@ -543,6 +546,12 @@ class LeftParameterComponent(QWidget):
                     ("Project Count", f"{summary.get('Project count', 0)}"),
                     ("Site Count", f"{summary.get('Site count', 0)}"),
                     ("Bottleneck Items", f"{summary.get('Bottleneck items', 0)}")
+                ]
+
+            elif metric == 'Plan Retention':
+                summary_data = [
+                    ("SKU Plan Retention","SKU Plan Retention"),
+                    ("RMC Plan Retention","RMC Plan Retention"),
                 ]
 
             # Summary 테이블에 데이터 추가
