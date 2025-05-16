@@ -54,7 +54,7 @@ class RightParameterComponent(QWidget):
         title_layout.setContentsMargins(m(10), m(8), m(10), m(8))
 
         title_label = QLabel("Problems")
-        title_font = font_manager.get_font("SamsungOne-700", fs(12))
+        title_font = font_manager.get_font("SamsungOne-700", 12)
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setStyleSheet("color: #333333; background-color: transparent; border: none;")
@@ -118,7 +118,7 @@ class RightParameterComponent(QWidget):
                 background-color: white;
                 border-radius: {s(8)}px;
                 font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                font-size: {fs(11)}px;
+                font-size: 20px;
             }}
             QListWidget::item {{
                 padding: {p(10)}px {p(15)}px;
@@ -194,7 +194,7 @@ class RightParameterComponent(QWidget):
             if production_capacity_issues:
                 # 섹션 헤더 추가
                 header_item = QListWidgetItem("Production Capacity Issues")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', fs(12)))
+                header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
                 header_item.setBackground(QColor('#F8F9FA'))
                 header_item.setForeground(QColor('#1428A0'))
                 header_item.setFlags(Qt.ItemIsEnabled)  # 선택 불가능하게
@@ -211,7 +211,7 @@ class RightParameterComponent(QWidget):
                     item_text = f'{reason} : {line}{center_info}, Available capacity : {available}, Excess amount : {excess}'
 
                     item = QListWidgetItem(item_text)
-                    item_font = font_manager.get_font('SamsungOne-700', fs(10))
+                    item_font = font_manager.get_font('SamsungOne-700', 9)
                     item.setFont(item_font)
 
                     # 에러 아이템 스타일링
@@ -235,7 +235,7 @@ class RightParameterComponent(QWidget):
 
                 # 섹션 헤더 추가
                 header_item = QListWidgetItem("Plan Retention")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', fs(12)))
+                header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
                 header_item.setBackground(QColor('#F8F9FA'))
                 header_item.setForeground(QColor('#1428A0'))
                 header_item.setFlags(Qt.ItemIsEnabled)
@@ -244,7 +244,7 @@ class RightParameterComponent(QWidget):
                 item1 = QListWidgetItem(f'최대 Item 계획유지율 : {item_plan_retention_rate}')
                 item2 = QListWidgetItem(f'최대 RMC 계획유지율 : {rmc_plan_retention}')
 
-                item_font = font_manager.get_font('SamsungOne-700', fs(10))
+                item_font = font_manager.get_font('SamsungOne-700', 9)
                 item1.setFont(item_font)
                 item2.setFont(item_font)
                 item1.setForeground(QColor('#666666'))
@@ -268,7 +268,7 @@ class RightParameterComponent(QWidget):
             if preassign_failures:
                 # 섹션 헤더 추가
                 header_item = QListWidgetItem("Preassignment Issues")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', fs(12)))
+                header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
                 header_item.setBackground(QColor('#F8F9FA'))
                 header_item.setForeground(QColor('#1428A0'))
                 header_item.setFlags(Qt.ItemIsEnabled)
@@ -293,7 +293,7 @@ class RightParameterComponent(QWidget):
                         text = f"{reason} for item {tgt}."
 
                     item = QListWidgetItem(text)
-                    item_font = font_manager.get_font('SamsungOne-700', 10)
+                    item_font = font_manager.get_font('SamsungOne-700', 9)
                     item.setFont(item_font)
                     item.setForeground(QColor('#E74C3C'))
 
@@ -306,37 +306,37 @@ class RightParameterComponent(QWidget):
             raise DataError(f'Error processing preassign failures : {str(e)}')
 
         # Materials Negative Stock
-        try:
-            if failures.get('materials_negative_stock'):
-                negative_stock_materials = failures.get('materials_negative_stock', {})
-
-                # 섹션 헤더 추가
-                header_item = QListWidgetItem("Materials - Negative Stock")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', fs(12)))
-                header_item.setBackground(QColor('#F8F9FA'))
-                header_item.setForeground(QColor('#1428A0'))
-                header_item.setFlags(Qt.ItemIsEnabled)
-                self.list_widget.addItem(header_item)
-
-                for date, materials in negative_stock_materials.items():
-                    # 날짜 헤더
-                    date_item = QListWidgetItem(f'Negative initial stock materials:')
-                    date_item.setFont(font_manager.get_font('SamsungOne-700', fs(10)))
-                    date_item.setForeground(QColor('#E74C3C'))
-                    self.list_widget.addItem(date_item)
-
-                    for material in materials:
-                        material_id = material.get('material_id', 'Unknown')
-                        stock = material.get('stock', 0)
-
-                        detail_item = QListWidgetItem(f'  • {material_id} : {stock}')
-                        detail_item.setFont(font_manager.get_font('SamsungOne-700', fs(10)))
-                        detail_item.setForeground(QColor('#E74C3C'))
-
-                        safe_operation(
-                            self.list_widget.addItem,
-                            'Error adding material item',
-                            detail_item
-                        )
-        except Exception as e:
-            raise DataError(f'Error processing negative stock materials : {str(e)}')
+        # try:
+        #     if failures.get('materials_negative_stock'):
+        #         negative_stock_materials = failures.get('materials_negative_stock', {})
+        #
+        #         # 섹션 헤더 추가
+        #         header_item = QListWidgetItem("Materials - Negative Stock")
+        #         header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
+        #         header_item.setBackground(QColor('#F8F9FA'))
+        #         header_item.setForeground(QColor('#1428A0'))
+        #         header_item.setFlags(Qt.ItemIsEnabled)
+        #         self.list_widget.addItem(header_item)
+        #
+        #         for date, materials in negative_stock_materials.items():
+        #             # 날짜 헤더
+        #             date_item = QListWidgetItem(f'Negative initial stock materials:')
+        #             date_item.setFont(font_manager.get_font('SamsungOne-700', 10))
+        #             date_item.setForeground(QColor('#E74C3C'))
+        #             self.list_widget.addItem(date_item)
+        #
+        #             for material in materials:
+        #                 material_id = material.get('material_id', 'Unknown')
+        #                 stock = material.get('stock', 0)
+        #
+        #                 detail_item = QListWidgetItem(f'  • {material_id} : {stock}')
+        #                 detail_item.setFont(font_manager.get_font('SamsungOne-700', 10))
+        #                 detail_item.setForeground(QColor('#E74C3C'))
+        #
+        #                 safe_operation(
+        #                     self.list_widget.addItem,
+        #                     'Error adding material item',
+        #                     detail_item
+        #                 )
+        # except Exception as e:
+        #     raise DataError(f'Error processing negative stock materials : {str(e)}')

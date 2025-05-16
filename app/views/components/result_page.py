@@ -218,6 +218,7 @@ class ResultPage(QWidget):
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(main_horizontal_splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
+
     def _create_material_tab_content(self, layout):
         """Material 탭 콘텐츠 생성"""
         material_page = QWidget()
@@ -678,7 +679,9 @@ class ResultPage(QWidget):
             print(f"셀 이동 처리 중 오류 발생: {e}")
             
     
-    """모든 시각화 차트 업데이트"""
+    """
+    모든 시각화 차트 업데이트
+    """
     def update_all_visualizations(self):
         print(f"시각화 업데이트 시작 - 캔버스 개수: {len(self.viz_canvases)}")
 
@@ -690,26 +693,25 @@ class ResultPage(QWidget):
         print("시각화 업데이트 완료")
 
 
-    """개별 시각화 차트 업데이트"""
+    """
+    개별 시각화 차트 업데이트
+    """
     def update_visualization(self, canvas, viz_type):
-        """개별 시각화 차트 업데이트"""
         if viz_type == "Capa":
             VisualizationUpdater.update_capa_chart(canvas, self.capa_ratio_data)
         elif viz_type == "Utilization":
             VisualizationUpdater.update_utilization_chart(canvas, self.utilization_data)
         elif viz_type == "Material":
-            # Material 탭의 경우 캔버스 업데이트 후 테이블 업데이트까지 함께 수행
             if self.result_data is not None and not self.result_data.empty:
-                # canvas 매개변수는 Material 탭의 캔버스
-                # self.material_analyzer = VisualizationUpdater.update_material_shortage_chart(canvas, self.result_data)
                 if hasattr(self, 'shortage_items_table') and self.shortage_items_table is not None:
                     self.update_shortage_items_table()
         elif viz_type == "PortCapa":
-            # PortCapa 업데이트 로직 (구현 예정)
             pass
     
 
-    """최종 최적화 결과를 파일로 내보내는 메서드"""
+    """
+    최종 최적화 결과를 파일로 내보내는 메서드
+    """
     def export_results(self):
         try:
             # 데이터가 있는지 확인
@@ -748,8 +750,11 @@ class ResultPage(QWidget):
             f"An error occurred during export:\n{str(e)}"
         )
 
+
+    """
+    테이블 셀에 마우스 올릴 때 상세 정보 툴팁 표시
+    """
     def show_shortage_tooltip(self, row, column):
-        """테이블 셀에 마우스 올릴 때 상세 정보 툴팁 표시"""
         if self.shortage_items_table is None or self.material_analyzer is None:
             return
                 
@@ -798,7 +803,7 @@ class ResultPage(QWidget):
         
         # 결과 데이터가 없으면 메시지만 표시
         if self.result_data is None or self.result_data.empty:
-            print("결과 데이터가 없습니다. 데이터를 먼저 로드해주세요.")
+            # print("결과 데이터가 없습니다. 데이터를 먼저 로드해주세요.")
 
             # 테이블 초기화
             if self.shortage_items_table:
@@ -949,6 +954,7 @@ class ResultPage(QWidget):
         print("자재 부족 테이블 업데이트 완료")
 
 
+
     """왼쪽 위젯의 아이템들에 자재 부족 상태 적용
     
     Args:
@@ -1017,7 +1023,7 @@ class ResultPage(QWidget):
         self.optimization_metadata = optimization_metadata
 
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
-
+ 
 
     """
     왼쪽 위젯에 사전할당 상태 적용
