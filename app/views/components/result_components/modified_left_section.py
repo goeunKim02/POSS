@@ -37,6 +37,13 @@ class ModifiedLeftSection(QWidget):
         self.search_active = False
         self.last_search_text = ''
         self.all_items = []
+        self.search_results = []
+        self.current_result_index = -1
+
+        if not hasattr(self, 'current_selected_item'):
+            self.current_selected_item = None
+        if not hasattr(self, 'current_selected_container'):
+            self.current_selected_container = None
 
         # 필터 상태 저장 
         self.current_filter_states = {
@@ -126,18 +133,21 @@ class ModifiedLeftSection(QWidget):
         self.filter_widget = FilterWidget()
         self.filter_widget.filter_changed.connect(self.on_excel_filter_changed)
         self.filter_widget.setFixedWidth(400)
+        self.filter_widget.setStyleSheet("""
+            border: none;
+        """)
         
         # FilterWidget 스타일 변경 (line_filter_btn, project_filter_btn)
         self.filter_widget.line_filter_btn.setStyleSheet("""
             QToolButton {
-                background-color: white;  /* 배경색을 흰색으로 변경 */
-                color: black;  /* 텍스트 색을 검은색으로 변경 */
+                background-color: white;
+                color: black;
                 font-weight: bold;
                 padding: 6px 8px;
                 border-radius: 4px;
                 min-width: 120px;
-                border: 1px solid #808080;  /* 테두리 색상을 회색으로 통일 */
-                margin-right: 10px;  /* 버튼 간격 추가 */
+                border: none;
+                margin-right: 10px;
             }
             QToolButton:hover {
                 background-color: #f0f0f0;
@@ -149,13 +159,13 @@ class ModifiedLeftSection(QWidget):
         
         self.filter_widget.project_filter_btn.setStyleSheet("""
             QToolButton {
-                background-color: white;  /* 배경색을 흰색으로 변경 */
-                color: black;  /* 텍스트 색을 검은색으로 변경 */
+                background-color: white;
+                color: black;
                 font-weight: bold;
                 padding: 6px 8px;
                 border-radius: 4px;
                 min-width: 120px;
-                border: 1px solid #808080;  /* 테두리 색상을 회색으로 통일 */
+                border: none;
             }
             QToolButton:hover {
                 background-color: #f0f0f0;
@@ -180,9 +190,9 @@ class ModifiedLeftSection(QWidget):
                 border-radius: 4px;
                 background-color: white;
                 selection-background-color: #1428A0;
-                font-size: 16px;
-                min-height: 38px;
-                padding: 0 10px;
+                font-size: 22px;
+                padding: 8px;
+                min-height: 36px;
             }
             QLineEdit:focus {
                 border: 1px solid #1428A0;
@@ -190,7 +200,7 @@ class ModifiedLeftSection(QWidget):
         """)
         self.search_field.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         self.search_field.setFixedWidth(350)  # 검색 박스 폭 더 증가
-        self.search_field.setFixedHeight(36)
+        # self.search_field.setFixedHeight(36)
         self.search_field.returnPressed.connect(self.search_items)
         search_section.addWidget(self.search_field)
 
@@ -252,6 +262,32 @@ class ModifiedLeftSection(QWidget):
         self.search_status_layout = QHBoxLayout()
         self.search_status_layout.setContentsMargins(10, 0, 10, 5)
 
+        # 결과 이동을 위한 버튼
+        self.prev_result_button = QPushButton('◀')
+        self.prev_result_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #1428A0;
+                font-weight: bold;
+                padding: 2px 6px;
+                border-radius: 4px;
+                min-width: 30px;
+                max-width: 30px;
+                border: 1px solid #d0d0d0;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QPushButton:disabled {
+                color: #a0a0a0;
+                background-color: #f8f8f8;
+                border: 1px solid #e0e0e0;
+            }
+        """)
+        self.prev_result_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.prev_result_button.clicked.connect(self.go_to_prev_result)
+        self.prev_result_button.setEnabled(False)
+
         # 검색 결과 수 표시
         self.search_result_label = QLabel('')
         self.search_result_label.setStyleSheet("""
@@ -260,13 +296,46 @@ class ModifiedLeftSection(QWidget):
                 font-weight: bold;
                 font-size: 13px;
                 border: None;
+                padding: 0 5px;
             }
         """)
 
+        # 다음 버튼
+        self.next_result_button = QPushButton('▶')
+        self.next_result_button.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0;
+                color: #1428A0;
+                font-weight: bold;
+                padding: 2px 6px;
+                border-radius: 4px;
+                min-width: 30px;
+                max-width: 30px;
+                border: 1px solid #d0d0d0;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QPushButton:disabled {
+                color: #a0a0a0;
+                background-color: #f8f8f8;
+                border: 1px solid #e0e0e0;
+            }
+        """)
+
+        self.next_result_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.next_result_button.clicked.connect(self.go_to_next_result)
+        self.next_result_button.setEnabled(False)
+
         self.search_status_layout.addStretch(1)
         self.search_status_layout.addWidget(self.search_result_label)
+        self.search_status_layout.addWidget(self.prev_result_button)
+        self.search_status_layout.addWidget(self.next_result_button)
 
         self.search_result_label.hide()
+        self.prev_result_button.hide()
+        self.next_result_button.hide()
+
         main_layout.addLayout(self.search_status_layout)
 
         # 새로운 그리드 위젯 추가
@@ -300,18 +369,24 @@ class ModifiedLeftSection(QWidget):
     def apply_all_filters(self):
         if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
             return
+
+        excel_filter_active = (any(not all(states.values()) for states in self.current_excel_filter_states.values())
+                                if hasattr(self, 'current_excel_filter_states') else False)
         
         for row_containers in self.grid_widget.containers:
             for container in row_containers:
                 for item in container.items:
-                    # 범례 필터와 엑셀 필터 모두 고려하여 표시 여부 결정
-                    should_show = self.should_show_item(item) and self.should_show_item_excel_filter(item)
-                    
-                    # 아이템 가시성 설정
-                    if should_show:
+                    self.update_item_status_line_visibility(item)
+
+                    if excel_filter_active :
+                        should_show = self.should_show_item_excel_filter(item)
+
+                        if should_show:
+                            item.show()
+                        else :
+                            item.hide()
+                    else :
                         item.show()
-                    else:
-                        item.hide()
                         
                 # 컨테이너 높이 재조정
                 container.adjustSize()
@@ -328,6 +403,7 @@ class ModifiedLeftSection(QWidget):
         # 라인 필터 체크 - Line 컬럼 사용
         if 'Line' in item_data:
             line = item_data['Line']
+
             if isinstance(line, (int, float)):
                 line = str(int(line))  # 숫자인 경우 문자열로 변환
             else:
@@ -339,6 +415,7 @@ class ModifiedLeftSection(QWidget):
         # 프로젝트 필터 체크 - Project 컬럼 사용
         if 'Project' in item_data:
             project = item_data['Project']
+
             if pd.isna(project):  # nan 값 처리
                 project = "N/A"
             else:
@@ -387,6 +464,17 @@ class ModifiedLeftSection(QWidget):
         self.last_search_text = search_text
         self.clear_search_button.setEnabled(True)
 
+        try:
+            if hasattr(self.grid_widget, 'clear_all_selections'):
+                self.grid_widget.clear_all_selections()
+            self.current_selected_item = None
+            self.current_selected_container = None
+        except Exception as e:
+            print(f"선택 초기화 오류: {e}")
+
+        self.search_results = []
+        self.current_result_index = -1
+
         visible_count = 0
         invalid_items = []
 
@@ -394,6 +482,7 @@ class ModifiedLeftSection(QWidget):
             try:
                 if self.apply_search_to_item(item, search_text):
                     visible_count += 1
+                    self.search_results.append(item)
             except RuntimeError:
                 invalid_items.append(item)
             except Exception as e:
@@ -403,14 +492,24 @@ class ModifiedLeftSection(QWidget):
             if item in self.all_items:
                 self.all_items.remove(item)
 
-        self.grid_widget.update_container_visibility()
+        try:
+            if hasattr(self.grid_widget, 'update_container_visibility'):
+                self.grid_widget.update_container_visibility()
+        except Exception as e:
+            print(f"컨테이너 가시성 업데이트 오류: {e}")
 
-        if visible_count > 0 :
-            self.search_result_label.setText(f'result : {visible_count}')
-        else :
-            self.search_result_label.setText('result : No matching items')
-        
         self.search_result_label.show()
+        self.prev_result_button.show()
+        self.next_result_button.show()
+
+        if self.search_results:
+            self.current_result_index = 0
+            self.select_current_result()
+            self.update_result_navigation()
+        else:
+            self.search_result_label.setText('result: No matching items')
+            self.prev_result_button.setEnabled(False)
+            self.next_result_button.setEnabled(False)
 
     """
     아이템에 검색 조건 적용
@@ -450,20 +549,145 @@ class ModifiedLeftSection(QWidget):
     검색 초기화
     """
     def clear_search(self) :
-        if not self.search_active :
+        if not self.search_active:
             return
         
         self.search_active = False
         self.last_search_text = ''
         self.search_field.clear()
         self.clear_search_button.setEnabled(False)
-        self.search_result_label.hide()
-
-        for item in self.all_items :
-            item.setVisible(True)
         
-        self.grid_widget.update_container_visibility()
+        try:
+            for item in self.all_items:
+                if hasattr(item, 'set_search_focus'):
+                    item.set_search_focus(False)
+                    item.update()
 
+            if hasattr(self.grid_widget, 'clear_all_selections'):
+                self.grid_widget.clear_all_selections()
+            self.current_selected_item = None
+            self.current_selected_container = None
+        except Exception as e:
+            print(f"선택 초기화 오류: {e}")
+        
+        self.search_results = []
+        self.current_result_index = -1
+        
+        self.search_result_label.hide()
+        self.prev_result_button.hide()
+        self.next_result_button.hide()
+        
+        for item in self.all_items:
+            try:
+                item.setVisible(True)
+            except RuntimeError:
+                pass
+            except Exception as e:
+                print(f"아이템 표시 오류: {e}")
+        
+        try:
+            if hasattr(self.grid_widget, 'update_container_visibility'):
+                self.grid_widget.update_container_visibility()
+        except Exception as e:
+            print(f"컨테이너 가시성 업데이트 오류: {e}")
+
+    """
+    이전 검색 결과로 이동
+    """
+    def go_to_prev_result(self):
+        if not self.search_results or self.current_result_index <= 0:
+            return
+        
+        try:
+            if self.current_result_index < len(self.search_results):
+                current_item = self.search_results[self.current_result_index]
+                
+                if hasattr(current_item, 'set_search_focus'):
+                    current_item.set_search_focus(False)
+                    current_item.update()
+            
+            self.current_result_index -= 1
+            self.select_current_result()
+            self.update_result_navigation()
+        except Exception as e:
+            print(f"이전 결과 이동 오류: {str(e)}")
+
+    """
+    다음 검색 결과로 이동
+    """
+    def go_to_next_result(self):
+        if not self.search_results or self.current_result_index >= len(self.search_results) - 1:
+            return
+        
+        try:
+            if self.current_result_index >= 0 and self.current_result_index < len(self.search_results):
+                current_item = self.search_results[self.current_result_index]
+                
+                if hasattr(current_item, 'set_search_focus'):
+                    current_item.set_search_focus(False)
+                    current_item.update()
+            
+            self.current_result_index += 1
+            self.select_current_result()
+            self.update_result_navigation()
+        except Exception as e:
+            print(f"다음 결과 이동 오류: {str(e)}")
+
+    """
+    선택된 검색 결과를 포커스 
+    """
+    def select_current_result(self):
+        if not self.search_results or not (0 <= self.current_result_index < len(self.search_results)):
+            return
+        
+        try:
+            for item in self.all_items:
+                if hasattr(item, 'set_search_focus'):
+                    item.set_search_focus(False)
+                    item.update()
+
+            current_item = self.search_results[self.current_result_index]
+            container = current_item.parent()
+
+            if hasattr(current_item, 'set_search_focus'):
+                current_item.set_search_focus(True)
+                current_item.update()
+
+            if container:
+                if hasattr(container, 'select_item'):
+                    container.select_item(current_item)
+
+                self.current_selected_container = container
+                self.current_selected_item = current_item
+
+                self.item_selected.emit(current_item, container)
+
+                if hasattr(self.grid_widget, 'ensure_item_visible'):
+                    self.grid_widget.ensure_item_visible(container, current_item)
+        except Exception as e:
+            print(f'항목 선택 오류 : {str(e)}')
+
+    """
+    검색 결과 상태 업데이트
+    """
+    def update_result_navigation(self):
+        if not self.search_results:
+            self.search_result_label.setText('result: No matching items')
+            self.prev_result_button.setEnabled(False)
+            self.next_result_button.setEnabled(False)
+            return
+        
+        try:
+            total_results = len(self.search_results)
+            current_index = self.current_result_index + 1
+
+            self.search_result_label.setText(f'<span style="font-size:26px;">result: {current_index}/{total_results}</span>')
+
+            self.prev_result_button.setEnabled(self.current_result_index > 0)
+            self.next_result_button.setEnabled(self.current_result_index < total_results - 1)
+        except Exception as e :
+            print(f'네이게이션 업데이트 오류 : {str(e)}')
+            self.search_result_label.setText(f'result: {len(self.search_results)}')
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""
     def on_grid_item_selected(self, selected_item, container):
@@ -987,58 +1211,57 @@ class ModifiedLeftSection(QWidget):
     
     """현재 필터 상태에 따라 아이템 가시성 조정"""
     def apply_visibility_filter(self):
-        print(f"[ModifiedLeftSection] 필터 적용 시작: {self.current_filter_states}")
         if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
             return
         
         self.apply_all_filters()
         
-        for row_containers in self.grid_widget.containers:
-            for container in row_containers:
-                for item in container.items:
-                    item.show()
-                    self.update_item_status_line_visibility(item)
+        # for row_containers in self.grid_widget.containers:
+        #     for container in row_containers:
+        #         for item in container.items:
+        #             item.show()
+        #             self.update_item_status_line_visibility(item)
     
     
-    # """
-    # 아이템이 표시
-    # - shortage만 체크: 자재부족 아이템만 표시
-    # - shipment만 체크: 출하실패 아이템만 표시
-    # - pre_assigned만 체크: 사전할당 아이템만 표시
-    # - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
-    # - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
-    # - 모든 체크박스 해제: 모든 아이템 표시
-    # """
-    # def should_show_item(self, item):
-    #     if not hasattr(self, 'current_filter_states'):
-    #         return True
+    """
+    아이템이 표시
+    - shortage만 체크: 자재부족 아이템만 표시
+    - shipment만 체크: 출하실패 아이템만 표시
+    - pre_assigned만 체크: 사전할당 아이템만 표시
+    - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
+    - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
+    - 모든 체크박스 해제: 모든 아이템 표시
+    """
+    def should_show_item(self, item):
+        if not hasattr(self, 'current_filter_states'):
+            return True
         
-    #     # 아이템의 상태 확인
-    #     is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
-    #     is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
-    #     is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+        # 아이템의 상태 확인
+        is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
+        is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+        is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
         
-    #     # 각 상태별 필터 확인
-    #     shortage_filter = self.current_filter_states.get('shortage', False)
-    #     shipment_filter = self.current_filter_states.get('shipment', False)
-    #     pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
+        # 각 상태별 필터 확인
+        shortage_filter = self.current_filter_states.get('shortage', False)
+        shipment_filter = self.current_filter_states.get('shipment', False)
+        pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
 
-    #     # 모든 필터가 해제되어 있으면 모든 아이템 표시
-    #     if not (shortage_filter or shipment_filter or pre_assigned_filter):
-    #         return True
+        # 모든 필터가 해제되어 있으면 모든 아이템 표시
+        if not (shortage_filter or shipment_filter or pre_assigned_filter):
+            return True
         
-    #     # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
-    #     should_show = True
+        # 체크된 필터에 해당하는 아이템들을 or 조건으로 표시
+        should_show = False
         
-    #     # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
-    #     if shortage_filter and not is_shortage:
-    #         should_show = False
-    #     if shipment_filter and not is_shipment:
-    #         should_show = False
-    #     if pre_assigned_filter and not is_pre_assigned:
-    #         should_show = False
+        # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
+        if shortage_filter and is_shortage:
+            should_show = True
+        if shipment_filter and is_shipment:
+            should_show = True
+        if pre_assigned_filter and is_pre_assigned:
+            should_show = True
         
-    #     return should_show
+        return should_show
     
     """
     아이템의 상태선 업데이트
@@ -1060,12 +1283,14 @@ class ModifiedLeftSection(QWidget):
         pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
 
         # 각 상태선의 가시성 설정
-        if hasattr(item, 'show_shortage_line'):
-            item.show_shortage_line = shortage_filter and hasattr(item, 'is_shortage') and item.is_shortage
-        if hasattr(item, 'show_shipment_line'):
-            item.show_shipment_line = shipment_filter and hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
-        if hasattr(item, 'show_pre_assigned_line'):
-            item.show_pre_assigned_line = pre_assigned_filter and hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+        if hasattr(item, 'is_shortage') and hasattr(item, 'show_shortage_line'):
+            item.show_shortage_line = shortage_filter and item.is_shortage
+        
+        if hasattr(item, 'is_shipment_failure') and hasattr(item, 'show_shipment_line'):
+            item.show_shipment_line = shipment_filter and item.is_shipment_failure
+        
+        if hasattr(item, 'is_pre_assigned') and hasattr(item, 'show_pre_assigned_line'):
+            item.show_pre_assigned_line = pre_assigned_filter and item.is_pre_assigned
         
         # 아이템에 repaint 요청하여 선을 다시 그리도록 함
         if hasattr(item, 'update'):
