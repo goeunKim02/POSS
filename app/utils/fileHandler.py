@@ -1,7 +1,7 @@
 import pandas as pd
 import os
-from app.models.common.fileStore import FilePaths
-from app.models.common.projectGrouping import ProjectGroupManager
+from app.models.common.file_store import FilePaths
+from app.models.common.project_grouping import ProjectGroupManager
 
 """
 파일 유형 감지하는 함수
@@ -31,16 +31,29 @@ def load_file(file_path, sheet_name=None, **kwargs) :
         file_type = detect_file_type(file_path)
 
         if file_type == 'excel':
-            return pd.read_excel(file_path, sheet_name=sheet_name, **kwargs)
+            data =  pd.read_excel(file_path, sheet_name=sheet_name, **kwargs)
         elif file_type == 'csv':
-            df = pd.read_excel(file_path, **kwargs)
+            df = pd.read_csv(file_path, **kwargs)
 
             if sheet_name is None or isinstance(sheet_name, list):
-                return {"Sheet1": df}
-            return df
+                data =  {"Sheet1": df}
+            else:
+                data = df
         else:
             print(f"지원되지 않는 파일 형식입니다: {file_path}")
             return pd.DataFrame() if sheet_name is not None and not isinstance(sheet_name, list) else {}
+        
+        # 숫자들은 반올림해서 정수로 변환
+        if isinstance(data, dict):
+            # 여러 시트인 경우 각 시트별로 반올림 적용
+            for sheet_name_key, df in data.items():
+                if isinstance(df, pd.DataFrame):
+                    data[sheet_name_key] = round_to_int(df)
+        elif isinstance(data, pd.DataFrame):
+            # 단일 데이터프레임인 경우 반올림 적용
+            data = round_to_int(data)
+
+        return data
 
     except Exception as e :
         print(f"엑셀 파일 시트 로드 중 오류 발생: {e}")
@@ -80,3 +93,21 @@ def create_from_master():
     df = pd.read_excel(path, sheet_name='line_available')
     
     return ProjectGroupManager.create_project_groups(df)
+
+
+"""숫자형 컬럼들을 반올림하여 정수로 변환"""
+def round_to_int(df):
+    # DataFrame의 복사본 생성
+    df_copy = df.copy()
+
+    # Time 제외
+    include_columns = ['Qty', 'MFG']  
+    
+    # 숫자형 컬럼 찾기 및 반올림 적용
+    for col in df_copy.columns:
+        # 숫자형 컬럼인지 확인
+        if col in include_columns and df_copy[col].dtype in ['int64', 'int32', 'float64', 'float32']:
+            # NaN이 아닌 값들만 반올림하여 정수로 변환
+            df_copy[col] = df_copy[col].round(0).astype('int64')  # nullable integer
+    
+    return df_copy

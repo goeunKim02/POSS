@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt
 
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 from app.utils.fileHandler import load_file
 from app.core.input.maintenance import melt_plan, get_threshold
 
