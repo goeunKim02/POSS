@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from app.views.components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
+from app.views.components.result_components.table_widget.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
 
 
 class PlanTab(QWidget):

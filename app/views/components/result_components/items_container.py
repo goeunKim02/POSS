@@ -318,7 +318,7 @@ class ItemsContainer(QWidget):
 
                             item_data['Line'] = line_part
                             day_idx = target_col
-                            is_day_shift = shift_part == "주간"
+                            is_day_shift = shift_part == "Day"
                             new_time = (day_idx * 2) + (1 if is_day_shift else 2)
                             item_data['Time'] = str(new_time)
 
@@ -421,7 +421,7 @@ class ItemsContainer(QWidget):
                                 day_idx = target_col  # 열 인덱스는 요일 인덱스와 대응
 
                                 # 교대 정보에 따라 Time 값 결정 (주간: 홀수, 야간: 짝수)
-                                is_day_shift = shift_part == "주간"
+                                is_day_shift = shift_part == "Day"
                                 new_time = (day_idx * 2) + (1 if is_day_shift else 2)
 
                                 # Time 값 업데이트
@@ -612,7 +612,7 @@ class ItemsContainer(QWidget):
                 shift_part = row_key.split('_(')[1].rstrip(')')
 
                 # Time 계산
-                is_day_shift = shift_part == "주간"
+                is_day_shift = shift_part == "Night"
                 new_time = (col_idx * 2) + (1 if is_day_shift else 2)
 
                 return line_part, new_time

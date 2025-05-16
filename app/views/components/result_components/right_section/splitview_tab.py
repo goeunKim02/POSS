@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
+from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
 
 
 class SplitViewTab(QWidget):
