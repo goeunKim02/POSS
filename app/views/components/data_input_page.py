@@ -200,7 +200,8 @@ class DataInputPage(QWidget) :
 
         maximize_button = QPushButton()
         maximize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarShadeButton))
-        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 0px; margin-top: 5px; margin-right:12px")
+        maximize_button.setStyleSheet("border: none; margin-top: 5px;")
+        maximize_button.setCursor(QCursor(Qt.PointingHandCursor))
         maximize_button.clicked.connect(self.open_parameter_component) 
         maximize_button.setVisible(False)
         maximize_button.setObjectName("maximize_button")
