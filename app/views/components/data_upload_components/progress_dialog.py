@@ -71,7 +71,7 @@ class OptimizationProgressDialog(QDialog):
 
         # 제목 레이블
         title_label = QLabel("First Optimization")
-        title_font = font_manager.get_font("SamsungSharpSans-Bold", fs(15))
+        title_font = font_manager.get_font("SamsungSharpSans-Bold", f(15))
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setAlignment(Qt.AlignCenter)
@@ -91,18 +91,18 @@ class OptimizationProgressDialog(QDialog):
             }
         """)
         content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(m(30), m(40), m(30), m(30))
-        content_layout.setSpacing(s(20))
+        content_layout.setContentsMargins(w(30), h(40), w(30), h(30))
+        content_layout.setSpacing(w(20))
 
         # 진행 상태 레이블
         self.status_label = QLabel("First optimization is currently underway...")
-        status_font = font_manager.get_font("SamsungOne-700", fs(12))
+        status_font = font_manager.get_font("SamsungOne-700", f(12))
         self.status_label.setFont(status_font)
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setStyleSheet(f"""
             QLabel {{
                 color: #333333;
-                padding: {p(10)}px;
+                padding: {w(10)}px;
             }}
         """)
         content_layout.addWidget(self.status_label)
@@ -115,11 +115,11 @@ class OptimizationProgressDialog(QDialog):
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
                 border: 2px solid #E0E0E0;
-                border-radius: {s(8)}px;
+                border-radius: {w(8)}px;
                 background-color: white;
                 text-align: center;
                 height: {h(40)}px;
-                font-size: {fs(11)}px;
+                font-size: {f(11)}px;
                 font-weight: bold;
                 color: #333333;
             }}
