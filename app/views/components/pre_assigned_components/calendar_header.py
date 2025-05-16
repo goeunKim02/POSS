@@ -34,12 +34,12 @@ class CalendarHeader(QWidget):
         blank0 = QWidget(self)
         blank0.setFixedWidth(60)
 
-        layout.addWidget(blank0, 0, 0, 2, 1)
+        layout.addWidget(blank0, 0, 0, 1, 1)
 
         blank1 = QWidget(self)
         blank1.setFixedWidth(80)
 
-        layout.addWidget(blank1, 0, 1, 2, 1)
+        layout.addWidget(blank1, 0, 1, 1, 1)
 
         weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
         
