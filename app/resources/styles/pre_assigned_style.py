@@ -36,7 +36,6 @@ color: black;
 font-weight: bold;
 padding: 10px;
 font-size: 14px;
-border-radius: 10px;
 """
 
 # 구분선 스타일
@@ -52,7 +51,6 @@ color: white;
 font-weight: bold;
 padding: 8px;
 font-size: 13px;
-border-radius: 10px;
 """
 
 # Day/Night 레이블 스타일
@@ -61,8 +59,6 @@ font-size: 13px;
 background-color: #f8f8f8;
 font-weight: bold;
 padding: 6px;
-border: 1px solid #d9d9d9;
-border-radius: 10px;
 """
 
 NIGHT_LABEL_STYLE = """
@@ -70,8 +66,6 @@ font-size: 13px;
 background-color: #f0f0f0;
 font-weight: bold;
 padding: 6px;
-border: 1px solid #d9d9d9;
-border-radius: 10px;
 """
 
 # 상세정보 스타일
@@ -79,7 +73,6 @@ DETAIL_DIALOG_STYLE = """
 QDialog {
     background-color: #ffffff;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
 }
 """
 
@@ -116,7 +109,6 @@ QLabel.field-value {
 DETAIL_BUTTON_STYLE = """
 QPushButton {
     padding: 6px 12px;
-    border-radius: 4px;
     background-color: #1428A0;
     color: white;
 }
