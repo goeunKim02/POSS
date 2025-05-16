@@ -15,6 +15,9 @@ class DraggableItemLabel(QFrame):
     # 아이템 더블클릭 이벤트를 위한 시그널 추가
     itemDoubleClicked = pyqtSignal(object)  # 더블클릭된 아이템 참조를 전달
 
+    # 검색 포커스 상태 변수
+    is_search_focused = False
+
     # 아이템 삭제를 위한 시그널 추가
     itemDeleteRequested = pyqtSignal(object) # 마우스 우측 클릭하면 삭제 버튼이 나옴
 
@@ -69,11 +72,12 @@ class DraggableItemLabel(QFrame):
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
 
+        # 검색 포커스 상태
+        self.is_search_focused = False
+
         # 컨텍스트 메뉴 설정
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
-
-
 
     """내부 레이아웃 설정 - 아이템명과 수량을 분리"""
     def setup_layout(self, text):
@@ -368,6 +372,10 @@ class DraggableItemLabel(QFrame):
 
     """현재 상태에 맞게 스타일 업데이트"""
     def update_style(self):
+        # 검색 포커스 스타일
+        if self.is_search_focused:
+            self.setStyleSheet(ItemStyle.SEARCH_FOCUSED_STYLE)
+            return
         if self.is_selected:
             if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_SELECTED_STYLE)
@@ -522,6 +530,16 @@ class DraggableItemLabel(QFrame):
             self.item_label.setWordWrap(wrap)
         if hasattr(self, 'qty_label'):
             self.qty_label.setWordWrap(wrap)
+
+    """
+    검색 포커스 설정 메서드
+    """
+    def set_search_focus(self, focused=True):
+        if self.is_search_focused == focused:
+            return
+        
+        self.is_search_focused = focused
+        self.update_style()
 
     """ 아이템을 삭제할 때 사용할 메서드 입니다."""
     def show_context_menu(self, position):

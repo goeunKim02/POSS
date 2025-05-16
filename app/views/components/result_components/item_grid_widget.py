@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from .items_container import ItemsContainer
 
 
@@ -327,6 +327,43 @@ class ItemGridWidget(QWidget):
         #     for container in row_containers :
         #         if hasattr(container, 'update_visibility') :
         #             container.update_visibility()
+
+    """
+    검색 후 선택된 항목이 보이도록 스크롤 이동
+    """
+    def ensure_item_visible(self, container, item):
+        if not container or not item:
+            return
+        
+        try :
+            for row_idx, row_containers in enumerate(self.containers):
+                if container in row_containers:
+                    col_idx = row_containers.index(container)
+
+                    cell_widget = container
+                    container_pos = cell_widget.mapTo(self.scroll_content, QPoint(0, 0))
+                    
+                    item_pos = item.pos()
+                    target_x = container_pos.x() + item_pos.x() 
+                    target_y = container_pos.y() + item_pos.y()
+
+                    self.scroll_area.horizontalScrollBar().setValue(target_x - 10)
+                    self.scroll_area.verticalScrollBar().setValue(target_y - 10)
+
+                    break
+        except Exception as e:
+            print(f"아이템 스크롤 오류: {str(e)}")
+
+    """
+    컨테이너 가시성 업데이트
+    """
+    def container_visibility(self):
+        for row_containers in self.containers:
+            for container in row_containers:
+                if hasattr(container, 'update_visibility'):
+                    container.update_visibility()
+                elif hasattr(container, 'adjustSize'):
+                    container.adjustSize()
 
     """ 아이템 삭제 메서드"""
     def on_item_delete_requested(self, item, container):
