@@ -15,11 +15,11 @@ from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
 from app.resources.styles.result_style import ResultStyles 
 from app.views.components.result_components.modified_left_section import ModifiedLeftSection
-from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
+from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.items_container import ItemsContainer
 from app.views.components.result_components.right_section.adj_error_manager import AdjErrorManager
 from app.views.components.result_components.right_section.tab_manager import TabManager
-from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
+from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.right_section.kpi_widget import KpiScore
 
 class ResultPage(QWidget):

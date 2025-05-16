@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                           QTabWidget, QPushButton, QFileDialog, QMessageBox)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QCursor, QFontMetrics
-from app.views.components.result_components.maintenance_rate.plan_data_manager import PlanDataManager
-from app.views.components.result_components.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
+from app.views.components.result_components.table_widget.maintenance_rate.plan_data_manager import PlanDataManager
+from app.views.components.result_components.table_widget.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
 """계획 유지율 표시 위젯"""
