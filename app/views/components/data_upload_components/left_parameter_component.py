@@ -75,14 +75,14 @@ class LeftParameterComponent(QWidget):
             QFrame {{
                 background-color: #F5F5F5;
                 border: none;
-                border-bottom: {s(1)}px solid #E0E0E0;
+                border-bottom: {f(1)}px solid #E0E0E0;
                 border-radius: 0px;
             }}
         """)
 
         button_group_layout = QHBoxLayout(button_frame)
-        button_group_layout.setSpacing(s(2))
-        button_group_layout.setContentsMargins(m(10), m(8), m(10), m(8))
+        button_group_layout.setSpacing(f(2))
+        button_group_layout.setContentsMargins(w(10), h(8), w(10), h(8))
 
         for i, btn_text in enumerate(self.metrics):
             btn = QPushButton(btn_text)
@@ -207,7 +207,7 @@ class LeftParameterComponent(QWidget):
                     QTreeWidget::item:selected {{
                         background-color: #E8ECFF;
                         color: black;
-                        font-size: {fs(21)}px;
+                        font-size: {f(21)}px;
                     }}
                     QTreeWidget::item:hover {{
                         background-color: #F5F7FF;
@@ -219,7 +219,7 @@ class LeftParameterComponent(QWidget):
                         padding: 4px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
-                        font-size: {fs(24)}px;
+                        font-size: {f(24)}px;
                     }}
                     QScrollBar:vertical {{
                         border: none;
@@ -286,7 +286,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 6px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {fs(11)}px;
+                        font-size: {f(11)}px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px 10px;
