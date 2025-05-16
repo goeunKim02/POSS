@@ -78,7 +78,7 @@ class DataInputPage(QWidget) :
         title_label.setStyleSheet("padding: 0px;")
         title_label.setMinimumWidth(h(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", fs(15))
+        title_font = font_manager.get_font("SamsungOne-700", 15)
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
