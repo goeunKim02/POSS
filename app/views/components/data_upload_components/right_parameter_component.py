@@ -47,14 +47,14 @@ class RightParameterComponent(QWidget):
             QFrame {{
                 background-color: #F5F5F5;
                 border: none;
-                border-bottom: {s(1)}px solid #E0E0E0;
+                border-bottom: {h(1)}px solid #E0E0E0;
             }}
         """)
         title_layout = QHBoxLayout(title_frame)
-        title_layout.setContentsMargins(m(10), m(8), m(10), m(8))
+        title_layout.setContentsMargins(w(10), h(8), w(10), h(8))
 
         title_label = QLabel("Problems")
-        title_font = font_manager.get_font("SamsungOne-700", 12)
+        title_font = font_manager.get_font("SamsungOne-700", f(12))
         title_font.setBold(True)
         title_label.setFont(title_font)
         title_label.setStyleSheet("color: #333333; background-color: transparent; border: none;")
@@ -65,10 +65,10 @@ class RightParameterComponent(QWidget):
         minimize_button.setCursor(Qt.PointingHandCursor)
         minimize_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: white;
-                border: 1px solid #E0E0E0;
-                border-radius: {s(4)}px;
-                padding: {p(4)}px;
+                background-color: transparent;
+                border: none;
+                border-radius: {h(4)}px;
+                padding: {w(4)}px;
             }}
             QPushButton:hover {{
                 background-color: #F5F5F5;
@@ -104,7 +104,7 @@ class RightParameterComponent(QWidget):
             QFrame {{
                 background-color: white;
                 border: 1px solid #E0E0E0;
-                border-radius: {s(8)}px;
+                border-radius: {h(8)}px;
             }}
         """)
         list_layout = QVBoxLayout(list_container)
@@ -116,12 +116,12 @@ class RightParameterComponent(QWidget):
                 border: none; 
                 outline: none;
                 background-color: white;
-                border-radius: {s(8)}px;
+                border-radius: {w(8)}px;
                 font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                font-size: 20px;
+                font-size: {f(20)}px;
             }}
             QListWidget::item {{
-                padding: {p(10)}px {p(15)}px;
+                padding: {h(10)}px {w(15)}px;
                 border: none;
                 border-bottom: 1px solid #F5F5F5;
                 margin: 0px;
@@ -137,14 +137,14 @@ class RightParameterComponent(QWidget):
                 border: none;
                 background: #F5F5F5;
                 width: {w(8)}px;
-                margin: {m(5)}px {m(2)}px;
-                border-radius: {s(4)}px;
+                margin: {f(5)}px {f(2)}px;
+                border-radius: {f(4)}px;
             }}
             QScrollBar::handle:vertical {{
                 background: #CCCCCC;
                 min-height: {h(30)}px;
-                border-radius: {s(4)}px;
-                margin: {m(1)}px;
+                border-radius: {f(4)}px;
+                margin: {f(1)}px;
             }}
             QScrollBar::handle:vertical:hover {{
                 background: #AAAAAA;
