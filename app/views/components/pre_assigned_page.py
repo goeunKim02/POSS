@@ -229,18 +229,13 @@ class PlanningPage(QWidget):
     projectGroupDialog에서 작업 완료 후 호출
     """
     def _on_optimization_prepare(self, result_df, filtered_df):
-        self.filtered_df = filtered_df
-        
-        if hasattr(self.main_window, 'result_page'):
-            pre_items = filtered_df['Item'].unique().tolist()
-            # 결과를 ResultPage 에 전달
-            self.main_window.result_page.set_optimization_result({
+        # self.filtered_df = filtered_df
+        pre_items = filtered_df['Item'].unique().tolist()
+        self.main_window.result_page.set_optimization_result({
                 'assignment_result': result_df,
                 'pre_assigned_items': pre_items
             })
-            self.main_window.navigate_to_page(2)
-        else:
-            self.optimization_requested.emit({'assignment_result': result_df})
+        self.main_window.navigate_to_page(2)
 
     """
     사전 할당 결과 표시 함수

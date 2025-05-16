@@ -138,7 +138,7 @@ class ItemGridWidget(QWidget):
                     shift_label = QLabel(shift)
 
                     # 주간/야간에 따라 스타일 다르게 적용
-                    if shift == "주간":
+                    if shift == "Day":
                         shift_style = """
                             padding: 5px; 
                             background-color: #F8F8F8;

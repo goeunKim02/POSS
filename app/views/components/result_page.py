@@ -21,6 +21,8 @@ from app.views.components.result_components.right_section.adj_error_manager impo
 from app.views.components.result_components.right_section.tab_manager import TabManager
 from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.right_section.kpi_widget import KpiScore
+from app.models.output.assignment_model import AssignmentModel
+from app.controllers.adjustment_controller import AdjustmentController
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -123,10 +125,9 @@ class ResultPage(QWidget):
 
         # 드래그 가능한 테이블 위젯 추가
         self.left_section = ModifiedLeftSection()
+
         # 시그널 연결
         self.left_section.data_changed.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
-        self.left_section.cell_moved.connect(self.on_cell_moved)  # 셀 이동 시그널 연결
-        self.left_section.item_data_changed.connect(self.on_item_data_changed)  # 아이템 데이터 변경 시그널 연결
 
         left_layout.addWidget(self.left_section)
         
@@ -181,7 +182,7 @@ class ResultPage(QWidget):
             row_label.setFont(QFont("Arial", 10, QFont.Bold))
             row_label.setAlignment(Qt.AlignCenter)
             row_label.setStyleSheet("color: #333; border: none; padding: 5px;")
-            kpi_widget_layout.addWidget(row_label, i+1, 0)
+            kpi_widget_layout.addWidget(row_label, i, 0)
             
             # 각 행의 점수 라벨들
             for j, col_name in enumerate(["Total", "Mat", "SOP", "Util"]):
@@ -189,7 +190,7 @@ class ResultPage(QWidget):
                 score_label.setFont(QFont("Arial", 10))
                 score_label.setAlignment(Qt.AlignCenter)
                 score_label.setStyleSheet("color: #555; border: none; padding: 5px;")
-                kpi_widget_layout.addWidget(score_label, i+1, j+1)
+                kpi_widget_layout.addWidget(score_label, i, j)
                 
                 # 라벨을 참조할 수 있도록 저장
                 self.kpi_labels[f"{row_name}_{col_name}"] = score_label
@@ -377,52 +378,11 @@ class ResultPage(QWidget):
         # 왼쪽 섹션의 데이터 변경 이벤트 연결
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
             self.left_section.data_changed.connect(self.on_data_changed)
-        
-        # 아이템 변경 이벤트 연결
+
+        # 아이템 변경 이벤트 연결 (MVC 외 다른 용도)
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
-            self.left_section.item_data_changed.connect(self.on_item_data_changed)
-
-        # 셀 이동 이벤트 연결 
-        if hasattr(self, 'left_section') and hasattr(self.left_section, 'cell_moved'):
-            self.left_section.cell_moved.connect(self.on_cell_moved)
-
-        # 검증 에러 관련 신호 연결
-        if hasattr(self.left_section, 'validation_error_occured'):
-            self.left_section.validation_error_occured.connect(self.add_validation_error)
-        
-        if hasattr(self.left_section, 'validation_error_resolved'):
-            self.left_section.validation_error_resolved.connect(self.remove_validation_error)
-
-
-    """아이템 데이터가 변경되었을 때 호출되는 함수"""
-    def on_item_data_changed(self, item, new_data):
-        # 위치 변경에 의한 호출인지 확인
-        if hasattr(item, '_is_position_change'):
-            # 위치 변경은 on_cell_moved에서 처리하므로 여기서는 무시
-            return
-        
-        # 수량 변경이 있는 경우 업데이트
-        if 'Qty' in new_data and pd.notna(new_data['Qty']):
-            line = new_data.get('Line')
-            time = new_data.get('Time')
-            item = new_data.get('Item')
-            new_qty = new_data.get('Qty')
-
-            # 값 변환 및 검증
-            try:
-                time = int(time) if time is not None else None
-                new_qty = int(float(new_qty)) if new_qty is not None else None
-            except (ValueError, TypeError):
-                print(f"시간 또는 수량 변환 오류: time={time}, qty={new_qty}")
-                return
-
-            if line is not None and time is not None and item is not None and new_qty is not None:
-                    # 계획 유지율 위젯 업데이트
-                    if hasattr(self, 'plan_maintenance_widget'):
-                        # 수량 직접 업데이트
-                        print(f"수량 업데이트: {line}, {time}, {item}, {new_qty}")
-                        self.plan_maintenance_widget.update_quantity(line, time, item, new_qty)
-                        
+            # MVC가 아닌 다른 로직용 (예: 통계, 로깅)
+            self.left_section.item_data_changed.connect(self.on_item_data_changed_legacy)
                         
     """
     시각화 페이지 전환 및 버튼 스타일 업데이트
@@ -430,7 +390,6 @@ class ResultPage(QWidget):
     def switch_viz_page(self, index):
         # TabManager를 통한 탭 전환 (호환성 유지)
         self.tab_manager.switch_tab(index)
-
 
     """
     Material 테이블 스타일 적용
@@ -490,7 +449,6 @@ class ResultPage(QWidget):
             }
         """)
 
-
     """
     왼쪽 위젯의 모든 아이템들의 자재 부족 상태 초기화
     """
@@ -521,7 +479,6 @@ class ResultPage(QWidget):
         if hasattr(self, 'left_section') and hasattr(self.left_section, 'set_shipment_failure_items'):
             self.left_section.set_shipment_failure_items(failure_items)
         
-
     """
     각 지표별 초기 시각화 생성
     """
@@ -586,7 +543,7 @@ class ResultPage(QWidget):
             # 데이터가 비어있지 않은 경우에만 분석 수행
             if data is not None and not data.empty:
                 # 데이터 변경 이벤트 카운터 증가
-                self.data_changed_count += 1
+                self.data_changed_count = 1
 
                 # KPI 점수 업데이트
                 self.update_kpi_scores()
@@ -597,12 +554,6 @@ class ResultPage(QWidget):
                 for name, val in self.kpi_score.calculate_all_scores().items():
                     lbl = self.kpi_labels[f"Adjust_{name}"]
                     lbl.setText(f"{val:.1f}%")
-                
-                self.validator = PlanAdjustmentValidator(data)
-                
-                # validator를 왼쪽 섹션에 전달 
-                if hasattr(self, 'left_section'):
-                    self.left_section.set_validator(self.validator)
 
                 # Plan 탭의 계획 유지율 위젯 업데이트
                 print("계획 유지율 위젯 업데이트 시작")
@@ -650,144 +601,7 @@ class ResultPage(QWidget):
             import traceback
             traceback.print_exc()
     
-    """
-    셀이 이동되었을 때 호출되는 메서드
-    변경된 항목에 따라 시각화 업데이트
-    """
-    def on_cell_moved(self, item, old_data, new_data):
-        try:     
-            # 결과 데이터가 있을 때만 처리
-            if self.result_data is not None and not self.result_data.empty:
-                # KPI 점수 업데이트
-                self.update_kpi_scores()
 
-                # 수량만 변경된 경우 (위치는 동일)
-                is_quantity_only_change = (
-                    old_data.get('Line') == new_data.get('Line') and
-                    old_data.get('Time') == new_data.get('Time') and
-                    old_data.get('Item') == new_data.get('Item') and
-                    old_data.get('Qty') != new_data.get('Qty')
-                )
-
-                # 수량만 변경된 경우
-                if is_quantity_only_change:
-                    print(f"[DEBUG] 수량 변경 전: {old_data['Qty']}, 변경 후: {new_data['Qty']}")
-                    # 결과 데이터에서 정확한 아이템만 업데이트
-                    mask = (
-                        (self.result_data['Line'] == new_data.get('Line')) &
-                        (self.result_data['Time'] == int(new_data.get('Time'))) &
-                        (self.result_data['Item'] == new_data.get('Item'))
-                    )
-                    
-                    matched_rows = self.result_data[mask]
-                    print(f"매칭된 행 수: {len(matched_rows)}")
-                    
-                    if len(matched_rows) > 0:
-                        # print(f"매칭된 행 정보: {matched_rows.iloc[0].to_dict()}")
-                        # 수량 업데이트
-                        self.result_data.loc[mask, 'Qty'] = float(new_data.get('Qty'))
-                        # print(f"수량만 변경: {old_data.get('Qty')} -> {new_data.get('Qty')}")
-        
-                else:
-                    print(f"[DEBUG] 위치 이동 감지! {old_data['Line']}→{new_data['Line']}, "
-                            f"{old_data['Time']}→{new_data['Time']}, "
-                            f"Qty: {old_data['Qty']} → {new_data['Qty']}")
-                    # 기존 행 제거
-                    old_mask = (
-                        (self.result_data['Line'] == old_data.get('Line')) &
-                        (self.result_data['Time'] == int(old_data.get('Time'))) &
-                        (self.result_data['Item'] == old_data.get('Item'))
-                    )
-                    
-                    # 기존 행 데이터 백업
-                    old_row_data = self.result_data[old_mask].iloc[0].copy() if old_mask.any() else None
-                    
-                    # 기존 행 제거
-                    self.result_data = self.result_data[~old_mask]
-                    
-                    # 새 행 추가
-                    if old_row_data is not None:
-                        new_row = old_row_data.copy()
-                        new_row['Line'] = str(new_data.get('Line'))
-                        new_row['Time'] = int(new_data.get('Time'))
-                        new_row['Item'] = str(new_data.get('Item'))
-                        new_row['Qty'] = float(new_data.get('Qty'))
-                        
-                        # 다른 필드들도 new_data에서 업데이트
-                        for key, value in new_data.items():
-                            if key in new_row.index and key not in ['Line', 'Time', 'Item', 'Qty']:
-                                new_row[key] = value
-                        
-                        # 새 행을 DataFrame에 추가
-                        self.result_data.loc[len(self.result_data)] = new_row
-                        
-                        print(f"위치 변경 완료: 기존 행 제거 후 새 행 추가")
-
-                # 셀 이동에 따른 제조동별 생산량 비율 업데이트
-                updated_ratio = CapaRatioAnalyzer.update_capa_ratio_for_cell_move(
-                    self.result_data, old_data, new_data, is_initial=False  # 셀 이동 시 결과 표시
-                )
-
-                # 업데이트된 비율이 있는 경우
-                if updated_ratio:
-                    # 원본 데이터가 없는 경우 원본 데이터 저장
-                    if not hasattr(self, 'original_capa_ratio') or self.original_capa_ratio is None:
-                        self.original_capa_ratio = self.capa_ratio_data.copy() if isinstance(self.capa_ratio_data, dict) else {}
-                    
-                    # 비교 형식으로 데이터 구성
-                    self.capa_ratio_data = {
-                        'original': self.original_capa_ratio,
-                        'adjusted': updated_ratio
-                    }
-
-                    # utilization 비교 데이터 처리
-                    # 요일별 가동률 업데이트 : 불필요한 계산 막기 위해 capa가 업데이트 되면 시행
-                    utilization_updated = CapaUtilization.update_utilization_for_cell_move(
-                        self.result_data, old_data, new_data
-                    )
-                    
-                    print(f"가동률 업데이트: {utilization_updated}")
-
-                    if utilization_updated:
-                        # 원본 데이터 저장(처음 수정 시)
-                        if not hasattr(self, 'original_utilization') or self.original_utilization is None:
-                            self.original_utilization = self.utilization_data.copy() if isinstance(self.utilization_data, dict) else {}
-
-                        # 비교 형식으로 데이터 구성
-                        self.utilization_data = {
-                            'original' : self.original_utilization,
-                            'adjusted': utilization_updated
-                        }
-
-                        print(f"비교 데이터 구성: {self.utilization_data}")
-
-                    # 시각화 업데이트
-                    self.update_all_visualizations()
-
-                    # print(f"업데이트된 분석 결과: {self.capa_ratio_data}")
-
-                    # Plan 탭의 계획 유지율 위젯 업데이트
-                    if hasattr(self, 'plan_maintenance_widget'):
-                        # 필요한 데이터 추출
-                        line = new_data.get('Line')
-                        time = new_data.get('Time')
-                        item = new_data.get('Item')
-                        qty = new_data.get('Qty')
-                        
-                        # 값이 있으면 수량 업데이트
-                        if line and time is not None and item and qty is not None:
-                            self.plan_maintenance_widget.update_quantity(line, time, item, qty)
-            # Base KPI 점수 새로고침
-            self._refresh_base_kpi()
-            # 그리고 일단 Adjust도 동일하게 초기화
-            for name, val in self.kpi_score.calculate_all_scores().items():
-                lbl = self.kpi_labels[f"Adjust_{name}"]
-                lbl.setText(f"{val:.1f}%")
-        
-        except Exception as e:
-            print(f"셀 이동 처리 중 오류 발생: {e}")
-            
-    
     """
     모든 시각화 차트 업데이트
     """
@@ -1106,7 +920,8 @@ class ResultPage(QWidget):
 
 
     """
-    최적화 결과를 사전할당 정보와 함께 설정
+    1. 최적화 결과를 사전할당 정보와 함께 설정
+    -> left_section으로 전달
     """
     def set_optimization_result(self, results):
         # 결과 데이터 추출
@@ -1118,17 +933,23 @@ class ResultPage(QWidget):
         self.pre_assigned_items = set(pre_assigned_items)
 
         if hasattr(self, 'left_section'):
-            # 왼쪽 섹션에 사전할당 정보 전달
-            if hasattr(self.left_section, 'set_pre_assigned_items'):
-                self.left_section.set_pre_assigned_items(self.pre_assigned_items)
-            else:
-                # 속성으로 직접 설정
-                self.left_section.pre_assigned_items = self.pre_assigned_items
+            # ─── MVC 구조 초기화 ───
+            # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
+            validator = PlanAdjustmentValidator(assignment_result)
 
-            # 데이터 설정
-            self.left_section.set_data_from_external(assignment_result)
+            # 2) AssignmentModel 생성
+            model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
 
-        # 메타데이터 필요시
+            # 3) AdjustmentController 생성 (error_manager 주입)
+            controller = AdjustmentController(model, self.left_section, self.error_manager)
+            
+            # 4) Left Section에 validator와 controller 저장 (fallback용)
+            self.left_section.set_validator(validator)
+            self.left_section.set_controller(controller)
+            
+            print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
+
+        # 메타데이터 필요시 - 추후 삭제
         self.optimization_metadata = optimization_metadata
 
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
@@ -1369,7 +1190,7 @@ class ResultPage(QWidget):
         if demand_path and os.path.exists(demand_path):
             # 모든 시트를 dict 형태로 읽어오기
             demand_df = pd.read_excel(demand_path, sheet_name='demand')
-            print(demand_df.head())
+            
         data = self.result_data if (self.result_data is not None and not self.result_data.empty) else pd.DataFrame()
         self.kpi_score.set_data(
             result_data=data,
@@ -1381,3 +1202,31 @@ class ResultPage(QWidget):
         for name, val in scores.items():
             lbl = self.kpi_labels[f"Base_{name}"]
             lbl.setText(f"{val:.1f}%")
+
+
+    def on_item_data_changed_legacy(self, item, new_data):
+        """MVC 외의 아이템 변경 처리 (로깅, 통계 등)"""
+        # 위치 변경에 의한 호출인지 확인
+        if hasattr(item, '_is_position_change'):
+            return
+        
+        # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
+        if 'Qty' in new_data and pd.notna(new_data['Qty']):
+            line = new_data.get('Line')
+            time = new_data.get('Time')
+            item_code = new_data.get('Item')
+            new_qty = new_data.get('Qty')
+
+            # 값 변환 및 검증
+            try:
+                time = int(time) if time is not None else None
+                new_qty = int(float(new_qty)) if new_qty is not None else None
+            except (ValueError, TypeError):
+                print(f"시간 또는 수량 변환 오류: time={time}, qty={new_qty}")
+                return
+
+            if all([line, time is not None, item_code, new_qty is not None]):
+                # 계획 유지율 위젯 업데이트
+                if hasattr(self, 'plan_maintenance_widget'):
+                    print(f"계획 유지율 위젯 수량 업데이트: {line}, {time}, {item_code}, {new_qty}")
+                    self.plan_maintenance_widget.update_quantity(line, time, item_code, new_qty)
