@@ -1,4 +1,4 @@
-from PyQt5.QtCore import pyqtSignal, QDate, Qt
+from PyQt5.QtCore import pyqtSignal, QDate, Qt, QTimer
 from PyQt5.QtWidgets import (QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
                              QSplitter, QStackedWidget, QTabBar,
                              QMessageBox)
@@ -15,7 +15,7 @@ from app.views.components.data_upload_components.date_range_selector import Date
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.left_parameter_component import LeftParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
-
+from app.views.components.data_upload_components.progress_dialog import OptimizationProgressDialog
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
@@ -78,7 +78,7 @@ class DataInputPage(QWidget) :
         title_label.setStyleSheet("padding: 0px;")
         title_label.setMinimumWidth(h(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", fs(15))
+        title_font = font_manager.get_font("SamsungOne-700", 15)
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
@@ -321,27 +321,92 @@ class DataInputPage(QWidget) :
     """
     Run 버튼 클릭 시 모든 데이터프레임 DataStore에 저장
     """
-    def on_run_clicked(self) :
+
+    def on_run_clicked(self):
+        # 필수 파일 확인
+        demand_file = FilePaths.get("demand_excel_file")
+        dynamic_file = FilePaths.get("dynamic_excel_file")
+        master_file = FilePaths.get("master_excel_file")
+
+        if not all([demand_file, dynamic_file, master_file]):
+            missing_files = []
+            if not demand_file:
+                missing_files.append("Demand")
+            if not dynamic_file:
+                missing_files.append("Dynamic")
+            if not master_file:
+                missing_files.append("Master")
+
+            QMessageBox.warning(
+                self,
+                "필수 파일 누락",
+                f"다음 파일이 필요합니다: {', '.join(missing_files)}"
+            )
+            return
+
         self.tab_manager.save_current_tab_data()
 
         modified_data = self.data_modifier.get_all_modified_data()
 
-        if modified_data :
+        if modified_data:
             choice = SaveConfirmationDialog.show_dialog(self)
 
-            if choice == "save_and_run" :
+            if choice == "save_and_run":
                 self.on_save_clicked()
-                self.prepare_dataframes_for_optimization()
-                self.run_button_clicked.emit()
-            elif choice == "run_without_save" :
-                self.prepare_dataframes_for_optimization()
-                self.run_button_clicked.emit()
-            else :
+                self.show_optimization_progress()
+            elif choice == "run_without_save":
+                self.show_optimization_progress()
+            else:
                 return
-        else :
-            self.prepare_dataframes_for_optimization()
-            self.run_button_clicked.emit()
+        else:
+            self.show_optimization_progress()
 
+    """
+    최적화 프로그래스 다이얼로그 표시
+    """
+
+    def show_optimization_progress(self):
+        # 프로그래스 다이얼로그 생성
+        self.progress_dialog = OptimizationProgressDialog(self)
+
+        # 최적화 완료 시그널 연결
+        self.progress_dialog.optimization_completed.connect(self.on_optimization_completed)
+        self.progress_dialog.optimization_cancelled.connect(self.on_optimization_cancelled)
+
+        # 다이얼로그가 닫힐 때 호출되는 함수
+        self.progress_dialog.finished.connect(self.on_dialog_finished)
+
+        # 최적화 시작을 먼저 호출
+        self.progress_dialog.start_optimization()
+
+        # 모달 다이얼로그로 실행 (exec_() 사용)
+        self.progress_dialog.exec_()
+
+    """
+    최적화 완료 처리
+    """
+
+    def on_optimization_completed(self):
+        self.prepare_dataframes_for_optimization()
+        self.run_button_clicked.emit()
+
+    """
+    최적화 취소 처리
+    """
+
+    def on_optimization_cancelled(self):
+        # 취소 메시지는 이미 프로그래스 다이얼로그에서 표시됨
+        pass
+
+    """
+    다이얼로그 종료 처리
+    """
+
+    def on_dialog_finished(self):
+        # 프로그래스 다이얼로그 정리
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.deleteLater()
+            self.progress_dialog = None
     """
     최적화를 위한 데이터프레임 준비 및 저장
     """

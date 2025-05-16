@@ -34,14 +34,12 @@ class CalendarCard(QFrame):
             QFrame {{
                 background-color: {base_color};
                 border: 1px solid {base_color};
-                border-radius: 6px;
             }}
         """
         self.selected_style = f"""
             QFrame {{
                 background-color: {sel_color};
                 border: 1px solid {sel_color};
-                border-radius: 6px;
             }}
         """
 
