@@ -12,7 +12,7 @@ class SummaryWidget(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
         # 데이터 집계
