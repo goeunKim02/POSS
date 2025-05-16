@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QCursor
 from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 
 class SaveConfirmationDialog(QDialog):
@@ -36,10 +37,10 @@ class SaveConfirmationDialog(QDialog):
 
         # 제목 레이블
         title_label = QLabel("Save Changes")
-        title_font = QFont("Arial", f(14))  # 폰트 크기 비율 적용
+        title_font = QFont(font_manager.get_just_font("SamsungSharpSans-Bold").family())  # 폰트 크기 비율 적용
         title_font.setBold(True)
         title_label.setFont(title_font)
-        title_label.setStyleSheet("color: #F5F5F5;")
+        title_label.setStyleSheet(f"color: #F5F5F5; font-size: {f(20)}px; border: none;")
         title_layout.addWidget(title_label)
 
         # 메인 레이아웃에 제목 프레임 추가
