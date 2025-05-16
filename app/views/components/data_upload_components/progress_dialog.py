@@ -66,7 +66,7 @@ class OptimizationProgressDialog(QDialog):
 
         # 제목 프레임의 레이아웃을 먼저 생성하고 설정
         title_layout = QVBoxLayout(title_frame)
-        title_layout.setContentsMargins(m(20), 0, m(20), 0)
+        title_layout.setContentsMargins(w(20), 0, w(20), 0)
         title_layout.setAlignment(Qt.AlignLeft | Qt.AlignCenter)
 
         # 제목 레이블
@@ -125,21 +125,21 @@ class OptimizationProgressDialog(QDialog):
             }}
             QProgressBar::chunk {{
                 background-color: #1428A0;
-                border-radius: {s(6)}px;
-                margin: {m(2)}px;
+                border-radius: {w(6)}px;
+                margin: {w(2)}px;
             }}
         """)
         content_layout.addWidget(self.progress_bar)
 
         # 시간 정보 레이블
         self.time_label = QLabel(f"Estimated time: {self.total_time}(s)")
-        time_font = font_manager.get_font("SamsungOne-700", fs(10))
+        time_font = font_manager.get_font("SamsungOne-700", f(10))
         self.time_label.setFont(time_font)
         self.time_label.setAlignment(Qt.AlignCenter)
         self.time_label.setStyleSheet(f"""
             QLabel {{
                 color: #666666;
-                padding: {p(5)}px;
+                padding: {w(5)}px;
             }}
         """)
         content_layout.addWidget(self.time_label)
@@ -155,19 +155,19 @@ class OptimizationProgressDialog(QDialog):
                 background-color: #F0F0F0;
                 border: none;
                 border-top: 1px solid #E0E0E0;
-                padding: {p(15)}px;
+                padding: {w(15)}px;
             }}
         """)
         button_frame.setFixedHeight(h(70))
 
         button_layout = QHBoxLayout(button_frame)
-        button_layout.setContentsMargins(m(20), 0, m(20), 0)
+        button_layout.setContentsMargins(w(20), 0, w(20), 0)
         button_layout.addStretch()
 
         # 취소 버튼
         self.cancel_button = QPushButton("cancel")
         self.cancel_button.setCursor(Qt.PointingHandCursor)
-        cancel_font = font_manager.get_font("SamsungOne-700", fs(10))
+        cancel_font = font_manager.get_font("SamsungOne-700", f(10))
         cancel_font.setBold(True)
         self.cancel_button.setFont(cancel_font)
         self.cancel_button.setFixedSize(w(100), h(36))
@@ -176,7 +176,7 @@ class OptimizationProgressDialog(QDialog):
                 background-color: #E0E0E0;
                 color: #333333;
                 border: none;
-                border-radius: {s(5)}px;
+                border-radius: {w(5)}px;
                 font-weight: bold;
             }}
             QPushButton:hover {{
