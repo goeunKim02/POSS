@@ -14,12 +14,11 @@ class AdjErrorManager():
         # 에러 표시 위젯 초기화
         self.error_display_widget = QWidget()
         self.error_display_layout = QVBoxLayout(self.error_display_widget)
-        self.error_display_layout.setContentsMargins(5, 5, 5, 5)
-        self.error_display_layout.setSpacing(5)
+        self.error_display_layout.setContentsMargins(3, 3, 3, 3)
+        self.error_display_layout.setSpacing(3)
         self.error_display_layout.setAlignment(Qt.AlignTop)
         
         self.error_scroll_area.setWidget(self.error_display_widget)
-        self.error_scroll_area.hide()  # 초기에는 숨김
 
         # 에러 저장소
         self.validation_errors = {}
@@ -93,27 +92,20 @@ class AdjErrorManager():
             if child:
                 child.deleteLater()
 
-        # 에러가 없으면 숨김
+        # 에러가 없으면 기본 메시지 표시
         if not self.validation_errors:
-            self.error_scroll_area.hide()
+            no_error_message = QLabel("No adjustment issues detected")
+            no_error_message.setAlignment(Qt.AlignCenter)
+            no_error_message.setStyleSheet("""
+                QLabel {
+                    color: #666;
+                    font-size: 14px;
+                    padding: 20px;
+                    border: none;
+                }
+            """)
+            self.error_display_layout.addWidget(no_error_message)
             return
-        
-        # 에러가 있으면 표시
-        self.error_scroll_area.show()
-
-        # 에러 제목
-        title_label = QLabel("Constraint Violations")
-        title_label.setStyleSheet("""
-            QLabel {
-            background-color: #FF6B6B;
-            color: white;
-            padding: 5px;
-            border-radius: 5px;
-            font-weight: bold;
-            border: none;
-            }
-        """)
-        self.error_display_layout.addWidget(title_label)
 
         # 각 에러 표시
         for error_key, error_info in self.validation_errors.items():
@@ -144,7 +136,7 @@ class AdjErrorManager():
                 border-radius: 5px;
                 padding: 3px;
                 margin: 3px;
-                min-height: 30px;
+                min-height: 10px;
             }
             QFrame:hover {
                 background-color: #FFE9E9;
@@ -153,8 +145,8 @@ class AdjErrorManager():
         """)
 
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(3)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(1)
 
         item_info = error_info['item_info']
         item_location_text = f"Item: {item_info.get('Item', 'N/A')} | Line: {item_info.get('Line', 'N/A')}, Time: {item_info.get('Time', 'N/A')}"
@@ -163,9 +155,11 @@ class AdjErrorManager():
         item_location_label.setStyleSheet("""
             font-weight: bold; 
             color: #333;
-            font-size: 22px;
+            font-size: 12px;
             border: none;
             background: transparent;
+            margin: 0px;
+            padding: 0px;
         """)
         item_location_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(item_location_label)
@@ -174,11 +168,10 @@ class AdjErrorManager():
         message_label.setWordWrap(True)
         message_label.setStyleSheet("""
             color: #D53030; 
-            font-size: 22px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 500;
             border: none;
             background: transparent;
-            line-height: 1.5;
         """)
         message_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(message_label)

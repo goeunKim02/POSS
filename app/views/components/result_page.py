@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
                              QFrame, QSplitter, QStackedWidget, QTableWidget, QHeaderView, QToolTip, 
-                             QTableWidgetItem, QScrollArea)
+                             QTableWidgetItem, QScrollArea, QGridLayout)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
@@ -60,8 +60,6 @@ class ResultPage(QWidget):
 
         # 타이틀 레이블
         title_label = QLabel("Result")
-
-        # QFont를 사용하여 더 두껍게 설정
         font = QFont()
         font.setFamily("Arial")
         font.setPointSize(15)
@@ -107,56 +105,114 @@ class ResultPage(QWidget):
         main_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_horizontal_splitter.setContentsMargins(10, 10, 10, 10)
 
-        # 왼쪽 컨테이너
+        # =============== 왼쪽 컨테이너 ===============
         left_frame = QFrame()
         left_frame.setFrameShape(QFrame.StyledPanel)
-        left_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+        left_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
 
         left_layout = QVBoxLayout(left_frame)
         left_layout.setContentsMargins(10, 10, 10, 10)
 
         # 드래그 가능한 테이블 위젯 추가
         self.left_section = ModifiedLeftSection()
-        # 데이터 변경 시그널 연결
-        self.left_section.data_changed.connect(self.on_data_changed)
-        # 셀 이동 시그널 연결
-        self.left_section.cell_moved.connect(self.on_cell_moved)
-        # 아이템 데이터 변경 시그널 연결
-        self.left_section.item_data_changed.connect(self.on_item_data_changed)
+        # 시그널 연결
+        self.left_section.data_changed.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
+        self.left_section.cell_moved.connect(self.on_cell_moved)  # 셀 이동 시그널 연결
+        self.left_section.item_data_changed.connect(self.on_item_data_changed)  # 아이템 데이터 변경 시그널 연결
 
         left_layout.addWidget(self.left_section)
         
-        # 오른쪽 영역을 위아래로 분리하기 위한 수직 스플리터
+        # =============== 오른쪽 영역 (3개 섹션 분할) ===============
+        # 1) 수직 스플리터로 위/아래 분할
         right_vertical_splitter = QSplitter(Qt.Vertical)
         right_vertical_splitter.setHandleWidth(10)
         right_vertical_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
 
-        # 하단 컨테이너
-        bottom_frame = QFrame()
-        bottom_frame.setFrameShape(QFrame.StyledPanel)
-        bottom_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
-        
-        bottom_layout = QVBoxLayout(bottom_frame)
-        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        # 2) 위쪽 영역을 수평 스플리터로 좌/우 분할
+        right_top_horizontal_splitter = QSplitter(Qt.Horizontal)
+        right_top_horizontal_splitter.setHandleWidth(5)
+        right_top_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
 
-        # 에러 표시 위젯
+        # =============== 1. KPI Score 섹션 ===============
+        kpi_frame = QFrame()
+        kpi_frame.setFrameShape(QFrame.StyledPanel)
+        kpi_frame.setStyleSheet("background-color: white; border:2px solid #cccccc;")
+
+        kpi_layout = QGridLayout(kpi_frame)
+        kpi_layout.setContentsMargins(10, 10, 10, 10)
+        kpi_layout.setSpacing(10)
+
+        # KPI 제목
+        kpi_title = QLabel("KPI Score")
+        kpi_title.setFont(QFont("Arial", 14, QFont.Bold))
+        kpi_title.setStyleSheet("color: #333; border: none;")
+        kpi_layout.addWidget(kpi_title)
+
+        # KPI 위젯 영역 (계산된 점수들이 들어갈 공간)
+        self.kpi_widget = QWidget()
+        kpi_widget_layout = QGridLayout(self.kpi_widget)
+        kpi_widget_layout.setContentsMargins(0, 0, 0, 0)
+        kpi_widget_layout.setSpacing(8)
+        
+        # KPI 라벨들을 생성하고 저장 (나중에 업데이트용)
+        self.kpi_labels = {}
+
+        # 헤더 행
+        headers = ["", "Total", "Mat.", "SOP", "Util."]
+        for j, header in enumerate(headers):
+            label = QLabel(header)
+            label.setFont(QFont("Arial", 10, QFont.Bold))
+            label.setAlignment(Qt.AlignCenter)
+            label.setStyleSheet("color: #333; border: none; padding: 5px;")
+            kpi_widget_layout.addWidget(label, 0, j)
+        
+        # Base/Adjust 행들
+        rows = ["Base", "Adjust"]
+        for i, row_name in enumerate(rows):
+            row_label = QLabel(row_name)
+            row_label.setFont(QFont("Arial", 10, QFont.Bold))
+            row_label.setAlignment(Qt.AlignCenter)
+            row_label.setStyleSheet("color: #333; border: none; padding: 5px;")
+            kpi_widget_layout.addWidget(row_label, i+1, 0)
+            
+            # 각 행의 점수 라벨들
+            for j, col_name in enumerate(["Total", "Mat", "SOP", "Util"]):
+                score_label = QLabel("--")
+                score_label.setFont(QFont("Arial", 10))
+                score_label.setAlignment(Qt.AlignCenter)
+                score_label.setStyleSheet("color: #555; border: none; padding: 5px;")
+                kpi_widget_layout.addWidget(score_label, i+1, j+1)
+                
+                # 라벨을 참조할 수 있도록 저장
+                self.kpi_labels[f"{row_name}_{col_name}"] = score_label
+
+        kpi_layout.addWidget(self.kpi_widget)
+
+        # =============== 2. 조정 에러 메세지 섹션 ===============
+        error_frame = QFrame()
+        error_frame.setFrameShape(QFrame.StyledPanel)
+        error_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+        
+        error_layout = QVBoxLayout(error_frame)
+        error_layout.setContentsMargins(0, 0, 0, 0)
+        error_layout.setSpacing(10)
+
+        # 에러 위젯
         self.error_display_widget = QWidget()
         self.error_display_layout = QVBoxLayout(self.error_display_widget)
         self.error_display_layout.setContentsMargins(5, 5, 5, 5)
         self.error_display_layout.setSpacing(5)
         self.error_display_layout.setAlignment(Qt.AlignTop)
 
-        # # 스크롤 가능한 에러 영역
+        # 스크롤 가능한 에러 영역
         self.error_scroll_area = QScrollArea()
         self.error_scroll_area.setWidgetResizable(True)
         self.error_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.error_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.error_scroll_area.setWidget(self.error_display_widget)
-        self.error_scroll_area.hide()  # 초기에는 숨김
-        
-        bottom_layout.addWidget(self.error_scroll_area)
+        self.error_scroll_area.setStyleSheet("border: none;")
 
-        # 에러 위젯
+        # 에러 매니저 초기화
         self.error_manager = AdjErrorManager(
             parent_widget=self,
             error_scroll_area=self.error_scroll_area,
@@ -164,12 +220,22 @@ class ResultPage(QWidget):
             left_section=self.left_section
         )
 
-        # 오른쪽 상단 섹션 
-        right_top_frame = QFrame()
-        right_top_frame.setFrameShape(QFrame.StyledPanel)
-        right_top_frame.setStyleSheet("background-color: white; border-radius: 10px; border: 2px solid #cccccc;")
+        error_layout.addWidget(self.error_scroll_area)
 
-        right_top_layout = QVBoxLayout(right_top_frame)
+        # 위쪽 수평 스플리터에 KPI와 Status 섹션 추가
+        right_top_horizontal_splitter.addWidget(kpi_frame)
+        right_top_horizontal_splitter.addWidget(error_frame)
+
+        # KPI와 Status의 비율 설정 
+        right_top_horizontal_splitter.setStretchFactor(0, 2)
+        right_top_horizontal_splitter.setStretchFactor(1, 3)
+   
+        # =============== 3. 오른쪽 하단 섹션 : 지표 탭 ===============
+        right_bottom_frame = QFrame()
+        right_bottom_frame.setFrameShape(QFrame.StyledPanel)
+        right_bottom_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+
+        right_bottom_layout = QVBoxLayout(right_bottom_frame)
 
         # 1) TabManager 인스턴스화
         self.tab_manager = TabManager(self)
@@ -195,19 +261,19 @@ class ResultPage(QWidget):
         self._setup_widget_references()
 
         # 6) 레이아웃에 버튼과 스택 추가
-        right_top_layout.addLayout(button_group_layout)
-        right_top_layout.addWidget(self.viz_stack)
+        right_bottom_layout.addLayout(button_group_layout)
+        right_bottom_layout.addWidget(self.viz_stack)
 
         # 오른쪽 수직 스플리터에 상단과 하단 프레임 추가
-        right_vertical_splitter.addWidget(right_top_frame)
-        right_vertical_splitter.addWidget(bottom_frame)
+        right_vertical_splitter.addWidget(right_top_horizontal_splitter)
+        right_vertical_splitter.addWidget(right_bottom_frame)
         
         # 상단과 하단의 비율 설정 
-        right_vertical_splitter.setSizes([750, 250])
-        right_vertical_splitter.setStretchFactor(0, 8)  # 상단 30%
-        right_vertical_splitter.setStretchFactor(1, 2)  # 하단 70%
+        # right_vertical_splitter.setSizes([250, 750])
+        right_vertical_splitter.setStretchFactor(0, 3)  # 상단 
+        right_vertical_splitter.setStretchFactor(1, 7)  # 하단 
 
-        # 수평 스플리터에 왼쪽 프레임과 오른쪽 수직 스플리터 추가
+        # 메인 수평 스플리터에 왼쪽과 오른쪽 프레임 추가
         main_horizontal_splitter.addWidget(left_frame)
         main_horizontal_splitter.addWidget(right_vertical_splitter)
 
@@ -419,7 +485,7 @@ class ResultPage(QWidget):
                     if hasattr(item, 'is_shortage') and item.is_shortage:
                         # 자재 부족 상태 초기화
                         item.set_shortage_status(False)
-                        cleared_count += 1
+                        cleared_count = 1
 
     """
     출하 상태가 업데이트될 때 호출되는 함수
@@ -498,7 +564,7 @@ class ResultPage(QWidget):
             # 데이터가 비어있지 않은 경우에만 분석 수행
             if data is not None and not data.empty:
                 # 데이터 변경 이벤트 카운터 증가
-                self.data_changed_count += 1
+                self.data_changed_count = 1
                 
                 self.validator = PlanAdjustmentValidator(data)
                 
@@ -779,18 +845,18 @@ class ResultPage(QWidget):
                 
         # 툴팁 내용 생성
         tooltip_text = f"<b>{model_code}</b> Material Shortage Details:<br><br>"
-        tooltip_text += "<table border='1' cellspacing='0' cellpadding='3'>"
-        tooltip_text += "<tr style='background-color:#f0f0f0'><th>Material</th><th>Shift</th><th>Shortage</th></tr>"
+        tooltip_text = "<table border='1' cellspacing='0' cellpadding='3'>"
+        tooltip_text = "<tr style='background-color:#f0f0f0'><th>Material</th><th>Shift</th><th>Shortage</th></tr>"
         
         for shortage in shortages:
             if shortage.get('material') == material_code:  # 현재 선택된 자재와 일치하는 항목만 표시
-                tooltip_text += f"<tr>"
-                tooltip_text += f"<td>{shortage.get('material', 'Unknown')}</td>"
-                tooltip_text += f"<td align='center'>{shortage.get('shift', 0)}</td>"
-                tooltip_text += f"<td align='right' style='color:red'>{int(shortage.get('shortage', 0)):,}</td>"
-                tooltip_text += f"</tr>"
+                tooltip_text = f"<tr>"
+                tooltip_text = f"<td>{shortage.get('material', 'Unknown')}</td>"
+                tooltip_text = f"<td align='center'>{shortage.get('shift', 0)}</td>"
+                tooltip_text = f"<td align='right' style='color:red'>{int(shortage.get('shortage', 0)):,}</td>"
+                tooltip_text = f"</tr>"
                 
-        tooltip_text += "</table>"
+        tooltip_text = "</table>"
         
         # 현재 마우스 위치에 툴팁 표시
         QToolTip.showText(QCursor.pos(), tooltip_text)
@@ -909,7 +975,7 @@ class ResultPage(QWidget):
                 self.shortage_items_table.setItem(current_row, 1, item_cell)
                 
                 # 다음 행으로 이동
-                current_row += 1
+                current_row = 1
             
             # 그룹 내 행이 2개 이상인 경우 병합 수행
             group_row_count = len(group)
