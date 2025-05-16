@@ -206,7 +206,7 @@ class Optimization:
         obj1 = pulp.lpSum(shift_weight[t-1] * x[(d, l, t)] for d in demands for l in self.line for t in self.time)
         obj2 = pulp.lpSum(shipment_variable[d] for d in demands)
         # model += -1 * obj1 + obj2
-        model +=  -0.01 * obj1 + obj2
+        model +=  -0.001 * obj1 + obj2
         model.solve()
 
         print(pulp.value(model.objective))
