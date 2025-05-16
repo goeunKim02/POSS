@@ -65,8 +65,8 @@ class RightParameterComponent(QWidget):
         minimize_button.setCursor(Qt.PointingHandCursor)
         minimize_button.setStyleSheet(f"""
             QPushButton {{
-                background-color: white;
-                border: 1px solid #E0E0E0;
+                background-color: transparent;
+                border: none;
                 border-radius: {s(4)}px;
                 padding: {p(4)}px;
             }}

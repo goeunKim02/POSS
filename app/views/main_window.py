@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
                         color: #666;
                         padding: 8px 12px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {fs(20)}px;
+                        font-size: {f(16)}px;
                         font-weight: 600;
                         border-bottom: 3px solid transparent;
                         margin-right: 0px;
