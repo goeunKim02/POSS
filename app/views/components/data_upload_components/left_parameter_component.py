@@ -86,7 +86,7 @@ class LeftParameterComponent(QWidget):
 
         for i, btn_text in enumerate(self.metrics):
             btn = QPushButton(btn_text)
-            btn_font = font_manager.get_font("SamsungOne-700", fs(11))
+            btn_font = font_manager.get_font("SamsungOne-700", 11)
             btn_font.setBold(True)
             btn.setFont(btn_font)
             btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -198,7 +198,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 0px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {fs(18)}px;
+                        font-size: 16px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px; 
@@ -216,7 +216,7 @@ class LeftParameterComponent(QWidget):
                         background-color: #F5F5F5;
                         color: #333333;
                         border: none;
-                        padding: 6px;
+                        padding: 4px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
                         font-size: {fs(24)}px;
