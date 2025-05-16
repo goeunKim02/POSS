@@ -6,8 +6,10 @@ import pandas as pd
 from .item_grid_widget import ItemGridWidget
 from .item_position_manager import ItemPositionManager
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from .legend_widget import LegendWidget
+from .filter_widget import FilterWidget
+from app.utils.fileHandler import load_file
 
 class ModifiedLeftSection(QWidget):
     data_changed = pyqtSignal(pd.DataFrame)
@@ -43,6 +45,12 @@ class ModifiedLeftSection(QWidget):
             'pre_assigned': False
         }
 
+        # 엑셀 스타일 필터 상태 저장 (새로 추가된 부분)
+        self.current_excel_filter_states = {
+            'line': {},
+            'project': {}
+        }
+
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -52,12 +60,17 @@ class ModifiedLeftSection(QWidget):
         self.legend_widget.filter_changed.connect(self.on_filter_changed)
         main_layout.addWidget(self.legend_widget)
 
-        # 컨트롤 레이아웃
-        first_control_layout = QHBoxLayout()
-        first_control_layout.setContentsMargins(10, 5, 10, 5)
+        # 통합 컨트롤 레이아웃 (버튼, 필터, 검색 섹션을 한 줄에 배치)
+        control_layout = QHBoxLayout()
+        control_layout.setContentsMargins(10, 5, 10, 5)
+        control_layout.setSpacing(10)
 
-        # 엑셀 파일 불러오기 버튼
-        self.load_button = QPushButton("Import Excel file")
+        # 왼쪽 버튼 섹션 (Import/Reset)
+        button_section = QHBoxLayout()
+        button_section.setSpacing(5)
+
+        # 엑셀 파일 불러오기 버튼 - 길이 증가
+        self.load_button = QPushButton("Import Excel")
         self.load_button.setStyleSheet("""
             QPushButton {
                 background-color: #1428A0;
@@ -65,6 +78,8 @@ class ModifiedLeftSection(QWidget):
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
+                min-width: 140px;  /* 버튼 길이 증가 */
+                max-width: 160px;  /* 버튼 길이 증가 */
             }
             QPushButton:hover {
                 background-color: #004C99;
@@ -75,10 +90,10 @@ class ModifiedLeftSection(QWidget):
         """)
         self.load_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.load_button.clicked.connect(self.load_excel_file)
-        first_control_layout.addWidget(self.load_button)
+        button_section.addWidget(self.load_button)
 
         # 원본 복원 버튼 
-        self.reset_button = QPushButton("Reset to Original")
+        self.reset_button = QPushButton("Reset")
         self.reset_button.setStyleSheet("""
             QPushButton {
                 background-color: #808080;
@@ -86,6 +101,8 @@ class ModifiedLeftSection(QWidget):
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
+                min-width: 80px;
+                max-width: 100px;
             }
             QPushButton:hover {
                 background-color: #606060;
@@ -97,44 +114,85 @@ class ModifiedLeftSection(QWidget):
         self.reset_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.reset_button.clicked.connect(self.reset_to_original)
         self.reset_button.setEnabled(False)
-        first_control_layout.addWidget(self.reset_button)
+        button_section.addWidget(self.reset_button)
 
-        # 나머지 공간 채우기
-        first_control_layout.addStretch(1)
+        # 버튼 섹션을 통합 레이아웃에 추가 (왼쪽에 붙이기)
+        control_layout.addLayout(button_section)
+        
+        # 가운데 여백 추가
+        control_layout.addStretch(1)  # 가운데 여백 추가
 
-        # 검색 레이블
-        search_label = QLabel('model search : ')
-        search_label.setStyleSheet("""
-            QLabel {
-                color: #333333;
+        # 필터 위젯 추가 - Line과 Project 버튼 간격 조정 및 스타일 변경
+        self.filter_widget = FilterWidget()
+        self.filter_widget.filter_changed.connect(self.on_excel_filter_changed)
+        self.filter_widget.setFixedWidth(400)
+        
+        # FilterWidget 스타일 변경 (line_filter_btn, project_filter_btn)
+        self.filter_widget.line_filter_btn.setStyleSheet("""
+            QToolButton {
+                background-color: white;  /* 배경색을 흰색으로 변경 */
+                color: black;  /* 텍스트 색을 검은색으로 변경 */
                 font-weight: bold;
-                font-size: 14px;
-                border: None;
+                padding: 6px 8px;
+                border-radius: 4px;
+                min-width: 120px;
+                border: 1px solid #808080;  /* 테두리 색상을 회색으로 통일 */
+                margin-right: 10px;  /* 버튼 간격 추가 */
+            }
+            QToolButton:hover {
+                background-color: #f0f0f0;
+            }
+            QToolButton:pressed {
+                background-color: #e0e0e0;
             }
         """)
-        first_control_layout.addWidget(search_label)
+        
+        self.filter_widget.project_filter_btn.setStyleSheet("""
+            QToolButton {
+                background-color: white;  /* 배경색을 흰색으로 변경 */
+                color: black;  /* 텍스트 색을 검은색으로 변경 */
+                font-weight: bold;
+                padding: 6px 8px;
+                border-radius: 4px;
+                min-width: 120px;
+                border: 1px solid #808080;  /* 테두리 색상을 회색으로 통일 */
+            }
+            QToolButton:hover {
+                background-color: #f0f0f0;
+            }
+            QToolButton:pressed {
+                background-color: #e0e0e0;
+            }
+        """)
+        
+        control_layout.addWidget(self.filter_widget)
 
-        # 검색 필드
+        # 검색 섹션 - 오른쪽에 붙이기
+        search_section = QHBoxLayout()
+        search_section.setSpacing(5)
+
+        # 검색 필드 수정 - 크기 증가
         self.search_field = QLineEdit()
         self.search_field.setPlaceholderText('searching...')
         self.search_field.setStyleSheet("""
             QLineEdit {
-                border: 1px solid #CCCCCC;
+                border: 1px solid #808080;  /* 테두리 색상 통일 */
                 border-radius: 4px;
                 background-color: white;
                 selection-background-color: #1428A0;
-                font-size: 14px;
-                min-height: 30px;
-                padding: 0 10px;  /* 좌우 패딩 추가 */
+                font-size: 16px;
+                min-height: 38px;
+                padding: 0 10px;
             }
             QLineEdit:focus {
                 border: 1px solid #1428A0;
             }
         """)
-        self.search_field.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.search_field.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.search_field.setFixedWidth(350)  # 검색 박스 폭 더 증가
         self.search_field.setFixedHeight(36)
         self.search_field.returnPressed.connect(self.search_items)
-        first_control_layout.addWidget(self.search_field, 2)
+        search_section.addWidget(self.search_field)
 
         # 검색 버튼
         self.search_button = QPushButton('Search')
@@ -145,6 +203,8 @@ class ModifiedLeftSection(QWidget):
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
+                min-width: 80px;
+                max-width: 100px;
             }
             QPushButton:hover {
                 background-color: #004C99;
@@ -156,10 +216,10 @@ class ModifiedLeftSection(QWidget):
 
         self.search_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.search_button.clicked.connect(self.search_items)
-        first_control_layout.addWidget(self.search_button)
+        search_section.addWidget(self.search_button)
 
         # 검색 초기화 버튼
-        self.clear_search_button = QPushButton('Search Reset')
+        self.clear_search_button = QPushButton('Reset')
         self.clear_search_button.setStyleSheet("""
             QPushButton {
                 background-color: #808080;
@@ -167,6 +227,8 @@ class ModifiedLeftSection(QWidget):
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
+                min-width: 80px;
+                max-width: 100px;
             }
             QPushButton:hover {
                 background-color: #606060;
@@ -178,9 +240,13 @@ class ModifiedLeftSection(QWidget):
         self.clear_search_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.clear_search_button.clicked.connect(self.clear_search)
         self.clear_search_button.setEnabled(False)
-        first_control_layout.addWidget(self.clear_search_button)
+        search_section.addWidget(self.clear_search_button)
 
-        main_layout.addLayout(first_control_layout)
+        # 검색 섹션을 통합 레이아웃에 추가 (오른쪽에 붙이기)
+        control_layout.addLayout(search_section)
+
+        # 통합 컨트롤 레이아웃을 메인 레이아웃에 추가
+        main_layout.addLayout(control_layout)
 
         # 검색 상태 표시 레이아웃
         self.search_status_layout = QHBoxLayout()
@@ -220,6 +286,92 @@ class ModifiedLeftSection(QWidget):
 
             if self.search_active and self.last_search_text :
                 self.apply_search_to_item(item, self.last_search_text)
+
+    """
+    엑셀 스타일 필터 상태 변경 처리
+    """
+    def on_excel_filter_changed(self, filter_states):
+        self.current_excel_filter_states = filter_states
+        self.apply_all_filters()
+
+    """
+    모든 필터 (범례 & 엑셀 스타일) 적용
+    """
+    def apply_all_filters(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    # 범례 필터와 엑셀 필터 모두 고려하여 표시 여부 결정
+                    should_show = self.should_show_item(item) and self.should_show_item_excel_filter(item)
+                    
+                    # 아이템 가시성 설정
+                    if should_show:
+                        item.show()
+                    else:
+                        item.hide()
+                        
+                # 컨테이너 높이 재조정
+                container.adjustSize()
+
+    """
+    엑셀 필터를 고려한 아이템 표시 여부
+    """
+    def should_show_item_excel_filter(self, item):
+        if not hasattr(self, 'current_excel_filter_states') or not hasattr(item, 'item_data'):
+            return True
+        
+        item_data = item.item_data
+        
+        # 라인 필터 체크 - Line 컬럼 사용
+        if 'Line' in item_data:
+            line = item_data['Line']
+            if isinstance(line, (int, float)):
+                line = str(int(line))  # 숫자인 경우 문자열로 변환
+            else:
+                line = str(line)
+                
+            if line in self.current_excel_filter_states['line'] and not self.current_excel_filter_states['line'][line]:
+                return False
+        
+        # 프로젝트 필터 체크 - Project 컬럼 사용
+        if 'Project' in item_data:
+            project = item_data['Project']
+            if pd.isna(project):  # nan 값 처리
+                project = "N/A"
+            else:
+                project = str(project)
+                
+            if project in self.current_excel_filter_states['project'] and not self.current_excel_filter_states['project'][project]:
+                return False
+        
+        return True
+    
+    """
+    데이터 로드 후 필터 데이터 업데이트
+    """
+    def update_filter_data(self):
+        if self.data is None:
+            return
+        
+        # 라인 목록 추출 - Line 컬럼에서 추출
+        lines = []
+        if 'Line' in self.data.columns:
+            # 숫자 형태의 라인도 문자열로 통일
+            lines = [str(line) if not pd.isna(line) else "N/A" for line in self.data['Line']]
+            lines = sorted(set(lines))  # 중복 제거하고 정렬
+        
+        # 프로젝트 목록 추출 - Project 컬럼에서 추출
+        projects = []
+        if 'Project' in self.data.columns:
+            # nan 값 처리 및 문자열 변환
+            projects = [str(project) if not pd.isna(project) else "N/A" for project in self.data['Project']]
+            projects = sorted(set(projects))  # 중복 제거하고 정렬
+        
+        # 필터 위젯에 데이터 설정
+        self.filter_widget.set_filter_data(lines, projects)
 
     """
     검색 기능 실행
@@ -339,6 +491,7 @@ class ModifiedLeftSection(QWidget):
                 
             old_data = old_data_for_validation  # 복원된 데이터를 사용
 
+        # 검증 관련 로직
         if hasattr(self, 'validator'):
             is_move = False
             source_line = None
@@ -348,6 +501,18 @@ class ModifiedLeftSection(QWidget):
                 is_move = True
                 source_line = old_data.get('Line')
                 source_time = old_data.get('Time')
+
+        # # 원본 아이템 상태 정보 저장 : 조정 및 변경 시 원본 상태를 똑같이 적용
+        # source_states = {}
+        # if hasattr(item, 'is_shortage'):
+        #     source_states['is_shortage'] = item.is_shortage
+        #     source_states['shortage_data'] = getattr(item, 'shortage_data')
+        # if hasattr(item, 'is_pre_assigned'):
+        #     source_states['is_pre_assigned'] = item.is_pre_assigned
+        # if hasattr(item, 'is_shipment_failure'):
+        #     source_states['is_shipment_failure'] = item.is_shipment_failure
+        #     source_states['shipment_failure_reason'] = getattr(item, 'shipment_failure_reason')
+
 
         # 검증 실행
         try:
@@ -470,6 +635,14 @@ class ModifiedLeftSection(QWidget):
                     # 복원 버튼 활성화
                     self.mark_as_modified()
 
+                    # # 새 아이템에 기존 상태 설정 
+                    # if source_states.get('is_shortage'):
+                    #     new_item.set_shortage_status(True, source_states.get('shortage_data'))
+                    # if source_states.get('is_pre_assigned'):
+                    #     new_item.set_pre_assigned_status(True)
+                    # if source_states.get('is_shipment_failure'):
+                    #     new_item.set_shipment_failure(True, source_states.get('shipment_failure_reason'))
+
                     # 아이템이 사전할당된 경우
                     if 'Item' in new_data and new_data['Item'] in self.pre_assigned_items:
                         new_item.set_pre_assigned_status(True)
@@ -516,7 +689,14 @@ class ModifiedLeftSection(QWidget):
             try:
                 self.clear_all_items()
 
-                self.data = pd.read_excel(file_path)
+                self.data = load_file(file_path)
+
+                # 만약 여러 시트가 반환되면 첫 번째 시트 사용
+                if isinstance(self.data, dict):
+                    # 첫 번째 시트 선택
+                    first_sheet_name = list(self.data.keys())[0]
+                    self.data = self.data[first_sheet_name]
+                    
                 FilePaths.set("result_file", file_path)
                 self.update_table_from_data()
 
@@ -654,18 +834,20 @@ class ModifiedLeftSection(QWidget):
 
             # 데이터 변경 신호 발생
             self.data_changed.emit(self.grouped_data)
+            
+            # 필터 데이터 업데이트 (새로 추가된 부분)
+            self.update_filter_data()
 
         except Exception as e:
             # 에러 메시지 표시
             print(f"그룹핑 에러: {e}")
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
 
-
     """외부에서 데이터 설정"""
     def set_data_from_external(self, new_data):
         if not new_data.empty:
-            new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce')
-            new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce')
+            new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce').fillna(0).round().astype(int)
+            new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce').fillna(0).round().astype(int)
         
         self.data = new_data
         self.original_data = self.data.copy()
@@ -805,59 +987,86 @@ class ModifiedLeftSection(QWidget):
     
     """현재 필터 상태에 따라 아이템 가시성 조정"""
     def apply_visibility_filter(self):
+        print(f"[ModifiedLeftSection] 필터 적용 시작: {self.current_filter_states}")
         if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
             return
+        
+        self.apply_all_filters()
         
         for row_containers in self.grid_widget.containers:
             for container in row_containers:
                 for item in container.items:
-                    should_show = self.should_show_item(item)
-                    
-                    # 아이템 가시성 설정
-                    if should_show:
-                        item.show()
-                    else:
-                        item.hide()
-                        
-                # 컨테이너 높이 재조정
-                container.adjustSize()
+                    item.show()
+                    self.update_item_status_line_visibility(item)
+    
+    
+    # """
+    # 아이템이 표시
+    # - shortage만 체크: 자재부족 아이템만 표시
+    # - shipment만 체크: 출하실패 아이템만 표시
+    # - pre_assigned만 체크: 사전할당 아이템만 표시
+    # - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
+    # - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
+    # - 모든 체크박스 해제: 모든 아이템 표시
+    # """
+    # def should_show_item(self, item):
+    #     if not hasattr(self, 'current_filter_states'):
+    #         return True
+        
+    #     # 아이템의 상태 확인
+    #     is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
+    #     is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+    #     is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+        
+    #     # 각 상태별 필터 확인
+    #     shortage_filter = self.current_filter_states.get('shortage', False)
+    #     shipment_filter = self.current_filter_states.get('shipment', False)
+    #     pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
+
+    #     # 모든 필터가 해제되어 있으면 모든 아이템 표시
+    #     if not (shortage_filter or shipment_filter or pre_assigned_filter):
+    #         return True
+        
+    #     # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
+    #     should_show = True
+        
+    #     # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
+    #     if shortage_filter and not is_shortage:
+    #         should_show = False
+    #     if shipment_filter and not is_shipment:
+    #         should_show = False
+    #     if pre_assigned_filter and not is_pre_assigned:
+    #         should_show = False
+        
+    #     return should_show
     
     """
-    아이템이 표시
-    - shortage만 체크: 자재부족 아이템만 표시
-    - shipment만 체크: 출하실패 아이템만 표시
-    - pre_assigned만 체크: 사전할당 아이템만 표시
-    - shortage + shipment 체크: 자재부족 AND 출하실패인 아이템만 표시
-    - 모든 체크박스 체크: 자재부족 AND 출하실패 AND 사전할당인 아이템만 표시
-    - 모든 체크박스 해제: 모든 아이템 표시
+    아이템의 상태선 업데이트
     """
-    def should_show_item(self, item):
+    def update_item_status_line_visibility(self, item):
         if not hasattr(self, 'current_filter_states'):
-            return True
-        
-        # 아이템의 상태 확인
-        is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
-        is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
-        is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
+            # 필터 상태가 없으면 아무것도 표시 안함.
+            if hasattr(item, 'show_shortage_line'):
+                item.show_shortage_line = False
+            if hasattr(item, 'show_shipment_line'):
+                item.show_shipment_line = False
+            if hasattr(item, 'show_pre_assigned_line'):
+                item.show_pre_assigned_line = False
+            return
         
         # 각 상태별 필터 확인
         shortage_filter = self.current_filter_states.get('shortage', False)
         shipment_filter = self.current_filter_states.get('shipment', False)
         pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
 
-        # 모든 필터가 해제되어 있으면 모든 아이템 표시
-        if not (shortage_filter or shipment_filter or pre_assigned_filter):
-            return True
+        # 각 상태선의 가시성 설정
+        if hasattr(item, 'show_shortage_line'):
+            item.show_shortage_line = shortage_filter and hasattr(item, 'is_shortage') and item.is_shortage
+        if hasattr(item, 'show_shipment_line'):
+            item.show_shipment_line = shipment_filter and hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
+        if hasattr(item, 'show_pre_assigned_line'):
+            item.show_pre_assigned_line = pre_assigned_filter and hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
         
-        # 체크된 필터에 해당하는 아이템들을 AND 조건으로 표시
-        should_show = True
-        
-        # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
-        if shortage_filter and not is_shortage:
-            should_show = False
-        if shipment_filter and not is_shipment:
-            should_show = False
-        if pre_assigned_filter and not is_pre_assigned:
-            should_show = False
-        
-        return should_show
+        # 아이템에 repaint 요청하여 선을 다시 그리도록 함
+        if hasattr(item, 'update'):
+            item.update()

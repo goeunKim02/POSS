@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                              QCheckBox, QFrame, QSizePolicy)
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
 
 """범례 및 필터 위젯"""
@@ -11,29 +11,35 @@ class LegendWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.init_ui()
+        self.setStyleSheet("""
+            QWidget {
+                background-color: transparent;
+                border: none;
+            }
+        """)
         
         # 필터 상태 추적
         self.filter_states = {
-            'shortage': False,      # 자재부족
+            'shortage': True,      # 자재부족은 기본 체크 
             'shipment': False,      # 출하실패  
             'pre_assigned': False   # 사전할당
         }
+
+        self.init_ui()
+
+        # 초기 필터 상태적용을 위해 시그널 발생 : QTimer로 UI 초기화 후 발생
+        QTimer.singleShot(0, lambda: self.filter_changed.emit(self.filter_states.copy()))
+
         
     def init_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(10, 5, 10, 5)
-        main_layout.setSpacing(20)
-        
-        # # 타이틀
-        # title_label = QLabel("Status Legend")
-        # title_label.setFont(QFont("Arial", 10, QFont.Bold))
-        # main_layout.addWidget(title_label)
+        main_layout.setContentsMargins(5, 5, 10, 5)
+        main_layout.setSpacing(40)
         
         # 범례 항목들
-        self.create_legend_item(main_layout, "shortage", "#fc3838", 'shortage')
-        self.create_legend_item(main_layout, "shipment", "#fcb438", 'shipment')  
-        self.create_legend_item(main_layout, "pre_assigned", "#7a9ff5", 'pre_assigned')
+        self.create_legend_item(main_layout, "shortage", "#ff6e63", 'shortage')
+        self.create_legend_item(main_layout, "shipment", "#fcc858", 'shipment')  
+        self.create_legend_item(main_layout, "pre_assigned", "#a8bbf0", 'pre_assigned')
         
         # 스페이서 추가
         main_layout.addStretch(1)
@@ -41,9 +47,8 @@ class LegendWidget(QWidget):
         # 위젯 스타일
         self.setStyleSheet("""
             QWidget {
-                background-color: white;
-                border-radius: 5px;
-                border: 1px solid #E0E0E0;
+                background-color: transparent;
+                border: none;
             }
         """)
         
@@ -56,14 +61,14 @@ class LegendWidget(QWidget):
         
         # 체크박스
         checkbox = QCheckBox()
-        checkbox.setChecked(False)  # 기본값 : 체크해제 
+        checkbox.setChecked(True if status_type == 'shortage' else False)  # 기본값(자재부족) 
         checkbox.stateChanged.connect(lambda state, st=status_type: 
                                     self.on_filter_changed(st, state == Qt.Checked))
         item_layout.addWidget(checkbox)
         
-        # 색상 표시 (선 형태)
+        # 색상 표시
         color_frame = QFrame()
-        color_frame.setFixedSize(20, 15)
+        color_frame.setFixedSize(30, 30)
         color_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {color};

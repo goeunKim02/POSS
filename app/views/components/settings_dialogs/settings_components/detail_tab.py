@@ -184,9 +184,8 @@ class ModernDetailTabComponent(BaseTabComponent):
 
             input_widget.setProperty('default_value', default_value)
 
-            """
-            체크박스 상태 변경 시 입력 필드 활성/비활성화
-            """
+            # 체크박스 상태 변경 시 입력 필드 활성/비활성화
+            # 체크박스 상태 변경 시 입력 필드 활성/비활성화
             def on_checkbox_state_changed(state):
                 is_checked = bool(state)
                 input_widget.setEnabled(is_checked)
@@ -196,12 +195,7 @@ class ModernDetailTabComponent(BaseTabComponent):
                     input_widget.setStyleSheet(self._get_enabled_input_style())
                 else:
                     input_widget.setStyleSheet(self._get_disabled_input_style())
-
-                    # 비활성화 시 기본값으로 복원
-                    if input_widget.property('default_value'):
-                        input_widget.setText(str(input_widget.property('default_value')))
-                    else:
-                        input_widget.clear()
+                    # 비활성화되어도 값은 그대로 유지
 
             checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
 

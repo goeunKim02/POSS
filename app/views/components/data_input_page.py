@@ -1,30 +1,30 @@
-from PyQt5.QtCore import pyqtSignal, QDate, Qt
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
+from PyQt5.QtCore import pyqtSignal, QDate, Qt, QTimer
+from PyQt5.QtWidgets import (QVBoxLayout, QFrame, QHBoxLayout, QLabel, QPushButton,
                              QSplitter, QStackedWidget, QTabBar,
                              QMessageBox)
-from PyQt5.QtGui import QCursor, QFont
+from PyQt5.QtGui import QCursor
 import pandas as pd
 import os
 import re
 
 from app.core.input.pre_assign import run_allocation
 from app.core.input.maintenance import calc_plan_retention
-from app.models.common.fileStore import FilePaths, DataStore
+from app.models.common.file_store import FilePaths, DataStore
 
 from app.views.components.data_upload_components.date_range_selector import DateRangeSelector
 from app.views.components.data_upload_components.file_upload_component import FileUploadComponent
 from app.views.components.data_upload_components.left_parameter_component import LeftParameterComponent
 from app.views.components.data_upload_components.file_explorer_sidebar import FileExplorerSidebar
-
+from app.views.components.data_upload_components.progress_dialog import OptimizationProgressDialog
 from app.views.components.data_upload_components.data_input_components import FileTabManager
 from app.views.components.data_upload_components.data_input_components import DataModifier
 from app.views.components.data_upload_components.data_input_components import SidebarManager
 from app.views.components.data_upload_components.right_parameter_component import RightParameterComponent
 from app.views.components.data_upload_components.save_confirmation_dialog import SaveConfirmationDialog
 
-from app.core.input.capaAnalysis import PjtGroupAnalyzer
-from app.core.input.materialAnalyzer import MaterialAnalyzer
-from app.core.input.shipmentAnalysis import calculate_fulfillment_rate
+from app.analysis.input.capa_analysis import PjtGroupAnalyzer
+from app.analysis.input.material_analyzer import MaterialAnalyzer
+from app.analysis.input.shipment_analysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
@@ -55,7 +55,7 @@ class DataInputPage(QWidget) :
         layout.setSpacing(0)
 
         main_container = QFrame()
-        main_container.setStyleSheet("border:none; border-radius: 5px;")
+        main_container.setStyleSheet("border:none; border-radius: 0px;")
         main_container_layout = QVBoxLayout(main_container)
         main_container_layout.setContentsMargins(0, 0, 0, 0)
         main_container_layout.setSpacing(0)
@@ -64,7 +64,7 @@ class DataInputPage(QWidget) :
         top_container_layout = QVBoxLayout(top_container)
         top_container_layout.setContentsMargins(m(10), m(10), m(10), m(10))
         top_container_layout.setSpacing(s(10))
-        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 5px;")
+        top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 0px;")
         top_container.setMinimumHeight(h(100))
 
         title_row = QFrame()
@@ -78,7 +78,7 @@ class DataInputPage(QWidget) :
         title_label.setStyleSheet("padding: 0px;")
         title_label.setMinimumWidth(h(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", fs(15))
+        title_font = font_manager.get_font("SamsungOne-700", 15)
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
@@ -143,7 +143,7 @@ class DataInputPage(QWidget) :
 
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
-        input_section.setStyleSheet("background-color: white; border-radius: 10px; border: 3px solid #cccccc;")
+        input_section.setStyleSheet("background-color: white; border-radius: 0px; border: 3px solid #cccccc;")
         input_section.setFixedHeight(50)
 
         input_layout = QHBoxLayout(input_section)
@@ -165,7 +165,7 @@ class DataInputPage(QWidget) :
         bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setHandleWidth(10)
+        main_splitter.setHandleWidth(5)
         main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_splitter.setContentsMargins(0, 0, 0, 0)
 
@@ -173,7 +173,7 @@ class DataInputPage(QWidget) :
 
         right_area = QFrame()
         right_area.setFrameShape(QFrame.NoFrame)
-        right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 10px; border: none;")
+        right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 0px; border: none;")
         right_layout = QVBoxLayout(right_area)
         right_layout.setContentsMargins(5, 5, 5, 5)
 
@@ -193,14 +193,14 @@ class DataInputPage(QWidget) :
 
         self.tab_bar = QTabBar()
         self.stacked_widget = QStackedWidget()
-        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-top-left-radius: 0px;")
+        self.stacked_widget.setStyleSheet("background-color: white; border: 3px solid #cccccc; border-radius: 0px;")
 
         tab_layout.addWidget(self.tab_bar)
         tab_layout.addWidget(self.stacked_widget)
 
         maximize_button = QPushButton()
         maximize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarShadeButton))
-        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 5px; margin-top: 5px; margin-right:12px")
+        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 0px; margin-top: 5px; margin-right:12px")
         maximize_button.clicked.connect(self.open_parameter_component) 
         maximize_button.setVisible(False)
         maximize_button.setObjectName("maximize_button")
@@ -227,7 +227,7 @@ class DataInputPage(QWidget) :
         left_parameter_area = QFrame()
         left_parameter_area.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         left_parameter_layout = QVBoxLayout(left_parameter_area)
-        left_parameter_layout.setContentsMargins(5, 5, 5, 5)
+        left_parameter_layout.setContentsMargins(0, 0, 0, 0)
 
         self.left_parameter_component = LeftParameterComponent()
         left_parameter_layout.addWidget(self.left_parameter_component)
@@ -245,7 +245,7 @@ class DataInputPage(QWidget) :
         parameter_splitter.addWidget(left_parameter_area)
         parameter_splitter.addWidget(right_parameter_area)
         
-        parameter_splitter.setSizes([700, 300])
+        parameter_splitter.setSizes([600, 400])
 
         parameter_layout.addWidget(parameter_splitter)
 
@@ -321,27 +321,92 @@ class DataInputPage(QWidget) :
     """
     Run 버튼 클릭 시 모든 데이터프레임 DataStore에 저장
     """
-    def on_run_clicked(self) :
+
+    def on_run_clicked(self):
+        # 필수 파일 확인
+        demand_file = FilePaths.get("demand_excel_file")
+        dynamic_file = FilePaths.get("dynamic_excel_file")
+        master_file = FilePaths.get("master_excel_file")
+
+        if not all([demand_file, dynamic_file, master_file]):
+            missing_files = []
+            if not demand_file:
+                missing_files.append("Demand")
+            if not dynamic_file:
+                missing_files.append("Dynamic")
+            if not master_file:
+                missing_files.append("Master")
+
+            QMessageBox.warning(
+                self,
+                "필수 파일 누락",
+                f"다음 파일이 필요합니다: {', '.join(missing_files)}"
+            )
+            return
+
         self.tab_manager.save_current_tab_data()
 
         modified_data = self.data_modifier.get_all_modified_data()
 
-        if modified_data :
+        if modified_data:
             choice = SaveConfirmationDialog.show_dialog(self)
 
-            if choice == "save_and_run" :
+            if choice == "save_and_run":
                 self.on_save_clicked()
-                self.prepare_dataframes_for_optimization()
-                self.run_button_clicked.emit()
-            elif choice == "run_without_save" :
-                self.prepare_dataframes_for_optimization()
-                self.run_button_clicked.emit()
-            else :
+                self.show_optimization_progress()
+            elif choice == "run_without_save":
+                self.show_optimization_progress()
+            else:
                 return
-        else :
-            self.prepare_dataframes_for_optimization()
-            self.run_button_clicked.emit()
+        else:
+            self.show_optimization_progress()
 
+    """
+    최적화 프로그래스 다이얼로그 표시
+    """
+
+    def show_optimization_progress(self):
+        # 프로그래스 다이얼로그 생성
+        self.progress_dialog = OptimizationProgressDialog(self)
+
+        # 최적화 완료 시그널 연결
+        self.progress_dialog.optimization_completed.connect(self.on_optimization_completed)
+        self.progress_dialog.optimization_cancelled.connect(self.on_optimization_cancelled)
+
+        # 다이얼로그가 닫힐 때 호출되는 함수
+        self.progress_dialog.finished.connect(self.on_dialog_finished)
+
+        # 최적화 시작을 먼저 호출
+        self.progress_dialog.start_optimization()
+
+        # 모달 다이얼로그로 실행 (exec_() 사용)
+        self.progress_dialog.exec_()
+
+    """
+    최적화 완료 처리
+    """
+
+    def on_optimization_completed(self):
+        self.prepare_dataframes_for_optimization()
+        self.run_button_clicked.emit()
+
+    """
+    최적화 취소 처리
+    """
+
+    def on_optimization_cancelled(self):
+        # 취소 메시지는 이미 프로그래스 다이얼로그에서 표시됨
+        pass
+
+    """
+    다이얼로그 종료 처리
+    """
+
+    def on_dialog_finished(self):
+        # 프로그래스 다이얼로그 정리
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.deleteLater()
+            self.progress_dialog = None
     """
     최적화를 위한 데이터프레임 준비 및 저장
     """
@@ -415,7 +480,7 @@ class DataInputPage(QWidget) :
     파일 분석 실행
     """
     def run_combined_analysis(self) :
-        solution, failures = run_allocation()
+        failures = run_allocation()
 
         item_plan_retention, rmc_plan_retention = calc_plan_retention()
     

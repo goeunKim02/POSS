@@ -5,17 +5,18 @@ from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont, QColor, QBrush
 import pandas as pd
 
-from app.views.components.result_components.portcapa_widget import PortCapaWidget
-from ..components.result_components.modified_left_section import ModifiedLeftSection
 from ..components.visualization.mpl_canvas import MplCanvas
+from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
 from ..components.visualization.visualization_updater import VisualizationUpdater
 from app.analysis.output.daily_capa_utilization import CapaUtilization
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from ..components.result_components.maintenance_rate.plan_maintenance_widget import PlanMaintenanceWidget
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
-from app.views.components.result_components.shipment_widget import ShipmentWidget
 from app.resources.styles.result_style import ResultStyles 
+from app.views.components.result_components.portcapa_widget import PortCapaWidget
+from app.views.components.result_components.modified_left_section import ModifiedLeftSection
+from app.views.components.result_components.shipment_widget import ShipmentWidget
 from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.items_container import ItemsContainer
 from app.views.components.result_components.summary_widget import SummaryWidget
@@ -187,7 +188,7 @@ class ResultPage(QWidget):
 
             # 균등한 크기로 설정
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            btn.setFixedHeight(40)  # 높이만 고정
+            btn.setFixedHeight(50)  # 높이만 고정
             
             btn.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE if i == 0 else ResultStyles.INACTIVE_BUTTON_STYLE)
             btn.clicked.connect(lambda checked, idx=i: self.switch_viz_page(idx))
@@ -555,6 +556,19 @@ class ResultPage(QWidget):
         print("on_data_changed 호출됨 - 데이터 변경 감지")
         self.result_data = data
 
+        # 데이터 로드 후 바로 자재부족 분석
+        if data is not None and not data.empty:
+            print("데이터 로드 후 자재 부족 분석 시행")
+            try:
+                # material_analyzer가 없으면 생성
+                if not hasattr(self, 'material_analysis') or self.material_analyzer is None:
+                    self.material_analyzer = MaterialShortageAnalyzer()
+
+                # 분석 실행 시 데이터 전달
+                self.material_analyzer.analyze_material_shortage(data)
+            except Exception as e:
+                print(f"초기 자재 부족 분석 중 오류 :{e}")
+
         # 사전할당 상태 업데이트
         if hasattr(self, 'pre_assigned_items') and self.pre_assigned_items:
             self.update_left_widget_pre_assigned_status(self.pre_assigned_items)
@@ -586,7 +600,7 @@ class ResultPage(QWidget):
                     # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
                     start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
                     
-                    # 데이터 설정 (FilePaths에서 자동으로 이전 계획 파일 확인)
+                    # 데이터 설정 (FilePaths에서 자동으로 이전 계획 파일 확인) 
                     self.plan_maintenance_widget.set_data(data, start_date, end_date)
                     print("계획 유지율 위젯 데이터 업데이트 완료")
                 

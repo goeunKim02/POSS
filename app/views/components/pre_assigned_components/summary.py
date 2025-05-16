@@ -2,13 +2,17 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtCore import Qt
 
+
+"""
+데이터를 요약해서 표시하는 테이블 위젯
+"""
 class SummaryWidget(QWidget):
     def __init__(self, df, parent=None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
 
         # 데이터 집계
@@ -17,6 +21,7 @@ class SummaryWidget(QWidget):
 
         # 동별 그룹핑
         groups = {}
+
         for line in df_qty['Line']:
             prefix = line.split('_')[0]
             groups.setdefault(prefix, []).append(line)
@@ -41,10 +46,7 @@ class SummaryWidget(QWidget):
         )
         header_font = QFont("Arial", 10, QFont.Bold)
         header.setFont(header_font)
-        # 헤더 높이 고정
-        # header.setFixedHeight(40)
-
-        # 행 높이 고정
+        
         table.verticalHeader().setDefaultSectionSize(35)
 
         # 폰트 정의

@@ -176,7 +176,7 @@ class ItemGridWidget(QWidget):
                     for col in range(columns):
                         container = ItemsContainer()
                         container.setMinimumHeight(200)
-                        container.setMinimumWidth(250)
+                        container.setMinimumWidth(380)  # 요일 너비
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -316,7 +316,8 @@ class ItemGridWidget(QWidget):
     컨테이너의 상태 업데이트
     """
     def update_container_visibility(self) :
-        for row_containers in self.containers :
-            for container in row_containers :
-                if hasattr(container, 'update_visibility') :
-                    container.update_visibility()
+        pass
+        # for row_containers in self.containers :
+        #     for container in row_containers :
+        #         if hasattr(container, 'update_visibility') :
+        #             container.update_visibility()

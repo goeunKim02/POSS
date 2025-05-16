@@ -4,6 +4,10 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal
 
+
+"""
+pre-assigned에 캘린더처럼 표시되는 카드 UI 컴포넌트
+"""
 class CalendarCard(QFrame):
     clicked = pyqtSignal(object, dict)
 
@@ -16,27 +20,26 @@ class CalendarCard(QFrame):
         digest = hashlib.md5(proj.encode('utf-8')).hexdigest()
         hue = (int(digest[:2], 16) / 255) * 360
 
-        # HSL → RGB (파스텔 베이스, 선택 시 조금 어둡게)
+        """
+        선택 시 조금 어둡게
+        """
         def hsl_to_hex(h, l, s):
             r, g, b = colorsys.hls_to_rgb(h/360, l, s)
             return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
 
-        base_color = hsl_to_hex(hue, 0.8, 0.6)    # 밝기 80%, 채도 60%
-        sel_color  = hsl_to_hex(hue, 0.6, 0.6)    # 밝기 60%, 채도 60%
+        base_color = hsl_to_hex(hue, 0.8, 0.6)
+        sel_color  = hsl_to_hex(hue, 0.6, 0.6)
 
-        # 스타일 문자열
         self.base_style = f"""
             QFrame {{
                 background-color: {base_color};
                 border: 1px solid {base_color};
-                border-radius: 6px;
             }}
         """
         self.selected_style = f"""
             QFrame {{
                 background-color: {sel_color};
-                border: 2px solid {sel_color};
-                border-radius: 6px;
+                border: 1px solid {sel_color};
             }}
         """
 
@@ -47,7 +50,6 @@ class CalendarCard(QFrame):
         self.setFrameShape(QFrame.NoFrame)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
-        # 클릭 이벤트
         self.setMouseTracking(True)
 
         # 내부 레이아웃
@@ -67,6 +69,9 @@ class CalendarCard(QFrame):
         hl.addWidget(lbl_item)
         hl.addWidget(lbl_qty)
 
+    """
+    마우스 클릭 시 호출
+    """
     def mousePressEvent(self, e):
         if e.button() == Qt.LeftButton:
             self._is_selected = not self._is_selected

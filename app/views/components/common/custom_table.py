@@ -98,12 +98,6 @@ class CustomTable(QTableWidget):
         self.setHorizontalHeaderLabels(header_labels)
         
         header = self.horizontalHeader()
-
-        # # 헤더 높이와 폰트 설정
-        # header.setFixedHeight(35)  
-        # header_font = QFont(font_manager.get_just_font("SamsungOne-700").family(), 12)  
-        # header_font.setBold(True)
-        # header.setFont(header_font)
         
         # 헤더 설정
         header.setSectionsClickable(False)  # 클릭 불가
@@ -242,22 +236,7 @@ class CustomTable(QTableWidget):
                 item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             else:
                 item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
-            
-            # 총계 행 스타일
-            if is_total:
-                item.setBackground(QBrush(QColor('#1428A0')))
-                item.setForeground(QBrush(QColor('white')))
-                font = item.font()
-                font.setBold(True)
-                item.setFont(font)
-            
-            # 헤더 스타일 행
-            elif is_header:
-                item.setBackground(QBrush(QColor('#f5f5f5')))
-                font = item.font()
-                font.setBold(True)
-                item.setFont(font)
-            
+
             # 커스텀 스타일 적용
             if col_idx in styles:
                 style = styles[col_idx]
@@ -269,6 +248,22 @@ class CustomTable(QTableWidget):
                     item.setFont(style['font'])
                 if 'alignment' in style:
                     item.setTextAlignment(style['alignment'])
+
+            else:
+                # 총계 행 스타일
+                if is_total:
+                    item.setBackground(QBrush(QColor('#E8E8E8')))
+                    item.setForeground(QBrush(QColor('#333333')))
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
+                
+                # 헤더 스타일 행
+                elif is_header:
+                    item.setBackground(QBrush(QColor('#f5f5f5')))
+                    font = item.font()
+                    font.setBold(True)
+                    item.setFont(font)
             
             self.setItem(row_idx, col_idx, item)
         

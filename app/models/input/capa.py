@@ -1,6 +1,6 @@
 import pandas as pd
 from app.utils.fileHandler import load_file
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 from app.utils.error_handler import (
     error_handler, safe_operation, DataError, FileError
 )

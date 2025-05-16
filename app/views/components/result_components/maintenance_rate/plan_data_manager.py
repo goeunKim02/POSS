@@ -4,7 +4,7 @@ import pandas as pd
 from app.analysis.output.plan_maintenance import PlanMaintenanceRate
 from app.utils.week_plan_manager import WeeklyPlanManager
 from app.utils.conversion import convert_value
-from app.models.common.fileStore import FilePaths
+from app.models.common.file_store import FilePaths
 
 """계획 데이터 관리 클래스"""    
 class PlanDataManager:
