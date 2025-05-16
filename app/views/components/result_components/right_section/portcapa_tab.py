@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from app.views.components.result_components.portcapa_widget import PortCapaWidget
+from app.views.components.result_components.table_widget.portcapa_widget import PortCapaWidget
 
 
 class PortCapaTab(QWidget):

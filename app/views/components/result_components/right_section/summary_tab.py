@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from app.views.components.result_components.summary_widget import SummaryWidget
+from app.views.components.result_components.table_widget.summary_widget import SummaryWidget
 
 class SummaryTab(QWidget):
     def __init__(self, parent=None):

@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout
-from app.views.components.result_components.shipment_widget import ShipmentWidget
+from app.views.components.result_components.table_widget.shipment_widget import ShipmentWidget
 
 class ShipmentTab(QWidget):
     """Shipment 탭 컴포넌트"""

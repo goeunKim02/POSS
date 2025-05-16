@@ -88,16 +88,16 @@ class DraggableItemLabel(QFrame):
         # 텍스트에서 아이템명과 수량 분리
         if self.item_data and 'Item' in self.item_data:
             item_name = str(self.item_data['Item'])
-            qty = self.item_data.get('Qty', '') if self.item_data else ''
+            qty = self.item_data.get('Qty', 0)  # 숫자로 저장 (기본값 0)
         else:
             # 기존 텍스트 파싱 (Item    Qty 형태)
             parts = text.split()
             if len(parts) >= 2:
                 item_name = parts[0]
-                qty = parts[-1]
+                qty = int(parts[-1])
             else:
                 item_name = text
-                qty = ''
+                qty = 0
 
         # 아이템명 라벨 (왼쪽 정렬)
         self.item_label = QLabel(item_name)
@@ -108,7 +108,7 @@ class DraggableItemLabel(QFrame):
         self.item_label.setWordWrap(True)  # WordWrap 활성화 : 활성화해야 컨테이너 높이 자동화 가능 
 
         # 수량 라벨 (오른쪽 정렬)
-        self.qty_label = QLabel(str(qty) if qty else '')
+        self.qty_label = QLabel(str(qty) if qty > 0 else "0")  # 0이어도 표시
         self.qty_label.setFont(QFont("Arial", 9))
         self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.qty_label.setStyleSheet("background: transparent; border: none;")
@@ -415,12 +415,16 @@ class DraggableItemLabel(QFrame):
     def update_text_from_data(self):        
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
-            qty = str(self.item_data['Qty']) if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']) else ''
+            qty = self.item_data.get('Qty', 0)
+            
+            # 수량 처리 - None이나 공백도 0으로 표시
+            if qty is None or qty == '':
+                qty = 0
             
             if hasattr(self, 'item_label'):
                 self.item_label.setText(item_info)
             if hasattr(self, 'qty_label'):
-                self.qty_label.setText(qty)
+                self.qty_label.setText(str(qty) if qty > 0 else "0")
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):
