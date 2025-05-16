@@ -130,24 +130,24 @@ class VisualizationUpdater:
         # DisplayHelper.show_chart_or_message(canvas, port_capa_data, chart_config)
 
 
-    """
-    자재 부족량 분석 실행 (차트 영역 제거)
-    """
-    @staticmethod
-    def update_material_shortage_chart(canvas, result_data=None):
-        # 자재 부족량 분석 실행
-        analyzer = MaterialShortageAnalyzer()
-        analyzer.analyze_material_shortage(result_data)
+    # """
+    # 자재 부족량 분석 실행 (차트 영역 제거)
+    # """
+    # @staticmethod
+    # def update_material_shortage_chart(canvas, result_data=None):
+    #     # 자재 부족량 분석 실행
+    #     analyzer = MaterialShortageAnalyzer()
+    #     analyzer.analyze_material_shortage(result_data)
         
-        # 그래프 영역 숨기기 - 캔버스가 보이지 않도록 설정
-        canvas.axes.clear()
-        canvas.axes.set_frame_on(False)
-        canvas.axes.get_xaxis().set_visible(False)
-        canvas.axes.get_yaxis().set_visible(False)
-        canvas.setVisible(False)  # 캔버스 자체를 숨김
-        canvas.draw()
+    #     # 그래프 영역 숨기기 - 캔버스가 보이지 않도록 설정
+    #     canvas.axes.clear()
+    #     canvas.axes.set_frame_on(False)
+    #     canvas.axes.get_xaxis().set_visible(False)
+    #     canvas.axes.get_yaxis().set_visible(False)
+    #     canvas.setVisible(False)  # 캔버스 자체를 숨김
+    #     canvas.draw()
         
-        return analyzer
+    #     return analyzer
         
     """Material 차트의 데이터 유효성 확인 함수"""
     @staticmethod
