@@ -4,7 +4,9 @@ from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushBut
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
+import os
 
+from app.models.common.file_store import DataStore, FilePaths
 from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
 from ..components.visualization.visualization_updater import VisualizationUpdater
 from app.analysis.output.daily_capa_utilization import CapaUtilization
@@ -18,6 +20,7 @@ from app.views.components.result_components.items_container import ItemsContaine
 from app.views.components.result_components.right_section.adj_error_manager import AdjErrorManager
 from app.views.components.result_components.right_section.tab_manager import TabManager
 from app.views.components.result_components.split_allocation_widget import SplitAllocationWidget
+from app.views.components.result_components.right_section.kpi_widget import KpiScore
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -25,12 +28,17 @@ class ResultPage(QWidget):
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
+        self.result_data = None # 결과 데이터 저장 변수
         self.capa_ratio_data = None
         self.data_changed_count = 0
         self.utilization_data = None # 가동률 데이터 저장 변수
-        self.result_data = None # 결과 데이터 저장 변수
         self.material_analyzer = None  # 자재 부족량 분석기 추가
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
+
+        # KPI Calculator 
+        self.kpi_score = KpiScore(self.main_window)
+        self.kpi_calculator = None
+        self.demand_df = None  
 
         # 위젯 참조 (호환성 유지)
         self.summary_widget = None
@@ -122,7 +130,7 @@ class ResultPage(QWidget):
 
         left_layout.addWidget(self.left_section)
         
-        # =============== 오른쪽 영역 (3개 섹션 분할) ===============
+        # =============== 오른쪽 컨테이너 (3개 섹션 분할) ===============
         # 1) 수직 스플리터로 위/아래 분할
         right_vertical_splitter = QSplitter(Qt.Vertical)
         right_vertical_splitter.setHandleWidth(10)
@@ -187,6 +195,20 @@ class ResultPage(QWidget):
                 self.kpi_labels[f"{row_name}_{col_name}"] = score_label
 
         kpi_layout.addWidget(self.kpi_widget)
+
+        # 1) demand_df 로드
+        self.demand_df = DataStore.get("organized_dataframes", {}).get("demand", pd.DataFrame())
+
+        # 2) KPI 위젯과 데이터 연결
+        self.kpi_score.set_kpi_widget(self.kpi_widget)
+        self.kpi_score.set_data(
+            result_data=self.result_data or pd.DataFrame(),
+            material_anaylsis=self.material_analyzer,
+            demand_df=self.demand_df
+        )
+
+        # 3) Base KPI 갱신
+        # self._refresh_base_kpi()
 
         # =============== 2. 조정 에러 메세지 섹션 ===============
         error_frame = QFrame()
@@ -564,7 +586,17 @@ class ResultPage(QWidget):
             # 데이터가 비어있지 않은 경우에만 분석 수행
             if data is not None and not data.empty:
                 # 데이터 변경 이벤트 카운터 증가
-                self.data_changed_count = 1
+                self.data_changed_count += 1
+
+                # KPI 점수 업데이트
+                self.update_kpi_scores()
+
+                # Base KPI 점수 새로고침
+                self._refresh_base_kpi()
+                # 그리고 일단 Adjust도 동일하게 초기화
+                for name, val in self.kpi_score.calculate_all_scores().items():
+                    lbl = self.kpi_labels[f"Adjust_{name}"]
+                    lbl.setText(f"{val:.1f}%")
                 
                 self.validator = PlanAdjustmentValidator(data)
                 
@@ -605,6 +637,8 @@ class ResultPage(QWidget):
 
                 # 시각화 업데이트
                 self.update_all_visualizations()
+
+                self._refresh_base_kpi()
                     
             else:
                 print("빈 데이터프레임")
@@ -621,9 +655,12 @@ class ResultPage(QWidget):
     변경된 항목에 따라 시각화 업데이트
     """
     def on_cell_moved(self, item, old_data, new_data):
-        try:
+        try:     
             # 결과 데이터가 있을 때만 처리
             if self.result_data is not None and not self.result_data.empty:
+                # KPI 점수 업데이트
+                self.update_kpi_scores()
+
                 # 수량만 변경된 경우 (위치는 동일)
                 is_quantity_only_change = (
                     old_data.get('Line') == new_data.get('Line') and
@@ -740,6 +777,12 @@ class ResultPage(QWidget):
                         # 값이 있으면 수량 업데이트
                         if line and time is not None and item and qty is not None:
                             self.plan_maintenance_widget.update_quantity(line, time, item, qty)
+            # Base KPI 점수 새로고침
+            self._refresh_base_kpi()
+            # 그리고 일단 Adjust도 동일하게 초기화
+            for name, val in self.kpi_score.calculate_all_scores().items():
+                lbl = self.kpi_labels[f"Adjust_{name}"]
+                lbl.setText(f"{val:.1f}%")
         
         except Exception as e:
             print(f"셀 이동 처리 중 오류 발생: {e}")
@@ -1233,3 +1276,108 @@ class ResultPage(QWidget):
         
         print(f"스크롤 완료 - 아이템 Y: {item_y}, 타겟 Y: {target_y}")
     
+
+    def set_result_data(self, result_data, material_analyzer=None, demand_df=None):
+        """결과 데이터 설정 및 KPI 초기화"""
+        self.result_data = result_data
+        self.material_analyzer = material_analyzer
+        self.demand_df = demand_df
+        
+        # KPI Calculator 초기화
+        if result_data is not None:
+            self.kpi_calculator = KpiScore(self.main_window)
+            self.kpi_calculator.set_data(result_data, material_analyzer, demand_df)
+            
+            # 초기 KPI 계산 및 표시
+            self.update_kpi_scores()
+        
+        # 왼쪽 섹션에 데이터 설정
+        if hasattr(self.left_section, 'update_data'):
+            self.left_section.update_data(result_data)
+    
+    def update_kpi_scores(self):
+        """KPI 점수 계산 및 라벨 업데이트"""
+        if not self.kpi_calculator:
+            return
+        
+        try:
+            # Base 점수 계산 (초기 최적화 결과)
+            base_scores = self.kpi_calculator.calculate_all_scores()
+            
+            # Adjust 점수 계산 (사용자 조정 후 - 현재는 Base와 동일)
+            adjust_scores = base_scores.copy()
+            
+            # 라벨 업데이트
+            self.update_kpi_labels("Base", base_scores)
+            self.update_kpi_labels("Adjust", adjust_scores)
+            
+            print(f"KPI Scores - Base: {base_scores}, Adjust: {adjust_scores}")
+            
+        except Exception as e:
+            print(f"KPI 계산 오류: {e}")
+            # 오류 발생 시 기본값 표시
+            default_scores = {'Total': 0, 'Mat': 0, 'SOP': 0, 'Util': 0}
+            self.update_kpi_labels("Base", default_scores)
+            self.update_kpi_labels("Adjust", default_scores)
+    
+    def update_kpi_labels(self, row_type, scores):
+        """KPI 라벨 업데이트"""
+        # 점수에 따른 색상 결정
+        def get_color(score):
+            if score >= 90:
+                return "#28a745"  # 초록색
+            elif score >= 70:
+                return "#ffc107"  # 노란색  
+            else:
+                return "#dc3545"  # 빨간색
+        
+        # 각 점수 라벨 업데이트
+        for col_name in ["Total", "Mat", "SOP", "Util"]:
+            label_key = f"{row_type}_{col_name}"
+            
+            if label_key in self.kpi_labels:
+                score = scores.get(col_name, 0)
+                color = get_color(score)
+                
+                # 라벨 텍스트와 스타일 업데이트
+                self.kpi_labels[label_key].setText(f"{score:.1f}")
+                self.kpi_labels[label_key].setStyleSheet(f"""
+                    QLabel {{
+                        color: {color};
+                        font-weight: bold;
+                        border: none;
+                        padding: 5px;
+                    }}
+                """)
+
+    def clear_kpi_scores(self):
+        """KPI 점수 초기화"""
+        for label_key, label in self.kpi_labels.items():
+            label.setText("--")
+            label.setStyleSheet("""
+                QLabel {
+                    color: #555;
+                    border: none;
+                    padding: 5px;
+                }
+            """)
+
+    def _refresh_base_kpi(self):
+        # 원본 결과(조정 전) 점수 계산
+        # demand_df 는 DataStore 또는 main_window.data_input_page 에서 가져오세요
+        demand_path = FilePaths.get("demand_excel_file")
+        if demand_path and os.path.exists(demand_path):
+            # 모든 시트를 dict 형태로 읽어오기
+            demand_df = pd.read_excel(demand_path, sheet_name='demand')
+            print(demand_df.head())
+        data = self.result_data if (self.result_data is not None and not self.result_data.empty) else pd.DataFrame()
+        self.kpi_score.set_data(
+            result_data=data,
+            material_anaylsis=self.material_analyzer,
+            demand_df=demand_df
+        )
+        scores = self.kpi_score.calculate_all_scores()
+        # Base 행에 반영
+        for name, val in scores.items():
+            lbl = self.kpi_labels[f"Base_{name}"]
+            lbl.setText(f"{val:.1f}%")
