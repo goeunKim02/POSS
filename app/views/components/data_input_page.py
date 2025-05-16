@@ -62,23 +62,23 @@ class DataInputPage(QWidget) :
 
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
-        top_container_layout.setContentsMargins(m(10), m(10), m(10), m(10))
-        top_container_layout.setSpacing(s(10))
+        top_container_layout.setContentsMargins(w(10), h(10), w(10), h(10))
+        top_container_layout.setSpacing(h(10))
         top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 0px;")
         top_container.setMinimumHeight(h(100))
 
         title_row = QFrame()
         title_row.setStyleSheet(f"background-color: transparent; padding-bottom:10px;")
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, m(16), 0)
+        title_row_layout.setContentsMargins(0, 0, w(16), 0)
         title_row_layout.setAlignment(Qt.AlignVCenter)
 
 
         title_label = QLabel("Upload Data")
         title_label.setStyleSheet("padding: 0px;")
-        title_label.setMinimumWidth(h(25))  # 버튼과 동일한 높이
+        title_label.setMinimumWidth(w(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", 15)
+        title_font = font_manager.get_font("SamsungOne-700", f(15))
         title_font.setBold(True)
         title_font.setWeight(99)
         title_label.setFont(title_font)
@@ -130,7 +130,7 @@ class DataInputPage(QWidget) :
         # run_btn.setFixedHeight(30)
 
         # font_manager 사용법 수정
-        run_font = font_manager.get_font("SamsungOne-700", 9)
+        run_font = font_manager.get_font("SamsungOne-700", f(9))
         run_font.setBold(True)
         run_btn.setFont(run_font)
         save_btn.setFont(run_font)
@@ -144,10 +144,10 @@ class DataInputPage(QWidget) :
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
         input_section.setStyleSheet("background-color: white; border-radius: 0px; border: 3px solid #cccccc;")
-        input_section.setFixedHeight(50)
+        input_section.setFixedHeight(h(50))
 
         input_layout = QHBoxLayout(input_section)
-        input_layout.setContentsMargins(10, 5, 10, 5)
+        input_layout.setContentsMargins(w(10), h(5), w(10), h(5))
         input_layout.setSpacing(0)
 
         self.date_selector = DateRangeSelector()
@@ -162,10 +162,10 @@ class DataInputPage(QWidget) :
         bottom_container = QFrame()
         bottom_container.setStyleSheet("background-color: #F5F5F5;")
         bottom_container_layout = QVBoxLayout(bottom_container)
-        bottom_container_layout.setContentsMargins(10, 10, 10, 10)
+        bottom_container_layout.setContentsMargins(w(10), h(10), w(10), h(10))
 
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setHandleWidth(5)
+        main_splitter.setHandleWidth(w(5))
         main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_splitter.setContentsMargins(0, 0, 0, 0)
 
@@ -200,7 +200,8 @@ class DataInputPage(QWidget) :
 
         maximize_button = QPushButton()
         maximize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarShadeButton))
-        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 0px; margin-top: 5px; margin-right:12px")
+        maximize_button.setStyleSheet("border: none; margin-top: 5px;")
+        maximize_button.setCursor(QCursor(Qt.PointingHandCursor))
         maximize_button.clicked.connect(self.open_parameter_component) 
         maximize_button.setVisible(False)
         maximize_button.setObjectName("maximize_button")
