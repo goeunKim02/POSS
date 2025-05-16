@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QToolTip, QSizePolicy
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QApplication, QToolTip, QSizePolicy, QMenu, QAction
 from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag, QPixmap, QPainter, QColor, QFont
 import pandas as pd
@@ -17,6 +17,9 @@ class DraggableItemLabel(QFrame):
 
     # 검색 포커스 상태 변수
     is_search_focused = False
+
+    # 아이템 삭제를 위한 시그널 추가
+    itemDeleteRequested = pyqtSignal(object) # 마우스 우측 클릭하면 삭제 버튼이 나옴
 
     def __init__(self, text, parent=None, item_data=None):
         super().__init__(parent)
@@ -72,6 +75,9 @@ class DraggableItemLabel(QFrame):
         # 검색 포커스 상태
         self.is_search_focused = False
 
+        # 컨텍스트 메뉴 설정
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_context_menu)
 
     """내부 레이아웃 설정 - 아이템명과 수량을 분리"""
     def setup_layout(self, text):
@@ -534,3 +540,38 @@ class DraggableItemLabel(QFrame):
         
         self.is_search_focused = focused
         self.update_style()
+
+    """ 아이템을 삭제할 때 사용할 메서드 입니다."""
+    def show_context_menu(self, position):
+        context_menu = QMenu(self)
+        context_menu.setStyleSheet("""
+            QMenu {
+                background-color: #f0f0f0;
+                border: 1px solid #c0c0c0;
+            }
+            QMenu::item {
+                background-color: transparent;
+                padding: 6px 20px;
+                border-radius: 4px;
+                margin: 3px;
+            }
+            QMenu::item:selected {
+                background-color: #1428A0;
+                color: white;
+            }
+            QMenu::separator {
+                height: 1px;
+                background-color: #c0c0c0;
+                margin: 5px 10px;
+            }
+        """)
+
+        delete_action = QAction("Delete Item", self)
+        delete_action.triggered.connect(self.request_delete)
+        context_menu.addAction(delete_action)
+
+        context_menu.exec_(self.mapToGlobal(position))
+
+    """ 삭제 요청 메서드"""
+    def request_delete(self):
+        self.itemDeleteRequested.emit(self)

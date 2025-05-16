@@ -343,7 +343,7 @@ class ModifiedLeftSection(QWidget):
         self.grid_widget.itemSelected.connect(self.on_grid_item_selected)  # 아이템 선택 이벤트 연결
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
         self.grid_widget.itemCreated.connect(self.register_item)
-
+        self.grid_widget.itemRemoved.connect(self.on_item_removed)
         main_layout.addWidget(self.grid_widget, 1)
 
     """
@@ -1295,3 +1295,23 @@ class ModifiedLeftSection(QWidget):
         # 아이템에 repaint 요청하여 선을 다시 그리도록 함
         if hasattr(item, 'update'):
             item.update()
+
+    """아이템 삭제 처리 메서드 (ItemContainer에서 발생한 삭제를 처리)"""
+    def on_item_removed(self, item):
+        if self.data is not None:
+            if hasattr(item,'item_data') and item.item_data:
+                # 아이템 데이터에서 행 식별 정보 가져오기
+                line = item.item_data.get('Line')
+                time = item.item_data.get('Time')
+                item_code = item.item_data.get('Item')
+
+                if line is not None and time is not None and item_code is not None:
+                    mask = (
+                        (self.data['Line'] == line) &
+                        (self.data['Time'] == time) &
+                        (self.data['Item'] == item_code)
+                    )
+                    self.data = self.data[~mask]
+                    self.data_changed.emit(self.data)
+                    self.mark_as_modified()
+                    QTimer.singleShot(100, lambda: self.data_changed.emit(self.data))

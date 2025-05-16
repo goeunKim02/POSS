@@ -15,6 +15,7 @@ class ItemGridWidget(QWidget):
     itemDataChanged = pyqtSignal(object, dict, dict)  
 
     itemCreated = pyqtSignal(object)
+    itemRemoved = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -184,6 +185,11 @@ class ItemGridWidget(QWidget):
 
                         # 아이템 데이터 변경 이벤트 연결
                         container.itemDataChanged.connect(self.on_item_data_changed)
+                        for item in container.items:
+                            if hasattr(item, 'itemDeleteRequested'):
+                                item.itemDeleteRequested.connect(
+                                    lambda item_obj=item: self.on_item_delete_requested(item_obj, container)
+                                )
 
                         # 컨테이너를 데이터 열에 배치
                         self.grid_layout.addWidget(container, row_index, col + 2)
@@ -358,3 +364,8 @@ class ItemGridWidget(QWidget):
                     container.update_visibility()
                 elif hasattr(container, 'adjustSize'):
                     container.adjustSize()
+
+    """ 아이템 삭제 메서드"""
+    def on_item_delete_requested(self, item, container):
+        container.removeItem(item)
+        self.itemRemoved.emit(item)
