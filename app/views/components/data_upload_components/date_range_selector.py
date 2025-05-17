@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
                              QDateEdit, QFileDialog, QFrame)
 from PyQt5.QtCore import Qt, pyqtSignal, QDate
 from .custom_calendar import CustomCalendarWidget
-
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 class DateRangeSelector(QWidget):
     """날짜 범위 선택 컴포넌트"""
@@ -25,13 +26,13 @@ class DateRangeSelector(QWidget):
 
         # 시작 날짜
         start_date_label = QLabel("Start Date:")
-        start_date_font = QFont("Arial")
-        start_date_label.setFont(start_date_font)
+        data_font = font_manager.get_just_font("SamsungOne-700").family()
+        start_date_label.setStyleSheet(f"font-family:{data_font};")
 
         self.start_date_edit = QDateEdit()
         self.start_date_edit.setDate(QDate.currentDate())
         self.start_date_edit.setCalendarPopup(True)
-        self.start_date_edit.setStyleSheet("border: 2px solid #cccccc; border-radius: 5px;")
+        self.start_date_edit.setStyleSheet(f"font-family:{data_font}; border: 2px solid #cccccc; border-radius: 5px;")
 
         # 커스텀 캘린더 위젯 적용 - 오류 방지를 위해 try-except 블록으로 감싸기
         try:
@@ -41,19 +42,18 @@ class DateRangeSelector(QWidget):
             print(f"Start calendar widget error: {e}")
 
         self.start_date_edit.setDisplayFormat("yyyy-MM-dd")
-        self.start_date_edit.setFixedWidth(180)
+        self.start_date_edit.setFixedWidth(w(180))
         self.start_date_edit.dateChanged.connect(self.on_date_changed)
-        self.start_date_edit.setFont(start_date_font)
 
         # 종료 날짜
         end_date_label = QLabel("End Date:")
-        end_date_font = QFont("Arial")
-        end_date_label.setFont(end_date_font)
+        end_date_label.setStyleSheet(f"font-family:{data_font};")
+
 
         self.end_date_edit = QDateEdit()
         self.end_date_edit.setDate(QDate.currentDate().addDays(7))
         self.end_date_edit.setCalendarPopup(True)
-        self.end_date_edit.setStyleSheet("border: 2px solid #cccccc; border-radius: 5px;")
+        self.end_date_edit.setStyleSheet(f"font-family:{data_font}; border: 2px solid #cccccc; border-radius: 5px;")
 
         # 커스텀 캘린더 위젯 적용 - 오류 방지를 위해 try-except 블록으로 감싸기
         try:
@@ -63,14 +63,13 @@ class DateRangeSelector(QWidget):
             print(f"End calendar widget error: {e}")
 
         self.end_date_edit.setDisplayFormat("yyyy-MM-dd")
-        self.end_date_edit.setFixedWidth(180)
+        self.end_date_edit.setFixedWidth(w(180))
         self.end_date_edit.dateChanged.connect(self.on_date_changed)
-        self.end_date_edit.setFont(end_date_font)
 
         # 위젯 추가
         main_container_layout.addWidget(start_date_label)
         main_container_layout.addWidget(self.start_date_edit)
-        main_container_layout.addSpacing(20)
+        main_container_layout.addSpacing(w(20))
         main_container_layout.addWidget(end_date_label)
         main_container_layout.addWidget(self.end_date_edit)
         main_container_layout.addStretch(1)  # 오른쪽 공간 채우기

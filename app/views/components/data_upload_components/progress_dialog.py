@@ -274,7 +274,7 @@ class OptimizationProgressDialog(QDialog):
         self.optimization_completed.emit()
 
         # 1초 후 자동 닫기
-        QTimer.singleShot(1000, self.accept)
+        QTimer.singleShot(100, self.accept)
 
     def cancel_optimization(self):
         """최적화 취소"""
