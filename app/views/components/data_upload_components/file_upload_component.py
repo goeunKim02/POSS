@@ -6,7 +6,7 @@ import os
 from app.models.common.file_store import FilePaths
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.settings_store import SettingsStore
-
+from app.models.common.screen_manager import *
 
 """
 파일 업로드 컴포넌트
@@ -55,20 +55,18 @@ class FileUploadComponent(QWidget):
 
         browse_btn.clicked.connect(self.on_file_btn_clicked)
         browse_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        browse_btn_font = QFont(font_manager.get_just_font("SamsungOne-700").family())
-        browse_btn_font.setPointSize(9)
-        browse_btn_font.setBold(True)
-        browse_btn.setFont(browse_btn_font)
+        browse_btn_font = font_manager.get_just_font("SamsungOne-700").family()
         browse_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: 5px 10px;
+                padding: {w(5)}px {h(8)}px;
+                font-family : {browse_btn_font};
                 font-weight: bold;
-                min-width: 50px;
-                min-height : 20px;
+                min-width: {w(60)}px;
+                height : {h(30)}px;
             }}
             QPushButton:hover {{
                 background-color: #004C99;
@@ -78,7 +76,7 @@ class FileUploadComponent(QWidget):
             }}
         """)
 
-        self.layout.addWidget(files_container, 1)
+        self.layout.addWidget(files_container)
         self.layout.addWidget(browse_btn)
 
     """

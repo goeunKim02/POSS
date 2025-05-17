@@ -144,7 +144,7 @@ class DataInputPage(QWidget) :
 
         input_layout = QHBoxLayout(input_section)
         input_layout.setContentsMargins(w(10), h(5), w(10), h(5))
-        input_layout.setSpacing(0)
+        input_layout.setSpacing(30)
 
         self.date_selector = DateRangeSelector()
         self.file_uploader = FileUploadComponent()
