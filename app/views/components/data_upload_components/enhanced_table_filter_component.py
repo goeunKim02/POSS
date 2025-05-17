@@ -1,3 +1,4 @@
+from PyQt5.QtGui import QBrush, QColor, QFont
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QTableView, QHeaderView, QMenu, QWidgetAction,
@@ -8,6 +9,8 @@ from PyQt5.QtCore import (
     QVariant, QSortFilterProxyModel, QPoint, QTimer
 )
 import pandas as pd
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """
 헤더 필터링을 위한 사용자 정의 헤더
@@ -67,6 +70,7 @@ class PandasModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()):
         return len(self._df.columns)
 
+    # PandasModel 클래스의 data 메서드에 다음 코드 추가:
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()
@@ -78,6 +82,17 @@ class PandasModel(QAbstractTableModel):
             if pd.isna(value):
                 return ""
             return str(value)
+
+        # 폰트 역할 추가
+        elif role == Qt.FontRole:
+            font = QFont(font_manager.get_just_font("SamsungOne-700").family(), f(6))
+            return font
+
+        # 배경색 역할 추가 (필요 시)
+        elif role == Qt.BackgroundRole:
+            # 특정 조건에 따라 다른 배경색 반환 가능
+            # 예: 특정 값에 따라 배경색 변경
+            return QBrush(QColor("white"))
 
         return QVariant()
 
@@ -254,18 +269,19 @@ class EnhancedTableFilterComponent(QWidget):
 
         # 사용자 정의 헤더 설정
         header = FilterHeader(Qt.Horizontal, self.table_view)
-        header.setStyleSheet("""
-            QHeaderView {
+        header.setStyleSheet(f"""
+            QHeaderView {{
                 border: none;
                 background-color: transparent;
                 border-radius: 0px;
-            }
-            QHeaderView::section {
+            }}
+            QHeaderView::section {{
                 background-color: #F5F5F5;
                 border-right: 1px solid #cccccc;
-                padding: 4px;
-                border-radius: 0px;  /* 각 섹션의 라운드 코너 */
-            }
+                padding: 2px;
+                border-radius: 0px; 
+                font-size: {f(18)}px;
+            }}
         """)
         self.table_view.setHorizontalHeader(header)
         header.setStretchLastSection(False)  # 마지막 열 늘리지 않음
