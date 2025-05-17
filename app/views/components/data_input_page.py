@@ -75,15 +75,15 @@ class DataInputPage(QWidget) :
 
 
         title_label = QLabel("Upload Data")
-        title_label.setStyleSheet("padding: 0px;")
+
         title_label.setMinimumWidth(w(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
-        title_font = font_manager.get_font("SamsungOne-700", f(15))
-        title_font.setBold(True)
-        title_font.setWeight(99)
-        title_label.setFont(title_font)
-
+        title_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        title_label.setStyleSheet(f"padding: 0px; font-family : {title_font}; font-size: {f(21)}px; font-weight: 900;")
         title_row_layout.addWidget(title_label, 1)
+
+        # font_manager 사용법 수정
+        button_font = font_manager.get_just_font("SamsungOne-700").family()
 
         save_btn = QPushButton("Save")
         save_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -93,9 +93,11 @@ class DataInputPage(QWidget) :
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: 8px 16px;
-                min-width: 30px;
-                min-height: 10px;
+                padding: {h(8)}px {w(16)}px;
+                min-width: {w(60)}px;
+                min-height: {h(10)}px;
+                font-family: {button_font};
+                font-size: {f(16)}px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -115,9 +117,11 @@ class DataInputPage(QWidget) :
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: 8px 16px;
-                min-width: 30px;
-                min-height: 10px;
+                padding: {h(8)}px {w(16)}px;
+                min-width: {w(60)}px;
+                min-height: {h(10)}px;
+                font-family: {button_font};
+                font-size: {f(16)}px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -126,14 +130,6 @@ class DataInputPage(QWidget) :
                 background-color: #0062cc;
             }}
         """)
-        # run_btn.setFixedWidth(80)
-        # run_btn.setFixedHeight(30)
-
-        # font_manager 사용법 수정
-        run_font = font_manager.get_font("SamsungOne-700", f(9))
-        run_font.setBold(True)
-        run_btn.setFont(run_font)
-        save_btn.setFont(run_font)
 
         run_btn.clicked.connect(self.on_run_clicked)
         save_btn.clicked.connect(self.on_save_clicked)
