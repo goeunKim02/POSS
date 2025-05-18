@@ -22,7 +22,7 @@ class HelpDialog(QDialog):
         self.setWindowTitle("Samsung Production Planning Optimization System")
         screen = self.screen()
         screen_size = screen.availableGeometry()
-        self.resize(int(screen_size.width()* 0.43), int(screen_size.height()* 0.6))
+        self.resize(int(screen_size.width()* 0.45), int(screen_size.height()* 0.6))
         self.init_ui()
 
     def init_ui(self):
