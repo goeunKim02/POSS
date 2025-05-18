@@ -366,8 +366,9 @@ class DataInputPage(QWidget) :
     """
 
     def show_optimization_progress(self):
-        # 프로그래스 다이얼로그 생성
-        self.progress_dialog = OptimizationProgressDialog(self)
+        """최적화 프로그래스 다이얼로그 표시"""
+        # 프로그래스 다이얼로그 생성 (DataInputPage 객체 전달)
+        self.progress_dialog = OptimizationProgressDialog(self, self)
 
         # 최적화 완료 시그널 연결
         self.progress_dialog.optimization_completed.connect(self.on_optimization_completed)
@@ -376,20 +377,23 @@ class DataInputPage(QWidget) :
         # 다이얼로그가 닫힐 때 호출되는 함수
         self.progress_dialog.finished.connect(self.on_dialog_finished)
 
-        # 최적화 시작을 먼저 호출
-        self.progress_dialog.start_optimization()
+        # 먼저 다이얼로그 표시
+        self.progress_dialog.show()
 
-        # 모달 다이얼로그로 실행 (exec_() 사용)
-        self.progress_dialog.exec_()
+        # UI가 업데이트될 시간을 주기 위해 약간의 지연 후 최적화 시작
+        QTimer.singleShot(300, self.progress_dialog.start_optimization)
 
-    """
-    최적화 완료 처리
-    """
-
-    def on_optimization_completed(self):
-        self.prepare_dataframes_for_optimization()
-        self.run_button_clicked.emit()
-
+    def on_optimization_completed(self, result):
+        """최적화 완료 처리"""
+        if result:
+            # 결과를 전달하는 대신, run_button_clicked 시그널을 발생시킵니다
+            self.run_button_clicked.emit()
+        else:
+            QMessageBox.warning(
+                self,
+                "최적화 오류",
+                "최적화 과정에서 오류가 발생했습니다."
+            )
     """
     최적화 취소 처리
     """
