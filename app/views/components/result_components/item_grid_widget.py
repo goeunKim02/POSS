@@ -326,10 +326,7 @@ class ItemGridWidget(QWidget):
     """
     def update_container_visibility(self) :
         pass
-        # for row_containers in self.containers :
-        #     for container in row_containers :
-        #         if hasattr(container, 'update_visibility') :
-        #             container.update_visibility()
+
 
     """
     검색 후 선택된 항목이 보이도록 스크롤 이동
@@ -368,7 +365,9 @@ class ItemGridWidget(QWidget):
                 elif hasattr(container, 'adjustSize'):
                     container.adjustSize()
 
-    """ 아이템 삭제 메서드"""
+    """
+    아이템 삭제 메서드
+    """
     def on_item_delete_requested(self, item, container):
         container.remove_item(item)
         self.itemRemoved.emit(item)

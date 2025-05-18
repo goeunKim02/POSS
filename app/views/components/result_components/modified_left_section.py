@@ -353,8 +353,10 @@ class ModifiedLeftSection(QWidget):
         main_layout.addWidget(self.grid_widget, 1)
 
     
+    """
+    데이터프레임 타입 정규화
+    """
     def _normalize_data_types(self, df):
-        """데이터프레임 타입 정규화"""
         if df is not None and not df.empty:
             # Line은 항상 문자열
             if 'Line' in df.columns:
@@ -720,7 +722,9 @@ class ModifiedLeftSection(QWidget):
             print(f'네이게이션 업데이트 오류 : {str(e)}')
             self.search_result_label.setText(f'result: {len(self.search_results)}')
 
-    """그리드에서 아이템이 선택되면 호출되는 함수"""
+    """
+    그리드에서 아이템이 선택되면 호출되는 함수
+    """
     def on_grid_item_selected(self, selected_item, container):
         # 현재 선택 상태 저장
         self.current_selected_item = selected_item
@@ -729,7 +733,9 @@ class ModifiedLeftSection(QWidget):
         # 선택 시그널 방출
         self.item_selected.emit(selected_item, container)
 
-    """아이템 데이터가 변경되면 호출되는 함수"""
+    """
+    아이템 데이터가 변경되면 호출되는 함수
+    """
     def on_item_data_changed(self, item, new_data, changed_fields=None):
 
         if not item or not new_data or not hasattr(item, 'item_data'):
@@ -750,8 +756,10 @@ class ModifiedLeftSection(QWidget):
             self.itemModified.emit(item, new_data, changed_fields)
             return
 
+    """
+    위치 변경 처리 로직 분리
+    """
     def _handle_position_change(self, item, new_data, changed_fields, old_data):
-        """위치 변경 처리 로직 분리"""
         position_change_needed = False
 
         if changed_fields:
@@ -781,8 +789,10 @@ class ModifiedLeftSection(QWidget):
             self.mark_as_modified()
             self.itemModified.emit(item, new_data)
 
+    """
+    위치 변경 처리 (기존 로직 유지)
+    """
     def _process_position_change(self, item, new_data, changed_fields, old_data):
-        """위치 변경 처리 (기존 로직 유지)"""
         old_container = item.parent() if hasattr(item, 'parent') else None
         
         if not isinstance(old_container, QWidget):
@@ -848,8 +858,10 @@ class ModifiedLeftSection(QWidget):
             else:
                 print("새 아이템 생성 실패")
 
+    """
+    아이템 상태 복원
+    """
     def _restore_item_states(self, new_item, new_data):
-        """아이템 상태 복원"""
         item_code = new_data.get('Item', '')
         
         # 사전할당 상태
@@ -866,20 +878,26 @@ class ModifiedLeftSection(QWidget):
             shortage_info = self.current_shortage_items[item_code]
             new_item.set_shortage_status(True, shortage_info)
 
+    """
+    MVC 컨트롤러 설정
+    """
     def set_controller(self, controller):
-        """MVC 컨트롤러 설정"""
         self.controller = controller
         print("MVC 컨트롤러가 설정되었습니다")
 
+    """
+    검증기 설정
+    """
     def set_validator(self, validator):
-        """검증기 설정"""
         self.validator = validator
         if hasattr(self.grid_widget, 'set_validator'):
             self.grid_widget.set_validator(validator)
         print("검증기가 설정되었습니다")
         
 
-    """엑셀 파일 로드"""
+    """
+    엑셀 파일 로드
+    """
     def load_excel_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls)"
@@ -919,7 +937,9 @@ class ModifiedLeftSection(QWidget):
         if hasattr(self, 'grid_widget'):
             self.grid_widget.clearAllItems()
 
-    """엑셀 파일에서 데이터를 읽어와 테이블 업데이트"""
+    """
+    엑셀 파일에서 데이터를 읽어와 테이블 업데이트
+    """
     def update_table_from_data(self):
         if self.data is None:
             return
@@ -931,7 +951,9 @@ class ModifiedLeftSection(QWidget):
         df = self.extract_dataframe()
         self.viewDataChanged.emit(df)
 
-    """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시"""
+    """
+    Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시
+    """
     def update_ui_with_signals(self): 
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
             EnhancedMessageBox.show_validation_error(self, "Grouping Failed",
@@ -1047,81 +1069,17 @@ class ModifiedLeftSection(QWidget):
             print(f"그룹핑 에러: {e}")
             EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
 
-    """외부에서 데이터 설정"""
+    """
+    외부에서 데이터 설정
+    """
     def set_data_from_external(self, new_data):
         self.data = self._normalize_data_types(new_data.copy())
         self.original_data = self.data.copy()
         self.update_table_from_data()
 
-
-    # def set_validator(self, validator):
-    #     self.validator = validator
-    #     self.grid_widget.set_validator(validator)
-        
-
-    # """사전할당 아이템 정보 설정"""
-    # def set_pre_assigned_items(self, pre_assigned_items):
-    #     self.pre_assigned_items = pre_assigned_items
-
-    #     # 이미 데이터가 있다면 적용
-    #     if hasattr(self, 'data') and self.data is not None:
-    #         self.apply_pre_assigned_status()
-
-
-    # """사전할당 아이템 상태 적용"""
-    # def apply_pre_assigned_status(self):
-    #     if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
-    #         return
-        
-    #     for row_containers in self.grid_widget.containers:
-    #         for container in row_containers:
-    #             for item in container.items:
-    #                 if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
-    #                     item_code = item.item_data['Item']
-    #                     if item_code in self.pre_assigned_items:
-    #                         item.set_pre_assigned_status(True)
-    
-    # """출하 실패 아이템 정보 설정"""
-    # def set_shipment_failure_items(self, failure_items):
-    #     # 이전 출하 실패 정보 초기화
-    #     self.clear_shipment_failure_status()
-        
-    #     # 새 출하 실패 정보 저장
-    #     self.shipment_failure_items = failure_items
-        
-    #     # 이미 데이터가 있다면 적용
-    #     if hasattr(self, 'data') and self.data is not None:
-    #         self.apply_shipment_failure_status()
-    
-    # """출하 실패 상태 클리어"""
-    # def clear_shipment_failure_status(self):
-    #     if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
-    #         return
-            
-    #     for row_containers in self.grid_widget.containers:
-    #         for container in row_containers:
-    #             for item in container.items:
-    #                 if hasattr(item, 'set_shipment_failure'):
-    #                     item.set_shipment_failure(False)
-        
-    #     # 출하 실패 정보 초기화
-    #     self.shipment_failure_items = {}
-    
-    # """출하 실패 상태 적용"""
-    # def apply_shipment_failure_status(self):
-    #     if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
-    #         return
-            
-    #     for row_containers in self.grid_widget.containers:
-    #         for container in row_containers:
-    #             for item in container.items:
-    #                 if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
-    #                     item_code = item.item_data['Item']
-    #                     if item_code in self.shipment_failure_items:
-    #                         failure_info = self.shipment_failure_items[item_code]
-    #                         item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
-
-    """원본 데이터로 되돌리기"""
+    """
+    원본 데이터로 되돌리기
+    """
     def reset_to_original(self):
         if self.original_data is None:
             EnhancedMessageBox.show_validation_error(self, "Reset Failed", 
@@ -1146,16 +1104,22 @@ class ModifiedLeftSection(QWidget):
                 self, "Reset Complete", "Data has been successfully reset to the original values."
             )
     
-    """데이터가 수정되었음을 표시하는 메서드"""
+    """
+    데이터가 수정되었음을 표시하는 메서드
+    """
     def mark_as_modified(self):
         self.reset_button.setEnabled(True)
 
-    """현재 자재부족 아이템 정보 저장"""
+    """
+    현재 자재부족 아이템 정보 저장
+    """
     def set_current_shortage_items(self, shortage_items):
         self.current_shortage_items = shortage_items
         self.apply_all_states()
 
-    """모든 상태 정보를 현재 아이템들에 적용"""
+    """
+    모든 상태 정보를 현재 아이템들에 적용
+    """
     def apply_all_states(self):
         if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
             return
@@ -1180,24 +1144,22 @@ class ModifiedLeftSection(QWidget):
                             shortage_info = self.current_shortage_items[item_code]
                             item.set_shortage_status(True, shortage_info)
 
-    """범례 위젯에서 필터가 변경될 때 호출"""
+    """
+    범례 위젯에서 필터가 변경될 때 호출
+    """
     def on_filter_changed(self, filter_states):
         self.current_filter_states = filter_states
         self.apply_visibility_filter()
     
-    """현재 필터 상태에 따라 아이템 가시성 조정"""
+    """
+    현재 필터 상태에 따라 아이템 가시성 조정
+    """
     def apply_visibility_filter(self):
         if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
             return
         
         self.apply_all_filters()
         
-        # for row_containers in self.grid_widget.containers:
-        #     for container in row_containers:
-        #         for item in container.items:
-        #             item.show()
-        #             self.update_item_status_line_visibility(item)
-    
     
     """
     아이템이 표시
@@ -1272,7 +1234,9 @@ class ModifiedLeftSection(QWidget):
         if hasattr(item, 'update'):
             item.update()
 
-    """아이템 삭제 처리 메서드 (ItemContainer에서 발생한 삭제를 처리)"""
+    """
+    아이템 삭제 처리 메서드 (ItemContainer에서 발생한 삭제를 처리)
+    """
     def on_item_removed(self, item):
         if self.data is not None:
             if hasattr(item,'item_data') and item.item_data:
@@ -1294,20 +1258,20 @@ class ModifiedLeftSection(QWidget):
                     self.mark_as_modified()
                     # QTimer.singleShot(100, lambda: self.data_changed.emit(self.data))
 
+    """
+    현재 뷰에 로드된 DataFrame(self.data)의 사본 반환
+    viewDataChanged 신호를 뿌릴 때 사용 
+    """
     def extract_dataframe(self) -> pd.DataFrame:
-        """
-        현재 뷰에 로드된 DataFrame(self.data)의 사본을 반환합니다.
-        viewDataChanged 신호를 뿌릴 때 사용됩니다.
-        """
         if hasattr(self, 'data') and isinstance(self.data, pd.DataFrame):
             return self._normalize_data_types(self.data.copy())
         else:
             return pd.DataFrame()
         
+    """
+    모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
+    """
     def update_from_model(self, model_df):
-        """
-        모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
-        """
 
         if model_df is None:
             return
@@ -1413,8 +1377,10 @@ class ModifiedLeftSection(QWidget):
             print(f"UI 업데이트 오류: {e}")
 
 
+    """
+    복사된 아이템 처리
+    """
     def on_item_copied(self, item, data):
-        """복사된 아이템 처리"""
         # 아이템 등록
         self.register_item(item)
 

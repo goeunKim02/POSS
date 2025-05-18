@@ -310,8 +310,10 @@ class ResultPage(QWidget):
         result_layout.addWidget(main_horizontal_splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
 
+    """
+    Material 탭 콘텐츠 생성
+    """
     def _create_material_tab_content(self, layout):
-        """Material 탭 콘텐츠 생성"""
         material_page = QWidget()
         material_layout = QVBoxLayout(material_page)
         material_layout.setContentsMargins(0, 0, 0, 0)
@@ -332,7 +334,9 @@ class ResultPage(QWidget):
         material_layout.addWidget(self.shortage_items_table)
         layout.addWidget(material_page)
     
-    """위젯 참조 설정"""
+    """
+    위젯 참조 설정
+    """
     def _setup_widget_references(self):
     
         # Summary 위젯
@@ -375,7 +379,9 @@ class ResultPage(QWidget):
             self.viz_canvases = capa_tab.get_canvases()
     
     
-    """이벤트 시그널 연결"""
+    """
+    이벤트 시그널 연결
+    """
     def connect_signals(self):
         if hasattr(self, 'controller') and self.controller:
             # MVC 컨트롤러가 있는 경우: 컨트롤러만 사용
@@ -889,7 +895,8 @@ class ResultPage(QWidget):
 
 
 
-    """왼쪽 위젯의 아이템들에 자재 부족 상태 적용
+    """
+    왼쪽 위젯의 아이템들에 자재 부족 상태 적용
     
     Args:
         shortage_dict: {item_code: [{shift: shift_num, material: material_code, shortage: shortage_amt}]}
@@ -1109,8 +1116,10 @@ class ResultPage(QWidget):
         print(f"스크롤 완료 - 아이템 Y: {item_y}, 타겟 Y: {target_y}")
     
 
+    """
+    결과 데이터 설정 및 KPI 초기화
+    """
     def set_result_data(self, result_data, material_analyzer=None, demand_df=None):
-        """결과 데이터 설정 및 KPI 초기화"""
         self.result_data = result_data
         self.material_analyzer = material_analyzer
         self.demand_df = demand_df
@@ -1127,8 +1136,10 @@ class ResultPage(QWidget):
         if hasattr(self.left_section, 'update_data'):
             self.left_section.update_data(result_data)
     
+    """
+    KPI 점수 계산 및 라벨 업데이트
+    """
     def update_kpi_scores(self):
-        """KPI 점수 계산 및 라벨 업데이트"""
         if not self.kpi_calculator:
             return
         
@@ -1152,8 +1163,10 @@ class ResultPage(QWidget):
             self.update_kpi_labels("Base", default_scores)
             self.update_kpi_labels("Adjust", default_scores)
     
+    """
+    KPI 라벨 업데이트
+    """
     def update_kpi_labels(self, row_type, scores):
-        """KPI 라벨 업데이트"""
         # 점수에 따른 색상 결정
         def get_color(score):
             if score >= 90:
@@ -1182,8 +1195,10 @@ class ResultPage(QWidget):
                     }}
                 """)
 
+    """
+    KPI 점수 초기화
+    """
     def clear_kpi_scores(self):
-        """KPI 점수 초기화"""
         for label_key, label in self.kpi_labels.items():
             label.setText("--")
             label.setStyleSheet("""
@@ -1215,8 +1230,10 @@ class ResultPage(QWidget):
             lbl.setText(f"{val:.1f}%")
 
 
+    """
+    MVC 외의 아이템 변경 처리 (로깅, 통계 등)
+    """
     def on_item_data_changed_legacy(self, item, new_data):
-        """MVC 외의 아이템 변경 처리 (로깅, 통계 등)"""
         # 위치 변경에 의한 호출인지 확인
         if hasattr(item, '_is_position_change'):
             return

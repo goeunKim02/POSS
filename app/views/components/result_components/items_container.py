@@ -10,8 +10,6 @@ from .item_position_manager import ItemPositionManager
 """
 아이템들을 담는 컨테이너 위젯
 """
-
-
 class ItemsContainer(QWidget):
     itemsChanged = pyqtSignal()
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
@@ -45,7 +43,6 @@ class ItemsContainer(QWidget):
     """
     아이템 상태 업데이트
     """
-
     def update_visibility(self):
         # 모든 아이템은 항상 visible 상태로 유지
         # 필터링은 선의 표시 여부로만 처리
@@ -54,7 +51,6 @@ class ItemsContainer(QWidget):
     """
     현재 컨테이너의 부모 찾기
     """
-
     def find_parent_grid_widget(self):
         parent = self.parent()
 
@@ -68,7 +64,6 @@ class ItemsContainer(QWidget):
     아이템을 추가합니다. index가 -1이면 맨 뒤에 추가, 그 외에는 해당 인덱스에 삽입
     item_data: 아이템에 대한 추가 정보 (pandas Series 또는 딕셔너리)
     """
-
     def addItem(self, item_text, index=-1, item_data=None):
         self.layout.removeItem(self.spacer)
 
@@ -105,7 +100,6 @@ class ItemsContainer(QWidget):
     """
     아이템이 선택되었을 때 처리
     """
-
     def on_item_selected(self, selected_item):
         # 이전에 선택된 아이템이 있고, 현재 선택된 아이템과 다르다면 선택 해제
         if self.selected_item and self.selected_item != selected_item:
@@ -120,7 +114,6 @@ class ItemsContainer(QWidget):
     """
     아이템이 더블클릭되었을 때 처리
     """
-
     def on_item_double_clicked(self, item):
         if not item or not hasattr(item, 'item_data'):
             return
@@ -135,7 +128,9 @@ class ItemsContainer(QWidget):
         # 다이얼로그 실행
         dialog.exec_()
 
-    """아이템 데이터 업데이트"""
+    """
+    아이템 데이터 업데이트
+    """
     def update_item_data(self, item, new_data, changed_fields=None):
         if item and item in self.items and new_data:
             # 데이터 변경 시그널 발생
@@ -202,7 +197,6 @@ class ItemsContainer(QWidget):
     """
     드래그가 위젯을 벗어날 때 인디케이터 숨김
     """
-
     def  dragLeaveEvent(self, event):
         self.show_drop_indicator = False
         self.update()
@@ -210,7 +204,6 @@ class ItemsContainer(QWidget):
     """
     드래그 중 드롭 가능한 위치에 시각적 표시
     """
-
     def dragMoveEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
@@ -221,7 +214,6 @@ class ItemsContainer(QWidget):
     """
     드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
     """
-
     def find_drop_index(self, pos):
         if not self.items:
             return 0  # 아이템이 없으면 첫 번째 위치에 삽입
@@ -527,7 +519,6 @@ class ItemsContainer(QWidget):
     """
     컨테이너 위젯 그리기 - 드롭 인디케이터 표시
     """
-
     def paintEvent(self, event):
         super().paintEvent(event)
 
@@ -594,7 +585,6 @@ class ItemsContainer(QWidget):
     """
     그리드 위치를 기반으로 Line과 Time 계산
     """
-
     def calculate_new_position(self, grid_widget, row_idx, col_idx):
         if not grid_widget or not hasattr(grid_widget, 'row_headers'):
             return None, None
@@ -614,8 +604,9 @@ class ItemsContainer(QWidget):
 
         return None, None
 
-    """삭제 요청 처리 메서드"""
-
+    """
+    삭제 요청 처리 메서드
+    """
     def on_item_delete_requested(self, item):
         # EnhancedMessageBox를 사용하여 확인 다이얼로그 표시
         from app.views.components.common.enhanced_message_box import EnhancedMessageBox
