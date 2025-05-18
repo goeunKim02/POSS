@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
 from PyQt5.QtGui import QFont
 from .base_tab import BaseTabComponent
 from .help_section_component import HelpSectionComponent
-
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """
 데이터 입력 탭 컴포넌트
@@ -27,34 +28,30 @@ class DataInputTabComponent(BaseTabComponent):
                 margin: 10px;
             }
         """)
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
         # 콘텐츠 프레임 레이아웃
         frame_layout = QVBoxLayout(self.content_frame)
         frame_layout.setContentsMargins(20, 20, 20, 20)
-        frame_layout.setSpacing(15)
+        frame_layout.setSpacing(h(10))
 
         # 제목 레이블
         title_label = QLabel("Data Entry Guidelines")
-        title_font = QFont("Arial", 14)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
         title_label.setStyleSheet(
-            "color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent;")
+            f"color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent; font-family: {bold_font}; font-size: {f(21)}px;")
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
         desc_label = QLabel("This page provides instructions for entering and managing data in the system.")
-        desc_label.setWordWrap(True)
-        desc_font = QFont("Arial", 11)
-        desc_label.setFont(desc_font)
-        desc_label.setStyleSheet("margin-bottom: 15px; background-color: transparent; border:none;")
+        desc_label.setStyleSheet(f"margin-bottom: 15px; background-color: transparent; border:none; font-family: {normal_font}; font-size: {f(16)}px;")
 
         # 섹션들을 담을 프레임
         sections_frame = QFrame()
         sections_frame.setStyleSheet("background-color: transparent; border:none;")
         sections_layout = QVBoxLayout(sections_frame)
         sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(15)  # 섹션간 간격
+        sections_layout.setSpacing(h(10))  # 섹션간 간격
 
         # 섹션 1 - 날짜 범위 선택
         section1 = HelpSectionComponent(
