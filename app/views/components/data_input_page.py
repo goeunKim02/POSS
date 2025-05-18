@@ -175,7 +175,7 @@ class DataInputPage(QWidget) :
         right_area.setFrameShape(QFrame.NoFrame)
         right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 0px; border: none;")
         right_layout = QVBoxLayout(right_area)
-        right_layout.setContentsMargins(5, 5, 5, 5)
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
         vertical_splitter = QSplitter(Qt.Vertical)
         vertical_splitter.setHandleWidth(10)
