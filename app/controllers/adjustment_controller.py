@@ -118,3 +118,14 @@ class AdjustmentController(QObject):
     def apply_changes(self):
         """변경사항 적용"""
         self.model.apply()
+
+
+    def on_item_copied(self, item, data):
+        """복사된 아이템 처리"""
+        code = data.get('Item')
+        line = data.get('Line')
+        time = data.get('Time')
+        
+        # 모델에 명시적으로 추가
+        self.model.add_new_item(code, line, time, 0, data)
+        print(f"컨트롤러: 복사된 아이템 등록 - {code} @ {line}-{time}")

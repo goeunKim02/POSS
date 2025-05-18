@@ -20,16 +20,18 @@ class AssignmentModel(QObject):
     """
     def __init__(self, assignment_df: pd.DataFrame, pre_assigned: List[str], validator):
         super().__init__()
-        # 초기 데이터프레임에 타입 강제 적용
-        assignment_df = self._ensure_correct_types(assignment_df.copy())
+
+        assignment_df = self._ensure_correct_types(assignment_df.copy()) # 초기 데이터프레임에 타입 강제 적용
 
         self._original_df = assignment_df.copy()  # 리셋 가능하게 복사
         self._df = assignment_df.copy()  # 실제 뷰로 전달되고 수정할 데이터
         self.pre_assigned = set(pre_assigned)  # 사전할당된 아이템 집합
         self.validator = validator  # 검증 인스턴스
     
+    """
+    DataFrame의 타입을 올바르게 강제 변환
+    """
     def _ensure_correct_types(self, df):
-        """DataFrame의 타입을 올바르게 강제 변환"""
         if df is not None and not df.empty:
             # Line은 항상 문자열
             if 'Line' in df.columns:
@@ -58,7 +60,10 @@ class AssignmentModel(QObject):
 
     """
     수량 변경 업데이트
-    1) 해당 아이템의 AssignedQty 컬럼을 new_qty로 수정
+    1) 해당 아이템의 Qty 컬럼을 new_qty로 변경
+    ...
+
+
     2) 검증(validate) → 문제가 있으면 validationFailed 방출
     3) 변경 완료 후 modelDataChanged 방출
     """
@@ -172,3 +177,30 @@ class AssignmentModel(QObject):
         if mask.any():
             return int(self._df.loc[mask, 'Qty'].iloc[0])
         return 0
+    
+
+    def add_new_item(self, item, line, time, qty, full_data=None):
+        """새 아이템을 데이터프레임에 추가"""
+        
+        # 이미 존재하는지 확인
+        mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
+        if mask.any():
+            # 이미 존재하면 수량만 업데이트
+            self._df.loc[mask, 'Qty'] = qty
+            return True
+            
+        # 존재하지 않으면 새 행 추가
+        new_row = {'Line': line, 'Time': time, 'Item': item, 'Qty': qty}
+        
+        # 추가 데이터가 있으면 병합
+        if full_data:
+            for key, value in full_data.items():
+                if key not in new_row and not key.startswith('_'):  # 내부 사용 필드 제외
+                    new_row[key] = value
+        
+        # 새 행을 DataFrame에 추가
+        self._df = pd.concat([self._df, pd.DataFrame([new_row])], ignore_index=True)
+        
+        # 데이터 변경 알림
+        self.modelDataChanged.emit()
+        return True

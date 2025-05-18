@@ -16,6 +16,7 @@ class ItemsContainer(QWidget):
     itemsChanged = pyqtSignal()
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
     itemDataChanged = pyqtSignal(object, dict, dict)  # (아이템, 새 데이터, 변경 필드 정보) 시그널 추가
+    itemCopied = pyqtSignal(object, dict)  # 복사된 아이템 시그널 추가
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -49,16 +50,6 @@ class ItemsContainer(QWidget):
         # 모든 아이템은 항상 visible 상태로 유지
         # 필터링은 선의 표시 여부로만 처리
         pass
-        # visible_count = 0
-
-        # for item in self.items :
-        #     if item.isVisible() :
-        #         visible_count += 1
-
-        # if visible_count == 0 and len(self.items) > 0 :
-        #     self.setStyleSheet(self.empty_style)
-        # else :
-        #     self.setStyleSheet(self.default_style)
 
     """
     현재 컨테이너의 부모 찾기
@@ -145,7 +136,6 @@ class ItemsContainer(QWidget):
         dialog.exec_()
 
     """아이템 데이터 업데이트"""
-
     def update_item_data(self, item, new_data, changed_fields=None):
         if item and item in self.items and new_data:
             # 데이터 변경 시그널 발생
@@ -158,7 +148,6 @@ class ItemsContainer(QWidget):
     """
     모든 아이템 선택 해제
     """
-
     def clear_selection(self):
         if self.selected_item:
             self.selected_item.set_selected(False)
@@ -167,8 +156,7 @@ class ItemsContainer(QWidget):
     """
     특정 아이템 삭제
     """
-
-    def removeItem(self, item):
+    def remove_item(self, item):
         if item in self.items:
             # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
             if item == self.selected_item:
@@ -184,8 +172,7 @@ class ItemsContainer(QWidget):
     """
     모든 아이템 삭제
     """
-
-    def clearItems(self):
+    def clear_items(self):
         self.selected_item = None  # 선택 상태 초기화
 
         # 스페이서 제거
@@ -209,14 +196,14 @@ class ItemsContainer(QWidget):
             event.acceptProposedAction()
             # 드래그 시작 시 인디케이터 표시
             self.show_drop_indicator = True
-            self.drop_indicator_position = self.findDropIndex(event.pos())
+            self.drop_indicator_position = self.find_drop_index(event.pos())
             self.update()
 
     """
     드래그가 위젯을 벗어날 때 인디케이터 숨김
     """
 
-    def dragLeaveEvent(self, event):
+    def  dragLeaveEvent(self, event):
         self.show_drop_indicator = False
         self.update()
 
@@ -228,14 +215,14 @@ class ItemsContainer(QWidget):
         if event.mimeData().hasText():
             event.acceptProposedAction()
             # 드래그 중 인디케이터 위치 업데이트
-            self.drop_indicator_position = self.findDropIndex(event.pos())
+            self.drop_indicator_position = self.find_drop_index(event.pos())
             self.update()
 
     """
     드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
     """
 
-    def findDropIndex(self, pos):
+    def find_drop_index(self, pos):
         if not self.items:
             return 0  # 아이템이 없으면 첫 번째 위치에 삽입
 
@@ -271,7 +258,7 @@ class ItemsContainer(QWidget):
                     print(f"아이템 데이터 파싱 오류: {e}")
 
             # 드롭 위치에 해당하는 인덱스 찾기
-            drop_index = self.findDropIndex(event.pos())
+            drop_index = self.find_drop_index(event.pos())
 
             # 원본 위젯 (드래그된 아이템)
             source = event.source()
@@ -299,6 +286,8 @@ class ItemsContainer(QWidget):
                 # 복사본 생성: Qty = 0 설정
                 if item_data:
                     item_data['Qty'] = 0  # [CTRL COPY]
+                    item_data['_is_copy'] = True  # 복사본임을 표시하는 플래그
+
                     # 불필요한 속성 제거
                     item_data.pop('_drop_pos_x', None)
                     item_data.pop('_drop_pos_y', None)
@@ -323,8 +312,8 @@ class ItemsContainer(QWidget):
                             item_data['Time'] = str(new_time)
 
                 # 복사본 생성
-                item_name = item_data['Item'] + "    0"
-                new_item = self.addItem(item_name, drop_index, item_data)
+                # item_name = item_data['Item'] + "    0"
+                new_item = self.addItem(item_data['Item'], drop_index, item_data)
 
                 # 복사본도 원본 상태 저장
                 if new_item and source_states:
@@ -338,8 +327,14 @@ class ItemsContainer(QWidget):
                 # 텍스트 업데이트 호출
                 new_item.update_text_from_data()
 
+                # 변경 이벤트 발생 (복사임을 명시)
+                copy_info = {'operation': 'copy', 'source_id': id(source)}
+
                 self.itemDataChanged.emit(new_item, item_data,
                                           {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
+                
+                # 새로운 복사 시그널 발생 
+                self.itemCopied.emit(new_item, item_data)
 
                 self.show_drop_indicator = False
                 self.update()
@@ -512,7 +507,7 @@ class ItemsContainer(QWidget):
                         self.itemDataChanged.emit(new_item, item_data, changed_fields)
 
                     # 원본 컨테이너에서 아이템 삭제
-                    source_container.removeItem(source)
+                    source_container.remove_item(source)
             else:
                 # 새 아이템 생성 (원본이 없는 경우)
                 new_item = self.addItem(item_text, drop_index, item_data)
@@ -639,7 +634,7 @@ class ItemsContainer(QWidget):
                     self.selected_item = None
 
                 # 아이템 제거
-                self.removeItem(item)
+                self.remove_item(item)
 
                 # 변경 신호 발생
                 self.itemsChanged.emit()

@@ -349,6 +349,7 @@ class ModifiedLeftSection(QWidget):
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
         self.grid_widget.itemCreated.connect(self.register_item)
         self.grid_widget.itemRemoved.connect(self.on_item_removed)
+        self.grid_widget.itemCopied.connect(self.on_item_copied)  # 아이템 복사 이벤트 연결 
         main_layout.addWidget(self.grid_widget, 1)
 
     
@@ -814,7 +815,7 @@ class ModifiedLeftSection(QWidget):
         if old_row_idx >= 0 and old_col_idx >= 0 and new_row_idx >= 0 and new_col_idx >= 0:
             # 이전 위치에서 아이템 제거
             if old_container:
-                old_container.removeItem(item)
+                old_container.remove_item(item)
 
             # 새 위치에 아이템 추가
             item_text = str(new_data.get('Item', ''))
@@ -829,7 +830,7 @@ class ModifiedLeftSection(QWidget):
                     x = int(drop_pos_info['x'])
                     y = int(drop_pos_info['y'])
                     target_container = self.grid_widget.containers[new_row_idx][new_col_idx]
-                    drop_index = target_container.findDropIndex(QPoint(x, y))
+                    drop_index = target_container.find_drop_index(QPoint(x, y))
                 except Exception as e:
                     drop_index = 0
 
@@ -1410,3 +1411,19 @@ class ModifiedLeftSection(QWidget):
             
         except Exception as e:
             print(f"UI 업데이트 오류: {e}")
+
+
+    def on_item_copied(self, item, data):
+        """복사된 아이템 처리"""
+        # 아이템 등록
+        self.register_item(item)
+
+        # MVC 컨트롤러가 있으면 활용
+        if hasattr(self, 'controller') and self.controller:
+            # 컨트롤러에 복사 처리 위임
+            self.controller.on_item_copied(item, data)
+        else:
+            # 컨트롤러가 없는 경우 기본 처리
+            # 복사 작업 후 프레임워크에 데이터 변경 알림
+            df = self.extract_dataframe()
+            self.viewDataChanged.emit(df)

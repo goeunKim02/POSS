@@ -1,13 +1,15 @@
 import os
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                          QTabWidget, QPushButton, QFileDialog, QMessageBox)
-from PyQt5.QtCore import Qt
+                          QTabWidget, QPushButton, QFileDialog)
+from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont, QCursor, QFontMetrics
 from app.views.components.result_components.table_widget.maintenance_rate.plan_data_manager import PlanDataManager
 from app.views.components.result_components.table_widget.maintenance_rate.maintenance_table_widget import ItemMaintenanceTable, RMCMaintenanceTable
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
-"""계획 유지율 표시 위젯"""
+"""
+계획 유지율 표시 위젯
+"""
 class PlanMaintenanceWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -17,7 +19,9 @@ class PlanMaintenanceWidget(QWidget):
         # UI 초기화
         self.setup_ui()
         
-    """UI 초기화"""
+    """
+    UI 초기화
+    """
     def setup_ui(self):
         # 메인 레이아웃
         self.main_layout = QVBoxLayout(self)
@@ -51,7 +55,9 @@ class PlanMaintenanceWidget(QWidget):
         self.create_toolbar()
         self.create_tabs()
         
-    """툴바 영역 생성"""
+    """
+    툴바 영역 생성
+    """
     def create_toolbar(self):
         # 버튼 위젯 생성
         button_widget = QWidget()
@@ -91,7 +97,9 @@ class PlanMaintenanceWidget(QWidget):
         # 컨텐츠 레이아웃에 추가
         self.content_layout.addWidget(button_widget)
         
-    """정보 섹션 생성"""
+    """
+    정보 섹션 생성
+    """
     def create_info_section(self):
         # 상단 정보 위젯
         info_widget = QWidget()
@@ -124,7 +132,9 @@ class PlanMaintenanceWidget(QWidget):
         # 컨텐츠 레이아웃에 추가
         self.content_layout.addWidget(info_widget)
         
-    """탭 생성"""
+    """
+    탭 생성
+    """
     def create_tabs(self):
         # 컨텐츠 위젯
         content_widget = QWidget()
@@ -134,8 +144,6 @@ class PlanMaintenanceWidget(QWidget):
         
         # 탭 위젯
         self.tab_widget = QTabWidget()
-        # self.tab_widget.setMinimumHeight(50)  # 최소 높이 설정
-        # self.tab_widget.setMaximumHeight(160)  # 최대 높이 제한
         self.tab_widget.tabBar().setCursor(QCursor(Qt.PointingHandCursor))
         self.tab_widget.setStyleSheet("""
             QTabWidget::pane {
@@ -221,15 +229,19 @@ class PlanMaintenanceWidget(QWidget):
         # 탭 변경 시 유지율 레이블 업데이트
         self.tab_widget.currentChanged.connect(self.update_rate_label)
 
+       
+    """
+    탭 크기 힌트 계산
+    """
     def get_tab_size_hint(self, index, font_metrics):
-        """탭 크기 힌트 계산"""
-        from PyQt5.QtCore import QSize
         tab_text = self.tab_widget.tabText(index)
         text_width = font_metrics.width(tab_text)
         return QSize(text_width)  # 여백 추가
     
 
-    """긴 파일명을 생략하여 표시"""
+    """
+    긴 파일명을 생략하여 표시
+    """
     def truncate_filename(self, filename, max_length=30):
         if len(filename) <= max_length:
             return filename
@@ -248,7 +260,9 @@ class PlanMaintenanceWidget(QWidget):
             return filename[:max_length-3] + "..."
     
 
-    """result 페이지에서 이전 계획 업로드"""
+    """
+    result 페이지에서 이전 계획 업로드
+    """
     def select_previous_plan(self):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
@@ -264,7 +278,6 @@ class PlanMaintenanceWidget(QWidget):
             
             if success:
                 # 상태 레이블 업데이트
-                # 파일명 생략 처리
                 display_message = self.truncate_filename(message, max_length=35)
                 self.plan_status_label.setText(f"Previous plan: {display_message}")
                 self.plan_status_label.setStyleSheet("color: #1428A0; font-weight: bold;")
@@ -292,7 +305,9 @@ class PlanMaintenanceWidget(QWidget):
                 )
                 
 
-    """탭 인덱스에 따라 유지율 레이블 업데이트"""
+    """
+    탭 인덱스에 따라 유지율 레이블 업데이트
+    """
     def update_rate_label(self, index):
         if index == 0:  # Item별 탭
             self.rate_title_label.setText("Item Maintenance Rate :")
@@ -348,7 +363,9 @@ class PlanMaintenanceWidget(QWidget):
             
             
 
-    """결과 데이터 설정"""
+    """
+    결과 데이터 설정
+    """
     def set_data(self, result_data, start_date=None, end_date=None):
         if result_data is None or result_data.empty:
             # 데이터가 없는 경우
@@ -388,8 +405,10 @@ class PlanMaintenanceWidget(QWidget):
         
         return True
         
+    """
+    유지율 다시 계산하고 UI 업데이트
+    """
     def refresh_maintenance_rate(self):
-        """유지율 다시 계산하고 UI 업데이트"""
         # 이전 계획이 없는 경우 처리
         if not hasattr(self.data_manager, 'plan_analyzer') or not self.data_manager.plan_analyzer:
             print("plan_analyzer가 없습니다.")
@@ -411,12 +430,16 @@ class PlanMaintenanceWidget(QWidget):
 
         # 테이블 위젯 데이터 설정
         if item_df is not None and not item_df.empty:
+            # Item 테이블은 수정된 아이템 키만 필요
             self.item_table.populate_data(item_df, self.data_manager.modified_item_keys)
         else:
             print("Item별 유지율 데이터가 없습니다.")
         
         if rmc_df is not None and not rmc_df.empty:
-            self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys)
+            # RMC 테이블은 수정된 아이템 키와 RMC 키 모두 전달
+            # modified_rmc_keys를 반드시 전달 
+            self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys, self.data_manager.modified_rmc_keys)
+            print(f"RMC 테이블 업데이트 완료 - 수정된 RMC 키 {len(self.data_manager.modified_rmc_keys)}개")
         else:
             print("RMC별 유지율 데이터가 없습니다.")
             
@@ -426,20 +449,11 @@ class PlanMaintenanceWidget(QWidget):
         print(f"계획 유지율 계산 완료: Item={self.item_maintenance_rate:.2f}%, RMC={self.rmc_maintenance_rate:.2f}%")
         
 
-    """수량 업데이트 및 UI 갱신"""
+    """
+    수량 업데이트 및 UI 갱신
+    """
     def update_quantity(self, line, time, item, new_qty):
         # print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
-
-        # # 명시적 타입 변환 추가
-        # try:
-        #     if isinstance(time, str) and time.strip().isdigit():
-        #         time = int(time.strip())
-        #     if isinstance(new_qty, str) and new_qty.strip().isdigit():
-        #         new_qty = int(new_qty.strip())
-            
-        #     print(f"PlanMaintenanceWidget - 변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
-        # except (ValueError, TypeError) as e:
-        #     print(f"타입 변환 실패: {e}")
         
         # 데이터 관리자를 통해 수량 업데이트
         success = self.data_manager.update_quantity(line, time, item, new_qty)
@@ -453,7 +467,9 @@ class PlanMaintenanceWidget(QWidget):
             return False
         
 
-    """조정된 계획 데이터 반환"""
+    """
+    조정된 계획 데이터 반환
+    """
     def get_adjusted_plan(self):
         if hasattr(self, 'data_manager') and self.data_manager is not None:
             if hasattr(self.data_manager, 'plan_analyzer') and self.data_manager.plan_analyzer is not None:
