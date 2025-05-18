@@ -71,59 +71,33 @@ class DataInputPage(QWidget) :
         top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 0px;")
         top_container.setMinimumHeight(h(100))
 
+        # title_row 레이아웃을 수정하여 타이틀과 버튼이 같은 높이에 있도록 합니다
         title_row = QFrame()
-        title_row.setStyleSheet(f"background-color: transparent; padding-bottom:10px;")
+        title_row.setStyleSheet("background-color: transparent;")
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, w(16), 0)
-        title_row_layout.setAlignment(Qt.AlignVCenter)
+        title_row_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
+        title_row_layout.setSpacing(w(10))  # 구성 요소 사이 간격 설정
+        title_row_layout.setAlignment(Qt.AlignVCenter)  # 수직 중앙 정렬
 
-
+        # 타이틀 레이블 설정
         title_label = QLabel("Upload Data")
-
-        title_label.setMinimumWidth(w(25))  # 버튼과 동일한 높이
-        title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
         title_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
-        title_label.setStyleSheet(f"padding: 0px; font-family : {title_font}; font-size: {f(21)}px; font-weight: 900;")
-        title_row_layout.addWidget(title_label, 1)
+        title_label.setStyleSheet(f"font-family: {title_font}; font-size: {f(21)}px; font-weight: 900;")
+        title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
 
-        # font_manager 사용법 수정
+        # 버튼 폰트 설정
         button_font = font_manager.get_just_font("SamsungOne-700").family()
 
+        # 버튼 생성 및 스타일 설정
         save_btn = QPushButton("Save")
         save_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        save_btn.setFixedSize(w(100), h(40))  # 버튼 크기 고정
         save_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                padding: {h(8)}px {w(16)}px;
-                min-width: {w(60)}px;
-                min-height: {h(10)}px;
-                font-family: {button_font};
-                font-size: {f(16)}px;
-            }}
-            QPushButton:hover {{
-                background-color: #0069d9;
-            }}
-            QPushButton:pressed {{
-                background-color: #0062cc;
-            }}
-        """)  # f-string으로 변경하고 모든 중괄호 두 개로 수정
-        # save_btn.setFixedWidth(80)  # 원래 크기로
-        # save_btn.setFixedHeight(30)  # 원래 크기로
-
-        run_btn = QPushButton("Run")
-        run_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        run_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: #1428A0; 
-                color: white; 
-                border: none;
-                border-radius: 5px;
-                padding: {h(8)}px {w(16)}px;
-                min-width: {w(60)}px;
-                min-height: {h(10)}px;
                 font-family: {button_font};
                 font-size: {f(16)}px;
             }}
@@ -135,11 +109,38 @@ class DataInputPage(QWidget) :
             }}
         """)
 
+        run_btn = QPushButton("Run")
+        run_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        run_btn.setFixedSize(w(100), h(40))  # 버튼 크기 고정
+        run_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #1428A0; 
+                color: white; 
+                border: none;
+                border-radius: 5px;
+                font-family: {button_font};
+                font-size: {f(16)}px;
+            }}
+            QPushButton:hover {{
+                background-color: #0069d9;
+            }}
+            QPushButton:pressed {{
+                background-color: #0062cc;
+            }}
+        """)
+
+        # 버튼 클릭 이벤트 연결
         run_btn.clicked.connect(self.on_run_clicked)
         save_btn.clicked.connect(self.on_save_clicked)
 
+        # 레이아웃에 위젯 추가 (타이틀, 스트레치, 버튼들)
+        title_row_layout.addWidget(title_label)
+        title_row_layout.addStretch(1)  # 타이틀과 버튼 사이에 신축성 있는 공간 추가
         title_row_layout.addWidget(save_btn)
         title_row_layout.addWidget(run_btn)
+
+        # top_container_layout에 title_row 추가
+        top_container_layout.addWidget(title_row)
 
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
