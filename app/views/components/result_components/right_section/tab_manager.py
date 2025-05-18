@@ -1,4 +1,3 @@
-
 from PyQt5.QtWidgets import QPushButton, QHBoxLayout, QStackedWidget, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal, QObject
 from PyQt5.QtGui import QCursor
@@ -35,6 +34,17 @@ class TabManager(QObject):
         self.stack_widget = None
         self.current_tab_idx = 0
         self.tab_instances = {}
+        self.material_manager = None  # 자재 부족량 관리자
+
+    """
+    자재 매니저 설정
+    """
+    def set_material_manager(self, material_manager):
+        self.material_manager = material_manager
+        
+        # Material 탭이 이미 생성된 경우, 부모 페이지의 참조 업데이트
+        if hasattr(self.parent_page, 'material_analyzer') and self.material_manager:
+            self.parent_page.material_analyzer = self.material_manager.get_analyzer()
 
     """
     QStackedWidget 객체 연결
@@ -102,10 +112,25 @@ class TabManager(QObject):
         # 3) 탭별 콘텐츠 업데이트 (필요한 경우)
         tab_name = self.tab_names[idx]
         page = self.tab_instances.get(tab_name)
+        
+        # Material 탭이 선택된 경우, 자재 부족량 분석 실행
+        if tab_name == 'Material' and page:
+            # 자재 분석기가 있으면 설정
+            if self.material_manager and hasattr(self.parent_page, 'result_data'):
+                # Material 탭의 콘텐츠 업데이트 전에 부족량 분석 실행
+                self.material_manager.analyze_material_shortage(self.parent_page.result_data)
+        
         # capa 탭은 두가지 parameter 필요 
         if tab_name == 'Capa' and page:
             page.update_content(getattr(self.parent_page, 'capa_ratio_data', None),
-                                getattr(self.parent_page, 'uilization_data', None))
+                                getattr(self.parent_page, 'utilization_data', None))
+        
+        # Shipment 탭은 result_data를 사용
+        elif tab_name == 'Shipment' and page:
+            if hasattr(self.parent_page, 'result_data') and self.parent_page.result_data is not None:
+                page.update_content(self.parent_page.result_data)
+            else:
+                print(f"Shipment 탭 전환 - result_data 없음")
         elif page and hasattr(page, 'update_content'):
             # parent_page에 저장된 데이터를 넘겨줍니다.
             data = getattr(self.parent_page, f"{tab_name.lower()}_data", None)
