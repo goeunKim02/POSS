@@ -6,8 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
-from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE
-from ...resources.styles.result_style import ResultStyles 
+from ...resources.styles.pre_assigned_style import PRIMARY_BUTTON_STYLE, SECONDARY_BUTTON_STYLE, ACTIVE_BUTTON_STYLE, INACTIVE_BUTTON_STYLE
 from .pre_assigned_components.summary import SummaryWidget
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
@@ -117,8 +116,9 @@ class PlanningPage(QWidget):
         btn_bar = QHBoxLayout()
         self.btn_summary = QPushButton("Summary")
         self.btn_summary.setCursor(QCursor(Qt.PointingHandCursor))
-        self.btn_summary.setStyleSheet(ResultStyles.INACTIVE_BUTTON_STYLE)
+        self.btn_summary.setStyleSheet(INACTIVE_BUTTON_STYLE)
         self.btn_summary.setFixedHeight(36)
+        self.btn_summary.setEnabled(False)
         btn_bar.addWidget(self.btn_summary)
         right_l.addLayout(btn_bar)
         
@@ -188,7 +188,7 @@ class PlanningPage(QWidget):
             self.stack.removeWidget(w)
             w.deleteLater()
         # Summary 버튼 스타일 비활성화
-        self.btn_summary.setStyleSheet(ResultStyles.INACTIVE_BUTTON_STYLE)
+        self.btn_summary.setStyleSheet(INACTIVE_BUTTON_STYLE)
 
         # 5) LEFT 영역: placeholder 재생성
         if hasattr(self, 'placeholder_label'):
@@ -294,16 +294,16 @@ class PlanningPage(QWidget):
         summary = SummaryWidget(df, parent=self)
         self.stack.addWidget(summary)
 
-        try:
-            self.btn_summary.clicked.disconnect()
-        except TypeError:
-            pass
+        # try:
+        #     self.btn_summary.clicked.disconnect()
+        # except TypeError:
+        #     pass
 
-        def _on_summary_clicked():
-            self.stack.setCurrentWidget(summary)
-            self.btn_summary.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE)
+        # def _on_summary_clicked():
+        #     self.stack.setCurrentWidget(summary)
+        #     self.btn_summary.setStyleSheet(ACTIVE_BUTTON_STYLE)
 
-        self.btn_summary.clicked.connect(_on_summary_clicked)
+        # self.btn_summary.clicked.connect(_on_summary_clicked)
 
-        self.stack.setCurrentWidget(summary)
-        self.btn_summary.setStyleSheet(ResultStyles.ACTIVE_BUTTON_STYLE)
+        # self.stack.setCurrentWidget(summary)
+        self.btn_summary.setStyleSheet(ACTIVE_BUTTON_STYLE)

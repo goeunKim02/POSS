@@ -16,7 +16,11 @@ class SummaryWidget(QWidget):
         layout.setSpacing(12)
 
         # 데이터 집계
-        df_qty = df.groupby('Line', as_index=False)['Qty'].sum()
+        df_qty = (
+            df.groupby('Line', as_index=False)['Qty'].sum()
+            .sort_values(by='Qty', ascending=False)
+            .reset_index(drop=True)
+        )
         grand_total = df_qty['Qty'].sum()
 
         # 동별 그룹핑
