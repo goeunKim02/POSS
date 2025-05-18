@@ -1,7 +1,8 @@
 from PyQt5.QtCore import QObject, pyqtSignal
 import pandas as pd
 from typing import List, Optional
-from app.utils.item_key import ItemKeyManager
+from app.utils.item_key_manager import ItemKeyManager
+import uuid  
 
 """
 내부에 DataFrame을 들고 다니며,수량 변경, 이동, 리셋, 적용 같은 모든 로직을 한곳에서 처리
@@ -22,6 +23,13 @@ class AssignmentModel(QObject):
         super().__init__()
 
         assignment_df = self._ensure_correct_types(assignment_df.copy()) # 초기 데이터프레임에 타입 강제 적용
+
+        # ID 컬럼이 없거나 모두 NaN이면 ID 생성
+        if '_id' not in assignment_df.columns or assignment_df['_id'].isna().all():
+            import uuid
+            # 모든 행에 고유 ID 할당
+            assignment_df['_id'] = [str(uuid.uuid4()) for _ in range(len(assignment_df))]
+            print(f"[DEBUG] 전체 {len(assignment_df)}개 행에 ID 할당 완료")
 
         self._original_df = assignment_df.copy()  # 리셋 가능하게 복사
         self._df = assignment_df.copy()  # 실제 뷰로 전달되고 수정할 데이터
@@ -67,10 +75,16 @@ class AssignmentModel(QObject):
     2) 검증(validate) → 문제가 있으면 validationFailed 방출
     3) 변경 완료 후 modelDataChanged 방출
     """
-    def update_qty(self, item: str, line: str, time: int, new_qty: int):
+    def update_qty(self, item: str, line: str, time: int, new_qty: int, item_id: str = None):
         # 1) 라인, 시간, 아이템으로 정확한 행 찾기
-        mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
-
+        # ID가 제공된 경우 ID로 찾기
+        if item_id and '_id' in self._df.columns:
+            print(f"update_qty / _id 존재 : {item_id}")
+            mask = self._df['_id'] == item_id
+        else:
+            # 기존 방식으로 찾기
+            mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
+    
         if not mask.any():
             print(f"Model: 해당 아이템({item}, {line}, {time})을 찾을 수 없습니다.")
             return
@@ -98,9 +112,22 @@ class AssignmentModel(QObject):
     """
     아이템을 new_line, new_shift로 이동
     """
-    def move_item(self, item: str, old_line: str, old_time: int, new_line: str, new_time: int):
-        # ItemKeyManager를 사용하여 마스크 생성
-        mask = ItemKeyManager.create_mask_for_item(self._df, old_line, old_time, item)
+    def move_item(self, item: str, old_line: str, old_time: int, new_line: str, new_time: int, item_id: str = None):
+        # # 디버깅 정보 추가
+        # print(f"[DEBUG] move_item 호출: item_id={item_id}, item={item}, old_line={old_line}, old_time={old_time}")
+        
+        # if '_id' in self._df.columns:
+        #     print(f"[DEBUG] DataFrame에 '_id' 컬럼 존재, 첫 5개 값: {self._df['_id'].head(5).tolist()}")
+        # else:
+        #     print(f"[DEBUG] DataFrame에 '_id' 컬럼 없음. 컬럼 목록: {self._df.columns.tolist()}")
+        
+        # ID가 제공된 경우 ID로 찾기
+        if item_id and '_id' in self._df.columns:
+            print(f"move_item / _id 존재 : {item_id}")
+            mask = self._df['_id'] == item_id
+        else:
+            # 기존 방식으로 찾기
+            mask = ItemKeyManager.create_mask_for_item(self._df, old_line, old_time, item)
 
         if not mask.any():
             print(f"Model: 해당 아이템({item}, {old_line}, {old_time})을 찾을 수 없습니다.")
@@ -179,27 +206,65 @@ class AssignmentModel(QObject):
         return 0
     
 
+    """
+    새 아이템을 데이터프레임에 추가
+    """
     def add_new_item(self, item, line, time, qty, full_data=None):
-        """새 아이템을 데이터프레임에 추가"""
-        
-        # 이미 존재하는지 확인
-        mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
-        if mask.any():
-            # 이미 존재하면 수량만 업데이트
-            self._df.loc[mask, 'Qty'] = qty
-            return True
-            
-        # 존재하지 않으면 새 행 추가
+       # 새 행 데이터 준비
         new_row = {'Line': line, 'Time': time, 'Item': item, 'Qty': qty}
+        
+        # 고유 ID 처리 - 복사 작업인지 확인하여 ID 생성 또는 재사용
+        if full_data and '_id' in full_data:
+            # 복사 작업인 경우 항상 새 ID 생성
+            if full_data.get('_is_copy') == True:
+                new_row['_id'] = str(uuid.uuid4())
+                print(f"[DEBUG] 복사 작업 - 새 ID 생성: {new_row['_id']}")
+            else:
+                # 복사가 아닌 경우 기존 ID 유지
+                new_row['_id'] = full_data['_id']
+        else:
+            # ID가 없는 경우 새로 생성
+            new_row['_id'] = str(uuid.uuid4())
         
         # 추가 데이터가 있으면 병합
         if full_data:
             for key, value in full_data.items():
-                if key not in new_row and not key.startswith('_'):  # 내부 사용 필드 제외
+                if key not in new_row and not key.startswith('_') or key == '_is_copy':
+                    # '_is_copy' 플래그는 유지, 다른 내부 필드는 제외
                     new_row[key] = value
+        
+        # 복사 작업이 아닌 경우 기존 아이템 업데이트
+        if not (full_data and full_data.get('_is_copy')):
+            mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
+            if mask.any():
+                self._df.loc[mask, 'Qty'] = qty
+                return True
         
         # 새 행을 DataFrame에 추가
         self._df = pd.concat([self._df, pd.DataFrame([new_row])], ignore_index=True)
+        
+        # 데이터 변경 알림
+        self.modelDataChanged.emit()
+        return True
+
+    """
+    ID로 아이템 삭제
+    """
+    def delete_item_by_id(self, item_id: str) -> bool:
+        # ItemKeyManager를 사용하여 마스크 생성
+        mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
+        
+        if not mask.any():
+            print(f"Model: 삭제할 아이템(ID: {item_id})을 찾을 수 없습니다.")
+            return False
+        
+        # 아이템 정보 로깅
+        row = self._df.loc[mask].iloc[0]
+        line, time, item = ItemKeyManager.get_item_from_data(row.to_dict())
+        
+        # 아이템 삭제
+        self._df = self._df[~mask].reset_index(drop=True)
+        print(f"Model: 아이템 {item} @ {line}-{time} (ID: {item_id}) 삭제됨")
         
         # 데이터 변경 알림
         self.modelDataChanged.emit()

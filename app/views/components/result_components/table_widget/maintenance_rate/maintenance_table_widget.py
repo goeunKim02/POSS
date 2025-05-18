@@ -3,7 +3,7 @@ from PyQt5.QtGui import QColor, QFont
 import pandas as pd
 from app.views.components.common.custom_table import CustomTable
 from app.utils.sort_line import sort_line
-from app.utils.item_key import ItemKeyManager
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 유지율 표시를 위한 테이블 위젯 기본 클래스

@@ -105,7 +105,7 @@ class TabManager(QObject):
         # capa 탭은 두가지 parameter 필요 
         if tab_name == 'Capa' and page:
             page.update_content(getattr(self.parent_page, 'capa_ratio_data', None),
-                                getattr(self.parent_page, 'uilization_data', None))
+                                getattr(self.parent_page, 'utilization_data', None))
         elif page and hasattr(page, 'update_content'):
             # parent_page에 저장된 데이터를 넘겨줍니다.
             data = getattr(self.parent_page, f"{tab_name.lower()}_data", None)

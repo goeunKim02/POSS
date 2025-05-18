@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from .items_container import ItemsContainer
-
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 아이템 그리드 위젯 (테이블 대체)
@@ -369,8 +369,30 @@ class ItemGridWidget(QWidget):
     아이템 삭제 메서드
     """
     def on_item_delete_requested(self, item, container):
-        container.remove_item(item)
-        self.itemRemoved.emit(item)
+        print(f"DEBUG: ItemGridWidget.on_item_delete_requested 호출됨")
+        print(f"DEBUG: 컨테이너에서 아이템 제거")
+        if container:
+            # 아이템 ID 추출
+            item_id = ItemKeyManager.extract_item_id(item)
+
+            # 아이템 정보 백업 (참조 유지를 위해)
+            item_data = None
+            if hasattr(item, 'item_data') and item.item_data:
+                item_data = item.item_data.copy()
+                print(f"DEBUG: 삭제 아이템 정보: {item_data.get('Item')} @ {item_data.get('Line')}-{item_data.get('Time')}, ID: {item_id}")
+            
+            # 컨테이너에서 아이템 제거
+            container.remove_item(item)
+            
+            print(f"DEBUG: itemRemoved 시그널 발생(item_grid)")
+            if item_id:
+                # ID가 있는 경우 ID만 전달
+                self.itemRemoved.emit(item_id)
+            else:
+                # ID가 없는 경우 아이템 객체 전달 (폴백)
+                self.itemRemoved.emit(item)
+        else:
+            print(f"DEBUG: 아이템이 속한 컨테이너를 찾을 수 없음")
 
     """
     아이템 복사 이벤트 처리
