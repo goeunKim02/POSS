@@ -142,25 +142,26 @@ def calc_plan_retention():
         df_result: result 시트 데이터프레임
         df_demand: demand 시트 데이터프레임
     Return: 
-        (int,int): item 계획 유지율 , RMC 계획 유지율
+        (int,int,df): item 계획 유지율 , RMC 계획 유지율, result 데이터프레임
     """
     demand_path = FilePaths.get("demand_excel_file")
     result_path = FilePaths.get("result_file")
     if (not demand_path) or  (not result_path):
-        return (None,None)
+        return (None,None,None)
     demand_file = load_file(demand_path)
     df_demand = demand_file.get('demand', pd.DataFrame())
     df_result = pd.read_excel(result_path,sheet_name=0)
-
+    sum_qty = df_result['Qty'].sum()
 
     df_demand_item_mfg = df_demand.groupby('Item')['MFG'].sum()
     df_result['Next item MFG'] = 0
     for idx,row in df_result.iterrows():
         max_mfg = min(row['Qty'],df_demand_item_mfg[row['Item']])
-        df_result.loc[idx,'Next item MFG'] = max_mfg
-        df_demand_item_mfg[row['Item']] -= max_mfg
+        df_result.loc[idx,'Next item MFG'] = int(round(max_mfg))
+        df_demand_item_mfg[row['Item']] -= int(round(max_mfg))
 
-    item_plan_retention = df_result['Next item MFG'].sum()/df_result['Qty'].sum()
+    sum_item_qty = df_result['Next item MFG'].sum()
+    item_plan_retention = sum_item_qty/sum_qty
 
     df_demand['RMC'] = df_demand['Item'].str[3:11]
     df_demand_rmc_mfg = df_demand.groupby('RMC')['MFG'].sum()
@@ -168,9 +169,15 @@ def calc_plan_retention():
     for idx,row in df_result.iterrows():
         rmc = row['Item'][3:11]
         max_mfg = min(row['Qty'],df_demand_rmc_mfg[rmc])
-        df_result.loc[idx,'Next RMC MFG'] = max_mfg
-        df_demand_rmc_mfg[rmc] -= max_mfg
+        df_result.loc[idx,'Next RMC MFG'] = int(round(max_mfg))
+        df_demand_rmc_mfg[rmc] -= int(round(max_mfg))
 
-    rmc_plan_retention = df_result['Next RMC MFG'].sum()/df_result['Qty'].sum()
+    sum_rmc_qty = df_result['Next RMC MFG'].sum()
+    rmc_plan_retention = sum_rmc_qty/sum_qty
 
-    return (item_plan_retention, rmc_plan_retention)
+    df_result = df_result[['Line','Time','RMC','Item','Qty','Next item MFG','Next RMC MFG']]
+    df_result.columns = ['Line','Time','RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
+    df_result = df_result.sort_values(by=['Line','Time','RMC','Previous Qty'],ascending=[True,True,True,False])
+    df_result.loc[len(df_result)] = ['total','','','',sum_qty,sum_item_qty,sum_rmc_qty]
+
+    return (item_plan_retention * 100, rmc_plan_retention * 100, df_result)

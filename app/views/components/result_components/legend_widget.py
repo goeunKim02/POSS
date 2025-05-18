@@ -18,6 +18,8 @@ class LegendWidget(QWidget):
             }
         """)
         
+        self.init_ui()
+
         # 필터 상태 추적
         self.filter_states = {
             'shortage': True,      # 자재부족은 기본 체크 
@@ -25,12 +27,6 @@ class LegendWidget(QWidget):
             'pre_assigned': False   # 사전할당
         }
 
-        self.init_ui()
-
-        # 초기 필터 상태적용을 위해 시그널 발생 : QTimer로 UI 초기화 후 발생
-        QTimer.singleShot(0, lambda: self.filter_changed.emit(self.filter_states.copy()))
-
-        
     def init_ui(self):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(5, 5, 10, 5)

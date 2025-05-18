@@ -1,3 +1,4 @@
+from PyQt5.QtGui import QBrush, QColor, QFont
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QTableView, QHeaderView, QMenu, QWidgetAction,
@@ -8,6 +9,9 @@ from PyQt5.QtCore import (
     QVariant, QSortFilterProxyModel, QPoint, QTimer
 )
 import pandas as pd
+from app.resources.fonts.font_manager import font_manager
+from app.utils.command.undo_command import undo_redo_manager, DataCommand
+from app.models.common.screen_manager import *
 
 """
 헤더 필터링을 위한 사용자 정의 헤더
@@ -67,6 +71,7 @@ class PandasModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()):
         return len(self._df.columns)
 
+    # PandasModel 클래스의 data 메서드에 다음 코드 추가:
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return QVariant()
@@ -78,6 +83,18 @@ class PandasModel(QAbstractTableModel):
             if pd.isna(value):
                 return ""
             return str(value)
+
+        # 폰트 역할 추가
+        elif role == Qt.FontRole:
+            font = QFont(font_manager.get_just_font("SamsungOne-700").family())
+            font.setPixelSize(f(14))
+            return font
+
+        # 배경색 역할 추가 (필요 시)
+        elif role == Qt.BackgroundRole:
+            # 특정 조건에 따라 다른 배경색 반환 가능
+            # 예: 특정 값에 따라 배경색 변경
+            return QBrush(QColor("white"))
 
         return QVariant()
 
@@ -246,26 +263,31 @@ class EnhancedTableFilterComponent(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+
         # 테이블 뷰 생성
         self.table_view = QTableView()
         self.table_view.setAlternatingRowColors(True)
         # 테이블 수정가능하게 하는것
         self.table_view.setEditTriggers(QTableView.DoubleClicked | QTableView.EditKeyPressed)
+        self.table_view.verticalHeader().setDefaultSectionSize(h(19))
+        self.table_view.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
 
         # 사용자 정의 헤더 설정
         header = FilterHeader(Qt.Horizontal, self.table_view)
-        header.setStyleSheet("""
-            QHeaderView {
+        header.setStyleSheet(f"""
+            QHeaderView {{
                 border: none;
                 background-color: transparent;
                 border-radius: 0px;
-            }
-            QHeaderView::section {
+            }}
+            QHeaderView::section {{
                 background-color: #F5F5F5;
                 border-right: 1px solid #cccccc;
-                padding: 4px;
-                border-radius: 0px;  /* 각 섹션의 라운드 코너 */
-            }
+                padding: 2px;
+                border-radius: 0px; 
+                font-size: {f(16)}px;
+                min-height: {h(30)}px;
+            }}
         """)
         self.table_view.setHorizontalHeader(header)
         header.setStretchLastSection(False)  # 마지막 열 늘리지 않음
@@ -425,6 +447,10 @@ class EnhancedTableFilterComponent(QWidget):
     def set_data(self, df):
         self._df = df.copy()
         self._original_df = df.copy()
+
+        if hasattr(self, '_file_path'):
+            self._original_df_for_undo = df.copy()
+    
         self.edited_cells = {}
 
         model = PandasModel(self._df, self)
@@ -518,3 +544,128 @@ class EnhancedTableFilterComponent(QWidget):
                 print(f"데이터 업데이트 오류: ({row}, {col}) -> {value}, 에러: {e}")
         
         return result_df
+    
+    """
+    undo/redo 기능을 위한 연결
+    """
+    def connect_undo_redo_signals(self, file_path, sheet_name):
+        self._file_path = file_path
+        self._sheet_name = sheet_name
+        self._original_df_for_undo = self._df.copy()
+        
+        self.proxy_model.sourceModel().dataChanged.connect(
+            lambda topLeft, bottomRight: self.on_data_changed_for_undo_redo(topLeft, bottomRight)
+        )
+
+    """
+    데이터 변경 시 undo/redo 호출
+    """
+    def on_data_changed_for_undo_redo(self, topLeft, bottomRight):
+        if not hasattr(self, '_file_path') or not hasattr(self, '_sheet_name'):
+            return
+        
+        model = topLeft.model()
+
+        for row in range(topLeft.row(), bottomRight.row() + 1):
+            for col in range(topLeft.column(), bottomRight.column() + 1):
+                source_index = model.index(row, col)
+                
+                if not source_index.isValid():
+                    continue
+
+                new_value = model.data(source_index, Qt.DisplayRole)
+
+                try:
+                    old_value = ""
+
+                    if 0 <= row < len(self._original_df_for_undo) and 0 <= col < len(self._original_df_for_undo.columns):
+                        old_value_raw = self._original_df_for_undo.iloc[row, col]
+                        
+                        if pd.isna(old_value_raw):
+                            old_value = ""
+                        else:
+                            old_value = str(old_value_raw)
+                except Exception as e:
+                    old_value = ""
+                
+                if new_value != old_value:
+                    command = DataCommand(
+                        file_path=self._file_path,
+                        sheet_name=self._sheet_name,
+                        row=row,
+                        col=col,
+                        old_value=old_value,
+                        new_value=new_value,
+                        update_callback=lambda fp, sn, r, c, v: self.update_cell_value(r, c, v)
+                    )
+                    
+                    undo_redo_manager.execute_command(command)
+
+                    try:
+                        column_dtype = self._original_df_for_undo.dtypes[col]
+                        converted_value = new_value
+
+                        if pd.api.types.is_integer_dtype(column_dtype):
+                            if new_value.strip() == '':
+                                converted_value = pd.NA
+                            else:
+                                try:
+                                    converted_value = int(float(new_value))
+                                except ValueError:
+                                    pass
+                        elif pd.api.types.is_float_dtype(column_dtype):
+                            if new_value.strip() == '':
+                                converted_value = pd.NA
+                            else:
+                                try:
+                                    converted_value = float(new_value)
+                                except ValueError:
+                                    pass
+                        
+                        self._original_df_for_undo.iloc[row, col] = converted_value
+                    except Exception as e:
+                        print(f"원본 데이터프레임 업데이트 오류: {e}")
+
+    """
+    undo/redo 시 호출되는 함수
+    """
+    def update_cell_value(self, row, col, value):
+        model = self.proxy_model.sourceModel()
+        index = model.index(row, col)
+
+        if index.isValid():
+            current_value = model.data(index, Qt.DisplayRole)
+
+            if current_value != value:
+                model.setData(index, value, Qt.EditRole)
+                
+                if value != "":
+                    self.edited_cells[(row, col)] = value
+                elif (row, col) in self.edited_cells:
+                    del self.edited_cells[(row, col)]
+                
+                if hasattr(self, '_original_df_for_undo'):
+                    try:
+                        column_dtype = self._original_df_for_undo.dtypes[col]
+                        converted_value = value
+
+                        if pd.api.types.is_integer_dtype(column_dtype):
+                            if value.strip() == '':
+                                converted_value = pd.NA
+                            else:
+                                try:
+                                    converted_value = int(float(value))
+                                except ValueError:
+                                    pass
+                        elif pd.api.types.is_float_dtype(column_dtype):
+                            if value.strip() == '':
+                                converted_value = pd.NA
+                            else:
+                                try:
+                                    converted_value = float(value)
+                                except ValueError:
+                                    pass
+                        
+                        self._original_df_for_undo.iloc[row, col] = converted_value
+                    except Exception as e:
+                        print(f"원본 데이터프레임 업데이트 오류 (undo/redo): {e}")

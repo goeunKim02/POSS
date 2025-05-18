@@ -15,8 +15,8 @@ class PortCapaWidget(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
         self.main_layout = QVBoxLayout(self)
 
-
-        self.table = CustomTable()
+        headers = ['Tosite_port','SOP','Port_Capa','Rate(%)']
+        self.table = CustomTable(headers=headers)
 
         # 차트 컨테이너
         self.chart_container = QWidget()
@@ -54,6 +54,7 @@ class PortCapaWidget(QWidget):
         df_portcapa = df_portcapa[['Tosite_port','SOP','Port Capa','Rate(%)']].sort_values(by='SOP',ascending=False)
 
         self.table.setRowCount(len(df_portcapa))
+        self.table.setColumnCount(len(df_portcapa.columns))
         for i in range(len(df_portcapa)):
             for j in range(len(df_portcapa.columns)):
                 self.table.setItem(i, j, QTableWidgetItem(str(df_portcapa.iat[i, j])))

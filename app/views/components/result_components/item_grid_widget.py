@@ -1,21 +1,17 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from .items_container import ItemsContainer
-
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 아이템 그리드 위젯 (테이블 대체)
 """
 class ItemGridWidget(QWidget):
-
-    # 아이템 선택 시그널 추가 (선택된 아이템, 컨테이너)
-    itemSelected = pyqtSignal(object, object)
-
-    # 아이템 데이터 변경 시그널 추가 (아이템, 새 데이터, 변경 필드 정보)
-    itemDataChanged = pyqtSignal(object, dict, dict)  
-
+    itemSelected = pyqtSignal(object, object)  # 아이템 선택 시그널 추가 (선택된 아이템, 컨테이너)
+    itemDataChanged = pyqtSignal(object, dict, dict)  # 아이템 데이터 변경 시그널 추가 (아이템, 새 데이터, 변경 필드 정보)
     itemCreated = pyqtSignal(object)
     itemRemoved = pyqtSignal(object)
+    itemCopied = pyqtSignal(object, dict) # 아이템 복사 시그널
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -138,7 +134,7 @@ class ItemGridWidget(QWidget):
                     shift_label = QLabel(shift)
 
                     # 주간/야간에 따라 스타일 다르게 적용
-                    if shift == "주간":
+                    if shift == "Day":
                         shift_style = """
                             padding: 5px; 
                             background-color: #F8F8F8;
@@ -185,6 +181,10 @@ class ItemGridWidget(QWidget):
 
                         # 아이템 데이터 변경 이벤트 연결
                         container.itemDataChanged.connect(self.on_item_data_changed)
+
+                        # 아이템 복사 이벤트 연결
+                        container.itemCopied.connect(self.on_item_copied)
+
                         for item in container.items:
                             if hasattr(item, 'itemDeleteRequested'):
                                 item.itemDeleteRequested.connect(
@@ -233,6 +233,9 @@ class ItemGridWidget(QWidget):
 
                     # 아이템 데이터 변경 이벤트 연결
                     container.itemDataChanged.connect(self.on_item_data_changed)
+
+                    # 아이템 복사 이벤트 연결 
+                    container.itemCopied.connect(self.on_item_copied)
 
                     # 기존 방식에서는 데이터 열이 인덱스 1부터 시작
                     self.grid_layout.addWidget(container, row + 1, col + 1)
@@ -293,7 +296,7 @@ class ItemGridWidget(QWidget):
 
         for row in self.containers:
             for container in row:
-                container.clearItems()
+                container.clear_items()
 
     """
     모든 컨테이너의 선택 상태 초기화
@@ -323,12 +326,77 @@ class ItemGridWidget(QWidget):
     """
     def update_container_visibility(self) :
         pass
-        # for row_containers in self.containers :
-        #     for container in row_containers :
-        #         if hasattr(container, 'update_visibility') :
-        #             container.update_visibility()
 
-    """ 아이템 삭제 메서드"""
+
+    """
+    검색 후 선택된 항목이 보이도록 스크롤 이동
+    """
+    def ensure_item_visible(self, container, item):
+        if not container or not item:
+            return
+        
+        try :
+            for row_idx, row_containers in enumerate(self.containers):
+                if container in row_containers:
+                    col_idx = row_containers.index(container)
+
+                    cell_widget = container
+                    container_pos = cell_widget.mapTo(self.scroll_content, QPoint(0, 0))
+                    
+                    item_pos = item.pos()
+                    target_x = container_pos.x() + item_pos.x() 
+                    target_y = container_pos.y() + item_pos.y()
+
+                    self.scroll_area.horizontalScrollBar().setValue(target_x - 10)
+                    self.scroll_area.verticalScrollBar().setValue(target_y - 10)
+
+                    break
+        except Exception as e:
+            print(f"아이템 스크롤 오류: {str(e)}")
+
+    """
+    컨테이너 가시성 업데이트
+    """
+    def container_visibility(self):
+        for row_containers in self.containers:
+            for container in row_containers:
+                if hasattr(container, 'update_visibility'):
+                    container.update_visibility()
+                elif hasattr(container, 'adjustSize'):
+                    container.adjustSize()
+
+    """
+    아이템 삭제 메서드
+    """
     def on_item_delete_requested(self, item, container):
-        container.removeItem(item)
-        self.itemRemoved.emit(item)
+        print(f"DEBUG: ItemGridWidget.on_item_delete_requested 호출됨")
+        print(f"DEBUG: 컨테이너에서 아이템 제거")
+        if container:
+            # 아이템 ID 추출
+            item_id = ItemKeyManager.extract_item_id(item)
+
+            # 아이템 정보 백업 (참조 유지를 위해)
+            item_data = None
+            if hasattr(item, 'item_data') and item.item_data:
+                item_data = item.item_data.copy()
+                print(f"DEBUG: 삭제 아이템 정보: {item_data.get('Item')} @ {item_data.get('Line')}-{item_data.get('Time')}, ID: {item_id}")
+            
+            # 컨테이너에서 아이템 제거
+            container.remove_item(item)
+            
+            print(f"DEBUG: itemRemoved 시그널 발생(item_grid)")
+            if item_id:
+                # ID가 있는 경우 ID만 전달
+                self.itemRemoved.emit(item_id)
+            else:
+                # ID가 없는 경우 아이템 객체 전달 (폴백)
+                self.itemRemoved.emit(item)
+        else:
+            print(f"DEBUG: 아이템이 속한 컨테이너를 찾을 수 없음")
+
+    """
+    아이템 복사 이벤트 처리
+    """
+    def on_item_copied(self, item, data):
+        # 상위 위젯에 복사 이벤트 전달
+        self.itemCopied.emit(item, data)
