@@ -2,7 +2,7 @@ import pandas as pd
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
-    QMessageBox, QScrollArea, QSizePolicy, QStackedWidget
+    QMessageBox, QScrollArea, QSizePolicy, QStackedWidget, QCheckBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -167,22 +167,27 @@ class PlanningPage(QWidget):
     reset 버튼 클릭시 호출
     """
     def on_reset_click(self):
-        # 1) 내부 데이터 초기화
         self._df = pd.DataFrame(columns=["Line", "Time", "Qty", "Item", "Project"])
 
-        # 2) LEFT 영역: 이전 header 제거
+        # LEFT 영역: 이전 체크박스 제거
+        if hasattr(self, 'building_filter_widget'):
+            self.leftContainer.layout().removeWidget(self.building_filter_widget)
+            self.building_filter_widget.deleteLater()
+            del self.building_filter_widget
+
+        # LEFT 영역: 이전 header 제거
         if hasattr(self, 'header'):
             self.leftContainer.layout().removeWidget(self.header)
             self.header.deleteLater()
             del self.header
 
-        # 3) LEFT 영역: 이전 scroll_area(캘린더) 제거
+        # LEFT 영역: 이전 캘린더 제거
         if hasattr(self, 'scroll_area'):
             self.leftContainer.layout().removeWidget(self.scroll_area)
             self.scroll_area.deleteLater()
             del self.scroll_area
 
-        # 4) RIGHT 영역: SummaryWidget 모두 제거
+        # RIGHT 영역: SummaryWidget 제거
         while self.stack.count():
             w = self.stack.widget(0)
             self.stack.removeWidget(w)
@@ -190,7 +195,7 @@ class PlanningPage(QWidget):
         # Summary 버튼 스타일 비활성화
         self.btn_summary.setStyleSheet(INACTIVE_BUTTON_STYLE)
 
-        # 5) LEFT 영역: placeholder 재생성
+        # LEFT 영역: placeholder 재생성
         if hasattr(self, 'placeholder_label'):
             self.leftContainer.layout().removeWidget(self.placeholder_label)
             self.placeholder_label.deleteLater()
@@ -261,6 +266,18 @@ class PlanningPage(QWidget):
         )
         df_agg = agg.merge(details, on=['Line', 'Time', 'Project'])
 
+        # 체크박스 생성
+        buildings = sorted({str(line).split('_')[0] for line in self._df['Line'].unique()})
+        self.building_filter_widget = QWidget(self.leftContainer)
+        df_layout = QHBoxLayout(self.building_filter_widget)
+        df_layout.setAlignment(Qt.AlignLeft)
+        df_layout.setContentsMargins(0, 0, 0, 0)
+        for building in buildings:
+            cb = QCheckBox(building, self.building_filter_widget)
+            cb.stateChanged.connect(self._on_filter_changed)
+            df_layout.addWidget(cb)
+        self.leftContainer.layout().addWidget(self.building_filter_widget, stretch=0)
+
         # 캘린더 헤더 생성
         self.header = CalendarHeader(set(df['Time']), parent=self)
 
@@ -307,3 +324,41 @@ class PlanningPage(QWidget):
 
         # self.stack.setCurrentWidget(summary)
         self.btn_summary.setStyleSheet(ACTIVE_BUTTON_STYLE)
+
+    """
+    필터 기능
+    """
+    def _on_filter_changed(self):
+        # 체크된 라인 목록
+        selected = [
+            cb.text() 
+            for cb in self.building_filter_widget.findChildren(QCheckBox) 
+            if cb.isChecked()
+        ]
+        
+        if selected:
+            df_filtered = self._df[
+                self._df['Line'].str.split('_').str[0].isin(selected)
+            ]
+        else:
+            # 아무것도 체크 안 하면 전체 데이터
+            df_filtered = self._df.copy()
+        
+        agg = df_filtered.groupby(['Line', 'Time', 'Project'], as_index=False)['Qty'].sum()
+        details = (
+            df_filtered.groupby(['Line', 'Time', 'Project'])
+                .apply(lambda g: g[[ 'Demand','Item','To_site','SOP','MFG','RMC','Due_LT','Qty']].to_dict('records'))
+                .to_frame('Details')
+                .reset_index()
+        )
+        df_agg = agg.merge(details, on=['Line', 'Time', 'Project'])
+        
+        # 캘린더 위젯 교체
+        old_widget = self.body_layout.takeAt(0).widget()
+        if old_widget:
+            old_widget.deleteLater()
+        new_calendar = WeeklyCalendar(df_agg)
+        self.body_layout.addWidget(new_calendar, 0, Qt.AlignTop)
+        
+        # 스크롤바 여백 조정
+        self._sync_header_margin()
