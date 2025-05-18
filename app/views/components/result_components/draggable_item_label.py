@@ -421,10 +421,16 @@ class DraggableItemLabel(QFrame):
             if qty is None or qty == '':
                 qty = 0
             
+            # 문자열인 경우 정수로 변환 시도
+            if isinstance(qty, str):
+                qty_value = int(qty)
+            else:
+                qty_value = qty
+                
             if hasattr(self, 'item_label'):
                 self.item_label.setText(item_info)
             if hasattr(self, 'qty_label'):
-                self.qty_label.setText(str(qty) if qty > 0 else "0")
+                self.qty_label.setText(str(qty) if qty_value > 0 else "0")
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):

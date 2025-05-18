@@ -7,15 +7,11 @@ from .items_container import ItemsContainer
 아이템 그리드 위젯 (테이블 대체)
 """
 class ItemGridWidget(QWidget):
-
-    # 아이템 선택 시그널 추가 (선택된 아이템, 컨테이너)
-    itemSelected = pyqtSignal(object, object)
-
-    # 아이템 데이터 변경 시그널 추가 (아이템, 새 데이터, 변경 필드 정보)
-    itemDataChanged = pyqtSignal(object, dict, dict)  
-
+    itemSelected = pyqtSignal(object, object)  # 아이템 선택 시그널 추가 (선택된 아이템, 컨테이너)
+    itemDataChanged = pyqtSignal(object, dict, dict)  # 아이템 데이터 변경 시그널 추가 (아이템, 새 데이터, 변경 필드 정보)
     itemCreated = pyqtSignal(object)
     itemRemoved = pyqtSignal(object)
+    itemCopied = pyqtSignal(object, dict) # 아이템 복사 시그널
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -185,6 +181,10 @@ class ItemGridWidget(QWidget):
 
                         # 아이템 데이터 변경 이벤트 연결
                         container.itemDataChanged.connect(self.on_item_data_changed)
+
+                        # 아이템 복사 이벤트 연결
+                        container.itemCopied.connect(self.on_item_copied)
+
                         for item in container.items:
                             if hasattr(item, 'itemDeleteRequested'):
                                 item.itemDeleteRequested.connect(
@@ -233,6 +233,9 @@ class ItemGridWidget(QWidget):
 
                     # 아이템 데이터 변경 이벤트 연결
                     container.itemDataChanged.connect(self.on_item_data_changed)
+
+                    # 아이템 복사 이벤트 연결 
+                    container.itemCopied.connect(self.on_item_copied)
 
                     # 기존 방식에서는 데이터 열이 인덱스 1부터 시작
                     self.grid_layout.addWidget(container, row + 1, col + 1)
@@ -293,7 +296,7 @@ class ItemGridWidget(QWidget):
 
         for row in self.containers:
             for container in row:
-                container.clearItems()
+                container.clear_items()
 
     """
     모든 컨테이너의 선택 상태 초기화
@@ -323,10 +326,7 @@ class ItemGridWidget(QWidget):
     """
     def update_container_visibility(self) :
         pass
-        # for row_containers in self.containers :
-        #     for container in row_containers :
-        #         if hasattr(container, 'update_visibility') :
-        #             container.update_visibility()
+
 
     """
     검색 후 선택된 항목이 보이도록 스크롤 이동
@@ -365,7 +365,16 @@ class ItemGridWidget(QWidget):
                 elif hasattr(container, 'adjustSize'):
                     container.adjustSize()
 
-    """ 아이템 삭제 메서드"""
+    """
+    아이템 삭제 메서드
+    """
     def on_item_delete_requested(self, item, container):
-        container.removeItem(item)
+        container.remove_item(item)
         self.itemRemoved.emit(item)
+
+    """
+    아이템 복사 이벤트 처리
+    """
+    def on_item_copied(self, item, data):
+        # 상위 위젯에 복사 이벤트 전달
+        self.itemCopied.emit(item, data)
