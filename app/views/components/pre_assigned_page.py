@@ -255,6 +255,11 @@ class PlanningPage(QWidget):
 
         # 데이터 준비
         self._df = df.copy()
+        df = df.sort_values(
+            by=['Line', 'Time', 'Qty'],
+            ascending=[True, True, False]
+        ).reset_index(drop=True)
+        # print(self._df)
         agg = df.groupby(['Line', 'Time', 'Project'], as_index=False)['Qty'].sum()
         details = (
             df.groupby(['Line', 'Time', 'Project'])
@@ -265,6 +270,11 @@ class PlanningPage(QWidget):
               .reset_index()
         )
         df_agg = agg.merge(details, on=['Line', 'Time', 'Project'])
+        df_agg = df_agg.sort_values(
+            by=['Line', 'Time', 'Qty'],
+            ascending=[True, True, False]
+        ).reset_index(drop=True)
+        # print(df_agg)
 
         # 체크박스 생성
         buildings = sorted({str(line).split('_')[0] for line in self._df['Line'].unique()})
