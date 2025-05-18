@@ -191,9 +191,10 @@ class OptimizationProgressDialog(QDialog):
                 background-color: #1428A0;
                 border: none;
                 padding: 0px;
+                min-height: {h(50)}px;
             }}
         """)
-        title_frame.setFixedHeight(h(80))
+
 
         # 제목 프레임의 레이아웃을 먼저 생성하고 설정
         title_layout = QVBoxLayout(title_frame)
@@ -202,11 +203,9 @@ class OptimizationProgressDialog(QDialog):
 
         # 제목 레이블
         title_label = QLabel("First Optimization")
-        title_font = font_manager.get_font("SamsungSharpSans-Bold", f(15))
-        title_font.setBold(True)
-        title_label.setFont(title_font)
+        title_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
         title_label.setAlignment(Qt.AlignCenter)
-        title_label.setStyleSheet("color: white;")
+        title_label.setStyleSheet(f"color: white; font-family: {title_font}; font-weight: bold; font-size: {f(18)}px;")
 
         # 레이아웃에 레이블 추가
         title_layout.addWidget(title_label)
