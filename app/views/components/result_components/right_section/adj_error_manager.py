@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt
-from app.utils.item_key import ItemKeyManager
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 조정 시 에러 메세지 관리 클래스

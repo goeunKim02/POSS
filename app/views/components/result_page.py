@@ -56,7 +56,9 @@ class ResultPage(QWidget):
 
 
         self.init_ui()
+        print("\n==== ResultPage: connect_signals 호출 시작 ====")
         self.connect_signals()
+        print("==== ResultPage: connect_signals 호출 완료 ====\n")
 
     def init_ui(self):
         # 레이아웃 설정
@@ -129,6 +131,7 @@ class ResultPage(QWidget):
 
         # 드래그 가능한 테이블 위젯 추가
         self.left_section = ModifiedLeftSection()
+        self.left_section.parent_page = self  # 명시적 참조 설정
 
         # 시그널 연결
         self.left_section.viewDataChanged.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
@@ -311,6 +314,38 @@ class ResultPage(QWidget):
         # 스플리터를 메인 레이아웃에 추가
         result_layout.addWidget(main_horizontal_splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
 
+
+    """
+    컨트롤러 설정
+    """
+    def set_controller(self, controller):
+        self.controller = controller
+        print("ResultPage: 컨트롤러 설정됨")
+
+    """
+    Material 탭 콘텐츠 생성
+    """
+    def _create_material_tab_content(self, layout):
+        material_page = QWidget()
+        material_layout = QVBoxLayout(material_page)
+        material_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # 자재 부족 테이블
+        self.shortage_items_table = QTableWidget()
+        self.shortage_items_table.setColumnCount(4)
+        self.shortage_items_table.setHorizontalHeaderLabels(["Material", "Model", "Shortage", "Shift"])
+        self.shortage_items_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        
+        # 테이블 스타일 적용
+        self._apply_material_table_style()
+        
+        # 테이블 이벤트 연결
+        self.shortage_items_table.setMouseTracking(True)
+        self.shortage_items_table.cellEntered.connect(self.show_shortage_tooltip)
+        
+        material_layout.addWidget(self.shortage_items_table)
+        layout.addWidget(material_page)
+    
     """
     위젯 참조 설정
     """
@@ -983,3 +1018,30 @@ class ResultPage(QWidget):
                 if hasattr(self, 'plan_maintenance_widget'):
                     print(f"계획 유지율 위젯 수량 업데이트: {line}, {time}, {item_code}, {new_qty}")
                     self.plan_maintenance_widget.update_quantity(line, time, item_code, new_qty)
+
+
+    """
+    MVC 모델로부터 UI 업데이트하는 메서드
+    모델 데이터 변경 시 실행되며, 중복 업데이트 방지 기능 포함
+    """
+    def update_ui_from_model(self, model_df=None):
+        print("ResultPage: update_ui_from_model 호출됨")
+        
+        # 모델 데이터가 전달되지 않았다면 컨트롤러에서 가져오기
+        if model_df is None:
+            if hasattr(self, 'controller') and self.controller:
+                model_df = self.controller.model.get_dataframe()
+            elif hasattr(self, 'left_section') and hasattr(self.left_section, 'data'):
+                model_df = self.left_section.data
+        
+        # 데이터 유효성 검사
+        if model_df is None or model_df.empty:
+            print("유효한 모델 데이터가 없어 업데이트 중단")
+            return
+        
+        # 중복 업데이트 방지 로직 (필요시 구현)
+        # 마지막 업데이트와 동일한 데이터인지 체크
+        
+        # on_data_changed를 통해 모든 UI 업데이트 진행
+        # 특별한 처리가 필요하면 여기에 추가
+        self.on_data_changed(model_df)

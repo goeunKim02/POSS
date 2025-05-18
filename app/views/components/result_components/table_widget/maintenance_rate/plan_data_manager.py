@@ -3,7 +3,7 @@ import pandas as pd
 from PyQt5.QtCore import QObject, pyqtSignal
 from app.analysis.output.plan_maintenance import PlanMaintenanceRate
 from app.models.common.file_store import FilePaths
-from app.utils.item_key import ItemKeyManager
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 계획 데이터 관리 클래스
@@ -178,8 +178,8 @@ class PlanDataManager(QObject):
     """
     수량 업데이트
     """
-    def update_quantity(self, line, time, item, new_qty):
-        print(f"DataManager - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
+    def update_quantity(self, line, time, item, new_qty, item_id=None):
+        print(f"DataManager - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}, item_id={item_id}")
         if self.plan_analyzer is None:
             return False
             
@@ -188,8 +188,14 @@ class PlanDataManager(QObject):
         original_qty = int(original_qty) if original_qty is not None else None
         new_qty = int(new_qty) if new_qty is not None else None
 
-        # Item 키 생성
-        item_key = ItemKeyManager.get_item_key(line, time, item)
+        # ID가 있으면 ID 기반 키 생성, 없으면 기존 방식
+        if item_id:
+            item_key = f"id_{item_id}"  # ID 기반 키
+        else:
+            item_key = ItemKeyManager.get_item_key(line, time, item) 
+
+        # 두 가지 키 모두 저장 - ID 기반 키와 (Line, Time, Item) 키
+        line_time_item_key = ItemKeyManager.get_item_key(line, time, item)
 
         # rmc 관계 확인 및 추가
         if item_key not in self.item_to_rmc_map and 'RMC' in self.current_plan.columns:
@@ -213,14 +219,15 @@ class PlanDataManager(QObject):
         if original_qty == new_qty and original_qty is not None:
             # 수정된 아이템 목록에서 제거
             self._update_item_status(item_key, False)
-            # print(f"값이 원래대로 돌아와 item 키 제거됨 : {item_key}")
+            self._update_item_status(line_time_item_key, False)  # 두 가지 키 모두 제거
         else:
             # 값이 변경된 경우 수정된 목록에 추가
             self._update_item_status(item_key, True)
+            self._update_item_status(line_time_item_key, True)  # 두 가지 키 모두 추가
             # print(f"Item 키 추가됨: {item_key}")
         
         # 수량 업데이트
-        success = self.plan_analyzer.update_quantity(line, time, item, new_qty)
+        success = self.plan_analyzer.update_quantity(line, time, item, new_qty, item_id)
 
         if success:
             self.dataChanged.emit()
@@ -230,8 +237,13 @@ class PlanDataManager(QObject):
 
     """
     유지율 계산
+    Args:
+        compare_with_adjusted: 조정된 계획과 비교할지 여부
+        calculate_rmc: RMC 유지율을 계산할지 여부
+    Returns:
+        tuple: (데이터프레임, 유지율)
     """
-    def calculate_maintenance_rates(self, compare_with_adjusted=True):
+    def calculate_maintenance_rates(self, compare_with_adjusted=False,  calculate_rmc=False):
         print(f"calculate_maintenance_rates 호출됨, compare_with_adjusted={compare_with_adjusted}")
     
         if self.plan_analyzer is None:
@@ -240,17 +252,14 @@ class PlanDataManager(QObject):
         
         print(f"현재 계획: {self.current_plan is not None}")
             
-        # 항상 조정된 계획을 사용 (compare_with_adjusted=True)
-        # 이렇게 하면 사용자 조정이 즉시 반영됨
-        item_df, item_rate = self.plan_analyzer.calculate_items_maintenance_rate(
-            compare_with_adjusted=True  # 항상 adjusted_plan 사용
-        )
-        
-        rmc_df, rmc_rate = self.plan_analyzer.calculate_rmc_maintenance_rate(
-            compare_with_adjusted=True  # 항상 adjusted_plan 사용
-        )
-        
-        return item_df, item_rate, rmc_df, rmc_rate
+        if calculate_rmc:
+            # RMC 유지율 계산
+            rmc_df, rmc_rate = self.plan_analyzer.calculate_rmc_maintenance_rate(compare_with_adjusted)
+            return rmc_df, rmc_rate
+        else:
+            # Item 유지율 계산
+            item_df, item_rate = self.plan_analyzer.calculate_items_maintenance_rate(compare_with_adjusted)
+            return item_df, item_rate
     
 
     """

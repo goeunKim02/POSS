@@ -6,12 +6,13 @@ from .item_edit_dialog import ItemEditDialog
 import json
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from .item_position_manager import ItemPositionManager
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 아이템들을 담는 컨테이너 위젯
 """
 class ItemsContainer(QWidget):
-    itemsChanged = pyqtSignal()
+    itemsChanged = pyqtSignal(object)
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
     itemDataChanged = pyqtSignal(object, dict, dict)  # (아이템, 새 데이터, 변경 필드 정보) 시그널 추가
     itemCopied = pyqtSignal(object, dict)  # 복사된 아이템 시그널 추가
@@ -135,7 +136,9 @@ class ItemsContainer(QWidget):
         if item and item in self.items and new_data:
             # 데이터 변경 시그널 발생
             self.itemDataChanged.emit(item, new_data, changed_fields)
-            self.itemsChanged.emit()
+
+            item_id = ItemKeyManager.extract_item_id(item)
+            self.itemsChanged.emit(item_id)
             return True, ""
 
         return False, "유효하지 않은 아이템 또는 데이터"
@@ -152,15 +155,38 @@ class ItemsContainer(QWidget):
     특정 아이템 삭제
     """
     def remove_item(self, item):
+        print("remove_item 호출")
         if item in self.items:
+            # ID 추출
+            item_id = ItemKeyManager.extract_item_id(item)
+
             # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
             if item == self.selected_item:
                 self.selected_item = None
 
+            # 아이템 UI에서 제거
             self.layout.removeWidget(item)
             self.items.remove(item)
             item.deleteLater()
-            self.itemsChanged.emit()
+
+            # 아이템 ID로 변경 시그널 발생
+            # self.itemsChanged.emit(item_id)
+
+            # 그리드 위젯 찾기 및 itemRemoved 시그널 발생
+            parent = self.parent()
+            while parent and not hasattr(parent, 'itemRemoved'):
+                parent = parent.parent()
+            
+            # 그리드 위젯의 itemRemoved 시그널만 발생시키고,
+            # itemsChanged 시그널은 발생시키지 않음
+            if parent and hasattr(parent, 'itemRemoved'):
+                print("그리드 위젯의 itemRemoved 시그널 발생")
+                parent.itemRemoved.emit(item)
+                # itemsChanged 시그널은 발생시키지 않음
+            else:
+                # 그리드 위젯을 찾지 못한 경우에만 폴백으로 itemsChanged 시그널 발생
+                print("itemsChanged 시그널 발생 (폴백)")
+                self.itemsChanged.emit(item_id)
 
             self.update_visibility()
 
@@ -191,13 +217,13 @@ class ItemsContainer(QWidget):
             event.acceptProposedAction()
             # 드래그 시작 시 인디케이터 표시
             self.show_drop_indicator = True
-            self.drop_indicator_position = self.find_drop_index(event.pos())
+            self.drop_indicator_position = self.findDropIndex(event.pos())
             self.update()
 
     """
     드래그가 위젯을 벗어날 때 인디케이터 숨김
     """
-    def  dragLeaveEvent(self, event):
+    def dragLeaveEvent(self, event):
         self.show_drop_indicator = False
         self.update()
 
@@ -208,13 +234,13 @@ class ItemsContainer(QWidget):
         if event.mimeData().hasText():
             event.acceptProposedAction()
             # 드래그 중 인디케이터 위치 업데이트
-            self.drop_indicator_position = self.find_drop_index(event.pos())
+            self.drop_indicator_position = self.findDropIndex(event.pos())
             self.update()
 
     """
     드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
     """
-    def find_drop_index(self, pos):
+    def findDropIndex(self, pos):
         if not self.items:
             return 0  # 아이템이 없으면 첫 번째 위치에 삽입
 
@@ -250,7 +276,7 @@ class ItemsContainer(QWidget):
                     print(f"아이템 데이터 파싱 오류: {e}")
 
             # 드롭 위치에 해당하는 인덱스 찾기
-            drop_index = self.find_drop_index(event.pos())
+            drop_index = self.findDropIndex(event.pos())
 
             # 원본 위젯 (드래그된 아이템)
             source = event.source()
@@ -322,8 +348,8 @@ class ItemsContainer(QWidget):
                 # 변경 이벤트 발생 (복사임을 명시)
                 copy_info = {'operation': 'copy', 'source_id': id(source)}
 
-                self.itemDataChanged.emit(new_item, item_data,
-                                          {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
+                # self.itemDataChanged.emit(new_item, item_data,
+                #                           {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
                 
                 # 새로운 복사 시그널 발생 
                 self.itemCopied.emit(new_item, item_data)
@@ -331,7 +357,15 @@ class ItemsContainer(QWidget):
                 self.show_drop_indicator = False
                 self.update()
                 event.acceptProposedAction()
-                self.itemsChanged.emit()
+
+                 # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
+                item_id = None
+                if 'new_item' in locals() and new_item is not None:
+                    item_id = ItemKeyManager.extract_item_id(new_item)
+                elif item_data is not None and '_id' in item_data:
+                    item_id = item_data.get('_id')
+
+                self.itemsChanged.emit(item_id)
                 return  # [CTRL COPY] Ctrl copy는 여기서 종료
 
             # 원본 아이템이 같은 컨테이너 내에 있는지 확인
@@ -514,7 +548,15 @@ class ItemsContainer(QWidget):
             self.update_visibility()
 
             event.acceptProposedAction()
-            self.itemsChanged.emit()
+
+            # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
+            item_id = None
+            if 'new_item' in locals() and new_item is not None:
+                item_id = ItemKeyManager.extract_item_id(new_item)
+            elif item_data is not None and '_id' in item_data:
+                item_id = item_data.get('_id')
+          
+            self.itemsChanged.emit(item_id)
 
     """
     컨테이너 위젯 그리기 - 드롭 인디케이터 표시
@@ -608,6 +650,7 @@ class ItemsContainer(QWidget):
     삭제 요청 처리 메서드
     """
     def on_item_delete_requested(self, item):
+        print("DEBUG: ItemsContainer.on_item_delete_requested 호출됨")
         # EnhancedMessageBox를 사용하여 확인 다이얼로그 표시
         from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
@@ -619,13 +662,20 @@ class ItemsContainer(QWidget):
 
         # 확인한 경우에만 삭제 진행
         if reply:
+            print("DEBUG: 사용자가 삭제 확인함")
             if item in self.items:
+                # 아이템 ID 정보 추출 (삭제 시 전달)
+                item_id = ItemKeyManager.extract_item_id(item)
+
                 # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
                 if self.selected_item == item:
                     self.selected_item = None
 
                 # 아이템 제거
+                print("DEBUG: ItemsContainer에서 아이템 제거 시작")
                 self.remove_item(item)
+                print("DEBUG: ItemsContainer에서 아이템 제거 완료")
 
                 # 변경 신호 발생
-                self.itemsChanged.emit()
+                print("DEBUG: itemsChanged 시그널 발생")
+                self.itemsChanged.emit(item_id)

@@ -332,7 +332,7 @@ class PlanMaintenanceWidget(QWidget):
                 if adjusted_rate_int > original_rate_int:
                     self.item_rate_label.setStyleSheet("color: #1AB394; font-weight: bold;")  # 개선된 경우 녹색
                 elif adjusted_rate_int < original_rate_int:
-                    self.item_rate_label.setStyleSheet("color: #F8AC59; font-weight: bold;")  # 악화된 경우 주황색
+                    self.item_rate_label.setStyleSheet("color: #f53b3b; font-weight: bold;")  # 악화된 경우 빨간색
                 else:
                     self.item_rate_label.setStyleSheet("color: #1428A0; font-weight: bold;")  # 동일한 경우 파란색
                     
@@ -356,7 +356,7 @@ class PlanMaintenanceWidget(QWidget):
                 elif original_rate_int >= 70:
                     self.item_rate_label.setStyleSheet("color: #1428A0;")  # 파란색
                 else:
-                    self.item_rate_label.setStyleSheet("color: #F8AC59;")  # 주황색
+                    self.item_rate_label.setStyleSheet("color: #f53b3b;")  # 빨강
         else:
             self.item_rate_label.setText("None")
             self.item_rate_label.setToolTip("")
@@ -421,24 +421,36 @@ class PlanMaintenanceWidget(QWidget):
             self.item_rate_label.setStyleSheet("color: #6c757d; font-style: italic;")
             return
         
-        # 유지율 계산 - 항상 조정된 값 사용
-        item_df, item_rate, rmc_df, rmc_rate = self.data_manager.calculate_maintenance_rates()
-
-        # 계산된 유지율 저장
-        self.item_maintenance_rate = item_rate if item_rate is not None else 0.0
-        self.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
+       # 1. 원본 유지율 계산 (조정 전 - 초기 최적화 결과 vs 이전 계획)
+        item_df_original, item_rate_original = self.data_manager.calculate_maintenance_rates(compare_with_adjusted=False)
+        rmc_df_original, rmc_rate_original = self.data_manager.calculate_maintenance_rates(
+            compare_with_adjusted=False, calculate_rmc=True
+        )
+        
+        # 원본 유지율 저장
+        self.item_maintenance_rate = item_rate_original if item_rate_original is not None else 0.0
+        self.rmc_maintenance_rate = rmc_rate_original if rmc_rate_original is not None else 0.0
+        
+        # 2. 조정 후 유지율 계산 (조정 후 - 사용자 조정 결과 vs 이전 계획)
+        item_df_adjusted, item_rate_adjusted = self.data_manager.calculate_maintenance_rates(compare_with_adjusted=True)
+        rmc_df_adjusted, rmc_rate_adjusted = self.data_manager.calculate_maintenance_rates(
+            compare_with_adjusted=True, calculate_rmc=True
+        )
+        
+        # 조정 후 유지율 저장
+        self.adjusted_item_maintenance_rate = item_rate_adjusted if item_rate_adjusted is not None else 0.0
+        self.adjusted_rmc_maintenance_rate = rmc_rate_adjusted if rmc_rate_adjusted is not None else 0.0
 
         # 테이블 위젯 데이터 설정
-        if item_df is not None and not item_df.empty:
+        if item_df_adjusted is not None and not item_df_adjusted.empty:
             # Item 테이블은 수정된 아이템 키만 필요
-            self.item_table.populate_data(item_df, self.data_manager.modified_item_keys)
+            self.item_table.populate_data(item_df_adjusted, self.data_manager.modified_item_keys)
         else:
             print("Item별 유지율 데이터가 없습니다.")
         
-        if rmc_df is not None and not rmc_df.empty:
+        if rmc_df_adjusted is not None and not rmc_df_adjusted.empty:
             # RMC 테이블은 수정된 아이템 키와 RMC 키 모두 전달
-            # modified_rmc_keys를 반드시 전달 
-            self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys, self.data_manager.modified_rmc_keys)
+            self.rmc_table.populate_data(rmc_df_adjusted, self.data_manager.modified_item_keys, self.data_manager.modified_rmc_keys)
             print(f"RMC 테이블 업데이트 완료 - 수정된 RMC 키 {len(self.data_manager.modified_rmc_keys)}개")
         else:
             print("RMC별 유지율 데이터가 없습니다.")
@@ -446,17 +458,19 @@ class PlanMaintenanceWidget(QWidget):
         # 선택된 탭에 따라 유지율 레이블 업데이트
         self.update_rate_label(self.tab_widget.currentIndex())
         
-        print(f"계획 유지율 계산 완료: Item={self.item_maintenance_rate:.2f}%, RMC={self.rmc_maintenance_rate:.2f}%")
+        # 원본과 조정된 유지율 로그 출력
+        print(f"계획 유지율 계산 완료: 원본 Item={self.item_maintenance_rate:.2f}%, 조정 Item={self.adjusted_item_maintenance_rate:.2f}%")
+        print(f"계획 유지율 계산 완료: 원본 RMC={self.rmc_maintenance_rate:.2f}%, 조정 RMC={self.adjusted_rmc_maintenance_rate:.2f}%")
         
 
     """
     수량 업데이트 및 UI 갱신
     """
-    def update_quantity(self, line, time, item, new_qty):
-        # print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
+    def update_quantity(self, line, time, item, new_qty, item_id=None):
+        # print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}, item_id={item_id}")
         
         # 데이터 관리자를 통해 수량 업데이트
-        success = self.data_manager.update_quantity(line, time, item, new_qty)
+        success = self.data_manager.update_quantity(line, time, item, new_qty, item_id)
         
         if success:
             print("수량 업데이트 성공, 유지율 재계산 중...")

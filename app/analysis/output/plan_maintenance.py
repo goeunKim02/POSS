@@ -1,5 +1,5 @@
 import pandas as pd
-from app.utils.conversion import convert_value
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 생산 계획의 유지율을 계산하는 클래스
@@ -58,8 +58,8 @@ class PlanMaintenanceRate:
     Returns:
         bool: 업데이트 성공 여부
     """
-    def update_quantity(self, line, time, item, new_qty):
-        print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
+    def update_quantity(self, line, time, item, new_qty, item_id=None):
+        print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}, item_id={item_id}")
         
         # modified_items 딕셔너리가 없으면 초기화 - 이 부분 추가
         if not hasattr(self, 'modified_items'):
@@ -75,36 +75,61 @@ class PlanMaintenanceRate:
                 return False
             
         try :
-            # 조건에 맞는 행 찾기
-            mask = (
-                (self.adjusted_plan['Line'] == line) &
-                (self.adjusted_plan['Time'] == time) &
-                (self.adjusted_plan['Item'] == item)
-            )
-
+            # 조건에 맞는 행 찾기 - ID가 있으면 ID로 찾고, 없으면 기존 방식
+            if item_id and '_id' in self.adjusted_plan.columns:
+                # ID로 검색 시도
+                mask = ItemKeyManager.create_mask_by_id(self.adjusted_plan, item_id)
+                
+                # ID 검색 결과 확인
+                if mask.any():
+                    print(f"ID {item_id}로 아이템 찾음")
+                else:
+                    print(f"ID {item_id}로 아이템을 찾지 못함, 기존 방식 사용")
+                    # 기존 방식으로 마스크 생성
+                    mask = ItemKeyManager.create_mask_for_item(self.adjusted_plan, line, time, item)
+            else:
+                # 기존 방식으로 마스크 생성
+                mask = ItemKeyManager.create_mask_for_item(self.adjusted_plan, line, time, item)
+            
             # 일치하는 행이 있으면 수량 업데이트
             if mask.any():
+                # 복수 행이 일치할 경우 로그 - 디버깅
+                if mask.sum() > 1:
+                    print(f"경고: {mask.sum()}개 행이 조건과 일치합니다. 첫 번째 행만 업데이트합니다.")
+
                 self.adjusted_plan.loc[mask, 'Qty'] = new_qty
 
-                # 수정된 아이템 기록  - 디버깅
-                key = (line, time, item)
+                # 수정된 아이템 기록 - 디버깅
+                # ID가 있으면 ID를 키로 사용, 없으면 기존 방식
+                if item_id:
+                    key = f"id_{item_id}"
+                else:
+                    key = ItemKeyManager.get_item_key(line, time, item)
+                    
                 self.modified_items[key] = new_qty
                 
                 print(f"수량 업데이트 성공: {line}, {time}, {item} -> {new_qty}")
                 return True
             else:
-                # 동일한 아이템의 다른 위치 행 찾기
-                same_item_mask = self.adjusted_plan['Item'] == item
-                
-                if same_item_mask.any():
-                    # 기존 행 찾기
-                    old_row = self.adjusted_plan[same_item_mask].iloc[0].copy()
+                # 동일한 아이템의 다른 위치 행 찾아서 복사하기
+                # ID가 있으면 사용하지 않음 (ID는 고유함)
+                if not item_id:
+                    same_item_mask = self.adjusted_plan['Item'] == item
+                    
+                    if same_item_mask.any():
+                        # 기존 행 찾기
+                        old_row = self.adjusted_plan[same_item_mask].iloc[0].copy()
 
-                    # 새 위치와 수량 정보로 복사본 생성
-                    new_row = old_row.copy()
-                    new_row['Line'] = line
-                    new_row['Time'] = time
-                    new_row['Qty'] = new_qty
+                        # 새 위치와 수량 정보로 복사본 생성
+                        new_row = old_row.copy()
+                        new_row['Line'] = line
+                        new_row['Time'] = time
+                        new_row['Qty'] = new_qty
+                        
+                        # ID가 있는 경우 새 ID 생성
+                        if '_id' in self.adjusted_plan.columns:
+                            import uuid
+                            new_row['_id'] = str(uuid.uuid4())
 
                     # 기존 행 삭제
                     self.adjusted_plan = self.adjusted_plan[~same_item_mask]
@@ -169,8 +194,11 @@ class PlanMaintenanceRate:
             suffixes=('_prev', '_curr')
         )
 
-        # 유지 수량 계산
-        merged['maintenance'] = merged.apply(lambda x: min(x['Qty_prev'], x['Qty_curr']), axis=1)
+        # 유지 수량 계산 - 둘 다 0보다 큰 경우에만 min 적용, 아니면 0
+        merged['maintenance'] = merged.apply(
+            lambda x: min(x['Qty_prev'], x['Qty_curr']) if x['Qty_prev'] > 0 and x['Qty_curr'] > 0 else 0, 
+            axis=1
+        )
 
         # 필드명 수정
         result_df = merged.rename(columns={
@@ -244,8 +272,11 @@ class PlanMaintenanceRate:
             suffixes=('_prev', '_curr')
         )
 
-        # 유지 수량 계산
-        merged['maintenance'] = merged.apply(lambda x: min(x['Qty_prev'], x['Qty_curr']), axis=1)
+        # 유지 수량 계산 - 둘 다 0보다 큰 경우에만 min 적용, 아니면 0
+        merged['maintenance'] = merged.apply(
+            lambda x: min(x['Qty_prev'], x['Qty_curr']) if x['Qty_prev'] > 0 and x['Qty_curr'] > 0 else 0, 
+            axis=1
+        )
 
         result_df = merged.rename(columns={
             'Line': 'Line',
