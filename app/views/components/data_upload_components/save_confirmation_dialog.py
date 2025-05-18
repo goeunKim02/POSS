@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont, QCursor
 from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 
 class SaveConfirmationDialog(QDialog):
@@ -26,8 +27,7 @@ class SaveConfirmationDialog(QDialog):
         # 제목 프레임
         title_frame = QFrame()
         title_frame.setFrameShape(QFrame.StyledPanel)
-        title_frame.setStyleSheet("background-color: #1428A0; border: none;")
-        title_frame.setFixedHeight(h(40))  # FHD에서 18% 비율에 해당하는 픽셀 값 (1080*0.18=194)
+        title_frame.setStyleSheet(f"min-height : {h(45)}; background-color: #1428A0; border: none;")
 
         # 제목 프레임 레이아웃
         title_layout = QVBoxLayout(title_frame)
@@ -36,10 +36,8 @@ class SaveConfirmationDialog(QDialog):
 
         # 제목 레이블
         title_label = QLabel("Save Changes")
-        title_font = QFont("Arial", f(14))  # 폰트 크기 비율 적용
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet("color: #F5F5F5;")
+        title_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        title_label.setStyleSheet(f"color: white; font-family:{title_font}; font-size : {f(20)}px;")
         title_layout.addWidget(title_label)
 
         # 메인 레이아웃에 제목 프레임 추가
@@ -74,20 +72,17 @@ class SaveConfirmationDialog(QDialog):
 
         # 메시지 레이블
         message_label = QLabel("Modifications have been detected. Do you wish to save them to the original file?")
-        message_font = QFont("Arial", f(12))  # 폰트 크기 비율 적용
-        message_font.setBold(True)
-        message_label.setFont(message_font)
         message_label.setAlignment(Qt.AlignCenter)
         message_label.setWordWrap(True)
-        message_label.setStyleSheet("color: #333333; border: none; ")
+        message_label.setStyleSheet(f"color: #333333; border: none; font-size: {f(20)}px; font-family:{title_font};")
 
         # 설명 레이블
         description_label = QLabel(
             "Selecting 'Save and Run' will save your changes to the original file.\nSelecting 'Run without Saving' will keep the original file intact.")
-        description_label.setFont(QFont("Arial", f(10)))  # 폰트 크기 비율 적용
+        description_label_font = font_manager.get_just_font("SamsungOne-700").family()
         description_label.setAlignment(Qt.AlignCenter)
         description_label.setWordWrap(True)
-        description_label.setStyleSheet("color: #666666; border:none; ")
+        description_label.setStyleSheet(f"color: #666666; border:none; font-size: {f(16)}px; font-family:{description_label_font}; ")
 
         # 데이터 레이아웃에 레이블 추가
         data_layout.addWidget(message_label)
@@ -108,7 +103,7 @@ class SaveConfirmationDialog(QDialog):
 
         # 저장 후 실행 버튼
         save_and_run_btn = QPushButton("Save and Run")
-        save_and_run_btn.setFont(QFont("Arial", f(10), QFont.Bold))  # 폰트 크기 비율 적용
+
         save_and_run_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #1428A0;
@@ -117,6 +112,8 @@ class SaveConfirmationDialog(QDialog):
                 border-radius: {w(10)}px;
                 width: {w(150)}px;
                 height: {h(40)}px;
+                font-family:{description_label_font};
+                font-size: {f(14)}px;
             }}
             QPushButton:hover {{
                 background-color: #1e429f;
@@ -125,12 +122,10 @@ class SaveConfirmationDialog(QDialog):
             }}
         """)
         save_and_run_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        save_and_run_btn.setFixedSize(w(150), h(40))
         save_and_run_btn.clicked.connect(self.on_save_and_run)
 
         # 저장 안하고 실행 버튼
         run_without_save_btn = QPushButton("Run without Save")
-        run_without_save_btn.setFont(QFont("Arial", f(10)))  # 폰트 크기 비율 적용
         run_without_save_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #f0f0f0;
@@ -139,18 +134,18 @@ class SaveConfirmationDialog(QDialog):
                 border-radius: {w(10)}px;
                 width: {w(170)}px;
                 height: {h(40)}px;
+                font-family:{description_label_font};
+                font-size: {f(14)}px;
             }}
             QPushButton:hover {{
                 background-color: #e0e0e0;
             }}
         """)
         run_without_save_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        run_without_save_btn.setFixedSize(w(170), h(40))
         run_without_save_btn.clicked.connect(self.on_run_without_save)
 
         # 취소 버튼
         cancel_btn = QPushButton("Cancel")
-        cancel_btn.setFont(QFont("Arial", f(10)))  # 폰트 크기 비율 적용
         cancel_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #f0f0f0;
@@ -159,13 +154,14 @@ class SaveConfirmationDialog(QDialog):
                 border-radius: {w(10)}px;
                 width: {w(100)}px;
                 height: {h(40)}px;
+                font-family:{description_label_font};
+                font-size: {f(14)}px;
             }}
             QPushButton:hover {{
                 background-color: #e0e0e0;
             }}
         """)
         cancel_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        cancel_btn.setFixedSize(w(100), h(40))
         cancel_btn.clicked.connect(self.on_cancel)
 
         # 버튼 레이아웃에 버튼 추가
