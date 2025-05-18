@@ -1,8 +1,8 @@
 import pandas as pd
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
-    QMessageBox, QScrollArea, QSizePolicy, QStackedWidget, QCheckBox
+    QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QSplitter,
+    QMessageBox, QScrollArea, QStackedWidget, QCheckBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -23,7 +23,7 @@ def create_button(text, style="primary", parent=None):
     font.setBold(True)
     btn.setFont(font)
     btn.setCursor(QCursor(Qt.PointingHandCursor))
-    btn.setFixedSize(150, 50)
+    btn.setFixedSize(100, 40)
     btn.setStyleSheet(
         PRIMARY_BUTTON_STYLE if style == "primary" else SECONDARY_BUTTON_STYLE
     )
@@ -46,6 +46,7 @@ class PlanningPage(QWidget):
         self.main_layout.setAlignment(Qt.AlignTop)
 
         title_hbox = QHBoxLayout()
+        title_hbox.setContentsMargins(0, 10, 0, 10)
         lbl = QLabel("Pre-Assignment")
         f = QFont("Arial", 15)
         f.setBold(True)
@@ -68,12 +69,6 @@ class PlanningPage(QWidget):
         title_hbox.addWidget(btn_reset)
 
         self.main_layout.addLayout(title_hbox)
-
-        # main_container: 좌우 컨테이너 배치
-        self.main_container = QWidget(self)
-        mh = QHBoxLayout(self.main_container)
-        mh.setContentsMargins(0, 0, 0, 0)
-        mh.setSpacing(10)
 
         # LEFT: 캘린더 영역 (데이터 없을 때 placeholder 표시)
         self.leftContainer = QWidget(self)
@@ -127,9 +122,19 @@ class PlanningPage(QWidget):
         right_l.addWidget(self.stack, stretch=1)
         right_l.addStretch()
 
-        mh.addWidget(self.leftContainer, 3)
-        mh.addWidget(self.rightContainer, 1)
-        self.main_layout.addWidget(self.main_container)
+        # QSplitter
+        splitter = QSplitter(Qt.Horizontal, self)
+        splitter.setContentsMargins(0, 0, 0, 0)
+        splitter.setHandleWidth(10)
+        splitter.setChildrenCollapsible(False)
+
+        splitter.addWidget(self.leftContainer)
+        splitter.addWidget(self.rightContainer)
+
+        # 초기 분할 비율
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 1)
+        self.main_layout.addWidget(splitter, 1)
 
         self.setLayout(self.main_layout)
 
@@ -201,7 +206,7 @@ class PlanningPage(QWidget):
             self.placeholder_label.deleteLater()
             del self.placeholder_label
 
-        self.placeholder_label = QLabel("데이터가 없습니다", self.leftContainer)
+        self.placeholder_label = QLabel("Please Load to Data", self.leftContainer)
         self.placeholder_label.setAlignment(Qt.AlignCenter)
         self.leftContainer.layout().addWidget(self.placeholder_label, stretch=1)
 
@@ -255,14 +260,11 @@ class PlanningPage(QWidget):
 
         # 데이터 준비
         self._df = df.copy()
-        df = df.sort_values(
-            by=['Line', 'Time', 'Qty'],
-            ascending=[True, True, False]
-        ).reset_index(drop=True)
         # print(self._df)
-        agg = df.groupby(['Line', 'Time', 'Project'], as_index=False)['Qty'].sum()
+        tmp = df.sort_values(by=['Line', 'Time', 'Qty'], ascending=[True,True,False]).reset_index(drop=True)
+        agg = tmp.groupby(['Line', 'Time', 'Project'], as_index=False)['Qty'].sum()
         details = (
-            df.groupby(['Line', 'Time', 'Project'])
+            tmp.groupby(['Line', 'Time', 'Project'])
               .apply(lambda g: g[[
                   'Demand', 'Item', 'To_site', 'SOP', 'MFG', 'RMC', 'Due_LT', 'Qty'
               ]].to_dict('records'))
@@ -270,20 +272,54 @@ class PlanningPage(QWidget):
               .reset_index()
         )
         df_agg = agg.merge(details, on=['Line', 'Time', 'Project'])
+        df_agg = df_agg.assign(Building = df_agg['Line'].str.split('_').str[0])
+        df_agg['BuildingTotal'] = df_agg.groupby('Building')['Qty'].transform('sum')
         df_agg = df_agg.sort_values(
-            by=['Line', 'Time', 'Qty'],
-            ascending=[True, True, False]
+            by=['BuildingTotal', 'Building', 'Time', 'Qty'],
+            ascending=[False, True, True, False]
         ).reset_index(drop=True)
+        df_agg = df_agg.drop(columns=['Building', 'BuildingTotal'])
         # print(df_agg)
+        
+        # 각 Line별 총 Qty 계산
+        line_qty = df.groupby('Line')['Qty'].sum().to_dict()
+        
+        # Building별로 묶기
+        groups = {}
+        for line, qty in line_qty.items():
+            bld = line.split('_')[0]
+            groups.setdefault(bld, []).append((line, qty))
+
+        # Building별 총합 계산
+        building_totals = {
+            bld: sum(q for _, q in lines)
+            for bld, lines in groups.items()
+        }
+
+        # Building 총합 내림차순 정렬
+        sorted_buildings = sorted(
+            building_totals.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
+        # 각 Building 안의 Line들도 Qty 내림차순 정렬
+        self.line_order = []
+        for bld, _ in sorted_buildings:
+            # lines: [(line, qty), ...]
+            for line, _ in sorted(groups[bld], key=lambda x: x[1], reverse=True):
+                self.line_order.append(line)
 
         # 체크박스 생성
-        buildings = sorted({str(line).split('_')[0] for line in self._df['Line'].unique()})
+        prefixes = { line.split('_')[0] for line in self._df['Line'] }
+        buildings = sorted(prefixes)
+
         self.building_filter_widget = QWidget(self.leftContainer)
         df_layout = QHBoxLayout(self.building_filter_widget)
         df_layout.setAlignment(Qt.AlignLeft)
-        df_layout.setContentsMargins(0, 0, 0, 0)
-        for building in buildings:
-            cb = QCheckBox(building, self.building_filter_widget)
+        df_layout.setContentsMargins(0,0,0,0)
+        for b in buildings:
+            cb = QCheckBox(b, self.building_filter_widget)
             cb.stateChanged.connect(self._on_filter_changed)
             df_layout.addWidget(cb)
         self.leftContainer.layout().addWidget(self.building_filter_widget, stretch=0)
@@ -302,7 +338,7 @@ class PlanningPage(QWidget):
         self.body_layout.setSpacing(0)
         self.body_layout.setAlignment(Qt.AlignTop)
 
-        calendar = WeeklyCalendar(df_agg)
+        calendar = WeeklyCalendar(df_agg, line_order=self.line_order)
         self.body_layout.addWidget(calendar, 0, Qt.AlignTop)
 
         self.scroll_area.setWidget(self.body_container)
@@ -362,12 +398,19 @@ class PlanningPage(QWidget):
                 .reset_index()
         )
         df_agg = agg.merge(details, on=['Line', 'Time', 'Project'])
-        
+        df_agg = df_agg.assign(Building = df_agg['Line'].str.split('_').str[0])
+        df_agg['BuildingTotal'] = df_agg.groupby('Building')['Qty'].transform('sum')
+        df_agg = df_agg.sort_values(
+            by=['BuildingTotal', 'Building', 'Time', 'Qty'],
+            ascending=[False, True, True, False]
+        ).reset_index(drop=True)
+        df_agg = df_agg.drop(columns=['Building', 'BuildingTotal'])
+
         # 캘린더 위젯 교체
         old_widget = self.body_layout.takeAt(0).widget()
         if old_widget:
             old_widget.deleteLater()
-        new_calendar = WeeklyCalendar(df_agg)
+        new_calendar = WeeklyCalendar(df_agg, line_order=self.line_order)
         self.body_layout.addWidget(new_calendar, 0, Qt.AlignTop)
         
         # 스크롤바 여백 조정
