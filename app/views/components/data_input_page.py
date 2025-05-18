@@ -28,6 +28,7 @@ from app.analysis.input.shipment_analysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
+from app.utils.command.undo_redo_initializer import initialize_undo_redo_in_data_input_page
 from app.models.common.screen_manager import *
 
 class DataInputPage(QWidget) :
@@ -48,6 +49,8 @@ class DataInputPage(QWidget) :
         self.data_modifier = DataModifier(self)
 
         self._connect_signals()
+
+        initialize_undo_redo_in_data_input_page(self)
 
     def init_ui(self) :
         layout = QVBoxLayout(self)
