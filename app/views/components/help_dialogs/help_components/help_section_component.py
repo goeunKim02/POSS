@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QLabel
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import Qt
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """
 도움말 섹션 컴포넌트 - 제목, 설명, 이미지를 포함할 수 있는 섹션
@@ -46,10 +48,13 @@ class HelpSectionComponent(QFrame):
         self.setStyleSheet(
             "background-color: white; border:none; border-left: 4px solid #1428A0; padding: 5px; border-radius: 0 5px 5px 0;")
 
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
+
         # 메인 레이아웃
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(15)
+        main_layout.setSpacing(0)
 
         # 텍스트 위젯
         self.text_widget = QWidget()
@@ -61,8 +66,7 @@ class HelpSectionComponent(QFrame):
         # 제목 레이블
         title_text = f"{self.number}. {self.title}" if self.number else self.title
         title_label = QLabel(title_text)
-        title_label.setFont(QFont("Arial", 15, QFont.Bold))
-        title_label.setStyleSheet("color: #1428A0; border:none; margin-bottom: 0px;")
+        title_label.setStyleSheet(f"color: #1428A0; border:none; margin-bottom: 0px; font-family:{bold_font}; font-size: {f(20)}px; font-weight: 800;")
         title_label.setAlignment(Qt.AlignBottom)
 
         # 설명 컨테이너
@@ -75,8 +79,7 @@ class HelpSectionComponent(QFrame):
         # 설명 레이블
         desc_label = QLabel(self.description)
         desc_label.setWordWrap(True)
-        desc_label.setFont(QFont("Arial", 9, QFont.Bold))
-        desc_label.setStyleSheet("border:none;")
+        desc_label.setStyleSheet(f"border:none; font-family:{normal_font}; font-size: {f(16)}px;")
         desc_label.setAlignment(Qt.AlignTop)
 
         desc_layout.addWidget(desc_label)
@@ -151,10 +154,10 @@ class HelpSectionComponent(QFrame):
         if not list_container:
             list_container = QWidget()
             list_container.setObjectName("list_container")
-            list_container.setStyleSheet("border: none; background-color: transparent; font-family: Arial;")
+            list_container.setStyleSheet(f"border: none; background-color: transparent;")
 
             list_layout = QVBoxLayout(list_container)
-            list_layout.setContentsMargins(20, 5, 5, 5)
+            list_layout.setContentsMargins(5, 5, 5, 5)
             list_layout.setSpacing(5)
 
             layout.addWidget(list_container)
@@ -164,5 +167,5 @@ class HelpSectionComponent(QFrame):
         # 리스트 아이템 레이블
         item_label = QLabel(f"• {item_text}")
         item_label.setWordWrap(True)
-        item_label.setStyleSheet("font-size: 15px; border: none; font-family: Arial;")
+        item_label.setStyleSheet(f"font-size: 15px; border: none; font-family: {font_manager.get_just_font("SamsungOne-700").family()};")
         list_layout.addWidget(item_label)

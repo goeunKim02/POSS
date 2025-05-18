@@ -25,7 +25,7 @@ class OverviewTabComponent(BaseTabComponent):
                 background-color: #F9F9F9;
                 border-radius: 10px;
                 border: 1px solid #cccccc;
-                margin: {w(10)}px;
+                margin: 10px;
             }}
         """)
 
