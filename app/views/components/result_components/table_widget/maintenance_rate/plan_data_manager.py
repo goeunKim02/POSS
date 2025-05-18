@@ -194,6 +194,9 @@ class PlanDataManager(QObject):
         else:
             item_key = ItemKeyManager.get_item_key(line, time, item) 
 
+        # 두 가지 키 모두 저장 - ID 기반 키와 (Line, Time, Item) 키
+        line_time_item_key = ItemKeyManager.get_item_key(line, time, item)
+
         # rmc 관계 확인 및 추가
         if item_key not in self.item_to_rmc_map and 'RMC' in self.current_plan.columns:
             # 같은 아이템의 다른 위치에서 rmc 정보 가져오기
@@ -216,10 +219,11 @@ class PlanDataManager(QObject):
         if original_qty == new_qty and original_qty is not None:
             # 수정된 아이템 목록에서 제거
             self._update_item_status(item_key, False)
-            # print(f"값이 원래대로 돌아와 item 키 제거됨 : {item_key}")
+            self._update_item_status(line_time_item_key, False)  # 두 가지 키 모두 제거
         else:
             # 값이 변경된 경우 수정된 목록에 추가
             self._update_item_status(item_key, True)
+            self._update_item_status(line_time_item_key, True)  # 두 가지 키 모두 추가
             # print(f"Item 키 추가됨: {item_key}")
         
         # 수량 업데이트

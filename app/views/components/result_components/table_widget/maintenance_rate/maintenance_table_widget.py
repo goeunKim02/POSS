@@ -242,20 +242,30 @@ class MaintenanceTableWidget(CustomTable):
                     line_value = group_data['line']
                     shift_value = group_data['shift']
                     
-                    is_modified = False
-
                     if item_field == 'Item':
-                        # 아이템별 키 생성 및 비교
-                        current_key = ItemKeyManager.get_item_key(line_value, shift_value, item_value)
-                        is_modified = current_key in modified_item_keys
+                        is_modified = False
+                        # 1. ID 기반 키 먼저 확인 (우선순위)
+                        if '_id' in item_data:
+                            id_key = f"id_{item_data['_id']}"
+                            is_modified = id_key in modified_item_keys
+                        
+                        # 2. ID로 찾지 못한 경우에만 (Line, Time, Item) 조합 키 확인 (후순위)
+                        if not is_modified:
+                            current_key = ItemKeyManager.get_item_key(line_value, shift_value, item_value)
+                            is_modified = current_key in modified_item_keys
                     elif item_field == 'RMC':
-                        # RMC별 키 생성 및 비교 - 시간 값이 정수일 수 있음을 고려
-                        time_value = shift_value
-                        if shift_value.isdigit():
-                            time_value = int(shift_value)
-
-                        rmc_key = ItemKeyManager.get_item_key(line_value, time_value, item_value)
-                        is_modified = modified_rmc_keys and rmc_key in modified_rmc_keys
+                        is_modified = False
+                        
+                        # 1. ID 기반 키 먼저 확인 (우선순위)
+                        if '_id' in item_data:
+                            id_key = f"id_{item_data['_id']}"
+                            is_modified = modified_rmc_keys and id_key in modified_rmc_keys
+                        
+                        # 2. ID로 찾지 못한 경우에만 (Line, Time, RMC) 조합 키 확인 (후순위)
+                        if not is_modified:
+                            time_value = shift_value
+                            if shift_value.isdigit():
+                                time_value = int(shift_value)
                                         
                     # 데이터 행 생성
                     self.create_data_row(
