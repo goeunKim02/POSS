@@ -32,7 +32,7 @@ class OptimizationWorker(QThread):
 
             # 진행 상황 초기화 - 0%부터 시작
             self.progress_updated.emit(0)
-            self.status_updated.emit("최적화 초기화 중...")
+            self.status_updated.emit("Initializing optimization...")
             QApplication.processEvents()
             time.sleep(0.1)  # UI가 업데이트될 시간을 줌
 
@@ -43,7 +43,7 @@ class OptimizationWorker(QThread):
                 time.sleep(0.05)
 
             # 데이터프레임 준비 (초기 10% 진행)
-            self.status_updated.emit("데이터프레임 준비 중...")
+            self.status_updated.emit("Preparing the dataframe...")
             self.progress_updated.emit(10)
             QApplication.processEvents()
 
@@ -59,7 +59,7 @@ class OptimizationWorker(QThread):
                 return
 
             # 최적화 엔진 초기화 (약 20% 진행)
-            self.status_updated.emit("최적화 엔진 초기화 중...")
+            self.status_updated.emit("Initializing the optimization engine...")
             self.progress_updated.emit(20)
             QApplication.processEvents()
 
@@ -86,7 +86,7 @@ class OptimizationWorker(QThread):
                 return
 
             # 모델 정의 및 제약 조건 설정 (약 40% 진행)
-            self.status_updated.emit("최적화 모델 구성 중...")
+            self.status_updated.emit("Building the optimization model...")
             self.progress_updated.emit(40)
             QApplication.processEvents()
 
@@ -100,7 +100,7 @@ class OptimizationWorker(QThread):
                 return
 
             # 최적화 실행 (약 60% 진행)
-            self.status_updated.emit("최적화 모델 실행 중...")
+            self.status_updated.emit("Running the optimization model...")
             self.progress_updated.emit(60)
             QApplication.processEvents()
 
@@ -114,7 +114,7 @@ class OptimizationWorker(QThread):
             result = self.optimization_engine.pre_assign()
 
             # 결과 처리 중 진행률 업데이트
-            self.status_updated.emit("최적화 결과 처리 중...")
+            self.status_updated.emit("Processing optimization results...")
             for i in range(70, 95, 5):
                 self.progress_updated.emit(i)
                 QApplication.processEvents()
@@ -124,7 +124,7 @@ class OptimizationWorker(QThread):
                 return
 
             # 완료 및 결과 반환
-            self.status_updated.emit("최적화 완료!")
+            self.status_updated.emit("Optimization complete! Please wait a moment...")
             self.progress_updated.emit(100)
             QApplication.processEvents()
             time.sleep(0.2)  # 완료 상태 표시를 위한 약간의 지연
@@ -148,7 +148,7 @@ class OptimizationProgressDialog(QDialog):
 
     def __init__(self, data_input_page, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("최적화가 진행 중입니다.")
+        self.setWindowTitle("Initializing optimization.")
         self.setModal(True)
         self.setFixedSize(w(1000), h(600))
 
@@ -226,7 +226,7 @@ class OptimizationProgressDialog(QDialog):
         content_layout.setSpacing(w(20))
 
         # 진행 상태 레이블
-        self.status_label = QLabel("최적화가 시작되었습니다...")
+        self.status_label = QLabel("Optimization has started...")
         status_font = font_manager.get_font("SamsungOne-700", f(12))
         self.status_label.setFont(status_font)
         self.status_label.setAlignment(Qt.AlignCenter)
@@ -263,7 +263,7 @@ class OptimizationProgressDialog(QDialog):
         content_layout.addWidget(self.progress_bar)
 
         # 시간 정보 레이블
-        self.time_label = QLabel("처리 중...")
+        self.time_label = QLabel("Processing...")
         time_font = font_manager.get_font("SamsungOne-700", f(10))
         self.time_label.setFont(time_font)
         self.time_label.setAlignment(Qt.AlignCenter)
@@ -311,7 +311,7 @@ class OptimizationProgressDialog(QDialog):
         button_layout.addStretch()
 
         # 취소 버튼
-        self.cancel_button = QPushButton("취소")
+        self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setCursor(Qt.PointingHandCursor)
         cancel_font = font_manager.get_font("SamsungOne-700", f(10))
         cancel_font.setBold(True)
@@ -341,9 +341,9 @@ class OptimizationProgressDialog(QDialog):
         """최적화 프로세스 시작"""
         # 진행 표시줄 초기화 및 UI 업데이트
         self.progress_bar.setValue(0)
-        self.status_label.setText("최적화가 시작되었습니다...")
-        self.time_label.setText("준비 중...")
-        self.log_message("최적화 프로세스를 시작합니다.")
+        self.status_label.setText("Optimization has started...")
+        self.time_label.setText("Preparing...")
+        self.log_message("Starting the optimization process.")
 
         # UI 업데이트 강제 실행
         QApplication.processEvents()
@@ -359,7 +359,7 @@ class OptimizationProgressDialog(QDialog):
 
         # UI가 업데이트될 시간을 주기 위해 약간의 지연 후 작업 시작
         QTimer.singleShot(200, self.worker.start)
-        self.log_message("최적화 작업 스레드가 시작됩니다.")
+        self.log_message("Starting the optimization process.")
 
     def update_progress(self, value):
         """프로그래스바 업데이트"""
@@ -377,7 +377,7 @@ class OptimizationProgressDialog(QDialog):
                     height: {h(40)}px;
                     font-size: {f(11)}px;
                     font-weight: bold;
-                    color: white;  /* 텍스트 색상을 하얀색으로 변경 */
+                    color: white; 
                 }}
                 QProgressBar::chunk {{
                     background-color: #1428A0;
@@ -388,24 +388,24 @@ class OptimizationProgressDialog(QDialog):
 
         # 상태 메시지 업데이트
         if value < 20:
-            self.time_label.setText("데이터 준비 중...")
+            self.time_label.setText("Preparing data...")
         elif value < 40:
-            self.time_label.setText("제약 조건 정의 중...")
+            self.time_label.setText("Defining constraints...")
         elif value < 60:
-            self.time_label.setText("모델 구성 중...")
+            self.time_label.setText("Configuring model...")
         elif value < 80:
-            self.time_label.setText("최적화 중...")
+            self.time_label.setText("Optimizing...")
         elif value < 95:
-            self.time_label.setText("거의 완료됨...")
+            self.time_label.setText("Almost done...")
         else:
-            self.time_label.setText("완료")
+            self.time_label.setText("Completed. Displaying results...")
 
             if value == 100:
-                self.cancel_button.setText("닫기")
+                self.cancel_button.setText("Cancel")
 
         # 로그에 진행률 기록
         if value % 10 == 0:  # 10% 단위로만 로그 기록
-            self.log_message(f"진행률: {value}%")
+            self.log_message(f"Progress: {value}%")
 
         # UI 업데이트 강제 실행
         QApplication.processEvents()
@@ -434,10 +434,10 @@ class OptimizationProgressDialog(QDialog):
     def on_optimization_finished(self, result):
         """최적화 완료 처리"""
         self.update_progress(100)
-        self.status_label.setText("최적화가 완료되었습니다!")
-        self.time_label.setText("완료")
-        self.cancel_button.setText("닫기")
-        self.log_message("최적화가 성공적으로 완료되었습니다.")
+        self.status_label.setText("Optimization is complete.")
+        self.time_label.setText("Complete")
+        self.cancel_button.setText("Cancel")
+        self.log_message("Optimization is complete. Please wait a moment.")
 
         # UI 업데이트 강제 실행
         QApplication.processEvents()
@@ -450,10 +450,10 @@ class OptimizationProgressDialog(QDialog):
 
     def on_error_occurred(self, error_message):
         """오류 발생 처리"""
-        self.status_label.setText(f"오류: {error_message}")
-        self.time_label.setText("실패")
-        self.cancel_button.setText("닫기")
-        self.log_message(f"오류 발생: {error_message}")
+        self.status_label.setText(f"Error: {error_message}")
+        self.time_label.setText("Fail")
+        self.cancel_button.setText("Cancel")
+        self.log_message(f"An error has occurred.: {error_message}")
 
         # UI 업데이트 강제 실행
         QApplication.processEvents()
@@ -461,8 +461,8 @@ class OptimizationProgressDialog(QDialog):
         # 오류 발생 알림
         QMessageBox.warning(
             self,
-            "최적화 오류",
-            f"최적화 과정에서 오류가 발생했습니다: {error_message}"
+            "Optimization error.",
+            f"An error occurred during the optimization process.: {error_message}"
         )
 
         self.optimization_cancelled.emit()
@@ -474,9 +474,9 @@ class OptimizationProgressDialog(QDialog):
             self.worker.wait()  # 스레드가 종료될 때까지 기다림
 
             # 취소 메시지 표시
-            self.status_label.setText("최적화가 취소되었습니다.")
-            self.cancel_button.setText("닫기")
-            self.log_message("사용자에 의해 최적화가 취소되었습니다.")
+            self.status_label.setText("The optimization has been canceled.")
+            self.cancel_button.setText("Cancel")
+            self.log_message("The optimization was canceled by the user.")
 
             # UI 업데이트 강제 실행
             QApplication.processEvents()
