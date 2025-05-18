@@ -550,8 +550,8 @@ class LeftParameterComponent(QWidget):
                 ]
             elif metric == 'Plan Retention':
                 summary_data = [
-                    ("Maximum SKU Plan Retention Rate",f"{summary.get('Maximum SKU Plan Retention Rate',0)} %"),
-                    ("Maximum RMC Plan Retention Rate",f"{summary.get('Maximum RMC Plan Retention Rate',0)} %"),
+                    ("Maximum SKU Plan Retention Rate",f"{summary.get('Maximum SKU Plan Retention Rate',0):.1f} %"),
+                    ("Maximum RMC Plan Retention Rate",f"{summary.get('Maximum RMC Plan Retention Rate',0):.1f} %"),
                     ("Required SKU Plan Retention Rate1",f"{SettingsStore.get('op_SKU_1',0)} %"),
                     ("Required RMC Plan Retention Rate1",f"{SettingsStore.get('op_RMC_1',0)} %"),
                     ("Required SKU Plan Retention Rate2",f"{SettingsStore.get('op_SKU_2',0)} %"),

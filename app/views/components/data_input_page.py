@@ -490,13 +490,13 @@ class DataInputPage(QWidget) :
         rmc2 = SettingsStore.get('op_RMC_2',0)
         plan_retention_errors = []
         if item_plan_retention < sku1:
-            plan_retention_errors.append({'reason':f'The selected sku1 plan retention ratio {sku1}% is greater than the maximum {item_plan_retention}%.'})
+            plan_retention_errors.append({'reason':f'The selected sku1 plan retention ratio {sku1}% is greater than the maximum {item_plan_retention:.1f}%.'})
         if item_plan_retention < sku2:
-            plan_retention_errors.append({'reason':f'The selected sku2 plan retention ratio {sku2}% is greater than the maximum {item_plan_retention}%.'})
+            plan_retention_errors.append({'reason':f'The selected sku2 plan retention ratio {sku2}% is greater than the maximum {item_plan_retention:.1f}%.'})
         if rmc_plan_retention < rmc1:
-            plan_retention_errors.append({'reason':f'The selected rmc1 plan retention ratio {rmc1}% is greater than the maximum {rmc_plan_retention}%.'})
+            plan_retention_errors.append({'reason':f'The selected rmc1 plan retention ratio {rmc1}% is greater than the maximum {rmc_plan_retention:.1f}%.'})
         if rmc_plan_retention < rmc2:
-            plan_retention_errors.append({'reason':f'The selected rmc2 plan retention ratio {rmc2}% is greater than the maximum {rmc_plan_retention}%.'})
+            plan_retention_errors.append({'reason':f'The selected rmc2 plan retention ratio {rmc2}% is greater than the maximum {rmc_plan_retention:.1f}%.'})
         failures['plan_retention'] = plan_retention_errors
         summary = {
             'Maximum SKU Plan Retention Rate':item_plan_retention,
