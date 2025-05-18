@@ -86,17 +86,15 @@ class LeftParameterComponent(QWidget):
 
         for i, btn_text in enumerate(self.metrics):
             btn = QPushButton(btn_text)
-            btn_font = font_manager.get_font("SamsungOne-700", 11)
-            btn_font.setBold(True)
-            btn.setFont(btn_font)
+            btn_font = font_manager.get_just_font("SamsungOne-700").family()
             btn.setCursor(QCursor(Qt.PointingHandCursor))
 
             btn.setMinimumWidth(w(80))
 
             # 버튼 스타일 업데이트
             if i == 0:
-                btn.setStyleSheet("""
-                            QPushButton {
+                btn.setStyleSheet(f"""
+                            QPushButton {{
                                 background-color: #1428A0;
                                 color: white;
                                 border: none;
@@ -104,14 +102,16 @@ class LeftParameterComponent(QWidget):
                                 padding: 4px 8px;
                                 min-height: 26px;
                                 font-weight: bold;
-                            }
-                            QPushButton:hover {
+                                font-family: {btn_font};
+                                font-size: {f(16)}px;
+                            }}
+                            QPushButton:hover {{
                                 background-color: #0F1F8A;
-                            }
+                            }}
                         """)
             else:
-                btn.setStyleSheet("""
-                            QPushButton {
+                btn.setStyleSheet(f"""
+                            QPushButton {{
                                 background-color: white;
                                 color: #666666;
                                 border: 1px solid #E0E0E0;
@@ -119,12 +119,14 @@ class LeftParameterComponent(QWidget):
                                 padding: 4px 8px;
                                 min-height: 26px;
                                 font-weight: bold;
-                            }
-                            QPushButton:hover {
+                                font-family: {btn_font};
+                                font-size: {f(16)}px;
+                            }}
+                            QPushButton:hover {{
                                 background-color: #F5F5F5;
                                 color: #1428A0;
                                 border-color: #1428A0;
-                            }
+                            }}
                         """)
 
             btn.clicked.connect(lambda checked, idx=i: self.switch_tab(idx))
@@ -198,7 +200,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 0px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: 16px;
+                        font-size: {f(16)}px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px; 
@@ -219,7 +221,7 @@ class LeftParameterComponent(QWidget):
                         padding: 4px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
-                        font-size: {f(24)}px;
+                        font-size: {f(18)}px;
                     }}
                     QScrollBar:vertical {{
                         border: none;

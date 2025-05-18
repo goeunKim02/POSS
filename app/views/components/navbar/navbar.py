@@ -18,8 +18,8 @@ class Navbar(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #1428A0;
-                min-height: {h(60)}px;
-                max-height: {h(60)}px;
+                min-height: {h(50)}px;
+                max-height: {h(50)}px;
             }}
             QLabel {{
                 color: white;
@@ -46,10 +46,8 @@ class Navbar(QFrame):
         logo_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
         # font_manager 사용
-        logo_font = font_manager.get_font("SamsungOne-700", f(15))
-        logo_font.setBold(True)
-        logo_font.setWeight(99)
-        logo_label.setFont(logo_font)
+        logo_font = font_manager.get_just_font("SamsungOne-700").family()
+        logo_label.setStyleSheet(f" QLabel {{font-family : {logo_font}; font-size: {f(20)}px; font-weight: bold; color: white;}}")
 
         navbar_layout.addWidget(logo_label)
         navbar_layout.addStretch()
@@ -58,12 +56,12 @@ class Navbar(QFrame):
         settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
 
         # font_manager 사용
-        btn_font = font_manager.get_font("SamsungOne-700", f(10), QFont.Bold)
-        settings_btn.setFont(btn_font)
+        btn_font = font_manager.get_just_font("SamsungOne-700").family()
+        settings_btn.setStyleSheet(f" QPushButton {{ font-family : {btn_font}; font-size: {f(10)}; font-weight: bold; color: white;}}")
 
         help_btn = QPushButton("Help")
         help_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        help_btn.setFont(btn_font)  # 같은 폰트 사용
+        help_btn.setStyleSheet(f" QPushButton {{ font-family : {btn_font}; font-size: {f(10)}; font-weight: bold; color: white;}}")
 
         # 시그널 연결
         help_btn.clicked.connect(self.help_clicked.emit)

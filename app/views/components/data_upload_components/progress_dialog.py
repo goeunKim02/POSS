@@ -209,6 +209,44 @@ class OptimizationProgressDialog(QDialog):
         elapsed_time = (self.current_progress / 10)  # 0.1초 단위로 계산
         progress_percentage = min((elapsed_time / self.total_time) * 100, 100)
 
+        # 50% 이상일 때 텍스트 색상을 하얀색으로 변경
+        if progress_percentage >= 50:
+            self.progress_bar.setStyleSheet(f"""
+                QProgressBar {{
+                    border: 2px solid #E0E0E0;
+                    border-radius: {w(8)}px;
+                    background-color: white;
+                    text-align: center;
+                    height: {h(40)}px;
+                    font-size: {f(11)}px;
+                    font-weight: bold;
+                    color: white;  /* 텍스트 색상을 하얀색으로 변경 */
+                }}
+                QProgressBar::chunk {{
+                    background-color: #1428A0;
+                    border-radius: {w(6)}px;
+                    margin: {w(2)}px;
+                }}
+            """)
+        else:
+            self.progress_bar.setStyleSheet(f"""
+                QProgressBar {{
+                    border: 2px solid #E0E0E0;
+                    border-radius: {w(8)}px;
+                    background-color: white;
+                    text-align: center;
+                    height: {h(40)}px;
+                    font-size: {f(11)}px;
+                    font-weight: bold;
+                    color: #333333;  /* 기본 텍스트 색상 */
+                }}
+                QProgressBar::chunk {{
+                    background-color: #1428A0;
+                    border-radius: {w(6)}px;
+                    margin: {w(2)}px;
+                }}
+            """)
+
         self.progress_bar.setValue(int(progress_percentage))
 
         # 남은 시간 계산
@@ -236,7 +274,7 @@ class OptimizationProgressDialog(QDialog):
         self.optimization_completed.emit()
 
         # 1초 후 자동 닫기
-        QTimer.singleShot(1000, self.accept)
+        QTimer.singleShot(100, self.accept)
 
     def cancel_optimization(self):
         """최적화 취소"""

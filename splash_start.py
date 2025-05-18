@@ -122,7 +122,7 @@ class SamsungSplashScreen(QWidget):
             self.current_stage += 1
 
         # 로딩 완료 시 메인 앱 실행 및 스플래시 숨기기
-        if self.progress_value >= 90:
+        if self.progress_value >= 1:
             self.timer.stop()
             self.hide()
 

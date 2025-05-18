@@ -83,28 +83,58 @@ class DataInputTabComponent(BaseTabComponent):
             description="Select a file or sheet from the file explorer on the left to review its contents. Data can be edited as needed.",
             image_path="app/resources/help_images/data_content.png"
         )
+        section3.add_list_item("The user can edit the content and run it with the modified values.")
+
+        section3_1 = HelpSectionComponent(
+            number="3-1",
+            title="Edit File Contents",
+            description="If any edits are made, the modified files and sheets will be highlighted in red.",
+            image_path="app/resources/help_images/edit_data.png"
+        )
+
+        section3_2 = HelpSectionComponent(
+            number="3-2",
+            title="Save modified files",
+            description="If you click the Save button, the original file will be overwritten with the modified content.",
+            image_path="app/resources/help_images/save_btn.png"
+        )
 
         # 섹션 4 - 파라미터 설정
         section4 = HelpSectionComponent(
             number=4,
-            title="Parameter Settings",
-            description="Adjust optimization settings in the parameter section at the bottom."
+            title="Adjust Settings",
+            description="You need to adjust the settings in the settings window before running.",
+            image_path = "app/resources/help_images/settings.png"
         )
+        section4.add_list_item("Once you set it, the same settings will be saved for the next time as well.")
+
 
         # 섹션 5 - 실행
-        section5 = HelpSectionComponent(
-            number=5,
-            title="Run",
+        section5_1 = HelpSectionComponent(
+            number="5-1",
+            title="Run without any modifications.",
             description="Initiate the optimization process by clicking the 'Run' button.",
             image_path="app/resources/help_images/run_btn.png"
         )
+
+        section5_2 = HelpSectionComponent(
+            number="5-2",
+            title="Run with modifications.",
+            description="If you run without saving the modifications, you will be given the option to either save and run or run without saving.",
+            image_path="app/resources/help_images/save_change.png"
+        )
+
+
 
         # 섹션 프레임에 모든 섹션 추가
         sections_layout.addWidget(section1)
         sections_layout.addWidget(section2)
         sections_layout.addWidget(section3)
+        sections_layout.addWidget(section3_1)
+        sections_layout.addWidget(section3_2)
         sections_layout.addWidget(section4)
-        sections_layout.addWidget(section5)
+        sections_layout.addWidget(section5_1)
+        sections_layout.addWidget(section5_2)
 
         # 메모 레이블
         note_label = QLabel("Ensure all required files are uploaded before starting the optimization process.")

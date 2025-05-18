@@ -54,10 +54,8 @@ class RightParameterComponent(QWidget):
         title_layout.setContentsMargins(w(10), h(8), w(10), h(8))
 
         title_label = QLabel("Problems")
-        title_font = font_manager.get_font("SamsungOne-700", f(12))
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet("color: #333333; background-color: transparent; border: none;")
+        title_font = font_manager.get_just_font("SamsungOne-700").family()
+        title_label.setStyleSheet(f"color: #333333; background-color: transparent; border: none; font-family: {title_font}; font-weight: bold; font-size: {f(24)}px;")
 
         minimize_button = QPushButton()
         minimize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarMinButton))
