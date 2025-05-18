@@ -30,6 +30,7 @@ from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
 from app.utils.command.undo_redo_initializer import initialize_undo_redo_in_data_input_page
 from app.models.common.screen_manager import *
+from app.models.common.settings_store import SettingsStore
 
 class DataInputPage(QWidget) :
     file_selected = pyqtSignal(str)
@@ -482,12 +483,32 @@ class DataInputPage(QWidget) :
     def run_combined_analysis(self) :
         failures = run_allocation()
 
-        item_plan_retention, rmc_plan_retention = calc_plan_retention()
-    
-        failures["plan_retention"] = {
-            "item_plan_retention": item_plan_retention,
-            "rmc_plan_retention": rmc_plan_retention
+        item_plan_retention, rmc_plan_retention,df_result = calc_plan_retention()
+        sku1 = SettingsStore.get('op_SKU_1',0)
+        rmc1 = SettingsStore.get('op_RMC_1',0)
+        sku2 = SettingsStore.get('op_SKU_2',0)
+        rmc2 = SettingsStore.get('op_RMC_2',0)
+        plan_retention_errors = []
+        if item_plan_retention < sku1:
+            plan_retention_errors.append({'reason':f'The selected sku1 plan retention ratio {sku1}% is greater than the maximum {item_plan_retention:.1f}%.'})
+        if item_plan_retention < sku2:
+            plan_retention_errors.append({'reason':f'The selected sku2 plan retention ratio {sku2}% is greater than the maximum {item_plan_retention:.1f}%.'})
+        if rmc_plan_retention < rmc1:
+            plan_retention_errors.append({'reason':f'The selected rmc1 plan retention ratio {rmc1}% is greater than the maximum {rmc_plan_retention:.1f}%.'})
+        if rmc_plan_retention < rmc2:
+            plan_retention_errors.append({'reason':f'The selected rmc2 plan retention ratio {rmc2}% is greater than the maximum {rmc_plan_retention:.1f}%.'})
+        failures['plan_retention'] = plan_retention_errors
+        summary = {
+            'Maximum SKU Plan Retention Rate':item_plan_retention,
+            'Maximum RMC Plan Retention Rate':rmc_plan_retention,
         }
+        current_data = self.left_parameter_component.all_project_analysis_data.copy()
+        display_df = df_result
+        current_data['Plan Retention'] = {
+            'display_df' : display_df,
+            'summary' : summary
+        }
+        self.left_parameter_component.set_project_analysis_data(current_data)
 
         try :
             shipment_data = preprocess_data_for_fulfillment_rate()
