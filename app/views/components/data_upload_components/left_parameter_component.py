@@ -498,6 +498,11 @@ class LeftParameterComponent(QWidget):
                             elif status == 'OK':
                                 for col in range(len(headers)):
                                     item.setForeground(col, green_brush)
+                        elif metric == 'Plan Retention':
+                            if round(row['Max Item Qty']) < round(row['Previous Qty']) or round(row['Max RMC Qty']) < round(row['Previous Qty']):
+                                for col in range(len(header)):
+                                    item.setForeground(col,red_brush)
+
                     except Exception as style_error:
                         pass
 
