@@ -2,12 +2,12 @@ from PyQt5.QtWidgets import QFrame, QVBoxLayout, QWidget, QLabel
 from PyQt5.QtGui import QFont, QPixmap
 from PyQt5.QtCore import Qt
 
-
 """
 도움말 섹션 컴포넌트 - 제목, 설명, 이미지를 포함할 수 있는 섹션
 """
-class HelpSectionComponent(QFrame):
 
+
+class HelpSectionComponent(QFrame):
     """
     도움말 섹션 초기화
 
@@ -18,23 +18,29 @@ class HelpSectionComponent(QFrame):
         image_path (str, optional): 이미지 경로
         parent (QWidget, optional): 부모 위젯
     """
+
     def __init__(self, number, title, description, image_path=None, parent=None):
         super().__init__(parent)
-        
+
         self.number = number
         self.title = title
         self.description = description
         self.image_path = image_path
 
-        # 고정된 이미지 크기 설정
-        self.IMAGE_WIDTH = 600
-        self.IMAGE_HEIGHT = 400
+        # 고정된 이미지 컨테이너 크기 설정
+        self.IMAGE_CONTAINER_WIDTH = 650
+        self.IMAGE_CONTAINER_HEIGHT = 350
+
+        # 이미지 최대 크기 설정 (컨테이너보다 약간 작게)
+        self.IMAGE_MAX_WIDTH = 600
+        self.IMAGE_MAX_HEIGHT = 300
 
         self.init_ui()
 
     """
     UI 초기화
     """
+
     def init_ui(self):
         # 기본 스타일 설정
         self.setStyleSheet(
@@ -82,11 +88,13 @@ class HelpSectionComponent(QFrame):
 
         # 이미지 레이블
         if self.image_path:
-            # 이미지 컨테이너
+            # 이미지 컨테이너 - 고정 크기 설정
             image_container = QWidget()
+            image_container.setFixedSize(self.IMAGE_CONTAINER_WIDTH, self.IMAGE_CONTAINER_HEIGHT)
             image_container.setStyleSheet("""
-                background-color: transparent;
-                border: none;
+                background-color: white;
+                border: 1px solid #e0e0e0;
+                border-radius: 5px;
             """)
 
             # 이미지 컨테이너 레이아웃
@@ -103,10 +111,10 @@ class HelpSectionComponent(QFrame):
             pixmap = QPixmap(self.image_path)
 
             if not pixmap.isNull():
-                # 이미지 크기 조정
+                # 이미지 크기 조정 (최대 크기 설정하고 비율 유지)
                 pixmap = pixmap.scaled(
-                    self.IMAGE_WIDTH,
-                    self.IMAGE_HEIGHT,
+                    self.IMAGE_MAX_WIDTH,
+                    self.IMAGE_MAX_HEIGHT,
                     Qt.KeepAspectRatio,
                     Qt.SmoothTransformation
                 )
@@ -127,6 +135,7 @@ class HelpSectionComponent(QFrame):
     Args:
         item_text (str): 리스트 아이템 텍스트
     """
+
     def add_list_item(self, item_text):
         layout = self.text_widget.layout()
 

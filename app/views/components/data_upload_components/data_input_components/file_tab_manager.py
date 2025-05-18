@@ -6,6 +6,7 @@ import os
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
 from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
 from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 
 class FileTabManager:
@@ -50,11 +51,12 @@ class FileTabManager:
                 border: 1px solid #cccccc;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
-                padding: 6px 10px;
+                padding: {h(6)}px {w(10)}px;
                 margin-right: 2px;
-                min-width: 50px;
-                font-family: {font_manager.get_just_font("SamsungOne-700").family()}, sans-serif;
+                min-width: {w(50)}px;
+                font-family: {font_manager.get_just_font("SamsungOne-700").family()};
                 font-weight: bold;
+                font-size: {f(12)}px;
             }}
             QTabBar::tab:selected, QTabBar::tab:hover {{
                 background: #1428A0;
@@ -355,7 +357,7 @@ class FileTabManager:
         empty_layout.setContentsMargins(0, 0, 0, 0)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
         empty_msg.setAlignment(Qt.AlignCenter)
-        empty_msg.setStyleSheet(f"color: #888; font-size: 14px; font-family: {font_manager.get_just_font("SamsungSharpSans-Bold")}; font-weight: bold;")
+        empty_msg.setStyleSheet(f"color: #888; font-size: {f(24)}px; font-family: {font_manager.get_just_font("SamsungSharpSans-Bold")}; font-weight: bold;")
         empty_layout.addWidget(empty_msg)
 
         # 위젯 추가
