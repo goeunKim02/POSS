@@ -12,7 +12,7 @@ from app.utils.error_handler import (
     DataError, ValidationError
 )
 from app.models.common.screen_manager import *
-
+from app.models.common.settings_store import SettingsStore
 """
 좌측 파라미터 영역에 프로젝트 분석 결과 표시
 """
@@ -429,6 +429,8 @@ class LeftParameterComponent(QWidget):
                     headers = list(display_df.columns)
                 elif metric == 'Current Shipment':
                     headers = ["Category", "Name", "SOP", "Production", "Fulfillment Rate", "Status"]
+                elif metric == 'Plan Retention':
+                    headers = ['RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
                 else:
                     headers = list(display_df.columns) if hasattr(display_df, 'columns') else []
 
@@ -546,7 +548,15 @@ class LeftParameterComponent(QWidget):
                     ("Site Count", f"{summary.get('Site count', 0)}"),
                     ("Bottleneck Items", f"{summary.get('Bottleneck items', 0)}")
                 ]
-
+            elif metric == 'Plan Retention':
+                summary_data = [
+                    ("Maximum SKU Plan Retention Rate",f"{summary.get('Maximum SKU Plan Retention Rate',0)} %"),
+                    ("Maximum RMC Plan Retention Rate",f"{summary.get('Maximum RMC Plan Retention Rate',0)} %"),
+                    ("Required SKU Plan Retention Rate1",f"{SettingsStore.get('op_SKU_1',0)} %"),
+                    ("Required RMC Plan Retention Rate1",f"{SettingsStore.get('op_RMC_1',0)} %"),
+                    ("Required SKU Plan Retention Rate2",f"{SettingsStore.get('op_SKU_2',0)} %"),
+                    ("Required RMC Plan Retention Rate2",f"{SettingsStore.get('op_RMC_2',0)} %"),
+                ]
             # Summary 테이블에 데이터 추가
             for label, value in summary_data:
                 item = QTreeWidgetItem([label, str(value)])
