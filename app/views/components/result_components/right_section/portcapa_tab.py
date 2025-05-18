@@ -33,7 +33,7 @@ class PortCapaTab(QWidget):
     콘텐츠 업데이트
     """
     def update_content(self, data=None):
-        if self.portcapa_widget and data is not None:
+        if self.portcapa_widget:
             self.portcapa_widget.render_table()
     
     """
