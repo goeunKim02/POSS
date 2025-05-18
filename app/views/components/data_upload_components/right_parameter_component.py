@@ -10,6 +10,7 @@ from app.utils.error_handler import (
 )
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.screen_manager import *
+from app.models.common.settings_store import SettingsStore
 
 
 class RightParameterComponent(QWidget):
@@ -227,35 +228,23 @@ class RightParameterComponent(QWidget):
         try:
             if failures.get('plan_retention') is not None:
                 plan_retention = failures.get('plan_retention', {})
+                if plan_retention:
+                    # 섹션 헤더 추가
+                    header_item = QListWidgetItem("Plan Retention")
+                    header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
+                    header_item.setBackground(QColor('#F8F9FA'))
+                    header_item.setForeground(QColor('#1428A0'))
+                    header_item.setFlags(Qt.ItemIsEnabled)
+                    self.list_widget.addItem(header_item)
+                    for error in plan_retention:
+                        item = QListWidgetItem(error['reason'])
+                        item_font = font_manager.get_font('SamsungOne-700', 9)
+                        item.setFont(item_font)
+                        item.setForeground(QColor('#E74C3C'))
+                        self.list_widget.addItem(item)
 
-                item_plan_retention_rate = plan_retention.get('item_plan_retention')
-                rmc_plan_retention = plan_retention.get('rmc_plan_retention')
 
-                # 섹션 헤더 추가
-                header_item = QListWidgetItem("Plan Retention")
-                header_item.setFont(font_manager.get_font('SamsungOne-700', 11))
-                header_item.setBackground(QColor('#F8F9FA'))
-                header_item.setForeground(QColor('#1428A0'))
-                header_item.setFlags(Qt.ItemIsEnabled)
-                self.list_widget.addItem(header_item)
-
-                item1 = QListWidgetItem(f'최대 Item 계획유지율 : {item_plan_retention_rate}')
-                item2 = QListWidgetItem(f'최대 RMC 계획유지율 : {rmc_plan_retention}')
-
-                item_font = font_manager.get_font('SamsungOne-700', 9)
-                item1.setFont(item_font)
-                item2.setFont(item_font)
-                item1.setForeground(QColor('#666666'))
-                item2.setForeground(QColor('#666666'))
-
-                safe_operation(
-                    self.list_widget.addItem,
-                    'Error adding plan retention item', item1
-                )
-                safe_operation(
-                    self.list_widget.addItem,
-                    'Error adding plan retention item', item2
-                )
+            
         except Exception as e:
             raise DataError(f'Error processing plan retention data : {str(e)}')
 
