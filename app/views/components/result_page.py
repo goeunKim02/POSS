@@ -554,12 +554,15 @@ class ResultPage(QWidget):
                 # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
                 if self.data_changed_count > 1:
                     # 제조동별 생산량 비율 분석
+                    print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=False")
                     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=False)
                 else:
                     # 첫 번째 이벤트는 결과를 저장하지만 출력하지 않음
+                    print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=True")
                     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
-                
+    
                 # 요일별 가동률 
+                print("[디버그] CapaUtilization.analyze_utilization 호출")
                 self.utilization_data = CapaUtilization.analyze_utilization(data)
 
                 # 시각화 업데이트
@@ -583,11 +586,31 @@ class ResultPage(QWidget):
     """
     def update_all_visualizations(self):
         print(f"시각화 업데이트 시작 - 캔버스 개수: {len(self.viz_canvases)}")
+        print(f"[디버그] capa_ratio_data 타입: {type(self.capa_ratio_data)}")
+
+        if isinstance(self.capa_ratio_data, dict): # 디버깅
+            print(f"[디버그] capa_ratio_data 키: {list(self.capa_ratio_data.keys())}")
+            # 비교 데이터 형식인지 확인
+            is_comparison = 'original' in self.capa_ratio_data and 'adjusted' in self.capa_ratio_data
+            print(f"[디버그] capa_ratio_data 비교 데이터 형식: {is_comparison}")
+            
+            # 데이터 예시 출력
+            sample_keys = list(self.capa_ratio_data.keys())[:5]  # 처음 5개 키만
+            for key in sample_keys:
+                print(f"[디버그] capa_ratio_data['{key}'] 타입: {type(self.capa_ratio_data[key])}")
+                
+                if key in ['original', 'adjusted'] and isinstance(self.capa_ratio_data[key], dict):
+                    sub_sample = list(self.capa_ratio_data[key].keys())[:3]  # 하위 키 3개만
+                    sub_data = {k: self.capa_ratio_data[key][k] for k in sub_sample if k in self.capa_ratio_data[key]}
+                    print(f"[디버그] capa_ratio_data['{key}'] 샘플: {sub_data}")
 
         # Capa 탭 업데이트 
         capa_tab = self.tab_manager.get_tab_instance('Capa')
         if capa_tab:
+            print(f"[디버그] Capa 탭 찾음, update_content 호출 전 utilization_data 타입: {type(self.utilization_data)}")
             capa_tab.update_content(self.capa_ratio_data, self.utilization_data)
+        else:
+            print("[디버그] Capa 탭을 찾을 수 없음")
 
         print("시각화 업데이트 완료")
 

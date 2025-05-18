@@ -44,8 +44,18 @@ class VisualizationUpdater:
     """Capa 비율 차트 업데이트"""
     @staticmethod
     def update_capa_chart(canvas, capa_ratio_data):
+         # [디버그 1] 입력 데이터 로깅
+        print(f"[디버그] update_capa_chart 입력 데이터 타입: {type(capa_ratio_data)}")
+        if isinstance(capa_ratio_data, dict):
+            print(f"[디버그] capa_ratio_data 키: {list(capa_ratio_data.keys())}")
+        
         # 비교 데이터형식 감지
         is_comparison = isinstance(capa_ratio_data, dict) and 'original' in capa_ratio_data and 'adjusted' in capa_ratio_data
+        print(f"[디버그] is_comparison 확인: {is_comparison}")
+
+        # 데이터 유효성 검사  - 디버그
+        is_valid = VisualizationUpdater._is_capa_data_valid(capa_ratio_data)
+        print(f"[디버그] 데이터 유효성: {is_valid}")
 
         chart_config = {
             'has_data_check' : VisualizationUpdater._is_capa_data_valid,
@@ -73,6 +83,7 @@ class VisualizationUpdater:
                 }
             }
         }
+        print(f"[디버그] DisplayHelper 호출 직전 chart_config: {chart_config}")
      
         DisplayHelper.show_chart_or_message(canvas, capa_ratio_data, chart_config)
 
