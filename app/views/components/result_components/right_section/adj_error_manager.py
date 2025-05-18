@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt
+from app.utils.item_key import ItemKeyManager
 
 """
 조정 시 에러 메세지 관리 클래스
@@ -29,7 +30,12 @@ class AdjErrorManager():
     에러 관리
     """
     def add_validation_error(self, item_info, error_message):
-        error_key = f"{item_info.get('Line')}_{item_info.get('Time')}_{item_info.get('Item')}"
+        # 고유 키 생성
+        error_key = ItemKeyManager.get_item_key(
+            item_info.get('Line'),
+            item_info.get('Time'), 
+            item_info.get('Item')
+        )
 
         # 에러 저장
         self.validation_errors[error_key] = {
@@ -59,7 +65,12 @@ class AdjErrorManager():
     에러 제거
     """
     def remove_validation_error(self, item_info):
-        error_key = f"{item_info.get('Line')}_{item_info.get('Time')}_{item_info.get('Item')}"
+        # 고유 키 생성
+        error_key = ItemKeyManager.get_item_key(
+            item_info.get('Line'),
+            item_info.get('Time'), 
+            item_info.get('Item')
+        )
 
         if error_key in self.validation_errors:
             del self.validation_errors[error_key]

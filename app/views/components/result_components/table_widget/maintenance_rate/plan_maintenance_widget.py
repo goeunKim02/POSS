@@ -392,7 +392,7 @@ class PlanMaintenanceWidget(QWidget):
         """유지율 다시 계산하고 UI 업데이트"""
         # 이전 계획이 없는 경우 처리
         if not hasattr(self.data_manager, 'plan_analyzer') or not self.data_manager.plan_analyzer:
-            print("계획 분석기가 없습니다.")
+            print("plan_analyzer가 없습니다.")
             return
             
         if not hasattr(self.data_manager.plan_analyzer, 'prev_plan') or self.data_manager.plan_analyzer.prev_plan is None:
@@ -402,38 +402,20 @@ class PlanMaintenanceWidget(QWidget):
             self.item_rate_label.setStyleSheet("color: #6c757d; font-style: italic;")
             return
         
-        # 유지율 계산
+        # 유지율 계산 - 항상 조정된 값 사용
         item_df, item_rate, rmc_df, rmc_rate = self.data_manager.calculate_maintenance_rates()
 
-        # 조정 후 유지율 계산 (modified_item_keys가 있는 경우에만)
-        adjusted_item_df, adjusted_item_rate, adjusted_rmc_df, adjusted_rmc_rate = None, None, None, None
-        if self.data_manager.modified_item_keys:
-            adjusted_item_df, adjusted_item_rate, adjusted_rmc_df, adjusted_rmc_rate = self.data_manager.calculate_maintenance_rates(compare_with_adjusted=True)
-
-        # 계산된 유지율 저장 (조정 전)
+        # 계산된 유지율 저장
         self.item_maintenance_rate = item_rate if item_rate is not None else 0.0
         self.rmc_maintenance_rate = rmc_rate if rmc_rate is not None else 0.0
 
-        # 계산된 조정 후 유지율 저장
-        if self.data_manager.modified_item_keys:
-            self.adjusted_item_maintenance_rate = adjusted_item_rate if adjusted_item_rate is not None else 0.0
-            self.adjusted_rmc_maintenance_rate = adjusted_rmc_rate if adjusted_rmc_rate is not None else 0.0
-        else:
-            # 조정이 없었으면 조정 후 유지율은 None으로 설정
-            self.adjusted_item_maintenance_rate = None
-            self.adjusted_rmc_maintenance_rate = None
-
-        # 테이블 위젯 데이터 설정 (조정된 계획이 있으면 그것을 사용)
-        if self.data_manager.modified_item_keys and adjusted_item_df is not None and not adjusted_item_df.empty:
-            self.item_table.populate_data(adjusted_item_df, self.data_manager.modified_item_keys)
-        elif item_df is not None and not item_df.empty:
+        # 테이블 위젯 데이터 설정
+        if item_df is not None and not item_df.empty:
             self.item_table.populate_data(item_df, self.data_manager.modified_item_keys)
         else:
             print("Item별 유지율 데이터가 없습니다.")
         
-        if self.data_manager.modified_item_keys and adjusted_rmc_df is not None and not adjusted_rmc_df.empty:
-            self.rmc_table.populate_data(adjusted_rmc_df, self.data_manager.modified_item_keys)
-        elif rmc_df is not None and not rmc_df.empty:
+        if rmc_df is not None and not rmc_df.empty:
             self.rmc_table.populate_data(rmc_df, self.data_manager.modified_item_keys)
         else:
             print("RMC별 유지율 데이터가 없습니다.")
@@ -441,22 +423,25 @@ class PlanMaintenanceWidget(QWidget):
         # 선택된 탭에 따라 유지율 레이블 업데이트
         self.update_rate_label(self.tab_widget.currentIndex())
         
+        print(f"계획 유지율 계산 완료: Item={self.item_maintenance_rate:.2f}%, RMC={self.rmc_maintenance_rate:.2f}%")
+        
 
     """수량 업데이트 및 UI 갱신"""
     def update_quantity(self, line, time, item, new_qty):
         # print(f"PlanMaintenanceWidget - 수량 업데이트 시도: line={line}, time={time}, item={item}, new_qty={new_qty}")
 
-        # 명시적 타입 변환 추가
-        try:
-            if isinstance(time, str) and time.strip().isdigit():
-                time = int(time.strip())
-            if isinstance(new_qty, str) and new_qty.strip().isdigit():
-                new_qty = int(new_qty.strip())
+        # # 명시적 타입 변환 추가
+        # try:
+        #     if isinstance(time, str) and time.strip().isdigit():
+        #         time = int(time.strip())
+        #     if isinstance(new_qty, str) and new_qty.strip().isdigit():
+        #         new_qty = int(new_qty.strip())
             
-            print(f"PlanMaintenanceWidget - 변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
-        except (ValueError, TypeError) as e:
-            print(f"타입 변환 실패: {e}")
-            
+        #     print(f"PlanMaintenanceWidget - 변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
+        # except (ValueError, TypeError) as e:
+        #     print(f"타입 변환 실패: {e}")
+        
+        # 데이터 관리자를 통해 수량 업데이트
         success = self.data_manager.update_quantity(line, time, item, new_qty)
         
         if success:

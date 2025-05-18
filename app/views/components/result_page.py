@@ -36,6 +36,7 @@ class ResultPage(QWidget):
         self.utilization_data = None # 가동률 데이터 저장 변수
         self.material_analyzer = None  # 자재 부족량 분석기 추가
         self.pre_assigned_items = set()  # 사전할당된 아이템 저장
+        self.controller = None 
 
         # KPI Calculator 
         self.kpi_score = KpiScore(self.main_window)
@@ -50,6 +51,7 @@ class ResultPage(QWidget):
         self.split_allocation_widget = None
         self.shortage_items_table = None
         self.viz_canvases = []
+
 
         self.init_ui()
         self.connect_signals()
@@ -127,7 +129,7 @@ class ResultPage(QWidget):
         self.left_section = ModifiedLeftSection()
 
         # 시그널 연결
-        self.left_section.data_changed.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
+        self.left_section.viewDataChanged.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
 
         left_layout.addWidget(self.left_section)
         
@@ -375,14 +377,23 @@ class ResultPage(QWidget):
     
     """이벤트 시그널 연결"""
     def connect_signals(self):
-        # 왼쪽 섹션의 데이터 변경 이벤트 연결
-        if hasattr(self, 'left_section') and hasattr(self.left_section, 'data_changed'):
-            self.left_section.data_changed.connect(self.on_data_changed)
-
-        # 아이템 변경 이벤트 연결 (MVC 외 다른 용도)
-        if hasattr(self, 'left_section') and hasattr(self.left_section, 'item_data_changed'):
-            # MVC가 아닌 다른 로직용 (예: 통계, 로깅)
-            self.left_section.item_data_changed.connect(self.on_item_data_changed_legacy)
+        if hasattr(self, 'controller') and self.controller:
+            # MVC 컨트롤러가 있는 경우: 컨트롤러만 사용
+            print("MVC 모드: 컨트롤러를 통한 처리만 활성화")
+            
+            # 모델 변경 -> UI 업데이트 연결 설정 (필요한 기능)
+            if hasattr(self.controller.model, 'modelDataChanged'):
+                self.controller.model.modelDataChanged.connect(self.update_ui_from_model)
+                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
+        else:
+            # MVC 컨트롤러가 없는 경우: 레거시 직접 처리 방식 사용
+            print("레거시 모드: 직접 처리 방식 활성화")
+            if hasattr(self, 'left_section') and hasattr(self.left_section, 'viewDataChanged'):
+                self.left_section.viewDataChanged.connect(self.on_data_changed)
+            
+            # 컨트롤러가 없을 때만 레거시 이벤트 핸들러 연결
+            if hasattr(self, 'left_section') and hasattr(self.left_section, 'itemModified'):
+                self.left_section.itemModified.connect(self.on_item_data_changed_legacy)
                         
     """
     시각화 페이지 전환 및 버튼 스타일 업데이트

@@ -26,15 +26,15 @@ class AdjustmentController(QObject):
         self.model.validationFailed.connect(self.error_manager.add_validation_error)
         
         # Model -> Controller (데이터 변경 시)
-        self.model.dataChanged.connect(self._on_model_data_changed)
+        self.model.modelDataChanged.connect(self._on_model_data_changed)
         
         # View -> Controller (아이템 데이터 변경)
-        if hasattr(self.view, 'item_data_changed'):
-            self.view.item_data_changed.connect(self._on_item_data_changed)
+        if hasattr(self.view, 'itemModified'):
+            self.view.itemModified.connect(self._on_item_data_changed)
         
         # View -> Controller (셀 이동)  
-        if hasattr(self.view, 'cell_moved'):
-            self.view.cell_moved.connect(self._on_cell_moved)
+        if hasattr(self.view, 'cellMoved'):
+            self.view.cellMoved.connect(self._on_cell_moved)
 
         # 최초 한 번, 뷰에 초기 데이터 설정
         self.view.set_data_from_external(self.model.get_dataframe())
@@ -60,7 +60,13 @@ class AdjustmentController(QObject):
             # Line 또는 Time 변경 = 이동
             if 'Line' in changed_fields or 'Time' in changed_fields:
                 print(f"Controller: 아이템 이동 {code}")
-                self.model.move_item(code, line, time)
+
+                # 이전 위치 정보 가져오기
+                old_line = changed_fields.get('Line', {}).get('from', line)
+                old_time = changed_fields.get('Time', {}).get('from', time)
+                print(f"이전 위치정보: 라인-{old_line} / 타임-{old_time}")
+
+                self.model.move_item(code, old_line, old_time, line, time)
                 return
         
         # 수량 변경 - 라인과 시간 정보도 함께 전달
@@ -78,11 +84,7 @@ class AdjustmentController(QObject):
         print("Controller: Model 변경 감지, View 업데이트")
         df = self.model.get_dataframe()
         
-        # 방법 1: 전체 데이터 새로고침 (안전하지만 비효율적)
-        self.view.set_data_from_external(df)
-        
-        # 방법 2: 델타 업데이트 (효율적이지만 복잡)
-        # self.view.update_specific_items(changed_items)
+        self.view.update_from_model(df)
 
     def _on_cell_moved(self, item: object, old_data: Dict, new_data: Dict):
         """

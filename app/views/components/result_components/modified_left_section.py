@@ -10,15 +10,13 @@ from app.models.common.file_store import FilePaths
 from .legend_widget import LegendWidget
 from .filter_widget import FilterWidget
 from app.utils.fileHandler import load_file
-from app.models.output.assignment_model import AssignmentModel
-from app.controllers.adjustment_controller import AdjustmentController
 
 class ModifiedLeftSection(QWidget):
     # 데이터 변경을 통합해서 한 번만 내보내는 시그널
-    data_changed = pyqtSignal(pd.DataFrame)  # 수정 후 변경된 DataFrame을 전달
+    viewDataChanged = pyqtSignal(pd.DataFrame)  # 수정 후 변경된 DataFrame을 전달
     item_selected = pyqtSignal(object, object)
-    item_data_changed = pyqtSignal(object, dict, dict)
-    cell_moved = pyqtSignal(object, dict, dict)
+    itemModified = pyqtSignal(object, dict, dict)
+    cellMoved = pyqtSignal(object, dict, dict)
     validation_error_occured = pyqtSignal(dict, str)
     validation_error_resolved = pyqtSignal(dict)
 
@@ -354,6 +352,27 @@ class ModifiedLeftSection(QWidget):
         main_layout.addWidget(self.grid_widget, 1)
 
     
+    def _normalize_data_types(self, df):
+        """데이터프레임 타입 정규화"""
+        if df is not None and not df.empty:
+            # Line은 항상 문자열
+            if 'Line' in df.columns:
+                df['Line'] = df['Line'].astype(str)
+            
+            # Time은 항상 정수
+            if 'Time' in df.columns:
+                df['Time'] = pd.to_numeric(df['Time'], errors='coerce').fillna(0).astype(int)
+            
+            # Item은 항상 문자열
+            if 'Item' in df.columns:
+                df['Item'] = df['Item'].astype(str)
+            
+            # Qty는 항상 정수
+            if 'Qty' in df.columns:
+                df['Qty'] = pd.to_numeric(df['Qty'], errors='coerce').fillna(0).astype(int)
+        
+        return df
+    
 
     """
     새로 생성된 아이템 등록
@@ -671,7 +690,7 @@ class ModifiedLeftSection(QWidget):
 
                 # self.item_selected.emit(current_item, container)
                 df = self.extract_dataframe()
-                self.data_changed.emit(df)
+                self.viewDataChanged.emit(df)
 
                 if hasattr(self.grid_widget, 'ensure_item_visible'):
                     self.grid_widget.ensure_item_visible(container, current_item)
@@ -702,6 +721,11 @@ class ModifiedLeftSection(QWidget):
 
     """그리드에서 아이템이 선택되면 호출되는 함수"""
     def on_grid_item_selected(self, selected_item, container):
+        # 현재 선택 상태 저장
+        self.current_selected_item = selected_item
+        self.current_selected_container = container
+
+        # 선택 시그널 방출
         self.item_selected.emit(selected_item, container)
 
     """아이템 데이터가 변경되면 호출되는 함수"""
@@ -722,63 +746,8 @@ class ModifiedLeftSection(QWidget):
         # MVC 컨트롤러가 있으면 시그널 발생 (
         if hasattr(self, 'controller') and self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
-            self.item_data_changed.emit(item, new_data, changed_fields)
+            self.itemModified.emit(item, new_data, changed_fields)
             return
-        
-        # # 2. Fallback: 기존 방식으로 처리
-        # print("기존 방식으로 아이템 데이터 변경 처리")
-        
-        # # 이전 데이터 저장
-        # old_data = item.item_data.copy() if hasattr(item, 'item_data') else {}
-        
-        # # changed_fields에서 이전 값 복원
-        # if changed_fields:
-        #     old_data_for_validation = old_data.copy()
-        #     for field, change_info in changed_fields.items():
-        #         if field.startswith('_validation') or field.startswith('_drop_pos'):
-        #             continue
-        #         if field not in ['_drop_pos'] and isinstance(change_info, dict) and 'from' in change_info:
-        #             old_data_for_validation[field] = change_info['from']
-        #     old_data = old_data_for_validation
-
-        # # 검증 실행
-        # if hasattr(self, 'validator') and self.validator:
-        #     is_move = False
-        #     source_line = None
-        #     source_time = None
-
-        #     if changed_fields and ('Line' in changed_fields or 'Time' in changed_fields):
-        #         is_move = True
-        #         source_line = old_data.get('Line')
-        #         source_time = old_data.get('Time')
-
-        #     try:
-        #         valid, message = self.validator.validate_adjustment(
-        #             new_data.get('Line'),
-        #             new_data.get('Time'),
-        #             new_data.get('Item', ''),
-        #             new_data.get('Qty', 0),
-        #             source_line if is_move else None,
-        #             source_time if is_move else None
-        #         )
-
-        #         if not valid:
-        #             # 검증 실패 시그널 발생
-        #             self.validation_error_occured.emit(new_data, message)
-        #         else:
-        #             # 검증 성공 시 이전 에러 제거
-        #             old_data_for_removal = old_data.copy()
-        #             if changed_fields:
-        #                 for field, change_info in changed_fields.items():
-        #                     if field not in ['_drop_pos'] and isinstance(change_info, dict) and 'from' in change_info:
-        #                         old_data_for_removal[field] = change_info['from']
-        #             self.validation_error_resolved.emit(old_data_for_removal)
-
-        #     except Exception as e:
-        #         print(f"검증 오류 발생: {e}")
-
-        # # 위치 변경 처리
-        # self._handle_position_change(item, new_data, changed_fields, old_data)
 
     def _handle_position_change(self, item, new_data, changed_fields, old_data):
         """위치 변경 처리 로직 분리"""
@@ -809,7 +778,7 @@ class ModifiedLeftSection(QWidget):
                     return
 
             self.mark_as_modified()
-            self.item_data_changed.emit(item, new_data)
+            self.itemModified.emit(item, new_data)
 
     def _process_position_change(self, item, new_data, changed_fields, old_data):
         """위치 변경 처리 (기존 로직 유지)"""
@@ -874,7 +843,7 @@ class ModifiedLeftSection(QWidget):
                 self._restore_item_states(new_item, new_data)
                 
                 # 셀 이동 이벤트 발생
-                self.cell_moved.emit(new_item, old_data, new_data)
+                self.cellMoved.emit(new_item, old_data, new_data)
             else:
                 print("새 아이템 생성 실패")
 
@@ -954,15 +923,15 @@ class ModifiedLeftSection(QWidget):
         if self.data is None:
             return
 
-        self.group_data()
+        self.update_ui_with_signals()
 
         # 데이터 변경 신호 발생
         # self.data_changed.emit(self.data)
         df = self.extract_dataframe()
-        self.data_changed.emit(df)
+        self.viewDataChanged.emit(df)
 
     """Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시"""
-    def group_data(self): 
+    def update_ui_with_signals(self): 
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
             EnhancedMessageBox.show_validation_error(self, "Grouping Failed",
                                 "Data is missing or does not contain 'Line' or 'Time' columns.\nPlease load data with the required columns.")
@@ -1067,7 +1036,7 @@ class ModifiedLeftSection(QWidget):
             # 데이터 변경 신호 발생
             # self.data_changed.emit(self.grouped_data)
             df = self.extract_dataframe()
-            self.data_changed.emit(df)
+            self.viewDataChanged.emit(df)
             
             # 필터 데이터 업데이트 (새로 추가된 부분)
             self.update_filter_data()
@@ -1079,11 +1048,7 @@ class ModifiedLeftSection(QWidget):
 
     """외부에서 데이터 설정"""
     def set_data_from_external(self, new_data):
-        if not new_data.empty:
-            new_data['Time'] = pd.to_numeric(new_data['Time'], errors='coerce').fillna(0).round().astype(int)
-            new_data['Qty'] = pd.to_numeric(new_data['Qty'], errors='coerce').fillna(0).round().astype(int)
-        
-        self.data = new_data
+        self.data = self._normalize_data_types(new_data.copy())
         self.original_data = self.data.copy()
         self.update_table_from_data()
 
@@ -1324,27 +1289,124 @@ class ModifiedLeftSection(QWidget):
                     self.data = self.data[~mask]
                     # self.data_changed.emit(self.data)
                     df = self.extract_dataframe()
-                    self.data_changed.emit(df)
+                    self.viewDataChanged.emit(df)
                     self.mark_as_modified()
                     # QTimer.singleShot(100, lambda: self.data_changed.emit(self.data))
 
     def extract_dataframe(self) -> pd.DataFrame:
         """
         현재 뷰에 로드된 DataFrame(self.data)의 사본을 반환합니다.
-        data_changed 신호를 뿌릴 때 사용됩니다.
+        viewDataChanged 신호를 뿌릴 때 사용됩니다.
         """
-        # # self.data가 None이 아닐 때만 복사 반환
-        # if hasattr(self, 'data') and isinstance(self.data, pd.DataFrame):
-        #     return self.data.copy()
-        # else:
-        #     # 데이터가 없으면 빈 DataFrame 반환
-        #     return pd.DataFrame()
         if hasattr(self, 'data') and isinstance(self.data, pd.DataFrame):
-            df = self.data.copy()
-            # 항상 데이터 변경 시그널 발생
-            QTimer.singleShot(100, lambda: self.data_changed.emit(df))
-            return df
+            return self._normalize_data_types(self.data.copy())
         else:
-            empty_df = pd.DataFrame()
-            QTimer.singleShot(100, lambda: self.data_changed.emit(empty_df))
-            return empty_df
+            return pd.DataFrame()
+        
+    def update_from_model(self, model_df):
+        """
+        모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
+        """
+
+        if model_df is None:
+            return
+            
+        # 타입 변환을 한 번에 처리
+        self.data = self._normalize_data_types(model_df.copy())
+        
+        # UI 업데이트 시작
+        if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
+            print("데이터가 없거나 필수 컬럼이 없음")
+            return
+            
+        try:
+            # 기존 아이템 모두 지우기
+            self.clear_all_items()
+            
+            # Line과 Time 값 추출
+            lines = sorted(self.data['Line'].unique())
+            times = sorted(self.data['Time'].unique())
+
+            # 교대 시간 구분
+            shifts = {}
+            for time in times:
+                if int(time) % 2 == 1:
+                    shifts[time] = "Day"
+                else:
+                    shifts[time] = "Night"
+
+            # 라인별 교대 정보
+            line_shifts = {}
+            for line in lines:
+                line_shifts[line] = ["Day", "Night"]
+
+            # 행 헤더
+            self.row_headers = []
+            for line in lines:
+                for shift in ["Day", "Night"]:
+                    self.row_headers.append(f"{line}_({shift})")
+
+            # 그리드 설정
+            self.grid_widget.setupGrid(
+                rows=len(self.row_headers),
+                columns=len(self.days),
+                row_headers=self.row_headers,
+                column_headers=self.days,
+                line_shifts=line_shifts
+            )
+
+            # 데이터에서 아이템 생성하여 그리드에 배치
+            for _, row_data in self.data.iterrows():
+                if 'Line' not in row_data or 'Time' not in row_data:
+                    continue
+
+                line = row_data['Line']
+                time = row_data['Time']
+                shift = shifts[time]
+                day_idx = (int(time) - 1) // 2
+
+                if day_idx >= len(self.days):
+                    continue
+
+                day = self.days[day_idx]
+                row_key = f"{line}_({shift})"
+
+                # Item 정보가 있으면 추출하여 저장
+                if 'Item' in row_data and pd.notna(row_data['Item']):
+                    item_info = str(row_data['Item'])
+
+                    # MFG 정보가 있으면 수량 정보로 추가
+                    if 'Qty' in row_data and pd.notna(row_data['Qty']):
+                        item_info += f"    {row_data['Qty']}"
+
+                    try:
+                        # 그리드에 아이템 추가
+                        row_idx = self.row_headers.index(row_key)
+                        col_idx = self.days.index(day)
+
+                        # 전체 행 데이터를 아이템 데이터(dict 형태)로 전달
+                        item_full_data = row_data.to_dict()
+                        new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
+
+                        if new_item:
+                            item_code = item_full_data.get('Item', '')
+
+                            # 사전할당 아이템인 경우
+                            if item_code in self.pre_assigned_items:
+                                new_item.set_pre_assigned_status(True)
+                                
+                            # 출하 실패 아이템인 경우
+                            if item_code in self.shipment_failure_items:
+                                failure_info = self.shipment_failure_items[item_code]
+                                new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
+
+                            # 자재부족 아이템인 경우
+                            if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
+                                shortage_info = self.current_shortage_items[item_code]
+                                new_item.set_shortage_status(True, shortage_info)
+
+                    except ValueError as e:
+                        print(f"인덱스 찾기 오류: {e}")
+            
+        except Exception as e:
+            print(f"UI 업데이트 오류: {e}")

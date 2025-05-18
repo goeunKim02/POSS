@@ -3,6 +3,7 @@ from PyQt5.QtGui import QColor, QFont
 import pandas as pd
 from app.views.components.common.custom_table import CustomTable
 from app.utils.sort_line import sort_line
+from app.utils.item_key import ItemKeyManager
 
 """유지율 표시를 위한 테이블 위젯 기본 클래스"""
 class MaintenanceTableWidget(CustomTable):
@@ -225,27 +226,25 @@ class MaintenanceTableWidget(CustomTable):
                 for item_data in sorted(group_data['items'], key=lambda x: x[item_key]):
                     # 수정 여부 확인
                     item_value = item_data[item_key]
+                    line_value = group_data['line']
+                    shift_value = group_data['shift']
                     
                     is_modified = False
-                    for key in modified_item_keys:
-                        parts = key.split('_')
-                        if len(parts) >= 3:
-                            # 라인 코드 처리
-                            if parts[0] in ["I", "D", "K", "M"] and len(parts) > 3:
-                                key_line = f"{parts[0]}_{parts[1]}"
-                                key_shift = parts[2]
-                                key_item = "_".join(parts[3:])  # 나머지 모든 부분이 아이템
-                            else:
-                                key_line = parts[0]
-                                key_shift = parts[1]
-                                key_item = "_".join(parts[2:])  # 나머지 모든 부분이 아이템
+
+                    if item_field == 'Item':
+                        # 아이템별 키 생성 및 비교
+                        current_key = ItemKeyManager.get_item_key(line_value, shift_value, item_value)
+                        is_modified = current_key in modified_item_keys
+                    elif item_field == 'RMC':
+                        # RMC의 경우 관련 아이템 키가 modified_item_keys에 있는지 확인
+                        # RMC는 여러 아이템과 연결될 수 있으므로 부분 문자열 매칭 필요할 수 있음
+                        for modified_key in modified_item_keys:
+                            # 키 분해
+                            key_line, key_time, key_item = ItemKeyManager.parse_item_key(modified_key)
                             
-                            if item_field == 'Item' and key_line == line and key_shift == shift and key_item == item_value:
-                                is_modified = True
-                                break
-                            elif item_field == 'RMC':
-                                # RMC 비교는 부분 문자열 일치 검사
-                                if key_line == line and key_shift == shift and (key_item == item_value or item_value in key_item or key_item in item_value):
+                            # 라인과 시프트가 일치하고, RMC 관련 항목인지 확인
+                            if key_line == line_value and key_time == shift_value:
+                                if item_value in key_item or key_item in item_value:
                                     is_modified = True
                                     break
                     

@@ -75,13 +75,10 @@ class PlanMaintenanceRate:
                 return False
             
         try :
-            # 타입 변환 - 수정된 부분
-            print(f"변환 전: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
-
-            # 타입 변환
-            time = convert_value(time, int, default=None)
-            new_qty = convert_value(new_qty, int, default=None)
-            print(f"변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
+            # # 타입 변환
+            # time = convert_value(time, int, default=None)
+            # new_qty = convert_value(new_qty, int, default=None)
+            # print(f"변환 후: time={time} ({type(time)}), new_qty={new_qty} ({type(new_qty)})")
 
             if time == 0 or new_qty == 0:
                 print(f"변환 실패: time={time}, new_qty={new_qty}")
