@@ -29,6 +29,43 @@ QPushButton:pressed {
 }
 """
 
+ACTIVE_BUTTON_STYLE = """
+    QPushButton {
+        background-color: #1428A0; 
+        color: white; 
+        font-weight: bold; 
+        padding: 8px 8px; 
+        border-radius: 4px;
+    }
+    QPushButton:disabled {
+        background-color: #1428A0; 
+        color: white; 
+        font-weight: bold; 
+        padding: 8px 8px; 
+        border-radius: 4px;
+    }
+"""
+
+INACTIVE_BUTTON_STYLE = """
+    QPushButton {
+        background-color: #8E9CC9; 
+        color: white; 
+        font-weight: bold; 
+        padding: 8px 8px; 
+        border-radius: 4px;
+    }
+    QPushButton:disabled {
+        background-color: #8E9CC9; 
+        color: white; 
+        font-weight: bold; 
+        padding: 8px 8px; 
+        border-radius: 4px;
+    }
+    QPushButton:hover {
+        background-color: #1428A0;
+    }
+"""
+
 # 캘린더 헤더의 요일 레이블 스타일
 WEEKDAY_HEADER_STYLE = """
 background-color: #f0f0f0;
