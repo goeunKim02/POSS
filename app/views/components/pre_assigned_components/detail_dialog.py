@@ -138,6 +138,12 @@ class DetailDialog(QDialog):
 
         details_list = row.get('details', [])
 
+        details_list = sorted(
+            details_list,
+            key=lambda rec: rec.get('Qty', 0),
+            reverse=True
+        )
+
         count = len(details_list)
         count_name = QLabel("Detail items:")
         count_name.setStyleSheet(field_name_style)
