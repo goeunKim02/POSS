@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag, QPixmap, QPainter, QColor, QFont
 import pandas as pd
 import json
+import uuid
 from app.resources.styles.item_style import ItemStyle
 
 
@@ -51,6 +52,10 @@ class DraggableItemLabel(QFrame):
 
         # 아이템 데이터 저장 (엑셀 행 정보)
         self.item_data = item_data
+
+        # 고유 ID 확인 및 생성
+        if self.item_data and '_id' not in self.item_data:
+            self.item_data['_id'] = str(uuid.uuid4())
 
         # 아이템 상태선 제어 속성
         self.show_shortage_line = True  # 자재부족 선 표시 여부
@@ -260,6 +265,12 @@ class DraggableItemLabel(QFrame):
                     serializable_data[k] = v
                 else:
                     serializable_data[k] = str(v)
+
+            # 고유 ID 확인
+            if '_id' not in serializable_data:
+                serializable_data['_id'] = str(uuid.uuid4())
+                # 원본 item_data에도 ID 추가
+                self.item_data['_id'] = serializable_data['_id']
 
             # JSON으로 직렬화하여 MIME 데이터에 저장
             json_data = json.dumps(serializable_data)

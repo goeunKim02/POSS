@@ -10,6 +10,7 @@ from app.models.common.file_store import FilePaths
 from .legend_widget import LegendWidget
 from .filter_widget import FilterWidget
 from app.utils.fileHandler import load_file
+from app.utils.item_key_manager import ItemKeyManager
 
 class ModifiedLeftSection(QWidget):
     # 데이터 변경을 통합해서 한 번만 내보내는 시그널
@@ -22,6 +23,7 @@ class ModifiedLeftSection(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.parent_page = None
         self.data = None
         self.original_data = None
         self.grouped_data = None
@@ -840,7 +842,7 @@ class ModifiedLeftSection(QWidget):
                     x = int(drop_pos_info['x'])
                     y = int(drop_pos_info['y'])
                     target_container = self.grid_widget.containers[new_row_idx][new_col_idx]
-                    drop_index = target_container.find_drop_index(QPoint(x, y))
+                    drop_index = target_container.findDropIndex(QPoint(x, y))
                 except Exception as e:
                     drop_index = 0
 
@@ -884,6 +886,10 @@ class ModifiedLeftSection(QWidget):
     def set_controller(self, controller):
         self.controller = controller
         print("MVC 컨트롤러가 설정되었습니다")
+
+        # 컨트롤러 설정 후 시그널 재연결
+        # print("ResultPage: 컨트롤러 설정 후 시그널 재연결")
+        # self.connect_signals()
 
     """
     검증기 설정
@@ -1237,26 +1243,76 @@ class ModifiedLeftSection(QWidget):
     """
     아이템 삭제 처리 메서드 (ItemContainer에서 발생한 삭제를 처리)
     """
-    def on_item_removed(self, item):
-        if self.data is not None:
-            if hasattr(item,'item_data') and item.item_data:
-                # 아이템 데이터에서 행 식별 정보 가져오기
-                line = item.item_data.get('Line')
-                time = item.item_data.get('Time')
-                item_code = item.item_data.get('Item')
+    def on_item_removed(self, item_or_id):
+        print("DEBUG: ModifiedLeftSection.on_item_removed 호출됨")
 
-                if line is not None and time is not None and item_code is not None:
-                    mask = (
-                        (self.data['Line'] == line) &
-                        (self.data['Time'] == time) &
-                        (self.data['Item'] == item_code)
-                    )
-                    self.data = self.data[~mask]
-                    # self.data_changed.emit(self.data)
+        # MVC 컨트롤러 확인
+        has_controller = hasattr(self, 'controller') and self.controller is not None
+        print(f"DEBUG: MVC 컨트롤러 존재 여부: {has_controller}")
+        
+        # MVC 컨트롤러가 있으면 컨트롤러에서 처리
+        if has_controller:
+            print("DEBUG: 컨트롤러를 통해 삭제 처리 시도")
+            # 컨트롤러에 연결이 제대로 되어 있는지 확인
+            if hasattr(self.controller, 'on_item_deleted'):
+                print("DEBUG: 컨트롤러의 on_item_deleted 메서드 호출")
+                self.controller.on_item_deleted(item_or_id)
+                return
+            else:
+                print("DEBUG: 컨트롤러에 on_item_deleted 메서드가 없음")
+        
+        # 컨트롤러가 없거나 처리하지 않은 경우 기존 로직 사용
+        print("DEBUG: 기존 로직으로 삭제 처리")
+        if self.data is None:
+            print("DEBUG: 데이터가 없음")
+            return
+        
+        # item_or_id가 문자열(ID)인 경우
+        if isinstance(item_or_id, str):
+            item_id = item_or_id
+            print(f"DEBUG: ID로 삭제: {item_id}")
+            mask = ItemKeyManager.create_mask_by_id(self.data, item_id)
+            if mask.any():
+                self.data = self.data[~mask].reset_index(drop=True)
+                df = self.extract_dataframe()
+                self.viewDataChanged.emit(df)
+                self.mark_as_modified()
+                print("DEBUG: ID 기반 삭제 완료")
+            else:
+                print(f"DEBUG: ID {item_id}로 아이템을 찾을 수 없음")
+            return
+        
+        # item_or_id가 아이템 객체인 경우
+        if hasattr(item_or_id, 'item_data') and item_or_id.item_data:
+            # ID가 있으면 ID로 찾기
+            item_id = ItemKeyManager.extract_item_id(item_or_id)
+            if item_id:
+                print(f"DEBUG: 아이템 객체의 ID로 삭제: {item_id}")
+                mask = ItemKeyManager.create_mask_by_id(self.data, item_id)
+                if mask.any():
+                    self.data = self.data[~mask].reset_index(drop=True)
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    # QTimer.singleShot(100, lambda: self.data_changed.emit(self.data))
+                    print("DEBUG: ID 기반 삭제 완료")
+                    return
+            
+            # ID가 없으면 Line/Time/Item으로 찾기
+            line, time, item_code = ItemKeyManager.get_item_from_data(item_or_id.item_data)
+            if line is not None and time is not None and item_code is not None:
+                print(f"DEBUG: Line/Time/Item으로 삭제: {item_code} @ {line}-{time}")
+                mask = ItemKeyManager.create_mask_for_item(self.data, line, time, item_code)
+                if mask.any():
+                    self.data = self.data[~mask].reset_index(drop=True)
+                    df = self.extract_dataframe()
+                    self.viewDataChanged.emit(df)
+                    self.mark_as_modified()
+                    print("DEBUG: Line/Time/Item 기반 삭제 완료")
+                else:
+                    print(f"DEBUG: Line/Time/Item으로 아이템을 찾을 수 없음")
+        else:
+            print("DEBUG: 유효하지 않은 아이템 객체")
+
 
     """
     현재 뷰에 로드된 DataFrame(self.data)의 사본 반환
@@ -1384,12 +1440,12 @@ class ModifiedLeftSection(QWidget):
         # 아이템 등록
         self.register_item(item)
 
-        # MVC 컨트롤러가 있으면 활용
-        if hasattr(self, 'controller') and self.controller:
-            # 컨트롤러에 복사 처리 위임
-            self.controller.on_item_copied(item, data)
-        else:
-            # 컨트롤러가 없는 경우 기본 처리
-            # 복사 작업 후 프레임워크에 데이터 변경 알림
+        # 데이터 처리는 제거 - 이미 컨트롤러에서 처리함
+        # MVC 패턴에서는 뷰는 UI 렌더링만 담당, 데이터 처리는 컨트롤러에서
+        
+        # 컨트롤러가 없는 경우에만 직접 처리
+        if not hasattr(self, 'controller') or not self.controller:
+            # 컨트롤러가 없는 경우 기본 처리 - 레거시 지원
+            print("컨트롤러 없음: 레거시 처리 방식으로 복사 처리")
             df = self.extract_dataframe()
             self.viewDataChanged.emit(df)
