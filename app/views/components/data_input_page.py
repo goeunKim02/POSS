@@ -545,6 +545,7 @@ class DataInputPage(QWidget) :
                             'Fulfillment Rate': f"{data['rate']:.2f}%",
                             'Status': 'OK' if data['rate'] >= 95 else 'Warning' if data['rate'] >= 80 else 'Error'
                         })
+                    project_rows = sorted(project_rows,key=lambda x:x['SOP'],reverse=True)
 
                     site_rows = []
 
@@ -557,6 +558,7 @@ class DataInputPage(QWidget) :
                             'Fulfillment Rate': f"{data['rate']:.2f}%",
                             'Status': 'OK' if data['rate'] >= 95 else 'Warning' if data['rate'] >= 80 else 'Error'
                         })
+                    site_rows = sorted(site_rows,key=lambda x:x['SOP'], reverse=True)
 
                     total_row = {
                         'Category': 'Total',
