@@ -430,7 +430,7 @@ class LeftParameterComponent(QWidget):
                 elif metric == 'Current Shipment':
                     headers = ["Category", "Name", "SOP", "Production", "Fulfillment Rate", "Status"]
                 elif metric == 'Plan Retention':
-                    headers = ['RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
+                    headers = ['Line','Time','RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
                 else:
                     headers = list(display_df.columns) if hasattr(display_df, 'columns') else []
 

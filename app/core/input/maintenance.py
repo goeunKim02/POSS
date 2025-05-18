@@ -175,8 +175,10 @@ def calc_plan_retention():
     sum_rmc_qty = df_result['Next RMC MFG'].sum()
     rmc_plan_retention = sum_rmc_qty/sum_qty
 
-    df_result = df_result[['RMC','Item','Qty','Next item MFG','Next RMC MFG']]
-    df_result.columns = ['RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
-    df_result.loc[len(df_result)] = ['total','',sum_qty,sum_item_qty,sum_rmc_qty]
+    print(df_result.head())
+
+    df_result = df_result[['Line','Time','RMC','Item','Qty','Next item MFG','Next RMC MFG']]
+    df_result.columns = ['Line','Time','RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
+    df_result.loc[len(df_result)] = ['total','','','',sum_qty,sum_item_qty,sum_rmc_qty]
 
     return (item_plan_retention * 100, rmc_plan_retention * 100, df_result)
