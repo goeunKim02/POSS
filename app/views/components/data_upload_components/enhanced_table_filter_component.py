@@ -263,6 +263,7 @@ class EnhancedTableFilterComponent(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+
         # 테이블 뷰 생성
         self.table_view = QTableView()
         self.table_view.setAlternatingRowColors(True)
