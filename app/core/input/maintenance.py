@@ -147,7 +147,7 @@ def calc_plan_retention():
     demand_path = FilePaths.get("demand_excel_file")
     result_path = FilePaths.get("result_file")
     if (not demand_path) or  (not result_path):
-        return (None,None)
+        return (None,None,None)
     demand_file = load_file(demand_path)
     df_demand = demand_file.get('demand', pd.DataFrame())
     df_result = pd.read_excel(result_path,sheet_name=0)
