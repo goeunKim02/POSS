@@ -1047,10 +1047,11 @@ class ModifiedLeftSection(QWidget):
     """
     Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시
     """
-    def update_ui_with_signals(self): 
+
+    def update_ui_with_signals(self):
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
             EnhancedMessageBox.show_validation_error(self, "Grouping Failed",
-                                "Data is missing or does not contain 'Line' or 'Time' columns.\nPlease load data with the required columns.")
+                                                     "Data is missing or does not contain 'Line' or 'Time' columns.\nPlease load data with the required columns.")
             return
 
         try:
@@ -1086,12 +1087,15 @@ class ModifiedLeftSection(QWidget):
                 columns=len(self.days),
                 row_headers=self.row_headers,
                 column_headers=self.days,
-                line_shifts=line_shifts  # 새로운 라인별 교대 정보 전달
+                line_shifts=line_shifts
             )
 
-            # 각 요일과 라인/교대 별로 데이터 수집 및 그룹화
+            # 데이터를 행/열별로 그룹화하고 Qty 기준 정렬
+            grouped_items = {}  # 키: (row_idx, col_idx), 값: 아이템 목록
+
+            # 첫 번째 단계: 아이템을 행과 열 기준으로 그룹화
             for _, row_data in self.data.iterrows():
-                if 'Line' not in row_data or 'Time' not in row_data:
+                if 'Line' not in row_data or 'Time' not in row_data or 'Item' not in row_data:
                     continue
 
                 line = row_data['Line']
@@ -1102,65 +1106,81 @@ class ModifiedLeftSection(QWidget):
                 if day_idx >= len(self.days):
                     continue
 
-                day = self.days[day_idx]
                 row_key = f"{line}_({shift})"
 
-                # Item 정보가 있으면 추출하여 저장
-                if 'Item' in row_data and pd.notna(row_data['Item']):
-                    item_info = str(row_data['Item'])
+                try:
+                    row_idx = self.row_headers.index(row_key)
+                    col_idx = day_idx
 
-                    # MFG 정보가 있으면 수량 정보로 추가
-                    if 'Qty' in row_data and pd.notna(row_data['Qty']):
-                        item_info += f"    {row_data['Qty']}"
+                    # 키 생성 및 데이터 저장
+                    grid_key = (row_idx, col_idx)
+                    if grid_key not in grouped_items:
+                        grouped_items[grid_key] = []
 
-                    try:
-                        # 그리드에 아이템 추가
-                        row_idx = self.row_headers.index(row_key)
-                        col_idx = self.days.index(day)
+                    # 아이템 데이터 추가
+                    item_data = row_data.to_dict()
+                    qty = item_data.get('Qty', 0)
+                    if pd.isna(qty):
+                        qty = 0
 
-                        # 전체 행 데이터를 아이템 데이터(dict 형태)로 전달
-                        item_full_data = row_data.to_dict()
-                        new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
+                    # 수량을 숫자로 변환하여 저장
+                    item_data['Qty'] = int(float(qty)) if isinstance(qty, (int, float, str)) else 0
+                    grouped_items[grid_key].append(item_data)
+                except ValueError as e:
+                    print(f"인덱스 찾기 오류: {e}")
+                    continue
 
-                        if new_item:
-                            item_code = item_full_data.get('Item', '')
+            # 두 번째 단계: 각 그룹 내에서 Qty 기준으로 정렬하여 아이템 추가
+            for (row_idx, col_idx), items in grouped_items.items():
+                # Qty 기준 내림차순 정렬
+                sorted_items = sorted(items, key=lambda x: x.get('Qty', 0), reverse=True)
 
-                            # 사전할당 아이템인 경우
-                            if item_code in self.pre_assigned_items:
-                                new_item.set_pre_assigned_status(True)
-                                
-                            # 출하 실패 아이템인 경우
-                            if item_code in self.shipment_failure_items:
-                                item_code = item_full_data.get('Item')
-                                failure_info = self.shipment_failure_items[item_code]
-                                new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
+                for item_data in sorted_items:
+                    item_info = str(item_data.get('Item', ''))
 
-                            # 자재부족 아이템인 경우
-                            if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
-                                shortage_info = self.current_shortage_items[item_code]
-                                new_item.set_shortage_status(True, shortage_info)
+                    # Qty 표시
+                    qty = item_data.get('Qty', 0)
+                    if pd.notna(qty) and qty != 0:
+                        item_info += f"    {qty}"
 
-                    except ValueError as e:
-                        print(f"인덱스 찾기 오류: {e}")
+                    # 아이템 추가
+                    new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_data)
 
-            # 새로운 그룹화된 데이터 저장
+                    if new_item:
+                        item_code = item_data.get('Item', '')
+
+                        # 사전할당 아이템인 경우
+                        if item_code in self.pre_assigned_items:
+                            new_item.set_pre_assigned_status(True)
+
+                        # 출하 실패 아이템인 경우
+                        if item_code in self.shipment_failure_items:
+                            failure_info = self.shipment_failure_items[item_code]
+                            new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
+
+                        # 자재부족 아이템인 경우
+                        if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
+                            shortage_info = self.current_shortage_items[item_code]
+                            new_item.set_shortage_status(True, shortage_info)
+
+            # 그룹화된 데이터 저장 (기존 코드 유지)
             if 'Day' in self.data.columns:
                 self.grouped_data = self.data.groupby(['Line', 'Day', 'Time']).first().reset_index()
             else:
                 self.grouped_data = self.data.groupby(['Line', 'Time']).first().reset_index()
 
             # 데이터 변경 신호 발생
-            # self.data_changed.emit(self.grouped_data)
             df = self.extract_dataframe()
             self.viewDataChanged.emit(df)
-            
-            # 필터 데이터 업데이트 (새로 추가된 부분)
+
+            # 필터 데이터 업데이트
             self.update_filter_data()
 
         except Exception as e:
             # 에러 메시지 표시
             print(f"그룹핑 에러: {e}")
-            EnhancedMessageBox.show_validation_error(self, "Grouping Error", f"An error occurred during data grouping.\n{str(e)}")
+            EnhancedMessageBox.show_validation_error(self, "Grouping Error",
+                                                     f"An error occurred during data grouping.\n{str(e)}")
 
     """
     외부에서 데이터 설정
