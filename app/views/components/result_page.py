@@ -318,9 +318,16 @@ class ResultPage(QWidget):
     """
     컨트롤러 설정
     """
-    def set_controller(self, controller):
+    def set_controller(self, controller, defer_signal=False):
         self.controller = controller
         print("ResultPage: 컨트롤러 설정됨")
+        print("ResultPage: 컨트롤러 설정됨")
+
+        # defer_signal=True일 경우, 연결을 나중에 호출자가 수동으로 하도록 함
+        if not defer_signal:
+            if hasattr(controller.model, 'modelDataChanged'):
+                controller.model.modelDataChanged.connect(self.update_ui_from_model)
+                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
 
     """
     Material 탭 콘텐츠 생성
@@ -475,101 +482,240 @@ class ResultPage(QWidget):
     데이터가 변경되었을 때 호출되는 메서드
     데이터프레임을 분석하여 시각화 업데이트
     """
+    # def on_data_changed(self, data):
+    #     print("on_data_changed 호출됨 - 데이터 변경 감지")
+    #     self.result_data = data
+
+    #     # 위젯 참조가 없으면 다시 설정 (지연 초기화)
+    #     if self.plan_maintenance_widget is None:
+    #         self._setup_widget_references()
+
+
+    #     # 데이터 로드 후 바로 자재부족 분석
+    #     if data is not None and not data.empty:
+    #         print("데이터 로드 후 자재 부족 분석 시행")
+    #         # 자재 부족 분석 위젯을 통해 분석 실행
+    #         if hasattr(self, 'material_widget') and self.material_widget:
+    #             self.material_widget.run_analysis(data)
+    #             self.material_analyzer = self.material_widget.get_material_analyzer()
+    #         # 기존 호환성 유지
+    #         else:
+    #             try:
+    #                 # material_analyzer가 없으면 생성
+    #                 if not hasattr(self, 'material_analyzer') or self.material_analyzer is None:
+    #                     self.material_analyzer = MaterialShortageAnalyzer()
+
+    #                 # 분석 실행 시 데이터 전달
+    #                 self.material_analyzer.analyze_material_shortage(data)
+    #             except Exception as e:
+    #                 print(f"초기 자재 부족 분석 중 오류 :{e}")
+
+    #     # 사전할당 상태 업데이트
+    #     if hasattr(self, 'pre_assigned_items') and self.pre_assigned_items:
+    #         self.update_left_widget_pre_assigned_status(self.pre_assigned_items)
+        
+    #     # 자재 부족 상태 업데이트
+    #     if hasattr(self, 'material_analyzer') and self.material_analyzer and self.material_analyzer.shortage_results:
+    #         self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
+        
+    #     # 출하 실패 상태 업데이트
+    #     if hasattr(self.left_section, 'shipment_failure_items') and self.left_section.shipment_failure_items:
+    #         self.left_section.apply_shipment_failure_status()
+
+    #     try:
+    #         # 데이터가 비어있지 않은 경우에만 분석 수행
+    #         if data is not None and not data.empty:
+    #             # # 데이터 변경 이벤트 카운터 증가
+    #             # self.data_changed_count += 1
+
+    #             # KPI 점수 업데이트
+    #             self.update_kpi_scores()
+
+    #             # Base KPI 점수 새로고침
+    #             self._refresh_base_kpi()
+    #             # 그리고 일단 Adjust도 동일하게 초기화
+    #             for name, val in self.kpi_score.calculate_all_scores().items():
+    #                 lbl = self.kpi_labels[f"Adjust_{name}"]
+    #                 lbl.setText(f"{val:.1f}%")
+
+    #             # Plan 탭의 계획 유지율 위젯 업데이트
+    #             print("계획 유지율 위젯 업데이트 시작")
+
+    #             if hasattr(self, 'plan_maintenance_widget'):
+    #                 # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
+    #                 start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                    
+    #                 # 데이터 설정 (FilePaths에서 자동으로 이전 계획 파일 확인) 
+    #                 self.plan_maintenance_widget.set_data(data, start_date, end_date)
+    #                 print("계획 유지율 위젯 데이터 업데이트 완료")
+                
+    #             # 분산 배치 위젯 업데이트
+    #             if hasattr(self, 'split_allocation_widget'):
+    #                 self.split_allocation_widget.run_analysis(data)
+
+    #             # summary 위젯 업데이트
+    #             if hasattr(self, 'summary_widget'):
+    #                 self.summary_widget.run_analysis(data)
+
+    #             # Capa 비율 분석
+    #             # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
+    #             if self.data_changed_count > 1:
+    #                 print("[디버그] 비교 차트용 데이터 생성 시도 중")
+
+    #                 if self.controller and self.controller.model:
+    #                     print("[디버그] controller 및 model 존재 확인됨")
+    #                     try:
+    #                         # 모델에서 원본/조정 DataFrame 모두 가져옴
+    #                         comparison_df = self.controller.model.get_comparison_dataframe()
+    #                         print(f"[디버그] comparison_df 타입: {type(comparison_df)}")
+    #                         print(f"[디버그] comparison_df 키: {getattr(comparison_df, 'keys', lambda: 'N/A')()}")
+
+    #                         self.capa_ratio_data = {
+    #                             'original': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['original']),
+    #                             'adjusted': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['adjusted'])
+    #                         }
+
+    #                         self.utilization_data = {
+    #                             'original': CapaUtilization.analyze_utilization(comparison_df['original']),
+    #                             'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
+    #                         }
+
+    #                         print("[디버그] 비교 데이터 생성 완료 (Capa + Utilization)")
+    #                     except Exception as e:
+    #                         print(f"[에러] 비교 데이터 생성 실패: {e}")
+    #                         self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data, is_initial=True)
+    #                         self.utilization_data = CapaUtilization.analyze_utilization(data)
+    #                 else:
+    #                     print("[디버그] controller 및 model 없음.")
+    #             else:
+    #                 print("[디버그] 초기 차트 생성 (is_initial=True)")
+    #                 self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
+    #                 self.utilization_data = CapaUtilization.analyze_utilization(data)
+
+    #             # #     # 제조동별 생산량 비율 분석
+    #             # #     print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=False")
+    #             # #     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=False)
+    #             # # else:
+    #             # #     # 첫 번째 이벤트는 결과를 저장하지만 출력하지 않음
+    #             # #     print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=True")
+    #             # #     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
+    
+    #             # # 요일별 가동률 
+    #             # if self.controller and self.controller.model:
+    #             #     try:
+    #             #         comparison_df = self.controller.model.get_comparison_dataframe()
+    #             #         self.utilization_data = {
+    #             #             'original': CapaUtilization.analyze_utilization(comparison_df['original']),
+    #             #             'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
+    #             #         }
+    #             #         print("[디버그] Utilization 비교 데이터 생성 완료")
+    #             #     except Exception as e:
+    #             #         print(f"[에러] Utilization 비교 분석 실패: {e}")
+    #             #         self.utilization_data = CapaUtilization.analyze_utilization(data)  # fallback
+
+                        
+    #             # 시각화 업데이트
+    #             self.update_all_visualizations()
+
+    #             self._refresh_base_kpi()
+                    
+    #         else:
+    #             print("빈 데이터프레임")
+    #             self.capa_ratio_data = {}
+    #             self.utilization_data = {}
+
+    #     except Exception as e:
+    #         print(f"데이터 분석 중 오류 발생: {e}")
+    #         import traceback
+    #         traceback.print_exc()
+
+
     def on_data_changed(self, data):
         print("on_data_changed 호출됨 - 데이터 변경 감지")
         self.result_data = data
 
-        # 위젯 참조가 없으면 다시 설정 (지연 초기화)
+        # 위젯 참조가 없으면 다시 설정
         if self.plan_maintenance_widget is None:
             self._setup_widget_references()
 
-
-        # 데이터 로드 후 바로 자재부족 분석
+        # 자재 부족 분석
         if data is not None and not data.empty:
             print("데이터 로드 후 자재 부족 분석 시행")
-            # 자재 부족 분석 위젯을 통해 분석 실행
             if hasattr(self, 'material_widget') and self.material_widget:
                 self.material_widget.run_analysis(data)
                 self.material_analyzer = self.material_widget.get_material_analyzer()
-            # 기존 호환성 유지
             else:
                 try:
-                    # material_analyzer가 없으면 생성
                     if not hasattr(self, 'material_analyzer') or self.material_analyzer is None:
                         self.material_analyzer = MaterialShortageAnalyzer()
-
-                    # 분석 실행 시 데이터 전달
                     self.material_analyzer.analyze_material_shortage(data)
                 except Exception as e:
                     print(f"초기 자재 부족 분석 중 오류 :{e}")
 
-        # 사전할당 상태 업데이트
-        if hasattr(self, 'pre_assigned_items') and self.pre_assigned_items:
+        # 상태 업데이트
+        if self.pre_assigned_items:
             self.update_left_widget_pre_assigned_status(self.pre_assigned_items)
-        
-        # 자재 부족 상태 업데이트
-        if hasattr(self, 'material_analyzer') and self.material_analyzer and self.material_analyzer.shortage_results:
+        if self.material_analyzer and self.material_analyzer.shortage_results:
             self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
-        
-        # 출하 실패 상태 업데이트
         if hasattr(self.left_section, 'shipment_failure_items') and self.left_section.shipment_failure_items:
             self.left_section.apply_shipment_failure_status()
 
         try:
-            # 데이터가 비어있지 않은 경우에만 분석 수행
             if data is not None and not data.empty:
-                # 데이터 변경 이벤트 카운터 증가
-                self.data_changed_count = 1
-
-                # KPI 점수 업데이트
+                # 계획 유지율 업데이트
                 self.update_kpi_scores()
-
-                # Base KPI 점수 새로고침
                 self._refresh_base_kpi()
-                # 그리고 일단 Adjust도 동일하게 초기화
+
                 for name, val in self.kpi_score.calculate_all_scores().items():
-                    lbl = self.kpi_labels[f"Adjust_{name}"]
-                    lbl.setText(f"{val:.1f}%")
+                    lbl = self.kpi_labels.get(f"Adjust_{name}")
+                    if lbl:
+                        lbl.setText(f"{val:.1f}%")
 
-                # Plan 탭의 계획 유지율 위젯 업데이트
-                print("계획 유지율 위젯 업데이트 시작")
-
-                if hasattr(self, 'plan_maintenance_widget'):
-                    # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
+                if self.plan_maintenance_widget:
                     start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                    
-                    # 데이터 설정 (FilePaths에서 자동으로 이전 계획 파일 확인) 
                     self.plan_maintenance_widget.set_data(data, start_date, end_date)
-                    print("계획 유지율 위젯 데이터 업데이트 완료")
-                
-                # 분산 배치 위젯 업데이트
-                if hasattr(self, 'split_allocation_widget'):
+
+                if self.split_allocation_widget:
                     self.split_allocation_widget.run_analysis(data)
 
-                # summary 위젯 업데이트
-                if hasattr(self, 'summary_widget'):
+                if self.summary_widget:
                     self.summary_widget.run_analysis(data)
 
-                # Capa 비율 분석
-                # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
-                if self.data_changed_count > 1:
-                    # 제조동별 생산량 비율 분석
-                    print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=False")
-                    self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=False)
-                else:
-                    # 첫 번째 이벤트는 결과를 저장하지만 출력하지 않음
-                    print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=True")
+                # === 핵심: 비교차트 조건 분기 ===
+                if self.data_changed_count == 0:
+                    print("[디버그] 최초 로딩 - 단일 차트 출력")
                     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
-    
-                # 요일별 가동률 
-                print("[디버그] CapaUtilization.analyze_utilization 호출")
-                self.utilization_data = CapaUtilization.analyze_utilization(data)
+                    self.utilization_data = CapaUtilization.analyze_utilization(data)
 
-                # 시각화 업데이트
+                else:
+                    print("[디버그] 조정 이후 - 비교 차트 출력 시도")
+                    if self.controller and self.controller.model:
+                        print("[디버그] controller 및 model 존재 확인됨")
+                        comparison_df = self.controller.model.get_comparison_dataframe()
+                        print(f"[디버그] comparison_df 키: {comparison_df.keys()}")
+
+                        self.capa_ratio_data = {
+                            'original': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['original']),
+                            'adjusted': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['adjusted'])
+                        }
+                        self.utilization_data = {
+                            'original': CapaUtilization.analyze_utilization(comparison_df['original']),
+                            'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
+                        }
+
+                        print("[디버그] 비교 데이터 생성 완료 (Capa + Utilization)")
+                    else:
+                        print("[디버그] controller 또는 model 없음 → 단일 차트로 fallback")
+                        self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
+                        self.utilization_data = CapaUtilization.analyze_utilization(data)
+
+                # 데이터 변경 카운터 증가
+                self.data_changed_count += 1
+
+                # 시각화 갱신
                 self.update_all_visualizations()
-
                 self._refresh_base_kpi()
-                    
+
             else:
                 print("빈 데이터프레임")
                 self.capa_ratio_data = {}
@@ -579,6 +725,7 @@ class ResultPage(QWidget):
             print(f"데이터 분석 중 오류 발생: {e}")
             import traceback
             traceback.print_exc()
+
     
 
     """
@@ -719,35 +866,120 @@ class ResultPage(QWidget):
     -> left_section으로 전달
     """
     def set_optimization_result(self, results):
+        # 변수 초기화 - 중복 호출 방지 위한 추적
+        self.data_changed_count = 0
+        print("1. data_changed_count 초기화 완료")
+        
         # 결과 데이터 추출
         assignment_result = results.get('assignment_result')
         pre_assigned_items = results.get('pre_assigned_items', [])
         optimization_metadata = results.get('optimization_metadata', {})
-
+        
+        # if not assignment_result:
+        #     print("최적화 결과가 비어있거나 유효하지 않습니다.")
+        #     return False
+        
         # 사전할당 아이템 저장 
         self.pre_assigned_items = set(pre_assigned_items)
-
-        if hasattr(self, 'left_section'):
-            # ─── MVC 구조 초기화 ───
-            # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
-            validator = PlanAdjustmentValidator(assignment_result)
-
-            # 2) AssignmentModel 생성
-            model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
-
-            # 3) AdjustmentController 생성 (error_manager 주입)
-            controller = AdjustmentController(model, self.left_section, self.error_manager)
-            
-            # 4) Left Section에 validator와 controller 저장 (fallback용)
-            self.left_section.set_validator(validator)
-            self.left_section.set_controller(controller)
-            
-            print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
-
+        
+        print("2. set_optimization_result : 컨트롤러 초기화 시작")
+        
+        # ─── MVC 구조 초기화 ───
+        # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
+        validator = PlanAdjustmentValidator(assignment_result)
+        
+        # 2) AssignmentModel 생성
+        model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
+        
+        # 3) AdjustmentController 생성 (error_manager 주입)
+        controller = AdjustmentController(model, self.left_section, self.error_manager)
+        
+        print("3. 컨트롤러 생성 완료")
+        
+        # 4) ResultPage 참조 설정
+        controller.set_result_page(self)
+        print("4. 컨트롤러에 ResultPage 참조 전달")
+        
+        # 5) 컨트롤러를 클래스에 저장하고 ResultPage에 설정
+        self.controller = controller
+        self.set_controller(controller)
+        
+        # 6) Left Section에 validator와 controller 저장 (fallback용)
+        self.left_section.set_validator(validator)
+        self.left_section.set_controller(controller)
+        
+        print("5. 컨트롤러 세팅 완료")
+        
+        # 7) 초기 데이터 로드 (시그널 연결 전에)
+        controller.initialize_views()
+        print("6. 초기 데이터 설정 완료")
+        
+        # 8) 시그널 연결 (초기화 후 마지막에 수행)
+        print("7. 시그널 연결 시작")
+        controller.connect_signals()
+        print("8. 시그널 연결 완료")
+        
         # 메타데이터 필요시 - 추후 삭제
         self.optimization_metadata = optimization_metadata
-
+        
+        print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
+        
+        return True
+        # assignment_result = results.get('assignment_result')
+        # pre_assigned_items = results.get('pre_assigned_items', [])
+
+        # validator = PlanAdjustmentValidator(assignment_result)
+        # model = AssignmentModel(pd.DataFrame(assignment_result), list(pre_assigned_items), validator)
+        # controller = AdjustmentController(model, self.left_section, self.error_manager)
+
+        # # 1) 여기서 controller 설정 (defer_signal=True로 시그널 연결 보류)
+        # self.set_controller(controller, defer_signal=True)
+
+        # # 2) 수동으로 최초 on_data_changed 호출 (단 1번만)
+        # self.on_data_changed(model.get_dataframe())
+
+        # # 3) 이후에 시그널 연결
+        # controller.model.modelDataChanged.connect(self.update_ui_from_model)
+        # print("모델 변경 시그널 연결 완료")
+
+        # # 4) 기타 설정
+        # self.left_section.set_validator(validator)
+        # self.left_section.set_controller(controller)
+
+        # print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
+
+
+        # 결과 데이터 추출
+        # assignment_result = results.get('assignment_result')
+        # pre_assigned_items = results.get('pre_assigned_items', [])
+        # optimization_metadata = results.get('optimization_metadata', {})
+
+        # # 사전할당 아이템 저장 
+        # self.pre_assigned_items = set(pre_assigned_items)
+
+        # if hasattr(self, 'left_section'):
+        #     # ─── MVC 구조 초기화 ───
+        #     # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
+        #     validator = PlanAdjustmentValidator(assignment_result)
+
+        #     # 2) AssignmentModel 생성
+        #     model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
+
+        #     # 3) AdjustmentController 생성 (error_manager 주입)
+        #     controller = AdjustmentController(model, self.left_section, self.error_manager)
+        #     self.set_controller(controller)
+            
+        #     # 4) Left Section에 validator와 controller 저장 (fallback용)
+        #     self.left_section.set_validator(validator)
+        #     self.left_section.set_controller(controller)
+            
+        #     print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
+
+        # # 메타데이터 필요시 - 추후 삭제
+        # self.optimization_metadata = optimization_metadata
+
+        # print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
  
 
     """
