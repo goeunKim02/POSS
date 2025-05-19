@@ -11,6 +11,8 @@ from .legend_widget import LegendWidget
 from .filter_widget import FilterWidget
 from app.utils.fileHandler import load_file
 from app.utils.item_key_manager import ItemKeyManager
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 class ModifiedLeftSection(QWidget):
     # 데이터 변경을 통합해서 한 번만 내보내는 시그널
@@ -77,31 +79,36 @@ class ModifiedLeftSection(QWidget):
 
         # 통합 컨트롤 레이아웃 (버튼, 필터, 검색 섹션을 한 줄에 배치)
         control_layout = QHBoxLayout()
-        control_layout.setContentsMargins(10, 5, 10, 5)
-        control_layout.setSpacing(10)
+        control_layout.setContentsMargins(5, 5, 5, 5)
+        control_layout.setSpacing(w(5))
 
         # 왼쪽 버튼 섹션 (Import/Reset)
         button_section = QHBoxLayout()
-        button_section.setSpacing(5)
+        button_section.setSpacing(10)
+
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
         # 엑셀 파일 불러오기 버튼 - 길이 증가
         self.load_button = QPushButton("Import Excel")
-        self.load_button.setStyleSheet("""
-            QPushButton {
+        self.load_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 140px;  /* 버튼 길이 증가 */
-                max-width: 160px;  /* 버튼 길이 증가 */
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(14)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #004C99;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #003366;
-            }
+            }}
         """)
         self.load_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.load_button.clicked.connect(self.load_excel_file)
@@ -109,22 +116,24 @@ class ModifiedLeftSection(QWidget):
 
         # 원본 복원 버튼 
         self.reset_button = QPushButton("Reset")
-        self.reset_button.setStyleSheet("""
-            QPushButton {
+        self.reset_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #808080;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 80px;
-                max-width: 100px;
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(14)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #606060;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #404040;
-            }
+            }}
         """)
         self.reset_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.reset_button.clicked.connect(self.reset_to_original)
@@ -140,49 +149,7 @@ class ModifiedLeftSection(QWidget):
         # 필터 위젯 추가 - Line과 Project 버튼 간격 조정 및 스타일 변경
         self.filter_widget = FilterWidget()
         self.filter_widget.filter_changed.connect(self.on_excel_filter_changed)
-        self.filter_widget.setFixedWidth(400)
-        self.filter_widget.setStyleSheet("""
-            border: none;
-        """)
-        
-        # FilterWidget 스타일 변경 (line_filter_btn, project_filter_btn)
-        self.filter_widget.line_filter_btn.setStyleSheet("""
-            QToolButton {
-                background-color: white;
-                color: black;
-                font-weight: bold;
-                padding: 6px 8px;
-                border-radius: 4px;
-                min-width: 120px;
-                border: none;
-                margin-right: 10px;
-            }
-            QToolButton:hover {
-                background-color: #f0f0f0;
-            }
-            QToolButton:pressed {
-                background-color: #e0e0e0;
-            }
-        """)
-        
-        self.filter_widget.project_filter_btn.setStyleSheet("""
-            QToolButton {
-                background-color: white;
-                color: black;
-                font-weight: bold;
-                padding: 6px 8px;
-                border-radius: 4px;
-                min-width: 120px;
-                border: none;
-            }
-            QToolButton:hover {
-                background-color: #f0f0f0;
-            }
-            QToolButton:pressed {
-                background-color: #e0e0e0;
-            }
-        """)
-        
+        # self.filter_widget.setFixedWidth(400)
         control_layout.addWidget(self.filter_widget)
 
         # 검색 섹션 - 오른쪽에 붙이기
