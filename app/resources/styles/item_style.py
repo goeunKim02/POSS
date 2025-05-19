@@ -1,43 +1,54 @@
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
+
+
 class ItemStyle:
+    bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+    normal_font = font_manager.get_just_font("SamsungOne-700").family()
+
     # 기본 스타일 
-    DEFAULT_STYLE = """
-        QFrame {
+    DEFAULT_STYLE = f"""
+        QFrame {{
             background-color: #F8F9FA;
             border: 1px solid #DEE2E6;
-            border-radius: 4px;
+            border-radius: 0px;
             padding: 5px 5px 5px 5px;  
             margin: 2px;
-        }
-        QLabel {
+        }}
+        QLabel {{
             font-weight: normal;
-        }
+            font-family: {normal_font};
+        }}
     """
 
     # 선택됐을 때 스타일 
-    SELECTED_STYLE = """
-        QFrame {
+    SELECTED_STYLE = f"""
+        QFrame {{
             background-color: #E3F2FD;
-            border: 2px solid #1976D2;
-            border-radius: 4px;
+            border: 1px solid #1976D2;
+            border-radius: 0px;
             padding: 5px 5px 5px 5px;  
             margin: 2px;
-        }
-        QLabel {
-            font-weight: bold;
-        }
+        }}
+        QLabel {{
+            font-weight: normal;
+            font-family: {normal_font};
+        }}
     """
 
     # 호버 스타일 
-    HOVER_STYLE = """
-        QFrame {
+    HOVER_STYLE = f"""
+        QFrame {{
             background-color: #E3F2FD;
             border: 1px solid #1976D2;
-            border-radius: 4px;
+            border-radius: 0px;
             padding: 5px 5px 5px 5px;
             margin: 2px;
-        }
-        QLabel {
-        }
+        }}
+        QLabel {{
+            font-weight: normal;
+            font-family: {normal_font};
+        }}
     """
 
     # 각 상태별 스타일들 - 모두 같은 패딩으로 통일

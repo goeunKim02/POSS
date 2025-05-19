@@ -20,7 +20,7 @@ class ItemsContainer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(2, 2, 2, 2)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(12)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
@@ -34,7 +34,7 @@ class ItemsContainer(QWidget):
         self.drop_indicator_position = -1
         self.show_drop_indicator = False
 
-        self.default_style = "border: 1px solid #D9D9D9; background-color: white;"
+        self.default_style = "border: 1px solid  background-color: white;"
         self.empty_style = "background-color: rgba(245, 245, 245, 0.5); border: 1px dashed #cccccc;"
 
         # 늘어나는 공간을 위한 스페이서 추가
