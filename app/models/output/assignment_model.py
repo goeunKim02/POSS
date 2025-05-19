@@ -10,10 +10,12 @@ from app.utils.field_filter import filter_internal_fields
 시그널:
     - modelDataChanged: 모델의 데이터가 바뀌었음을 뷰(View)에 알림 
     - validationFailed: 검증 오류 메시지를 뷰에 전달 
+    - dataModified: 데이터 변경 여부 전달
 """
 class AssignmentModel(QObject):
     modelDataChanged = pyqtSignal()  # 모델의 데이터가 바뀌었음을 뷰(View)에 알리는 시그널
     validationFailed = pyqtSignal(dict, str)  # 검증(validation) 오류가 발생했을 때 오류 메시지를 전달하는 시그널
+    dataModified = pyqtSignal(bool)  # True: 변경됨, False: 원본과 동일
 
     """
     assignment_df: 최적화 결과로 넘어온 전체 DataFrame
@@ -103,6 +105,10 @@ class AssignmentModel(QObject):
         if error_msg:
             row = self._df.loc[mask].iloc[0].to_dict()  # 현재 행 전체 정보
             self.validationFailed.emit(row, error_msg)  # 검증 실패 시 오류 메시지 시그널 방출
+
+        # 원본과 현재 데이터 비교하여 변경 여부 확인
+        has_changes = self._check_for_changes()
+        self.dataModified.emit(has_changes)
         
         # 4) 모든 처리 후 뷰에 데이터 변경 알림
         self.modelDataChanged.emit()
@@ -138,17 +144,23 @@ class AssignmentModel(QObject):
         if error_msg:
             row = self._df.loc[mask].iloc[0].to_dict()
             self.validationFailed.emit(row, error_msg)
+
+        # 원본과 현재 데이터 비교하여 변경 여부 확인
+        has_changes = self._check_for_changes()
+        self.dataModified.emit(has_changes)
         
-        # 데이터 변경 알림
+        # 뷰에 데이터 변경 알림
         self.modelDataChanged.emit()
 
     """
     원본 상태로 복원
-
     """
     def reset(self):
+        print("Model: reset 메서드 호출")
         self._df = self._original_df.copy()
+        self.dataModified.emit(False)
         self.modelDataChanged.emit()
+        print("Model: 원본 데이터로 복원 완료")
 
     """
     현재 상태를 원본에 반영
@@ -196,10 +208,10 @@ class AssignmentModel(QObject):
             return f"검증 중 오류 발생: {str(e)}"
         
 
+    """
+    특정 위치의 아이템 수량 가져오기
+    """
     def get_item_qty(self, item: str, line: str, time: int, item_id: str=None) -> int:
-        """
-        특정 위치의 아이템 수량 가져오기
-        """
         if item_id:
             mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
@@ -246,9 +258,14 @@ class AssignmentModel(QObject):
         
         # 새 행을 DataFrame에 추가
         self._df = pd.concat([self._df, pd.DataFrame([new_row])], ignore_index=True)
+
+        # 원본과 현재 데이터 비교하여 변경 여부 확인
+        has_changes = self._check_for_changes()
+        self.dataModified.emit(has_changes)
         
-        # 데이터 변경 알림
+        # 뷰에 데이터 변경 알림
         self.modelDataChanged.emit()
+
         return True
 
     """
@@ -269,9 +286,14 @@ class AssignmentModel(QObject):
         # 아이템 삭제
         self._df = self._df[~mask].reset_index(drop=True)
         print(f"Model: 아이템 {item} @ {line}-{time} (ID: {item_id}) 삭제됨")
+
+        # 원본과 현재 데이터 비교하여 변경 여부 확인
+        has_changes = self._check_for_changes()
+        self.dataModified.emit(has_changes)
         
-        # 데이터 변경 알림
+        # 뷰에 데이터 변경 알림
         self.modelDataChanged.emit()
+        
         return True
     
 
@@ -301,3 +323,21 @@ class AssignmentModel(QObject):
     def get_dataframe_for_display(self):
         df = self.get_dataframe()
         return filter_internal_fields(df)
+    
+
+    """
+    원본 데이터와 현재 데이터 비교하여 변경 여부 확인
+    """
+    def _check_for_changes(self) -> bool:
+        # 행 수가 다르면 변경된 것
+        if len(self._original_df) != len(self._df):
+            return True
+            
+        # 주요 컬럼 비교
+        key_columns = ['Line', 'Time', 'Item', 'Qty']
+        for col in key_columns:
+            if col in self._original_df.columns and col in self._df.columns:
+                if not self._original_df[col].equals(self._df[col]):
+                    return True
+        
+        return False

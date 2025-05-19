@@ -93,9 +93,9 @@ class AdjustmentController(QObject):
             print("Controller: itemCopied 시그널 연결")
             self.view.grid_widget.itemCopied.connect(self.on_item_copied)
 
-        # 최초 한 번, 뷰에 초기 데이터 설정
-        # self.view.set_data_from_external(self.model.get_dataframe())
-        # print("Controller: set_data_from_external 시그널 연결 (뷰 초기 데이터 설정)")
+        # 모델의 데이터 변경 상태 시그널 연결
+        if hasattr(self.model, 'dataModified'):
+            self.model.dataModified.connect(self.on_data_modified)
         
         # 연결 완료 상태 설정
         self._signals_connected = True        
@@ -266,4 +266,21 @@ class AdjustmentController(QObject):
             print("Controller: model이 set_new_dataframe을 지원하지 않음")
             return False
         
+    """
+    데이터 원본 복원
+    """
+    def reset_data(self):
+        print("Controller: reset_data 호출")
+        if hasattr(self, 'model') and self.model:
+            # 모델에 리셋 요청
+            self.model.reset()
+            print("Controller: 모델 reset 완료")
+        else:
+            print("Controller: 모델을 찾을 수 없음")
 
+    """
+    모델 데이터의 변경 상태에 따라 리셋 버튼 상태 업데이트
+    """
+    def on_data_modified(self, has_changes: bool):
+        if hasattr(self.view, 'reset_button'):
+            self.view.reset_button.setEnabled(has_changes)
