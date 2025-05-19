@@ -44,8 +44,18 @@ class VisualizationUpdater:
     """Capa 비율 차트 업데이트"""
     @staticmethod
     def update_capa_chart(canvas, capa_ratio_data):
+         # [디버그 1] 입력 데이터 로깅
+        print(f"[디버그] update_capa_chart 입력 데이터 타입: {type(capa_ratio_data)}")
+        if isinstance(capa_ratio_data, dict):
+            print(f"[디버그] capa_ratio_data 키: {list(capa_ratio_data.keys())}")
+        
         # 비교 데이터형식 감지
         is_comparison = isinstance(capa_ratio_data, dict) and 'original' in capa_ratio_data and 'adjusted' in capa_ratio_data
+        # print(f"[디버그] is_comparison 확인: {is_comparison}")
+
+        # 데이터 유효성 검사  - 디버그
+        is_valid = VisualizationUpdater._is_capa_data_valid(capa_ratio_data)
+        print(f"[디버그] 데이터 유효성: {is_valid}")
 
         chart_config = {
             'has_data_check' : VisualizationUpdater._is_capa_data_valid,
@@ -73,6 +83,7 @@ class VisualizationUpdater:
                 }
             }
         }
+        print(f"[디버그] DisplayHelper 호출 직전 chart_config: {chart_config}")
      
         DisplayHelper.show_chart_or_message(canvas, capa_ratio_data, chart_config)
 
@@ -108,47 +119,8 @@ class VisualizationUpdater:
     @staticmethod
     def update_port_capa_chart(canvas, port_capa_data):
         pass
-        # # 비교 데이터 형식 감지
-        # is_comparison = isinstance(port_capa_data, dict) and 'original' in port_capa_data and 'adjusted' in port_capa_data
-        
-        # chart_config = {
-        #     'has_data_check': VisualizationUpdater._is_capa_data_valid,
-        #     'chart_type': 'comparison_bar' if is_comparison else 'bar',
-        #     'title': 'Port Capacity Utilization Comparison' if is_comparison else 'Port Capacity Utilization',
-        #     'xlabel': 'Port',
-        #     'ylabel': 'Utilization (%)',
-        #     'transform_data': None,
-        #     'extra_params': {
-        #         'show_value': True,
-        #         'value_fontsize': 14,
-        #         'show_legend': is_comparison,
-        #         'sort_data': True,
-        #         'sort_descending': True 
-        #     }
-        # }
-        
-        # DisplayHelper.show_chart_or_message(canvas, port_capa_data, chart_config)
-
-
-    # """
-    # 자재 부족량 분석 실행 (차트 영역 제거)
-    # """
-    # @staticmethod
-    # def update_material_shortage_chart(canvas, result_data=None):
-    #     # 자재 부족량 분석 실행
-    #     analyzer = MaterialShortageAnalyzer()
-    #     analyzer.analyze_material_shortage(result_data)
-        
-    #     # 그래프 영역 숨기기 - 캔버스가 보이지 않도록 설정
-    #     canvas.axes.clear()
-    #     canvas.axes.set_frame_on(False)
-    #     canvas.axes.get_xaxis().set_visible(False)
-    #     canvas.axes.get_yaxis().set_visible(False)
-    #     canvas.setVisible(False)  # 캔버스 자체를 숨김
-    #     canvas.draw()
-        
-    #     return analyzer
-        
+    
+    
     """Material 차트의 데이터 유효성 확인 함수"""
     @staticmethod
     def _is_material_shortage_data_valid(data):

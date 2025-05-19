@@ -269,3 +269,10 @@ class AssignmentModel(QObject):
         # 데이터 변경 알림
         self.modelDataChanged.emit()
         return True
+    
+
+    def get_comparison_dataframe(self):
+        return {
+            'original': self._ensure_correct_types(self._original_df.copy()),
+            'adjusted': self._ensure_correct_types(self._df.copy())
+        }
