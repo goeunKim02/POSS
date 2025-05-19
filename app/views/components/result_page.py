@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
-                             QFrame, QSplitter, QStackedWidget, QTableWidget, QHeaderView, QToolTip, 
-                             QTableWidgetItem, QScrollArea, QGridLayout)
+                             QFrame, QSplitter, QStackedWidget, QTableWidget, QHeaderView,
+                            QScrollArea, QGridLayout)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
@@ -16,7 +16,6 @@ from app.core.output.adjustment_validator import PlanAdjustmentValidator
 from app.resources.styles.result_style import ResultStyles 
 from app.views.components.result_components.modified_left_section import ModifiedLeftSection
 from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
-from app.views.components.result_components.table_widget.material_widget import MaterialWidget
 from app.views.components.result_components.items_container import ItemsContainer
 from app.views.components.result_components.right_section.adj_error_manager import AdjErrorManager
 from app.views.components.result_components.right_section.tab_manager import TabManager
@@ -24,6 +23,8 @@ from app.views.components.result_components.table_widget.split_allocation_widget
 from app.views.components.result_components.right_section.kpi_widget import KpiWidget
 from app.models.output.assignment_model import AssignmentModel
 from app.controllers.adjustment_controller import AdjustmentController
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 from app.analysis.output.kpi_score import KpiScore
 
 
@@ -63,6 +64,9 @@ class ResultPage(QWidget):
         print("==== ResultPage: connect_signals 호출 완료 ====\n")
 
     def init_ui(self):
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
+
         # 레이아웃 설정
         result_layout = QVBoxLayout(self)
         result_layout.setContentsMargins(0, 0, 0, 0)
@@ -70,49 +74,35 @@ class ResultPage(QWidget):
 
         # 타이틀 프레임
         title_frame = QFrame()
-        title_frame.setFrameShape(QFrame.StyledPanel)
-        title_frame.setStyleSheet("QFrame { min-height:61px; max-height:62px; border:none }")
+        title_frame.setStyleSheet("background-color: transparent;")
         title_layout = QHBoxLayout(title_frame)
-        title_layout.setContentsMargins(25, 10, 15, 5)
-        title_layout.setSpacing(0)
+        title_layout.setContentsMargins(10, 10, 10, 0)
+        title_layout.setSpacing(w(10))
+        title_layout.setAlignment(Qt.AlignVCenter)
 
         # 타이틀 레이블
         title_label = QLabel("Result")
-        font = QFont()
-        font.setFamily("Arial")
-        font.setPointSize(15)
-        font.setBold(True)
-        font.setWeight(99)
-        title_label.setFont(font)
+        title_label.setStyleSheet(f"font-family: {bold_font}; font-size: {f(21)}px; font-weight: 900;")
+        title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        title_layout.addWidget(title_label, 0, Qt.AlignVCenter)
-        title_layout.addStretch(1)
-
-        # 버튼 레이아웃
-        export_layout = QHBoxLayout()
-        export_layout.setContentsMargins(0, 0, 0, 0)  # 여백 수정
-        export_layout.setSpacing(10)
 
         # Export 버튼
-        export_btn = QPushButton()
-        export_btn.setText("Export")
-        export_btn.setFixedSize(130, 40)
+        export_btn = QPushButton("Export")
         export_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        export_btn.setFixedSize(w(100), h(40))
         export_btn.clicked.connect(self.export_results)
         export_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
         # Report 버튼
-        report_btn = QPushButton()
-        report_btn.setText("Report")
-        report_btn.setFixedSize(140, 40)
+        report_btn = QPushButton("Report")
         report_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        report_btn.setFixedSize(w(100), h(40))
         report_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
-        export_layout.addWidget(export_btn)
-        export_layout.addWidget(report_btn)
-
-        # 버튼 레이아웃을 타이틀 레이아웃에 추가
-        title_layout.addLayout(export_layout)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch(1)
+        title_layout.addWidget(export_btn)
+        title_layout.addWidget(report_btn)
 
         # 타이틀 프레임을 메인 레이아웃에 추가
         result_layout.addWidget(title_frame)
@@ -451,154 +441,6 @@ class ResultPage(QWidget):
     데이터가 변경되었을 때 호출되는 메서드
     데이터프레임을 분석하여 시각화 업데이트
     """
-    # def on_data_changed(self, data):
-    #     print("on_data_changed 호출됨 - 데이터 변경 감지")
-    #     self.result_data = data
-
-    #     # 위젯 참조가 없으면 다시 설정 (지연 초기화)
-    #     if self.plan_maintenance_widget is None:
-    #         self._setup_widget_references()
-
-
-    #     # 데이터 로드 후 바로 자재부족 분석
-    #     if data is not None and not data.empty:
-    #         print("데이터 로드 후 자재 부족 분석 시행")
-    #         # 자재 부족 분석 위젯을 통해 분석 실행
-    #         if hasattr(self, 'material_widget') and self.material_widget:
-    #             self.material_widget.run_analysis(data)
-    #             self.material_analyzer = self.material_widget.get_material_analyzer()
-    #         # 기존 호환성 유지
-    #         else:
-    #             try:
-    #                 # material_analyzer가 없으면 생성
-    #                 if not hasattr(self, 'material_analyzer') or self.material_analyzer is None:
-    #                     self.material_analyzer = MaterialShortageAnalyzer()
-
-    #                 # 분석 실행 시 데이터 전달
-    #                 self.material_analyzer.analyze_material_shortage(data)
-    #             except Exception as e:
-    #                 print(f"초기 자재 부족 분석 중 오류 :{e}")
-
-    #     # 사전할당 상태 업데이트
-    #     if hasattr(self, 'pre_assigned_items') and self.pre_assigned_items:
-    #         self.update_left_widget_pre_assigned_status(self.pre_assigned_items)
-        
-    #     # 자재 부족 상태 업데이트
-    #     if hasattr(self, 'material_analyzer') and self.material_analyzer and self.material_analyzer.shortage_results:
-    #         self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
-        
-    #     # 출하 실패 상태 업데이트
-    #     if hasattr(self.left_section, 'shipment_failure_items') and self.left_section.shipment_failure_items:
-    #         self.left_section.apply_shipment_failure_status()
-
-    #     try:
-    #         # 데이터가 비어있지 않은 경우에만 분석 수행
-    #         if data is not None and not data.empty:
-    #             # # 데이터 변경 이벤트 카운터 증가
-    #             # self.data_changed_count += 1
-
-    #             # KPI 점수 업데이트
-    #             self.update_kpi_scores()
-
-    #             # Base KPI 점수 새로고침
-    #             self._refresh_base_kpi()
-    #             # 그리고 일단 Adjust도 동일하게 초기화
-    #             for name, val in self.kpi_score.calculate_all_scores().items():
-    #                 lbl = self.kpi_labels[f"Adjust_{name}"]
-    #                 lbl.setText(f"{val:.1f}%")
-
-    #             # Plan 탭의 계획 유지율 위젯 업데이트
-    #             print("계획 유지율 위젯 업데이트 시작")
-
-    #             if hasattr(self, 'plan_maintenance_widget'):
-    #                 # 날짜 범위 가져오기 (메인 윈도우의 DataInputPage에서)
-    #                 start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                    
-    #                 # 데이터 설정 (FilePaths에서 자동으로 이전 계획 파일 확인) 
-    #                 self.plan_maintenance_widget.set_data(data, start_date, end_date)
-    #                 print("계획 유지율 위젯 데이터 업데이트 완료")
-                
-    #             # 분산 배치 위젯 업데이트
-    #             if hasattr(self, 'split_allocation_widget'):
-    #                 self.split_allocation_widget.run_analysis(data)
-
-    #             # summary 위젯 업데이트
-    #             if hasattr(self, 'summary_widget'):
-    #                 self.summary_widget.run_analysis(data)
-
-    #             # Capa 비율 분석
-    #             # 두 번째 이벤트부터 정상 출력 (첫 번째 이벤트는 출력 안함)
-    #             if self.data_changed_count > 1:
-    #                 print("[디버그] 비교 차트용 데이터 생성 시도 중")
-
-    #                 if self.controller and self.controller.model:
-    #                     print("[디버그] controller 및 model 존재 확인됨")
-    #                     try:
-    #                         # 모델에서 원본/조정 DataFrame 모두 가져옴
-    #                         comparison_df = self.controller.model.get_comparison_dataframe()
-    #                         print(f"[디버그] comparison_df 타입: {type(comparison_df)}")
-    #                         print(f"[디버그] comparison_df 키: {getattr(comparison_df, 'keys', lambda: 'N/A')()}")
-
-    #                         self.capa_ratio_data = {
-    #                             'original': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['original']),
-    #                             'adjusted': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['adjusted'])
-    #                         }
-
-    #                         self.utilization_data = {
-    #                             'original': CapaUtilization.analyze_utilization(comparison_df['original']),
-    #                             'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
-    #                         }
-
-    #                         print("[디버그] 비교 데이터 생성 완료 (Capa + Utilization)")
-    #                     except Exception as e:
-    #                         print(f"[에러] 비교 데이터 생성 실패: {e}")
-    #                         self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data, is_initial=True)
-    #                         self.utilization_data = CapaUtilization.analyze_utilization(data)
-    #                 else:
-    #                     print("[디버그] controller 및 model 없음.")
-    #             else:
-    #                 print("[디버그] 초기 차트 생성 (is_initial=True)")
-    #                 self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
-    #                 self.utilization_data = CapaUtilization.analyze_utilization(data)
-
-    #             # #     # 제조동별 생산량 비율 분석
-    #             # #     print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=False")
-    #             # #     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=False)
-    #             # # else:
-    #             # #     # 첫 번째 이벤트는 결과를 저장하지만 출력하지 않음
-    #             # #     print("[디버그] CapaRatioAnalyzer.analyze_capa_ratio 호출 - is_initial=True")
-    #             # #     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
-    
-    #             # # 요일별 가동률 
-    #             # if self.controller and self.controller.model:
-    #             #     try:
-    #             #         comparison_df = self.controller.model.get_comparison_dataframe()
-    #             #         self.utilization_data = {
-    #             #             'original': CapaUtilization.analyze_utilization(comparison_df['original']),
-    #             #             'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
-    #             #         }
-    #             #         print("[디버그] Utilization 비교 데이터 생성 완료")
-    #             #     except Exception as e:
-    #             #         print(f"[에러] Utilization 비교 분석 실패: {e}")
-    #             #         self.utilization_data = CapaUtilization.analyze_utilization(data)  # fallback
-
-                        
-    #             # 시각화 업데이트
-    #             self.update_all_visualizations()
-
-    #             self._refresh_base_kpi()
-                    
-    #         else:
-    #             print("빈 데이터프레임")
-    #             self.capa_ratio_data = {}
-    #             self.utilization_data = {}
-
-    #     except Exception as e:
-    #         print(f"데이터 분석 중 오류 발생: {e}")
-    #         import traceback
-    #         traceback.print_exc()
-
-
     def on_data_changed(self, data):
         print("on_data_changed 호출됨 - 데이터 변경 감지")
         self.result_data = data
@@ -703,29 +545,9 @@ class ResultPage(QWidget):
     모든 시각화 차트 업데이트
     """
     def update_all_visualizations(self):
-        # print(f"시각화 업데이트 시작 - 캔버스 개수: {len(self.viz_canvases)}")
-        # print(f"[디버그] capa_ratio_data 타입: {type(self.capa_ratio_data)}")
-
-        if isinstance(self.capa_ratio_data, dict): # 디버깅
-            # print(f"[디버그] capa_ratio_data 키: {list(self.capa_ratio_data.keys())}")
-            # 비교 데이터 형식인지 확인
-            is_comparison = 'original' in self.capa_ratio_data and 'adjusted' in self.capa_ratio_data
-            # print(f"[디버그] capa_ratio_data 비교 데이터 형식: {is_comparison}")
-            
-            # 데이터 예시 출력
-            sample_keys = list(self.capa_ratio_data.keys())[:5]  # 처음 5개 키만
-            for key in sample_keys:
-                # print(f"[디버그] capa_ratio_data['{key}'] 타입: {type(self.capa_ratio_data[key])}")
-                
-                if key in ['original', 'adjusted'] and isinstance(self.capa_ratio_data[key], dict):
-                    sub_sample = list(self.capa_ratio_data[key].keys())[:3]  # 하위 키 3개만
-                    sub_data = {k: self.capa_ratio_data[key][k] for k in sub_sample if k in self.capa_ratio_data[key]}
-                    # print(f"[디버그] capa_ratio_data['{key}'] 샘플: {sub_data}")
-
         # Capa 탭 업데이트 
         capa_tab = self.tab_manager.get_tab_instance('Capa')
         if capa_tab:
-            print(f"[디버그] Capa 탭 찾음, update_content 호출 전 utilization_data 타입: {type(self.utilization_data)}")
             capa_tab.update_content(self.capa_ratio_data, self.utilization_data)
         else:
             print("[디버그] Capa 탭을 찾을 수 없음")
@@ -1269,9 +1091,6 @@ class ResultPage(QWidget):
         if model_df is None or model_df.empty:
             print("유효한 모델 데이터가 없어 업데이트 중단")
             return
-        
-        # 중복 업데이트 방지 로직 (필요시 구현)
-        # 마지막 업데이트와 동일한 데이터인지 체크
         
         # on_data_changed를 통해 모든 UI 업데이트 진행
         # 특별한 처리가 필요하면 여기에 추가
