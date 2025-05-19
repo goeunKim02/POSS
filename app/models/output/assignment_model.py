@@ -156,11 +156,9 @@ class AssignmentModel(QObject):
     원본 상태로 복원
     """
     def reset(self):
-        print("Model: reset 메서드 호출")
         self._df = self._original_df.copy()
         self.dataModified.emit(False)
         self.modelDataChanged.emit()
-        print("Model: 원본 데이터로 복원 완료")
 
     """
     현재 상태를 원본에 반영
@@ -199,7 +197,8 @@ class AssignmentModel(QObject):
                 line,
                 time, 
                 item,
-                self.get_item_qty(item, line, time, item_id)
+                self.get_item_qty(item, line, time, item_id),
+                item_id=item_id
             )
             return None if valid else message
         

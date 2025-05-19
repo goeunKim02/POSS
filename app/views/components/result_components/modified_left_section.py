@@ -906,87 +906,27 @@ class ModifiedLeftSection(QWidget):
         
 
     """
-    엑셀 파일 로드
+    엑셀 파일 로드 -  ResultPage의 통합 메서드 호출
     """
     def load_excel_file(self):
-        print("엑셀 파일 로드 시작")
+        # 부모 페이지 확인
+        if not hasattr(self, 'parent_page') or self.parent_page is None:
+            print("[ERROR] parent_page 참조가 없습니다.")
+            EnhancedMessageBox.show_validation_error(
+                self, 
+                "오류", 
+                "페이지 참조가 설정되지 않았습니다."
+            )
+            return
+        
+        # ResultPage의 load_result_file 메서드 호출
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls)"
+            self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls *.csv)"
         )
-
+        
         if file_path:
-            try:
-                self.clear_all_items()
+            self.parent_page.load_result_file(file_path)
 
-                loaded_result = load_file(file_path)
-
-                # 'result' 키에서 DataFrame 추출
-                if isinstance(loaded_result, dict) and 'result' in loaded_result:
-                    loaded_data = loaded_result['result']
-                    print("'result' 키에서 데이터프레임 추출 성공")
-                else:
-                    # 이미 DataFrame이거나 다른 형태면 그대로 사용
-                    loaded_data = loaded_result
-                    # print(f"로드된 데이터 타입: {type(loaded_data)}")
-                
-                # DataFrame 확인
-                if not isinstance(loaded_data, pd.DataFrame):
-                    loaded_data = pd.DataFrame()  # 빈 데이터프레임 생성
-                
-                FilePaths.set("result_file", file_path)
-                
-                # 로드된 데이터가 비어있는지 확인
-                if loaded_data.empty:
-                    print("경고: 로드된 데이터가 비어있습니다.")
-                    EnhancedMessageBox.show_validation_error(self, "파일 로드 문제", "로드된 데이터가 비어있습니다.")
-                    return
-                
-                # 데이터 타입 안전하게 정규화
-                try:
-                    loaded_data = self._normalize_data_types(loaded_data)
-                except Exception as type_error:
-                    print(f"데이터 타입 정규화 중 오류: {type_error}")
-                    # 기본 타입 변환만 시도
-                    if 'Line' in loaded_data.columns:
-                        loaded_data['Line'] = loaded_data['Line'].astype(str)
-                    if 'Time' in loaded_data.columns:
-                        loaded_data['Time'] = pd.to_numeric(loaded_data['Time'], errors='coerce').fillna(0).astype(int)
-                
-                # 현재 데이터와 원본 데이터 모두 저장
-                self.data = loaded_data.copy()
-                self.original_data = loaded_data.copy()
-
-                # 컨터롤러 확인
-                if hasattr(self, 'controller') and self.controller is not None:
-                    # 컨트롤러가 있는 경우, 모델을 새 데이터로 업데이트
-                    if hasattr(self.controller, 'update_model_data'):
-                        # 컨트롤러를 통해 모델 업데이트
-                        success = self.controller.update_model_data(loaded_data)  # 변수 이름 변경
-                        if success:
-                            print("컨트롤러를 통해 모델 데이터 업데이트 완료")
-                        else:
-                            print("컨트롤러를 통한 모델 업데이트 실패")
-                    else:
-                        # update_model_data 메서드가 없는 경우, 직접 업데이트 시도
-                        try:
-                            self.controller.model._df = loaded_data.copy()  # 변수 이름 변경
-                            self.controller.model._original_df = loaded_data.copy()  # 변수 이름 변경
-                            self.controller.model.modelDataChanged.emit()
-                            print("컨트롤러 모델 직접 업데이트 완료")
-                        except Exception as e:
-                            print(f"컨트롤러 모델 직접 업데이트 중 오류 발생: {e}")
-                else:
-                    print("컨트롤러 없음.")
-                    # 컨트롤러가 없는 경우 직접 업데이트 
-                    self.update_table_from_data()
-
-                # 새로운 원본 상태가 있으므로 리셋 버튼 활성화
-                self.reset_button.setEnabled(False)
-
-                EnhancedMessageBox.show_validation_success(self, "File Loaded Successfully",
-                                        f"File has been successfully loaded.\nRows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
-            except Exception as e:
-                EnhancedMessageBox.show_validation_error(self, "File Loding Error", f"An error occurred while loading the file.\n{str(e)}")
 
     """
     아이템 목록과 그리드 초기화하는 메서드

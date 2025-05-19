@@ -27,18 +27,23 @@ class AdjustmentController(QObject):
         # 초기화 상태 추적
         self._views_initialized = False
         
+    """
+    ResultPage 참조 설정
+    """
     def set_result_page(self, result_page):
-        """ResultPage 참조 설정"""
         self.result_page = result_page
         print("Controller: ResultPage 참조 설정됨")
 
+
+    """
+    초기 데이터로 뷰 초기화 (시그널 연결 전에 호출)
+    """
     def initialize_views(self):
         # 이미 초기화된 경우 중복 초기화 방지
         if self._views_initialized:
             print("Controller: 뷰가 이미 초기화되어 있어 중복 초기화를 방지합니다.")
             return False
         
-        """초기 데이터로 뷰 초기화 (시그널 연결 전에 호출)"""
         df = self.model.get_dataframe()
         
         # 왼쪽 섹션 초기화
@@ -96,18 +101,19 @@ class AdjustmentController(QObject):
         # 모델의 데이터 변경 상태 시그널 연결
         if hasattr(self.model, 'dataModified'):
             self.model.dataModified.connect(self.on_data_modified)
-        
+
         # 연결 완료 상태 설정
         self._signals_connected = True        
         print("Controller: 시그널 연결 완료")
         return True
 
+
+    """
+    아이템 데이터 변경 처리
+    - Qty만 바뀌었으면 update_qty 호출
+    - Line/Time이 바뀌었으면 move_item 호출
+    """
     def _on_item_data_changed(self, item: object, new_data: Dict, changed_fields=None):
-        """
-        아이템 데이터 변경 처리
-        - Qty만 바뀌었으면 update_qty 호출
-        - Line/Time이 바뀌었으면 move_item 호출
-        """
         code = new_data.get('Item')
         line = new_data.get('Line')
         time = new_data.get('Time')
@@ -138,6 +144,7 @@ class AdjustmentController(QObject):
             # 수정된 모델의 update_qty 메서드 호출 (라인, 시간 포함)
             self.model.update_qty(code, line, time, qty, item_id)
 
+
     """
     모델 데이터가 바뀔 때마다 뷰를 업데이트
     - 전체 덮어쓰기보다는 델타 업데이트가 더 효율적일 수 있음
@@ -167,10 +174,29 @@ class AdjustmentController(QObject):
         code = new_data.get('Item')
         if code:
             item_id = new_data.get('_id')  # id 추출
-            print(f"Controller: 셀 이동 {code} -> {new_data.get('Line')}-{new_data.get('Time')}")
+
+            # 이전 위치 정보 추출
+            old_line = old_data.get('Line')
+            old_time = old_data.get('Time') 
+            
+            # 새 위치 정보 추출
+            new_line = new_data.get('Line')
+            new_time = new_data.get('Time')
+            
+            print(f"Controller: 셀 이동 {code} @ {old_line}-{old_time} -> {new_line}-{new_time}")
+                
+            # 올바른 순서로 파라미터 전달
+            self.model.move_item(
+                code,         # item
+                old_line,     # old_line
+                old_time,     # old_time
+                new_line,     # new_line
+                new_time,     # new_time
+                item_id       # item_id
+            )
             
             # 1. Model에 데이터 변경 알림
-            self.model.move_item(code, new_data['Line'], new_data['Time'], item_id)
+            # self.model.move_item(code, new_data['Line'], new_data['Time'], item_id)
             
             # 2. 필요시 추가 작업 (시각화 업데이트, 분석 등)
             # 예: 부모 컴포넌트에 셀 이동 이벤트 전달
@@ -179,19 +205,23 @@ class AdjustmentController(QObject):
             
             print(f"Controller: 셀 이동 처리 완료")
         
-    # 추가 유틸리티 메서드들
+    """
+    재 모델 데이터 반환
+    """
     def get_current_data(self):
-        """현재 모델 데이터 반환"""
         return self.model.get_dataframe()
 
+    """
+    데이터 리셋
+    """
     def reset_data(self):
-        """데이터 리셋"""
         self.model.reset()
 
+    """
+    변경사항 적용
+    """
     def apply_changes(self):
-        """변경사항 적용"""
         self.model.apply()
-
 
     """
     복사된 아이템 처리
@@ -221,6 +251,7 @@ class AdjustmentController(QObject):
         qty = data.get('Qty', 0)
         self.model.add_new_item(code, line, time, qty, data)
         print(f"Controller: 복사된 아이템 등록 - {code} @ {line}-{time}")
+
 
     """
     삭제된 아이템 처리
