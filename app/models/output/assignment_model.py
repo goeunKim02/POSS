@@ -1,8 +1,9 @@
 from PyQt5.QtCore import QObject, pyqtSignal
+import uuid  
 import pandas as pd
 from typing import List, Optional
 from app.utils.item_key_manager import ItemKeyManager
-import uuid  
+from app.utils.field_filter import filter_internal_fields
 
 """
 내부에 DataFrame을 들고 다니며,수량 변경, 이동, 리셋, 적용 같은 모든 로직을 한곳에서 처리
@@ -292,3 +293,11 @@ class AssignmentModel(QObject):
         print("[DEBUG] 모델에 새 데이터프레임 설정 완료")
 
         self.modelDataChanged.emit()
+
+    
+    """
+    UI 표시용 필터링된 데이터프레임 반환
+    """
+    def get_dataframe_for_display(self):
+        df = self.get_dataframe()
+        return filter_internal_fields(df)
