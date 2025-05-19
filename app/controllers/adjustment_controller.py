@@ -101,7 +101,7 @@ class AdjustmentController(QObject):
         # 모델의 데이터 변경 상태 시그널 연결
         if hasattr(self.model, 'dataModified'):
             self.model.dataModified.connect(self.on_data_modified)
-        
+
         # 연결 완료 상태 설정
         self._signals_connected = True        
         print("Controller: 시그널 연결 완료")

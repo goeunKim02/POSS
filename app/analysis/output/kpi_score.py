@@ -157,7 +157,7 @@ class KpiScore:
         
         # Shift별 실제 생산량
         result_pivot = self.df.groupby('Time')['Qty'].sum()
-        print(f"Time별 생산량: {result_pivot.to_dict()}")  # 디버깅용
+        # print(f"Time별 생산량: {result_pivot.to_dict()}")  # 디버깅용
 
         # 가중치 적용 : weight_day_ox가 켜져있으면 weight_day 사용
         if self.opts.get('weight_day_ox', 0):
@@ -199,7 +199,7 @@ class KpiScore:
                     
                     # 중요: 제약이 0이면 해당 제조동의 생산량은 0
                     if max_line == 0:
-                        print(f"Factory {factory}의 Max Line이 0이므로 생산 능력 0")
+                        # print(f"Factory {factory}의 Max Line이 0이므로 생산 능력 0")
                         continue
                 else:
                     max_line = len(factory_lines)
@@ -211,11 +211,11 @@ class KpiScore:
                     
                     # 중요: 제약이 0이면 해당 제조동의 생산량은 0
                     if max_qty == 0:
-                        print(f"Factory {factory}의 Max Qty가 0이므로 생산 능력 0")
+                        # print(f"Factory {factory}의 Max Qty가 0이므로 생산 능력 0")
                         continue
                 else:
                     max_qty = float('inf')
-                    print(f"Factory {factory} Max Qty 정보 없음, 무제한으로 설정")
+                    # print(f"Factory {factory} Max Qty 정보 없음, 무제한으로 설정")
 
                 # 각 라인의 생산 능력 가져오기
                 line_capacities = [(line, df_capa_qty.loc[line, shift]) for line in factory_lines if pd.notna(df_capa_qty.loc[line, shift])]
@@ -271,7 +271,7 @@ class KpiScore:
                 weighted_result_sum += result_qty * weight
                 weighted_best_sum += best_qty * weight
 
-                print(f"Shift {shift}: Weight={weight}, Result={result_qty}, Best={best_qty}")
+                # print(f"Shift {shift}: Weight={weight}, Result={result_qty}, Best={best_qty}")
         
         # 디버깅 정보 출력
         print(f"Util 계산: Result={weighted_result_sum}, Best={weighted_best_sum}")
