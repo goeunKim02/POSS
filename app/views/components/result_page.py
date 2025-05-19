@@ -69,7 +69,7 @@ class ResultPage(QWidget):
 
         # 레이아웃 설정
         result_layout = QVBoxLayout(self)
-        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.setContentsMargins(w(3), 0,w(3) , 0)
         result_layout.setSpacing(0)
 
         # 타이틀 프레임
@@ -116,7 +116,7 @@ class ResultPage(QWidget):
         # =============== 왼쪽 컨테이너 ===============
         left_frame = QFrame()
         left_frame.setFrameShape(QFrame.StyledPanel)
-        left_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+        left_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
 
         left_layout = QVBoxLayout(left_frame)
         left_layout.setContentsMargins(10, 10, 10, 10)
@@ -138,13 +138,13 @@ class ResultPage(QWidget):
 
         # 2) 위쪽 영역을 수평 스플리터로 좌/우 분할
         right_top_horizontal_splitter = QSplitter(Qt.Horizontal)
-        right_top_horizontal_splitter.setHandleWidth(5)
+        right_top_horizontal_splitter.setHandleWidth(10)
         right_top_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
 
         # =============== 1. KPI Score 섹션 ===============
         kpi_frame = QFrame()
         kpi_frame.setFrameShape(QFrame.StyledPanel)
-        kpi_frame.setStyleSheet("background-color: white; border:2px solid #cccccc;")
+        kpi_frame.setStyleSheet("background-color: white; border:3px solid #cccccc;")
 
         kpi_layout = QGridLayout(kpi_frame)
         kpi_layout.setContentsMargins(10, 10, 10, 10)
@@ -152,8 +152,7 @@ class ResultPage(QWidget):
 
         # KPI 제목
         kpi_title = QLabel("KPI Score")
-        kpi_title.setFont(QFont("Arial", 14, QFont.Bold))
-        kpi_title.setStyleSheet("color: #333; border: none;")
+        kpi_title.setStyleSheet(f"color: #333; border: none; font-family: {bold_font}; font-size: {f(16)}px; font-weight: 900;")
         kpi_layout.addWidget(kpi_title)
 
         # KPI 위젯 영역 (계산된 점수들이 들어갈 공간)
@@ -180,7 +179,7 @@ class ResultPage(QWidget):
         # =============== 2. 조정 에러 메세지 섹션 ===============
         error_frame = QFrame()
         error_frame.setFrameShape(QFrame.StyledPanel)
-        error_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+        error_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
         
         error_layout = QVBoxLayout(error_frame)
         error_layout.setContentsMargins(0, 0, 0, 0)
@@ -222,9 +221,10 @@ class ResultPage(QWidget):
         # =============== 3. 오른쪽 하단 섹션 : 지표 탭 ===============
         right_bottom_frame = QFrame()
         right_bottom_frame.setFrameShape(QFrame.StyledPanel)
-        right_bottom_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+        right_bottom_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
 
         right_bottom_layout = QVBoxLayout(right_bottom_frame)
+        right_bottom_layout.setContentsMargins(0, 0, 0, 0)
 
         # 1) TabManager 인스턴스화
         self.tab_manager = TabManager(self)
@@ -239,7 +239,7 @@ class ResultPage(QWidget):
         # 4) 버튼 레이아웃 준비
         button_group_layout = QHBoxLayout()
         button_group_layout.setSpacing(5)
-        button_group_layout.setContentsMargins(10, 10, 10, 5)
+        button_group_layout.setContentsMargins(5, 5, 5, 5)
         button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
 
         # 5) 탭 버튼/페이지 생성
