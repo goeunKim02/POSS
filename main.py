@@ -1,9 +1,9 @@
 # main.py
 import sys
 import traceback
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMessageBox, QStyleFactory
 from PyQt5.QtCore import Qt
-
+from app.resources.styles.app_style import AppStyle
 
 def exception_hook(exctype, value, traceback_obj):
     """글로벌 예외 처리기"""
@@ -19,6 +19,22 @@ def exception_hook(exctype, value, traceback_obj):
     msg.setStandardButtons(QMessageBox.Ok)
     msg.exec_()
 
+def _styled_msgbox(parent, title, text,
+                   icon=QMessageBox.NoIcon,
+                   buttons=QMessageBox.Ok,
+                   defaultButton=QMessageBox.NoButton):
+    msg = QMessageBox(parent)
+    msg.setStyle(QStyleFactory.create("Fusion"))
+    msg.setStyleSheet(AppStyle.get_stylesheet())
+    # 아이콘 (기본경고 아이콘 제거)
+    msg.setIcon(icon)
+    # 제목/본문/버튼
+    msg.setWindowTitle(title)
+    msg.setText(text)
+    msg.setStandardButtons(buttons)
+    if defaultButton != QMessageBox.NoButton:
+        msg.setDefaultButton(defaultButton)
+    return msg.exec_()
 
 if __name__ == "__main__":
     # High DPI 설정 (선택사항)
@@ -28,6 +44,15 @@ if __name__ == "__main__":
         QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
 
     app = QApplication(sys.argv)
+
+    QMessageBox.warning     = lambda parent, title, text, buttons=QMessageBox.Ok, defaultButton=QMessageBox.NoButton: \
+                          _styled_msgbox(parent, title, text, QMessageBox.NoIcon, buttons, defaultButton)
+    QMessageBox.information = lambda parent, title, text, buttons=QMessageBox.Ok, defaultButton=QMessageBox.NoButton: \
+                            _styled_msgbox(parent, title, text, QMessageBox.NoIcon, buttons, defaultButton)
+    QMessageBox.critical    = lambda parent, title, text, buttons=QMessageBox.Ok, defaultButton=QMessageBox.NoButton: \
+                            _styled_msgbox(parent, title, text, QMessageBox.NoIcon, buttons, defaultButton)
+    QMessageBox.question    = lambda parent, title, text, buttons=QMessageBox.Yes|QMessageBox.No, defaultButton=QMessageBox.NoButton: \
+                            _styled_msgbox(parent, title, text, QMessageBox.NoIcon, buttons, defaultButton)
 
     # 글로벌 예외 처리기 설정
     sys.excepthook = exception_hook

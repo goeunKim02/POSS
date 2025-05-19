@@ -243,6 +243,8 @@ def check_capacity_violations(
 
     # 각 설비(라인,교대)에 대한 총 할당량이 용량을 넘지 않도록 제약을 설정합니다.
     for (ln, sh), cap_val in cap_dict.items():
+        if pd.isna(cap_val):
+            continue
         prob += (
             pulp.lpSum(x_vars.get((r, ln, sh), 0) for r in fx.index)
             <= cap_val
@@ -478,6 +480,8 @@ def check_all_violations(
 
     # Capacity 제약: 각 (라인,교대)별 할당합 ≤ Capacity + s_cap
     for (ln, sh), cap_val in cap_dict.items():
+        if pd.isna(cap_val):
+            continue
         prob += (
             pulp.lpSum(x_vars.get((r, ln, sh), 0) for r in fx.index)
             <= cap_val + s_cap[(ln, sh)]

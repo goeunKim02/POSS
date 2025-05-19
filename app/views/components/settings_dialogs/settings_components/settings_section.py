@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import (QFrame, QVBoxLayout, QFormLayout, QLabel,
                              QGraphicsDropShadowEffect, QGridLayout)
 from PyQt5.QtGui import QFont, QColor, QCursor, QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt, pyqtSignal
-
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 """
 Settings 섹션 컴포넌트
@@ -162,6 +163,93 @@ class ModernSettingsSectionComponent(QFrame):
 
             widget.textChanged.connect(on_text_changed)
 
+        elif widget_type == 'shift_grid':
+            container = QWidget()
+            container.setStyleSheet("background-color: transparent; border: none;")
+            container_layout = QVBoxLayout(container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(10)
+
+            grid_widget = QWidget()
+            grid_widget.setStyleSheet(f"""
+                background-color: white;
+                min-width: {w(50)}px;
+                padding: 0px;
+            """)
+
+            grid_layout = QGridLayout(grid_widget)
+            grid_layout.setContentsMargins(0, 0, 0, 0)
+            grid_layout.setSpacing(8)
+
+            # 날짜 레이블 (상단)
+            for i in range(1, 15):
+                day_label = QLabel(str(i))
+                day_label.setAlignment(Qt.AlignCenter)
+                day_label.setStyleSheet("""
+                    color: #1428A0;
+                    font-weight: bold;
+                    background-color: #f0f0f0;
+                    border-radius: 4px;
+                    padding: 4px;
+                """)
+                # 홀수/짝수에 따라 행과 열 위치 결정
+                if i % 2 == 1:  # 홀수
+                    row = 0
+                    col = (i - 1) // 2
+                else:  # 짝수
+                    row = 2
+                    col = (i // 2) - 1
+
+                grid_layout.addWidget(day_label, row, col)
+
+            # 가중치 입력 스핀박스 (하단)
+            spinboxes = []
+            default_values = kwargs.get('default_values', [1.0] * 14)
+
+            for i in range(1, 15):
+                spinbox = QDoubleSpinBox()
+                spinbox.setMinimum(0.0)
+                spinbox.setMaximum(10.0)
+                spinbox.setDecimals(1)
+                spinbox.setSingleStep(0.1)
+                spinbox.setValue(default_values[i - 1])
+                spinbox.setStyleSheet("""
+                    QDoubleSpinBox {
+                        background-color: #ffffff;
+                        border: 1px solid #dee2e6;
+                        border-radius: 4px;
+                        padding: 4px;
+                    }
+                    QDoubleSpinBox:focus {
+                        border-color: #1428A0;
+                    }
+                """)
+                spinbox.setFixedWidth(50)
+                spinbox.setFixedHeight(30)
+
+                # 홀수/짝수에 따라 행과 열 위치 결정
+                if i % 2 == 1:  # 홀수
+                    row = 1
+                    col = (i - 1) // 2
+                else:  # 짝수
+                    row = 3
+                    col = (i // 2) - 1
+
+                grid_layout.addWidget(spinbox, row, col)
+                spinboxes.append(spinbox)
+
+            container_layout.addWidget(grid_widget)
+
+            # 값이 변경될 때 전체 리스트를 업데이트
+            def on_value_changed(_):
+                values = [spinbox.value() for spinbox in spinboxes]
+                self.setting_changed.emit(setting_key, values)
+
+            for spinbox in spinboxes:
+                spinbox.valueChanged.connect(on_value_changed)
+
+            widget = container
+
         # 정수 스핀박스
         elif widget_type == 'spinbox':
             widget = QSpinBox()
@@ -179,31 +267,6 @@ class ModernSettingsSectionComponent(QFrame):
                 }
                 QSpinBox:hover {
                     border-color: #adb5bd;
-                }
-                QSpinBox::up-button, QSpinBox::down-button {
-                    width: 16px;
-                    height: 16px;
-                    background-color: #f8f9fa;
-                    border: none;
-                }
-                QSpinBox::up-button:hover, QSpinBox::down-button:hover {
-                    background-color: #e9ecef;
-                }
-                QSpinBox::up-arrow {
-                    image: url(none);
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-bottom: 4px solid #666;
-                }
-                QSpinBox::down-arrow {
-                    image: url(none);
-                    width: 0;
-                    height: 0;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 4px solid #666;
                 }
             """)
 
@@ -234,25 +297,18 @@ class ModernSettingsSectionComponent(QFrame):
                 QDoubleSpinBox {
                     background-color: #ffffff;
                     border: 1px solid #dee2e6;
-                    border-radius: 6px;
+                    border-radius: 0px;
                     padding: 10px 14px;
                     font-size: 14px;
                     font-family: Arial;
+                    border-top-left-radius: 6px;
+                    border-bottom-left-radius: 6px;
                 }
                 QDoubleSpinBox:focus {
                     border-color: #1428A0;
                 }
                 QDoubleSpinBox:hover {
                     border-color: #adb5bd;
-                }
-                QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
-                    width: 16px;
-                    height: 16px;
-                    background-color: #f8f9fa;
-                    border: none;
-                }
-                QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
-                    background-color: #e9ecef;
                 }
             """)
 
@@ -296,10 +352,12 @@ class ModernSettingsSectionComponent(QFrame):
                     border: 2px solid #dee2e6;
                     border-radius: 4px;
                     background: white;
+                    
                 }
                 QCheckBox::indicator:checked {
                     background-color: #1428A0;
                     border-color: #1428A0;
+                    color: white;
                 }
                 QCheckBox::indicator:hover {
                     border-color: #adb5bd;

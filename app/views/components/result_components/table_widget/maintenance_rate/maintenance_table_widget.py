@@ -3,8 +3,11 @@ from PyQt5.QtGui import QColor, QFont
 import pandas as pd
 from app.views.components.common.custom_table import CustomTable
 from app.utils.sort_line import sort_line
+from app.utils.item_key_manager import ItemKeyManager
 
-"""유지율 표시를 위한 테이블 위젯 기본 클래스"""
+"""
+유지율 표시를 위한 테이블 위젯 기본 클래스
+"""
 class MaintenanceTableWidget(CustomTable):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -15,7 +18,9 @@ class MaintenanceTableWidget(CustomTable):
         ]
         self.setup_maintenance_style()
         
-    """유지율 테이블 전용 스타일 설정"""
+    """
+    유지율 테이블 전용 스타일 설정
+    """
     def setup_maintenance_style(self):
         additional_style = """
             QHeaderView::section {
@@ -28,7 +33,9 @@ class MaintenanceTableWidget(CustomTable):
         current_style = self.styleSheet()
         self.setStyleSheet(current_style + additional_style)
 
-    """헤더 설정 (CustomTable의 setup_header 메서드 오버라이드)"""
+    """
+    헤더 설정 (CustomTable의 setup_header 메서드 오버라이드)
+    """
     def setup_header(self, header_labels):
         # CustomTable의 setup_header 호출
         super().setup_header(
@@ -37,7 +44,9 @@ class MaintenanceTableWidget(CustomTable):
             resizable=False  # 나머지는 균등 분할
         )
         
-    """그룹 헤더 행 생성"""
+    """
+    그룹 헤더 행 생성
+    """
     def create_group_row(self, line, shift, prev_sum, curr_sum, maintenance_sum, group_index):
         # CustomTable의 add_custom_row 사용
         row_data = [
@@ -65,7 +74,9 @@ class MaintenanceTableWidget(CustomTable):
         
         self.add_custom_row(row_data, styles, is_total=True, is_header=True)
         
-    """일반 데이터 행 생성"""
+    """
+    일반 데이터 행 생성
+    """
     def create_data_row(self, line="", shift="", item_text="", prev_plan=0, 
                        curr_plan=0, maintenance=0, is_modified=False, group_index=0):
         # CustomTable의 add_custom_row 사용
@@ -102,7 +113,9 @@ class MaintenanceTableWidget(CustomTable):
         
         self.add_custom_row(row_data, styles)
         
-    """총계 행 생성"""
+    """
+    총계 행 생성
+    """
     def create_total_row(self, total_prev, total_curr, total_maintenance):
         row_data = [
             "Total",
@@ -115,9 +128,10 @@ class MaintenanceTableWidget(CustomTable):
         
         self.add_custom_row(row_data, is_total=True)
     
-    """테이블에 데이터 채우기"""
-    def _populate_table(self, df_data, modified_item_keys, item_field='Item'):
-        """데이터를 테이블에 표시"""
+    """
+    테이블에 데이터 채우기
+    """
+    def _populate_table(self, df_data, modified_item_keys, modified_rmc_keys=None, item_field='Item'):
         # 기존 데이터 초기화
         self.setRowCount(0)
         
@@ -225,30 +239,34 @@ class MaintenanceTableWidget(CustomTable):
                 for item_data in sorted(group_data['items'], key=lambda x: x[item_key]):
                     # 수정 여부 확인
                     item_value = item_data[item_key]
+                    line_value = group_data['line']
+                    shift_value = group_data['shift']
                     
-                    is_modified = False
-                    for key in modified_item_keys:
-                        parts = key.split('_')
-                        if len(parts) >= 3:
-                            # 라인 코드 처리
-                            if parts[0] in ["I", "D", "K", "M"] and len(parts) > 3:
-                                key_line = f"{parts[0]}_{parts[1]}"
-                                key_shift = parts[2]
-                                key_item = "_".join(parts[3:])  # 나머지 모든 부분이 아이템
-                            else:
-                                key_line = parts[0]
-                                key_shift = parts[1]
-                                key_item = "_".join(parts[2:])  # 나머지 모든 부분이 아이템
-                            
-                            if item_field == 'Item' and key_line == line and key_shift == shift and key_item == item_value:
-                                is_modified = True
-                                break
-                            elif item_field == 'RMC':
-                                # RMC 비교는 부분 문자열 일치 검사
-                                if key_line == line and key_shift == shift and (key_item == item_value or item_value in key_item or key_item in item_value):
-                                    is_modified = True
-                                    break
-                    
+                    if item_field == 'Item':
+                        is_modified = False
+                        # 1. ID 기반 키 먼저 확인 (우선순위)
+                        if '_id' in item_data:
+                            id_key = f"id_{item_data['_id']}"
+                            is_modified = id_key in modified_item_keys
+                        
+                        # 2. ID로 찾지 못한 경우에만 (Line, Time, Item) 조합 키 확인 (후순위)
+                        if not is_modified:
+                            current_key = ItemKeyManager.get_item_key(line_value, shift_value, item_value)
+                            is_modified = current_key in modified_item_keys
+                    elif item_field == 'RMC':
+                        is_modified = False
+                        
+                        # 1. ID 기반 키 먼저 확인 (우선순위)
+                        if '_id' in item_data:
+                            id_key = f"id_{item_data['_id']}"
+                            is_modified = modified_rmc_keys and id_key in modified_rmc_keys
+                        
+                        # 2. ID로 찾지 못한 경우에만 (Line, Time, RMC) 조합 키 확인 (후순위)
+                        if not is_modified:
+                            time_value = shift_value
+                            if shift_value.isdigit():
+                                time_value = int(shift_value)
+                                        
                     # 데이터 행 생성
                     self.create_data_row(
                         "-",  # line은 그룹 헤더에만 표시
@@ -305,7 +323,9 @@ class MaintenanceTableWidget(CustomTable):
                 shift_item.setTextAlignment(Qt.AlignCenter | Qt.AlignVCenter)
 
 
-"""Item별 유지율 테이블 위젯"""
+"""
+Item별 유지율 테이블 위젯
+"""
 class ItemMaintenanceTable(MaintenanceTableWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -322,18 +342,27 @@ class ItemMaintenanceTable(MaintenanceTableWidget):
         self._populate_table(df_data, modified_item_keys, item_field='Item')
 
 
-"""RMC별 유지율 테이블 위젯"""
+"""
+RMC별 유지율 테이블 위젯
+"""
 class RMCMaintenanceTable(MaintenanceTableWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setup_header(["Line", "Shift", "RMC", "Previous", "Current", "Maintenance"])
         
-    def populate_data(self, df, modified_item_keys):
+    def populate_data(self, df, modified_item_keys, modified_rmc_keys):
         """RMC별 데이터 표시"""
         if df is None or df.empty:
             return
+        
+        # modified_rmc_keys가 None이면 빈 집합으로 초기화
+        if modified_rmc_keys is None:
+            modified_rmc_keys = set()
+        
+        print(f"RMC 테이블 populate_data - 수정된 RMC 키: {modified_rmc_keys}")
+    
             
         df_data = df[df['Line'] != 'Total']  # Total 행만 필터링
         
         # 테이블에 데이터 표시
-        self._populate_table(df_data, modified_item_keys, item_field='RMC')
+        self._populate_table(df_data, modified_item_keys, modified_rmc_keys, item_field='RMC')

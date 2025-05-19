@@ -6,16 +6,16 @@ from .item_edit_dialog import ItemEditDialog
 import json
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from .item_position_manager import ItemPositionManager
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 아이템들을 담는 컨테이너 위젯
 """
-
-
 class ItemsContainer(QWidget):
-    itemsChanged = pyqtSignal()
+    itemsChanged = pyqtSignal(object)
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
     itemDataChanged = pyqtSignal(object, dict, dict)  # (아이템, 새 데이터, 변경 필드 정보) 시그널 추가
+    itemCopied = pyqtSignal(object, dict)  # 복사된 아이템 시그널 추가
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -44,26 +44,14 @@ class ItemsContainer(QWidget):
     """
     아이템 상태 업데이트
     """
-
     def update_visibility(self):
         # 모든 아이템은 항상 visible 상태로 유지
         # 필터링은 선의 표시 여부로만 처리
         pass
-        # visible_count = 0
-
-        # for item in self.items :
-        #     if item.isVisible() :
-        #         visible_count += 1
-
-        # if visible_count == 0 and len(self.items) > 0 :
-        #     self.setStyleSheet(self.empty_style)
-        # else :
-        #     self.setStyleSheet(self.default_style)
 
     """
     현재 컨테이너의 부모 찾기
     """
-
     def find_parent_grid_widget(self):
         parent = self.parent()
 
@@ -77,7 +65,6 @@ class ItemsContainer(QWidget):
     아이템을 추가합니다. index가 -1이면 맨 뒤에 추가, 그 외에는 해당 인덱스에 삽입
     item_data: 아이템에 대한 추가 정보 (pandas Series 또는 딕셔너리)
     """
-
     def addItem(self, item_text, index=-1, item_data=None):
         self.layout.removeItem(self.spacer)
 
@@ -114,7 +101,6 @@ class ItemsContainer(QWidget):
     """
     아이템이 선택되었을 때 처리
     """
-
     def on_item_selected(self, selected_item):
         # 이전에 선택된 아이템이 있고, 현재 선택된 아이템과 다르다면 선택 해제
         if self.selected_item and self.selected_item != selected_item:
@@ -129,7 +115,6 @@ class ItemsContainer(QWidget):
     """
     아이템이 더블클릭되었을 때 처리
     """
-
     def on_item_double_clicked(self, item):
         if not item or not hasattr(item, 'item_data'):
             return
@@ -144,13 +129,16 @@ class ItemsContainer(QWidget):
         # 다이얼로그 실행
         dialog.exec_()
 
-    """아이템 데이터 업데이트"""
-
+    """
+    아이템 데이터 업데이트
+    """
     def update_item_data(self, item, new_data, changed_fields=None):
         if item and item in self.items and new_data:
             # 데이터 변경 시그널 발생
             self.itemDataChanged.emit(item, new_data, changed_fields)
-            self.itemsChanged.emit()
+
+            item_id = ItemKeyManager.extract_item_id(item)
+            self.itemsChanged.emit(item_id)
             return True, ""
 
         return False, "유효하지 않은 아이템 또는 데이터"
@@ -158,7 +146,6 @@ class ItemsContainer(QWidget):
     """
     모든 아이템 선택 해제
     """
-
     def clear_selection(self):
         if self.selected_item:
             self.selected_item.set_selected(False)
@@ -167,25 +154,46 @@ class ItemsContainer(QWidget):
     """
     특정 아이템 삭제
     """
-
-    def removeItem(self, item):
+    def remove_item(self, item):
+        print("remove_item 호출")
         if item in self.items:
+            # ID 추출
+            item_id = ItemKeyManager.extract_item_id(item)
+
             # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
             if item == self.selected_item:
                 self.selected_item = None
 
+            # 아이템 UI에서 제거
             self.layout.removeWidget(item)
             self.items.remove(item)
             item.deleteLater()
-            self.itemsChanged.emit()
+
+            # 아이템 ID로 변경 시그널 발생
+            # self.itemsChanged.emit(item_id)
+
+            # 그리드 위젯 찾기 및 itemRemoved 시그널 발생
+            parent = self.parent()
+            while parent and not hasattr(parent, 'itemRemoved'):
+                parent = parent.parent()
+            
+            # 그리드 위젯의 itemRemoved 시그널만 발생시키고,
+            # itemsChanged 시그널은 발생시키지 않음
+            if parent and hasattr(parent, 'itemRemoved'):
+                print("그리드 위젯의 itemRemoved 시그널 발생")
+                parent.itemRemoved.emit(item)
+                # itemsChanged 시그널은 발생시키지 않음
+            else:
+                # 그리드 위젯을 찾지 못한 경우에만 폴백으로 itemsChanged 시그널 발생
+                print("itemsChanged 시그널 발생 (폴백)")
+                self.itemsChanged.emit(item_id)
 
             self.update_visibility()
 
     """
     모든 아이템 삭제
     """
-
-    def clearItems(self):
+    def clear_items(self):
         self.selected_item = None  # 선택 상태 초기화
 
         # 스페이서 제거
@@ -215,7 +223,6 @@ class ItemsContainer(QWidget):
     """
     드래그가 위젯을 벗어날 때 인디케이터 숨김
     """
-
     def dragLeaveEvent(self, event):
         self.show_drop_indicator = False
         self.update()
@@ -223,7 +230,6 @@ class ItemsContainer(QWidget):
     """
     드래그 중 드롭 가능한 위치에 시각적 표시
     """
-
     def dragMoveEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
@@ -234,7 +240,6 @@ class ItemsContainer(QWidget):
     """
     드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
     """
-
     def findDropIndex(self, pos):
         if not self.items:
             return 0  # 아이템이 없으면 첫 번째 위치에 삽입
@@ -299,6 +304,8 @@ class ItemsContainer(QWidget):
                 # 복사본 생성: Qty = 0 설정
                 if item_data:
                     item_data['Qty'] = 0  # [CTRL COPY]
+                    item_data['_is_copy'] = True  # 복사본임을 표시하는 플래그
+
                     # 불필요한 속성 제거
                     item_data.pop('_drop_pos_x', None)
                     item_data.pop('_drop_pos_y', None)
@@ -318,13 +325,13 @@ class ItemsContainer(QWidget):
 
                             item_data['Line'] = line_part
                             day_idx = target_col
-                            is_day_shift = shift_part == "주간"
+                            is_day_shift = shift_part == "Day"
                             new_time = (day_idx * 2) + (1 if is_day_shift else 2)
                             item_data['Time'] = str(new_time)
 
                 # 복사본 생성
-                item_name = item_data['Item'] + "    0"
-                new_item = self.addItem(item_name, drop_index, item_data)
+                # item_name = item_data['Item'] + "    0"
+                new_item = self.addItem(item_data['Item'], drop_index, item_data)
 
                 # 복사본도 원본 상태 저장
                 if new_item and source_states:
@@ -338,13 +345,27 @@ class ItemsContainer(QWidget):
                 # 텍스트 업데이트 호출
                 new_item.update_text_from_data()
 
-                self.itemDataChanged.emit(new_item, item_data,
-                                          {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
+                # 변경 이벤트 발생 (복사임을 명시)
+                copy_info = {'operation': 'copy', 'source_id': id(source)}
+
+                # self.itemDataChanged.emit(new_item, item_data,
+                #                           {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
+                
+                # 새로운 복사 시그널 발생 
+                self.itemCopied.emit(new_item, item_data)
 
                 self.show_drop_indicator = False
                 self.update()
                 event.acceptProposedAction()
-                self.itemsChanged.emit()
+
+                 # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
+                item_id = None
+                if 'new_item' in locals() and new_item is not None:
+                    item_id = ItemKeyManager.extract_item_id(new_item)
+                elif item_data is not None and '_id' in item_data:
+                    item_id = item_data.get('_id')
+
+                self.itemsChanged.emit(item_id)
                 return  # [CTRL COPY] Ctrl copy는 여기서 종료
 
             # 원본 아이템이 같은 컨테이너 내에 있는지 확인
@@ -421,7 +442,7 @@ class ItemsContainer(QWidget):
                                 day_idx = target_col  # 열 인덱스는 요일 인덱스와 대응
 
                                 # 교대 정보에 따라 Time 값 결정 (주간: 홀수, 야간: 짝수)
-                                is_day_shift = shift_part == "주간"
+                                is_day_shift = shift_part == "Day"
                                 new_time = (day_idx * 2) + (1 if is_day_shift else 2)
 
                                 # Time 값 업데이트
@@ -512,7 +533,7 @@ class ItemsContainer(QWidget):
                         self.itemDataChanged.emit(new_item, item_data, changed_fields)
 
                     # 원본 컨테이너에서 아이템 삭제
-                    source_container.removeItem(source)
+                    source_container.remove_item(source)
             else:
                 # 새 아이템 생성 (원본이 없는 경우)
                 new_item = self.addItem(item_text, drop_index, item_data)
@@ -527,12 +548,19 @@ class ItemsContainer(QWidget):
             self.update_visibility()
 
             event.acceptProposedAction()
-            self.itemsChanged.emit()
+
+            # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
+            item_id = None
+            if 'new_item' in locals() and new_item is not None:
+                item_id = ItemKeyManager.extract_item_id(new_item)
+            elif item_data is not None and '_id' in item_data:
+                item_id = item_data.get('_id')
+          
+            self.itemsChanged.emit(item_id)
 
     """
     컨테이너 위젯 그리기 - 드롭 인디케이터 표시
     """
-
     def paintEvent(self, event):
         super().paintEvent(event)
 
@@ -599,7 +627,6 @@ class ItemsContainer(QWidget):
     """
     그리드 위치를 기반으로 Line과 Time 계산
     """
-
     def calculate_new_position(self, grid_widget, row_idx, col_idx):
         if not grid_widget or not hasattr(grid_widget, 'row_headers'):
             return None, None
@@ -612,16 +639,18 @@ class ItemsContainer(QWidget):
                 shift_part = row_key.split('_(')[1].rstrip(')')
 
                 # Time 계산
-                is_day_shift = shift_part == "주간"
+                is_day_shift = shift_part == "Night"
                 new_time = (col_idx * 2) + (1 if is_day_shift else 2)
 
                 return line_part, new_time
 
         return None, None
 
-    """삭제 요청 처리 메서드"""
-
+    """
+    삭제 요청 처리 메서드
+    """
     def on_item_delete_requested(self, item):
+        print("DEBUG: ItemsContainer.on_item_delete_requested 호출됨")
         # EnhancedMessageBox를 사용하여 확인 다이얼로그 표시
         from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
@@ -633,13 +662,20 @@ class ItemsContainer(QWidget):
 
         # 확인한 경우에만 삭제 진행
         if reply:
+            print("DEBUG: 사용자가 삭제 확인함")
             if item in self.items:
+                # 아이템 ID 정보 추출 (삭제 시 전달)
+                item_id = ItemKeyManager.extract_item_id(item)
+
                 # 선택된 아이템을 삭제하는 경우 선택 상태 초기화
                 if self.selected_item == item:
                     self.selected_item = None
 
                 # 아이템 제거
-                self.removeItem(item)
+                print("DEBUG: ItemsContainer에서 아이템 제거 시작")
+                self.remove_item(item)
+                print("DEBUG: ItemsContainer에서 아이템 제거 완료")
 
                 # 변경 신호 발생
-                self.itemsChanged.emit()
+                print("DEBUG: itemsChanged 시그널 발생")
+                self.itemsChanged.emit(item_id)

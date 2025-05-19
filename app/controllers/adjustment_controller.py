@@ -1,0 +1,190 @@
+from PyQt5.QtCore import QObject
+from typing import Any, Dict
+from app.utils.item_key_manager import ItemKeyManager
+
+"""
+Controller 역할:
+    - View에서 발생한 사용자 액션을 Model에 전달
+    - Model에서 발생한 변경/오류 시그널을 View에 전달
+
+model: AssignmentModel 인스턴스
+view: AdjustmentView 인스턴스
+"""
+class AdjustmentController(QObject):
+
+    def __init__(self, model: Any, view: Any, error_manager):
+        super().__init__()
+        self.model = model
+        self.view = view  # ModifiedLeftSection
+        self.error_manager = error_manager
+
+
+       # ResultPage 찾기
+        self.result_page = view.parent_page if hasattr(view, 'parent_page') else None
+
+        if self.result_page:
+            print("ModifiedLeftSection의 parent_page 참조를 통해 ResultPage 찾음")
+            # ResultPage에 컨트롤러 설정
+            if hasattr(self.result_page, 'set_controller'):
+                self.result_page.set_controller(self)
+        else:
+            print("경고: ModifiedLeftSection에 parent_page 참조가 없음")
+     
+        # Controller에서 모든 시그널 연결 관리
+        self._connect_signals()
+
+    def _connect_signals(self):
+        """시그널 연결"""
+        # Model -> Error Manager
+        self.model.validationFailed.connect(self.error_manager.add_validation_error)
+        
+        # Model -> Controller (데이터 변경 시)
+        self.model.modelDataChanged.connect(self._on_model_data_changed)
+        
+        # View -> Controller (아이템 데이터 변경)
+        if hasattr(self.view, 'itemModified'):
+            self.view.itemModified.connect(self._on_item_data_changed)
+        
+        # View -> Controller (셀 이동)  
+        if hasattr(self.view, 'cellMoved'):
+            self.view.cellMoved.connect(self._on_cell_moved)
+
+        # View -> Controller (아이템 삭제) - 이 부분이 추가되어야 함
+        if hasattr(self.view, 'grid_widget') and hasattr(self.view.grid_widget, 'itemRemoved'):
+            print("Controller: 삭제 시그널 연결")
+            self.view.grid_widget.itemRemoved.connect(self.on_item_deleted)
+        
+        # View -> Controller (아이템 복사)
+        if hasattr(self.view, 'grid_widget') and hasattr(self.view.grid_widget, 'itemCopied'):
+            self.view.grid_widget.itemCopied.connect(self.on_item_copied)
+
+        # 최초 한 번, 뷰에 초기 데이터 설정
+        self.view.set_data_from_external(self.model.get_dataframe())
+        
+        print("Controller: 시그널 연결 완료")
+
+    def _on_item_data_changed(self, item: object, new_data: Dict, changed_fields=None):
+        """
+        아이템 데이터 변경 처리
+        • Qty만 바뀌었으면 update_qty 호출
+        • Line/Time이 바뀌었으면 move_item 호출
+        """
+        code = new_data.get('Item')
+        line = new_data.get('Line')
+        time = new_data.get('Time')
+        item_id = new_data.get('_id')  # ID 추출
+        
+        if not code or not line or time is None:
+            print(f"Controller: 필수 데이터 누락 - Item: {code}, Line: {line}, Time: {time}")
+            return
+        
+        # changed_fields를 활용한 더 정확한 판단
+        if changed_fields:
+            # Line 또는 Time 변경 = 이동
+            if 'Line' in changed_fields or 'Time' in changed_fields:
+                print(f"Controller: 아이템 이동 {code}")
+
+                # 이전 위치 정보 가져오기
+                old_line = changed_fields.get('Line', {}).get('from', line)
+                old_time = changed_fields.get('Time', {}).get('from', time)
+                print(f"이전 위치정보: 라인-{old_line} / 타임-{old_time}")
+
+                self.model.move_item(code, old_line, old_time, line, time, item_id)
+                return
+        
+        # 수량 변경 - 라인과 시간 정보도 함께 전달
+        if 'Qty' in new_data and line and time is not None:
+            qty = new_data['Qty']
+            print(f"Controller: 수량 변경 {code} @ {line}-{time} -> {qty}")
+            # 수정된 모델의 update_qty 메서드 호출 (라인, 시간 포함)
+            self.model.update_qty(code, line, time, qty, item_id)
+
+    """
+    모델 데이터가 바뀔 때마다 뷰를 업데이트
+    - 전체 덮어쓰기보다는 델타 업데이트가 더 효율적일 수 있음
+    """
+    def _on_model_data_changed(self):
+        print("Controller: Model 변경 감지, View 업데이트")
+        df = self.model.get_dataframe()
+        
+        # left_section(View) 업데이트
+        self.view.update_from_model(df)
+
+        # result page 업데이트
+        if self.result_page and hasattr(self.result_page, 'update_ui_from_model'):
+            print("Controller: result page 함께 업데이트")
+            self.result_page.update_ui_from_model(df)
+
+    """
+    드래그·드롭으로 위치 이동했을 때
+    - Controller가 모든 셀 이동 로직 처리
+    - 필요시 추가 로직 (시각화 업데이트 등) 수행
+    """
+    def _on_cell_moved(self, item: object, old_data: Dict, new_data: Dict):
+        code = new_data.get('Item')
+        if code:
+            item_id = new_data.get('_id')  # id 추출
+            print(f"Controller: 셀 이동 {code} -> {new_data.get('Line')}-{new_data.get('Time')}")
+            
+            # 1. Model에 데이터 변경 알림
+            self.model.move_item(code, new_data['Line'], new_data['Time'], item_id)
+            
+            # 2. 필요시 추가 작업 (시각화 업데이트, 분석 등)
+            # 예: 부모 컴포넌트에 셀 이동 이벤트 전달
+            if hasattr(self.view, 'parent') and hasattr(self.view.parent(), 'on_cell_moved_from_controller'):
+                self.view.parent().on_cell_moved_from_controller(item, old_data, new_data)
+            
+            print(f"Controller: 셀 이동 처리 완료")
+        
+    # 추가 유틸리티 메서드들
+    def get_current_data(self):
+        """현재 모델 데이터 반환"""
+        return self.model.get_dataframe()
+
+    def reset_data(self):
+        """데이터 리셋"""
+        self.model.reset()
+
+    def apply_changes(self):
+        """변경사항 적용"""
+        self.model.apply()
+
+
+    def on_item_copied(self, item, data):
+        """복사된 아이템 처리"""
+        code = data.get('Item')
+        line = data.get('Line')
+        time = data.get('Time')
+        
+        # 모델에 명시적으로 추가
+        self.model.add_new_item(code, line, time, 0, data)
+        print(f"컨트롤러: 복사된 아이템 등록 - {code} @ {line}-{time}")
+
+    """
+    삭제된 아이템 처리
+    """
+    def on_item_deleted(self, item_or_id):
+        print("DEBUG: AdjustmentController.on_item_deleted 호출됨")
+
+        # item_or_id가 문자열(ID)인 경우
+        if isinstance(item_or_id, str):
+            item_id = item_or_id
+            print(f"DEBUG: ID로 삭제: {item_id}")
+            return self.model.delete_item_by_id(item_id)
+
+        if hasattr(item_or_id, 'item_data') and item_or_id.item_data:
+            # ItemKeyManager를 사용하여 아이템 정보 추출
+            line, time, item_code = ItemKeyManager.get_item_from_data(item_or_id.item_data)
+            
+            # ID가 있으면 ID 기반으로 삭제
+            item_id = ItemKeyManager.extract_item_id(item_or_id)
+            if item_id:
+                print(f"컨트롤러: 아이템 삭제 처리 - ID: {item_id}")
+                return self.model.delete_item_by_id(item_id)
+            
+            # ID가 없으면 Line/Time/Item 기반으로 삭제
+            if line is not None and time is not None and item_code is not None:
+                print(f"컨트롤러: 아이템 삭제 처리 - {item_code} @ {line}-{time}")
+                return self.model.delete_item(item_code, line, time)
+        
+        return False

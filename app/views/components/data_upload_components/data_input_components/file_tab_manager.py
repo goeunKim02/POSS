@@ -2,10 +2,13 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 import os
+import pandas as pd
 
 from app.views.components.data_upload_components.data_table_component import DataTableComponent
 from app.views.components.data_upload_components.enhanced_table_filter_component import EnhancedTableFilterComponent
 from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
+from app.models.common.file_store import DataStore
 
 
 class FileTabManager:
@@ -50,11 +53,13 @@ class FileTabManager:
                 border: 1px solid #cccccc;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
-                padding: 6px 10px;
+                padding: {h(2)}px {w(5)}px;
                 margin-right: 2px;
-                min-width: 50px;
-                font-family: {font_manager.get_just_font("SamsungOne-700").family()}, sans-serif;
+                min-width: {w(40)}px;
+                min-height: {h(10)}px;
+                font-family: {font_manager.get_just_font("SamsungOne-700").family()};
                 font-weight: bold;
+                font-size: {f(12)}px;
             }}
             QTabBar::tab:selected, QTabBar::tab:hover {{
                 background: #1428A0;
@@ -119,7 +124,12 @@ class FileTabManager:
             filter_component = EnhancedTableFilterComponent()
 
             # 데이터 테이블 생성
-            data_container = DataTableComponent.create_table_from_dataframe(df, filter_component)
+            data_container = DataTableComponent.create_table_from_dataframe(
+                df,
+                file_path = file_path,
+                sheet_name = sheet_name,
+                filter_component = filter_component
+            )
             data_container.setStyleSheet("border-radius: 10px; background-color: white; border:3px solid #cccccc;")
             tab_layout.addWidget(data_container)
 
@@ -138,8 +148,13 @@ class FileTabManager:
             df_dict[key] = df
             DataStore.set("dataframes", df_dict)
 
-            return tab_index
+            original_df_dict = DataStore.get('original_dataframes', {})
 
+            if key not in original_df_dict:
+                original_df_dict[key] = df.copy()
+                DataStore.set('original_dataframes', original_df_dict)
+
+            return tab_index
         except Exception as e:
             print(f"탭 생성 오류: {str(e)}")
             return -1
@@ -355,7 +370,7 @@ class FileTabManager:
         empty_layout.setContentsMargins(0, 0, 0, 0)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
         empty_msg.setAlignment(Qt.AlignCenter)
-        empty_msg.setStyleSheet(f"color: #888; font-size: 14px; font-family: {font_manager.get_just_font("SamsungSharpSans-Bold")}; font-weight: bold;")
+        empty_msg.setStyleSheet(f"color: #888; font-size: {f(24)}px; font-family: {font_manager.get_just_font("SamsungSharpSans-Bold")}; font-weight: bold;")
         empty_layout.addWidget(empty_msg)
 
         # 위젯 추가
@@ -418,3 +433,67 @@ class FileTabManager:
                         self.parent.data_modifier.save_tab_data(current_tab_widget, file_path, sheet_name)
                         return True
         return False
+    
+    """
+    undo/redo 시 호출되는 메서드
+    """
+    def on_undo_redo_state_changed(self, can_undo, can_redo):
+        if hasattr(self.parent, 'undo_btn') and hasattr(self.parent, 'redo_btn'):
+            self.parent.undo_btn.setEnabled(can_undo)
+            self.parent.redo_btn.setEnabled(can_redo)
+
+    """
+    undo/redo 시 데이터 변경되었을 때 호출되는 메서드
+    """
+    def on_data_changed_by_undo_redo(self, file_path, sheet_name):
+        all_dataframes = DataStore.get('dataframes', {})
+        key = f'{file_path}:{sheet_name}' if sheet_name else file_path
+
+        if key in all_dataframes:
+            df = all_dataframes[key]
+
+            all_original_dataframes = DataStore.get('original_dataframes', {})
+
+            if key in all_original_dataframes:
+                original_df = all_original_dataframes[key]
+
+                is_modified = not (
+                    (original_df.equals(df)) or
+                    ((pd.isna(original_df) == pd.isna(df)).all().all() and
+                     ((original_df == df) | (pd.isna(original_df) & pd.isna(df))).all().all())
+                )
+
+                if is_modified:
+                    if file_path not in self.parent.data_modifier.modified_data_dict:
+                        self.parent.data_modifier.modified_data_dict[file_path] = {}
+
+                    self.parent.data_modifier.modified_data_dict[file_path][sheet_name or 'data'] = df
+
+                    self.parent.data_modifier.update_modified_status_in_sidebar(file_path, sheet_name)
+                    self.update_tab_title(file_path, sheet_name, True)
+                else:
+                    if file_path in self.parent.data_modifier.modified_data_dict:
+                        if sheet_name or 'data' in self.parent.data_modifier.modified_data_dict[file_path]:
+                            del self.parent.data_modifier.modified_data_dict[file_path][sheet_name or 'data']
+
+                            if not self.parent.data_modifier.modified_data_dict[file_path]:
+                                del self.parent.data_modifier.modified_data_dict[file_path]
+
+                    self.parent.data_modifier.update_modified_status_in_sidebar(file_path, sheet_name)
+                    self.update_tab_title(file_path, sheet_name, False)
+
+                tab_key = (file_path, sheet_name)
+
+                if tab_key in self.open_tabs:
+                    tab_index = self.open_tabs[tab_key]
+                    tab_widget = self.stacked_widget.widget(tab_index)
+
+                    for i in range(tab_widget.layout().count()):
+                        item = tab_widget.layout().itemAt(i)
+
+                        if item and item.widget():
+                            widget = item.widget()
+
+                            if hasattr(widget, 'update_data'):
+                                widget.update_data(df)
+                                break
