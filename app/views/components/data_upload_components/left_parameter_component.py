@@ -591,13 +591,15 @@ class LeftParameterComponent(QWidget):
                 item = QTreeWidgetItem([label, str(value)])
 
                 # 라벨 스타일링
-                label_font = font_manager.get_font("SamsungOne-700", f(9))
+                label_font = font_manager.get_just_font("SamsungOne-700")
                 label_font.setBold(True)
+                label_font.setPixelSize(f(13))
                 item.setFont(0, label_font)
                 item.setForeground(0, QColor("#666666"))
 
                 # 값 스타일링
-                value_font = font_manager.get_font("SamsungOne-700", f(9))
+                value_font = font_manager.get_just_font("SamsungOne-700")
+                value_font.setPixelSize(f(13))
                 item.setFont(1, value_font)
 
                 # 특정 값에 대한 색상 설정
