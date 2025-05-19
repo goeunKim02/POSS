@@ -688,11 +688,11 @@ class ResultPage(QWidget):
                     self.utilization_data = CapaUtilization.analyze_utilization(data)
 
                 else:
-                    print("[디버그] 조정 이후 - 비교 차트 출력 시도")
+                    # print("[디버그] 조정 이후 - 비교 차트 출력 시도")
                     if self.controller and self.controller.model:
-                        print("[디버그] controller 및 model 존재 확인됨")
+                        # print("[디버그] controller 및 model 존재 확인됨")
                         comparison_df = self.controller.model.get_comparison_dataframe()
-                        print(f"[디버그] comparison_df 키: {comparison_df.keys()}")
+                        # print(f"[디버그] comparison_df 키: {comparison_df.keys()}")
 
                         self.capa_ratio_data = {
                             'original': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['original']),
@@ -703,9 +703,9 @@ class ResultPage(QWidget):
                             'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
                         }
 
-                        print("[디버그] 비교 데이터 생성 완료 (Capa + Utilization)")
+                        # print("[디버그] 비교 데이터 생성 완료 (Capa + Utilization)")
                     else:
-                        print("[디버그] controller 또는 model 없음 → 단일 차트로 fallback")
+                        # print("[디버그] controller 또는 model 없음 → 단일 차트로 fallback")
                         self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
                         self.utilization_data = CapaUtilization.analyze_utilization(data)
 
@@ -732,24 +732,24 @@ class ResultPage(QWidget):
     모든 시각화 차트 업데이트
     """
     def update_all_visualizations(self):
-        print(f"시각화 업데이트 시작 - 캔버스 개수: {len(self.viz_canvases)}")
-        print(f"[디버그] capa_ratio_data 타입: {type(self.capa_ratio_data)}")
+        # print(f"시각화 업데이트 시작 - 캔버스 개수: {len(self.viz_canvases)}")
+        # print(f"[디버그] capa_ratio_data 타입: {type(self.capa_ratio_data)}")
 
         if isinstance(self.capa_ratio_data, dict): # 디버깅
-            print(f"[디버그] capa_ratio_data 키: {list(self.capa_ratio_data.keys())}")
+            # print(f"[디버그] capa_ratio_data 키: {list(self.capa_ratio_data.keys())}")
             # 비교 데이터 형식인지 확인
             is_comparison = 'original' in self.capa_ratio_data and 'adjusted' in self.capa_ratio_data
-            print(f"[디버그] capa_ratio_data 비교 데이터 형식: {is_comparison}")
+            # print(f"[디버그] capa_ratio_data 비교 데이터 형식: {is_comparison}")
             
             # 데이터 예시 출력
             sample_keys = list(self.capa_ratio_data.keys())[:5]  # 처음 5개 키만
             for key in sample_keys:
-                print(f"[디버그] capa_ratio_data['{key}'] 타입: {type(self.capa_ratio_data[key])}")
+                # print(f"[디버그] capa_ratio_data['{key}'] 타입: {type(self.capa_ratio_data[key])}")
                 
                 if key in ['original', 'adjusted'] and isinstance(self.capa_ratio_data[key], dict):
                     sub_sample = list(self.capa_ratio_data[key].keys())[:3]  # 하위 키 3개만
                     sub_data = {k: self.capa_ratio_data[key][k] for k in sub_sample if k in self.capa_ratio_data[key]}
-                    print(f"[디버그] capa_ratio_data['{key}'] 샘플: {sub_data}")
+                    # print(f"[디버그] capa_ratio_data['{key}'] 샘플: {sub_data}")
 
         # Capa 탭 업데이트 
         capa_tab = self.tab_manager.get_tab_instance('Capa')
@@ -875,10 +875,6 @@ class ResultPage(QWidget):
         pre_assigned_items = results.get('pre_assigned_items', [])
         optimization_metadata = results.get('optimization_metadata', {})
         
-        # if not assignment_result:
-        #     print("최적화 결과가 비어있거나 유효하지 않습니다.")
-        #     return False
-        
         # 사전할당 아이템 저장 
         self.pre_assigned_items = set(pre_assigned_items)
         
@@ -926,62 +922,7 @@ class ResultPage(QWidget):
         print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
         
         return True
-        # assignment_result = results.get('assignment_result')
-        # pre_assigned_items = results.get('pre_assigned_items', [])
-
-        # validator = PlanAdjustmentValidator(assignment_result)
-        # model = AssignmentModel(pd.DataFrame(assignment_result), list(pre_assigned_items), validator)
-        # controller = AdjustmentController(model, self.left_section, self.error_manager)
-
-        # # 1) 여기서 controller 설정 (defer_signal=True로 시그널 연결 보류)
-        # self.set_controller(controller, defer_signal=True)
-
-        # # 2) 수동으로 최초 on_data_changed 호출 (단 1번만)
-        # self.on_data_changed(model.get_dataframe())
-
-        # # 3) 이후에 시그널 연결
-        # controller.model.modelDataChanged.connect(self.update_ui_from_model)
-        # print("모델 변경 시그널 연결 완료")
-
-        # # 4) 기타 설정
-        # self.left_section.set_validator(validator)
-        # self.left_section.set_controller(controller)
-
-        # print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
-
-
-        # 결과 데이터 추출
-        # assignment_result = results.get('assignment_result')
-        # pre_assigned_items = results.get('pre_assigned_items', [])
-        # optimization_metadata = results.get('optimization_metadata', {})
-
-        # # 사전할당 아이템 저장 
-        # self.pre_assigned_items = set(pre_assigned_items)
-
-        # if hasattr(self, 'left_section'):
-        #     # ─── MVC 구조 초기화 ───
-        #     # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
-        #     validator = PlanAdjustmentValidator(assignment_result)
-
-        #     # 2) AssignmentModel 생성
-        #     model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
-
-        #     # 3) AdjustmentController 생성 (error_manager 주입)
-        #     controller = AdjustmentController(model, self.left_section, self.error_manager)
-        #     self.set_controller(controller)
-            
-        #     # 4) Left Section에 validator와 controller 저장 (fallback용)
-        #     self.left_section.set_validator(validator)
-        #     self.left_section.set_controller(controller)
-            
-        #     print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
-
-        # # 메타데이터 필요시 - 추후 삭제
-        # self.optimization_metadata = optimization_metadata
-
-        # print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
  
-
     """
     왼쪽 위젯에 사전할당 상태 적용
     """

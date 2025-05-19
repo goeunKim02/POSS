@@ -51,7 +51,7 @@ class VisualizationUpdater:
         
         # 비교 데이터형식 감지
         is_comparison = isinstance(capa_ratio_data, dict) and 'original' in capa_ratio_data and 'adjusted' in capa_ratio_data
-        print(f"[디버그] is_comparison 확인: {is_comparison}")
+        # print(f"[디버그] is_comparison 확인: {is_comparison}")
 
         # 데이터 유효성 검사  - 디버그
         is_valid = VisualizationUpdater._is_capa_data_valid(capa_ratio_data)
