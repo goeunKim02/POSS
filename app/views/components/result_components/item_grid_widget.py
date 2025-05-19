@@ -93,16 +93,17 @@ class ItemGridWidget(QWidget):
             # 빈 헤더 셀 (첫 번째 행, 첫 번째 열 - 라인 헤더 위)
             empty_header1 = QLabel("")
             empty_header1.setStyleSheet("background-color: transparent;")
-            empty_header1.setFixedWidth(w(80))
+            empty_header1.setFixedWidth(w(60))
             self.grid_layout.addWidget(empty_header1, 0, 0)
 
             # 빈 헤더 셀 (첫 번째 행, 두 번째 열 - 교대 헤더 위)
             empty_header2 = QLabel("")
             empty_header2.setStyleSheet("background-color: transparent;")
-            empty_header2.setFixedWidth(w(80))
+            empty_header2.setFixedWidth(w(60))
             self.grid_layout.addWidget(empty_header2, 0, 1)
 
             # 첫 행 데이터 넣는 곳?
+            # 요일 넣는 곳
             for col, header in enumerate(column_headers):
                 label = QLabel(header)
                 label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0; border: 1px solid #cccccc;")
@@ -130,7 +131,7 @@ class ItemGridWidget(QWidget):
                     font-family: {font_manager.get_just_font("SamsungSharpSans-Bold").family()};
                 """)
                 line_label.setAlignment(Qt.AlignCenter)
-                line_label.setFixedWidth(w(80))
+                line_label.setFixedWidth(w(60))
 
                 # 교대 수에 따라 행 구성
                 shift_rows = []
@@ -169,7 +170,7 @@ class ItemGridWidget(QWidget):
 
                     shift_label.setStyleSheet(shift_style)
                     shift_label.setAlignment(Qt.AlignCenter)
-                    shift_label.setFixedWidth(w(80))
+                    shift_label.setFixedWidth(w(60))
 
                     # 교대 레이블을 두 번째 열에 배치
                     self.grid_layout.addWidget(shift_label, row_index, 1)
@@ -189,7 +190,7 @@ class ItemGridWidget(QWidget):
                     for col in range(columns):
                         container = ItemsContainer()
                         container.setMinimumHeight(h(200))
-                        container.setMinimumWidth(w(270))  # 요일 너비
+                        container.setMinimumWidth(w(250))  # 요일 너비
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -248,8 +249,8 @@ class ItemGridWidget(QWidget):
                 # 각 셀에 아이템 컨테이너 추가
                 for col in range(columns):
                     container = ItemsContainer()
-                    container.setMinimumHeight(200)
-                    container.setMinimumWidth(250)
+                    container.setMinimumHeight(h(200))
+                    container.setMinimumWidth(w(250))
                     container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                     # 아이템 선택 이벤트 연결
@@ -258,7 +259,7 @@ class ItemGridWidget(QWidget):
                     # 아이템 데이터 변경 이벤트 연결
                     container.itemDataChanged.connect(self.on_item_data_changed)
 
-                    # 아이템 복사 이벤트 연결 
+                    # 아이템 복사 이벤트 연결
                     container.itemCopied.connect(self.on_item_copied)
 
                     # 기존 방식에서는 데이터 열이 인덱스 1부터 시작
@@ -338,7 +339,7 @@ class ItemGridWidget(QWidget):
     """
     def get_line_from_row(self, row_index):
         return self.row_line_mapping.get(row_index)
-    
+
     """
     검증기 설정
     """
@@ -358,7 +359,7 @@ class ItemGridWidget(QWidget):
     def ensure_item_visible(self, container, item):
         if not container or not item:
             return
-        
+
         try :
             for row_idx, row_containers in enumerate(self.containers):
                 if container in row_containers:
@@ -366,9 +367,9 @@ class ItemGridWidget(QWidget):
 
                     cell_widget = container
                     container_pos = cell_widget.mapTo(self.scroll_content, QPoint(0, 0))
-                    
+
                     item_pos = item.pos()
-                    target_x = container_pos.x() + item_pos.x() 
+                    target_x = container_pos.x() + item_pos.x()
                     target_y = container_pos.y() + item_pos.y()
 
                     self.scroll_area.horizontalScrollBar().setValue(target_x - 10)
@@ -404,10 +405,10 @@ class ItemGridWidget(QWidget):
             if hasattr(item, 'item_data') and item.item_data:
                 item_data = item.item_data.copy()
                 print(f"DEBUG: 삭제 아이템 정보: {item_data.get('Item')} @ {item_data.get('Line')}-{item_data.get('Time')}, ID: {item_id}")
-            
+
             # 컨테이너에서 아이템 제거
             container.remove_item(item)
-            
+
             print(f"DEBUG: itemRemoved 시그널 발생(item_grid)")
             if item_id:
                 # ID가 있는 경우 ID만 전달
