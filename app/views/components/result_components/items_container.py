@@ -12,7 +12,6 @@ from app.utils.item_key_manager import ItemKeyManager
 아이템들을 담는 컨테이너 위젯
 """
 class ItemsContainer(QWidget):
-    itemsChanged = pyqtSignal(object)
     itemSelected = pyqtSignal(object, object)  # (선택된 아이템, 컨테이너) 시그널 추가
     itemDataChanged = pyqtSignal(object, dict, dict)  # (아이템, 새 데이터, 변경 필드 정보) 시그널 추가
     itemCopied = pyqtSignal(object, dict)  # 복사된 아이템 시그널 추가
@@ -41,13 +40,6 @@ class ItemsContainer(QWidget):
         self.spacer = QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.addSpacerItem(self.spacer)
 
-    """
-    아이템 상태 업데이트
-    """
-    def update_visibility(self):
-        # 모든 아이템은 항상 visible 상태로 유지
-        # 필터링은 선의 표시 여부로만 처리
-        pass
 
     """
     현재 컨테이너의 부모 찾기
@@ -92,7 +84,6 @@ class ItemsContainer(QWidget):
         # 스페이서 다시 추가 (항상 맨 아래에 위치하도록)
         self.layout.addSpacerItem(self.spacer)
 
-        # self.update_visibility()
         # 모든 아이템이 항상 보이도록
         item_label.show()
 
@@ -138,7 +129,6 @@ class ItemsContainer(QWidget):
             self.itemDataChanged.emit(item, new_data, changed_fields)
 
             item_id = ItemKeyManager.extract_item_id(item)
-            self.itemsChanged.emit(item_id)
             return True, ""
 
         return False, "유효하지 않은 아이템 또는 데이터"
@@ -155,7 +145,7 @@ class ItemsContainer(QWidget):
     특정 아이템 삭제
     """
     def remove_item(self, item):
-        print("remove_item 호출")
+        print("items_container.py remove_item 호출")
         if item in self.items:
             # ID 추출
             item_id = ItemKeyManager.extract_item_id(item)
@@ -169,26 +159,15 @@ class ItemsContainer(QWidget):
             self.items.remove(item)
             item.deleteLater()
 
-            # 아이템 ID로 변경 시그널 발생
-            # self.itemsChanged.emit(item_id)
-
             # 그리드 위젯 찾기 및 itemRemoved 시그널 발생
             parent = self.parent()
             while parent and not hasattr(parent, 'itemRemoved'):
                 parent = parent.parent()
             
             # 그리드 위젯의 itemRemoved 시그널만 발생시키고,
-            # itemsChanged 시그널은 발생시키지 않음
             if parent and hasattr(parent, 'itemRemoved'):
                 print("그리드 위젯의 itemRemoved 시그널 발생")
                 parent.itemRemoved.emit(item)
-                # itemsChanged 시그널은 발생시키지 않음
-            else:
-                # 그리드 위젯을 찾지 못한 경우에만 폴백으로 itemsChanged 시그널 발생
-                print("itemsChanged 시그널 발생 (폴백)")
-                self.itemsChanged.emit(item_id)
-
-            self.update_visibility()
 
     """
     모든 아이템 삭제
@@ -209,8 +188,6 @@ class ItemsContainer(QWidget):
 
         # 스페이서 다시 추가
         self.layout.addSpacerItem(self.spacer)
-
-        self.update_visibility()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
@@ -266,7 +243,6 @@ class ItemsContainer(QWidget):
                     data_bytes = event.mimeData().data("application/x-item-full-data")
                     json_str = data_bytes.data().decode()
                     item_data = json.loads(json_str)
-                    print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
 
                     if isinstance(item_data, dict):
                         item_data['_drop_pos_x'] = event.pos().x()
@@ -361,7 +337,6 @@ class ItemsContainer(QWidget):
                 elif item_data is not None and '_id' in item_data:
                     item_id = item_data.get('_id')
 
-                self.itemsChanged.emit(item_id)
                 return  # [CTRL COPY] Ctrl copy는 여기서 종료
 
             # 원본 아이템이 같은 컨테이너 내에 있는지 확인
@@ -541,8 +516,6 @@ class ItemsContainer(QWidget):
             self.show_drop_indicator = False
             self.update()
 
-            self.update_visibility()
-
             event.acceptProposedAction()
 
             # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
@@ -551,8 +524,6 @@ class ItemsContainer(QWidget):
                 item_id = ItemKeyManager.extract_item_id(new_item)
             elif item_data is not None and '_id' in item_data:
                 item_id = item_data.get('_id')
-          
-            self.itemsChanged.emit(item_id)
 
     """
     시프트별 자재 부족 상태 업데이트
@@ -704,7 +675,3 @@ class ItemsContainer(QWidget):
                 print("DEBUG: ItemsContainer에서 아이템 제거 시작")
                 self.remove_item(item)
                 print("DEBUG: ItemsContainer에서 아이템 제거 완료")
-
-                # 변경 신호 발생
-                print("DEBUG: itemsChanged 시그널 발생")
-                self.itemsChanged.emit(item_id)

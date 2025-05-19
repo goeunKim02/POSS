@@ -57,11 +57,7 @@ class ResultPage(QWidget):
         self.shortage_items_table = None
         self.viz_canvases = []
 
-
         self.init_ui()
-        print("\n==== ResultPage: connect_signals 호출 시작 ====")
-        self.connect_signals()
-        print("==== ResultPage: connect_signals 호출 완료 ====\n")
 
     def init_ui(self):
         bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
@@ -127,6 +123,7 @@ class ResultPage(QWidget):
 
         # 시그널 연결
         self.left_section.viewDataChanged.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
+        self.left_section.itemModified.connect(self.on_item_data_changed_legacy)
 
         left_layout.addWidget(self.left_section)
         
@@ -275,20 +272,6 @@ class ResultPage(QWidget):
 
 
     """
-    컨트롤러 설정
-    """
-    def set_controller(self, controller, defer_signal=False):
-        self.controller = controller
-        print("ResultPage: 컨트롤러 설정됨")
-        print("ResultPage: 컨트롤러 설정됨")
-
-        # defer_signal=True일 경우, 연결을 나중에 호출자가 수동으로 하도록 함
-        if not defer_signal:
-            if hasattr(controller.model, 'modelDataChanged'):
-                controller.model.modelDataChanged.connect(self.update_ui_from_model)
-                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
-
-    """
     Material 탭 콘텐츠 생성
     """
     def _create_material_tab_content(self, layout):
@@ -361,29 +344,7 @@ class ResultPage(QWidget):
         capa_tab = self.tab_manager.get_tab_instance('Capa')
         if capa_tab:
             self.viz_canvases = capa_tab.get_canvases()
-    
-    """
-    이벤트 시그널 연결
-    """
-    def connect_signals(self):
-        if hasattr(self, 'controller') and self.controller:
-            # MVC 컨트롤러가 있는 경우: 컨트롤러만 사용
-            print("MVC 모드: 컨트롤러를 통한 처리만 활성화")
-            
-            # 모델 변경 -> UI 업데이트 연결 설정 (필요한 기능)
-            if hasattr(self.controller.model, 'modelDataChanged'):
-                self.controller.model.modelDataChanged.connect(self.update_ui_from_model)
-                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
-        else:
-            # MVC 컨트롤러가 없는 경우: 레거시 직접 처리 방식 사용
-            print("레거시 모드: 직접 처리 방식 활성화")
-            if hasattr(self, 'left_section') and hasattr(self.left_section, 'viewDataChanged'):
-                self.left_section.viewDataChanged.connect(self.on_data_changed)
-            
-            # 컨트롤러가 없을 때만 레거시 이벤트 핸들러 연결
-            if hasattr(self, 'left_section') and hasattr(self.left_section, 'itemModified'):
-                self.left_section.itemModified.connect(self.on_item_data_changed_legacy)
-                        
+              
     """
     시각화 페이지 전환 및 버튼 스타일 업데이트
     """
@@ -505,7 +466,7 @@ class ResultPage(QWidget):
     데이터프레임을 분석하여 시각화 업데이트
     """
     def on_data_changed(self, data):
-        print("on_data_changed 호출됨 - 데이터 변경 감지")
+        print("result_page.py on_data_changed 호출됨 - 데이터 변경 감지")
         self.result_data = data
 
         # 위젯 참조가 없으면 다시 설정
@@ -756,6 +717,7 @@ class ResultPage(QWidget):
     -> left_section으로 전달
     """
     def set_optimization_result(self, results):
+        
         # 변수 초기화 - 중복 호출 방지 위한 추적
         self.data_changed_count = 0
         print("1. data_changed_count 초기화 완료")
@@ -763,53 +725,16 @@ class ResultPage(QWidget):
         # 결과 데이터 추출
         assignment_result = results.get('assignment_result')
         pre_assigned_items = results.get('pre_assigned_items', [])
-        optimization_metadata = results.get('optimization_metadata', {})
-        
-        # 사전할당 아이템 저장 
         self.pre_assigned_items = set(pre_assigned_items)
+
+        assignment_result = self.left_section._normalize_data_types(assignment_result)
+        self.left_section.original_data = assignment_result
+        self.left_section.data = assignment_result
         
-        print("2. set_optimization_result : 컨트롤러 초기화 시작")
-        
-        # ─── MVC 구조 초기화 ───
-        # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
-        validator = PlanAdjustmentValidator(assignment_result)
-        
-        # 2) AssignmentModel 생성
-        model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
-        
-        # 3) AdjustmentController 생성 (error_manager 주입)
-        controller = AdjustmentController(model, self.left_section, self.error_manager)
-        
-        print("3. 컨트롤러 생성 완료")
-        
-        # 4) ResultPage 참조 설정
-        controller.set_result_page(self)
-        print("4. 컨트롤러에 ResultPage 참조 전달")
-        
-        # 5) 컨트롤러를 클래스에 저장하고 ResultPage에 설정
-        self.controller = controller
-        self.set_controller(controller)
-        
-        # 6) Left Section에 validator와 controller 저장 (fallback용)
-        self.left_section.set_validator(validator)
-        self.left_section.set_controller(controller)
-        
-        print("5. 컨트롤러 세팅 완료")
-        
-        # 7) 초기 데이터 로드 (시그널 연결 전에)
-        controller.initialize_views()
-        print("6. 초기 데이터 설정 완료")
-        
-        # 8) 시그널 연결 (초기화 후 마지막에 수행)
-        print("7. 시그널 연결 시작")
-        controller.connect_signals()
-        print("8. 시그널 연결 완료")
-        
-        # 메타데이터 필요시 - 추후 삭제
-        self.optimization_metadata = optimization_metadata
-        
-        print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
-        print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
+        self.left_section.update_table_from_data()
+
+        #리셋 버튼 비활성화
+        self.left_section.reset_button.setEnabled(False)
         
         return True
  

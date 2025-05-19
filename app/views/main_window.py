@@ -245,67 +245,13 @@ class MainWindow(QMainWindow):
 
         try :
             optimization = Optimization(all_dataframes)
-
-            if hasattr(optimization, 'set_data') and callable(getattr(optimization, 'set_data')):
-                optimization.set_data(all_dataframes)
-            else:
-                print("최적화 엔진에 set_data 메소드가 없습니다. 기존 방식으로 진행합니다.")
+            result_dict = optimization.pre_assign()
         except Exception as e:
             raise CalculationError(f'Error initializing optimization engine : {str(e)}')
-
-        result_dict = safe_operation(
-            optimization.pre_assign,
-            'Error during pre-assignment optimization'
-        )
 
         if not result_dict or 'result' not in result_dict :
             raise CalculationError('Pre-assignment optimization failed or returned invalid results')
 
         df = result_dict['result']
-
         self.planning_page.display_preassign_result(df)
         self.navigate_to_page(1)
-
-    """
-    결과 내보내기 로직
-    """
-    @error_handler(
-        show_dialog=True,
-        default_return=None
-    )
-    def export_results(self, file_path=None):
-        if not file_path :
-            raise FileError('No file path provided for export')
-
-        print(f"결과를 다음 경로에 저장: {file_path}")
-        # self.data_model.export_results(file_path)
-
-    """
-    최적화 결과 처리
-    """
-    @error_handler(
-        show_dialog=True,
-        default_return=None
-    )
-    def handle_optimization_result(self, results):
-        print("main_window : handle_optimization_result 호출")
-        # Args:
-        #     results (dict): 최적화 결과를 포함하는 딕셔너리
-
-        if not results or not isinstance(results, dict) :
-            print("main_window : raise ValidationError('Invalid optimization results')")
-            raise ValidationError('Invalid optimization results')
-
-        if not hasattr(self, 'result_page'):
-            print("main_window : self.central_widget.addWidget(self.result_page)")
-            self.result_page = ResultPage(self)
-            self.central_widget.addWidget(self.result_page)
-
-        if 'assignment_result' in results and results['assignment_result'] is not None:
-            print("main_window : self.central_widget.addWidget(self.result_page)")
-            # self.result_page.left_section.update_data(results['assignment_result'])
-            self.result_page.set_optimization_result(results)
-        else :
-            print('No assignment results available')
-
-        self.central_widget.setCurrentWidget(self.result_page)

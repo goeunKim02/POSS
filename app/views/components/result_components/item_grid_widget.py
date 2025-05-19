@@ -201,12 +201,6 @@ class ItemGridWidget(QWidget):
                         # 아이템 복사 이벤트 연결
                         container.itemCopied.connect(self.on_item_copied)
 
-                        for item in container.items:
-                            if hasattr(item, 'itemDeleteRequested'):
-                                item.itemDeleteRequested.connect(
-                                    lambda item_obj=item: self.on_item_delete_requested(item_obj, container)
-                                )
-
                         # 컨테이너를 데이터 열에 배치
                         self.grid_layout.addWidget(container, row_index, col + 2)
                         row_containers.append(container)
@@ -346,13 +340,6 @@ class ItemGridWidget(QWidget):
         self.validator = validator
 
     """
-    컨테이너의 상태 업데이트
-    """
-    def update_container_visibility(self) :
-        pass
-
-
-    """
     검색 후 선택된 항목이 보이도록 스크롤 이동
     """
     def ensure_item_visible(self, container, item):
@@ -384,9 +371,7 @@ class ItemGridWidget(QWidget):
     def container_visibility(self):
         for row_containers in self.containers:
             for container in row_containers:
-                if hasattr(container, 'update_visibility'):
-                    container.update_visibility()
-                elif hasattr(container, 'adjustSize'):
+                if hasattr(container, 'adjustSize'):
                     container.adjustSize()
 
     """

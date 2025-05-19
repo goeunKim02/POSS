@@ -754,7 +754,7 @@ class ModifiedLeftSection(QWidget):
             new_data['Time'] = original_data.get('Time', new_data.get('Time'))
         
         # MVC 컨트롤러가 있으면 시그널 발생 (
-        if hasattr(self, 'controller') and self.controller:
+        if self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
             self.itemModified.emit(item, new_data, changed_fields)
             # 디버깅 추가: 변경 후 리셋 버튼 상태 확인
@@ -957,28 +957,28 @@ class ModifiedLeftSection(QWidget):
                 self.original_data = loaded_data.copy()
 
                 # 컨터롤러 확인
-                if hasattr(self, 'controller') and self.controller is not None:
-                    # 컨트롤러가 있는 경우, 모델을 새 데이터로 업데이트
-                    if hasattr(self.controller, 'update_model_data'):
-                        # 컨트롤러를 통해 모델 업데이트
-                        success = self.controller.update_model_data(loaded_data)  # 변수 이름 변경
-                        if success:
-                            print("컨트롤러를 통해 모델 데이터 업데이트 완료")
-                        else:
-                            print("컨트롤러를 통한 모델 업데이트 실패")
-                    else:
-                        # update_model_data 메서드가 없는 경우, 직접 업데이트 시도
-                        try:
-                            self.controller.model._df = loaded_data.copy()  # 변수 이름 변경
-                            self.controller.model._original_df = loaded_data.copy()  # 변수 이름 변경
-                            self.controller.model.modelDataChanged.emit()
-                            print("컨트롤러 모델 직접 업데이트 완료")
-                        except Exception as e:
-                            print(f"컨트롤러 모델 직접 업데이트 중 오류 발생: {e}")
-                else:
-                    print("컨트롤러 없음.")
-                    # 컨트롤러가 없는 경우 직접 업데이트 
-                    self.update_table_from_data()
+                # if hasattr(self, 'controller') and self.controller is not None:
+                #     # 컨트롤러가 있는 경우, 모델을 새 데이터로 업데이트
+                #     if hasattr(self.controller, 'update_model_data'):
+                #         # 컨트롤러를 통해 모델 업데이트
+                #         success = self.controller.update_model_data(loaded_data)  # 변수 이름 변경
+                #         if success:
+                #             print("컨트롤러를 통해 모델 데이터 업데이트 완료")
+                #         else:
+                #             print("컨트롤러를 통한 모델 업데이트 실패")
+                #     else:
+                #         # update_model_data 메서드가 없는 경우, 직접 업데이트 시도
+                #         try:
+                #             self.controller.model._df = loaded_data.copy()  # 변수 이름 변경
+                #             self.controller.model._original_df = loaded_data.copy()  # 변수 이름 변경
+                #             self.controller.model.modelDataChanged.emit()
+                #             print("컨트롤러 모델 직접 업데이트 완료")
+                #         except Exception as e:
+                #             print(f"컨트롤러 모델 직접 업데이트 중 오류 발생: {e}")
+                # else:
+                print("컨트롤러 없음.")
+                # 컨트롤러가 없는 경우 직접 업데이트 
+                self.update_table_from_data()
 
                 # 새로운 원본 상태가 있으므로 리셋 버튼 활성화
                 self.reset_button.setEnabled(False)

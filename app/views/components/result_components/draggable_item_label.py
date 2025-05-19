@@ -280,9 +280,6 @@ class DraggableItemLabel(QFrame):
             json_data = json.dumps(serializable_data)
             mime_data.setData("application/x-item-full-data", json_data.encode())
 
-            # 디버깅을 위한 출력
-            print(f"직렬화된 데이터: {json_data}")
-
         # 기본 아이템 식별자도 함께 저장 (이전 버전과의 호환성 유지)
         mime_data.setData("application/x-item-data", self.text().encode())
 

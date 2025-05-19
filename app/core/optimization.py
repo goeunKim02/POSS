@@ -207,7 +207,7 @@ class Optimization:
         cols = self.df_material_item.columns
         for i in range(14):
             self.df_material_item[cols[onhand_idx + i + 1]] += self.df_material_item[cols[onhand_idx + i]]
-        print(self.df_material_item)
+        # print(self.df_material_item)
         # material_variable = pulp.LpVariable.dict("material_variable",)
 
         
@@ -225,11 +225,11 @@ class Optimization:
         results = []
         for l in self.line:
             for t in self.time:
-                print(f"{l} - {t} 시프트:")
+                # print(f"{l} - {t} 시프트:")
                 for d in demands:
                     units = int(pulp.value(x[(d, l, t)]))
                     if units > 0:
-                        print(f"  모델 {d} → {units}개 생산")
+                        # print(f"  모델 {d} → {units}개 생산")
                         sop = -99
                         mfg = -99
                         due_lt= -99
