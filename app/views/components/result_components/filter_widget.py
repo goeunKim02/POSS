@@ -47,7 +47,8 @@ class FilterWidget(QWidget):
                 min-width: {w(80)}px;
                 border: 1px solid #808080;
                 font-family: {normal_font};
-                font-size: {f(14)}px;
+                font-size: {f(18)}px;
+                min-height: {h(28)}px;
             }}
             QToolButton:hover {{
                 background-color: #f0f0f0;
@@ -209,7 +210,8 @@ class FilterWidget(QWidget):
                 min-width: {w(80)}px;
                 border: 1px solid #808080;
                 font-family: {normal_font};
-                font-size: {f(14)}px;
+                font-size: {f(18)}px;
+                min-height: {h(28)}px;
             }}
             QToolButton:hover {{
                 background-color: #f0f0f0;

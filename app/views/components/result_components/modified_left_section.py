@@ -101,7 +101,8 @@ class ModifiedLeftSection(QWidget):
                 min-width: {w(80)}px;
                 border:none;
                 font-family:{normal_font};
-                font-size: {f(14)}px;
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
             }}
             QPushButton:hover {{
                 background-color: #004C99;
@@ -126,7 +127,8 @@ class ModifiedLeftSection(QWidget):
                 min-width: {w(80)}px;
                 border:none;
                 font-family:{normal_font};
-                font-size: {f(14)}px;
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
             }}
             QPushButton:hover {{
                 background-color: #606060;
@@ -151,6 +153,7 @@ class ModifiedLeftSection(QWidget):
         self.filter_widget.filter_changed.connect(self.on_excel_filter_changed)
         # self.filter_widget.setFixedWidth(400)
         control_layout.addWidget(self.filter_widget)
+        control_layout.addStretch(1)
 
         # 검색 섹션 - 오른쪽에 붙이기
         search_section = QHBoxLayout()
@@ -159,44 +162,48 @@ class ModifiedLeftSection(QWidget):
         # 검색 필드 수정 - 크기 증가
         self.search_field = QLineEdit()
         self.search_field.setPlaceholderText('searching...')
-        self.search_field.setStyleSheet("""
-            QLineEdit {
+        self.search_field.setStyleSheet(f"""
+            QLineEdit {{
                 border: 1px solid #808080;  /* 테두리 색상 통일 */
                 border-radius: 4px;
                 background-color: white;
                 selection-background-color: #1428A0;
-                font-size: 22px;
-                padding: 8px;
-                min-height: 36px;
-            }
-            QLineEdit:focus {
+                font-size: {f(16)}px;
+                padding: 6px 8px;
+                font-family:{normal_font};
+                min-height: {h(30)}px;
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #1428A0;
-            }
+            }}
         """)
         self.search_field.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.search_field.setFixedWidth(350)  # 검색 박스 폭 더 증가
+        self.search_field.setFixedWidth(w(250))  # 검색 박스 폭 더 증가
         # self.search_field.setFixedHeight(36)
         self.search_field.returnPressed.connect(self.search_items)
         search_section.addWidget(self.search_field)
 
         # 검색 버튼
         self.search_button = QPushButton('Search')
-        self.search_button.setStyleSheet("""
-            QPushButton {
+        self.search_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 80px;
-                max-width: 100px;
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #004C99;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #003366;
-            }
+            }}
         """)
 
         self.search_button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -205,22 +212,25 @@ class ModifiedLeftSection(QWidget):
 
         # 검색 초기화 버튼
         self.clear_search_button = QPushButton('Reset')
-        self.clear_search_button.setStyleSheet("""
-            QPushButton {
+        self.clear_search_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #808080;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 80px;
-                max-width: 100px;
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #606060;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #404040;
-            }
+            }}
         """)
         self.clear_search_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.clear_search_button.clicked.connect(self.clear_search)
