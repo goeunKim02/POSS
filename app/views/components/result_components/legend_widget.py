@@ -2,6 +2,8 @@ from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel,
                              QCheckBox, QFrame, QSizePolicy)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QFont
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """범례 및 필터 위젯"""
 class LegendWidget(QWidget):
@@ -11,6 +13,7 @@ class LegendWidget(QWidget):
     
     # 특정 필터 활성화 요청 시그널 추가
     filter_activation_requested = pyqtSignal(str)  # status_type
+
     
     def on_filter_changed(self, status_type, is_checked):
         self.filter_states[status_type] = is_checked
@@ -22,11 +25,13 @@ class LegendWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("""
-            QWidget {
+        font = font_manager.get_just_font("SamsungOne-700").family()
+        self.setStyleSheet(f"""
+            QWidget {{
                 background-color: transparent;
                 border: none;
-            }
+                font-family: {font};
+            }}
         """)
         
         self.init_ui()
@@ -40,8 +45,8 @@ class LegendWidget(QWidget):
 
     def init_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(5, 5, 10, 5)
-        main_layout.setSpacing(40)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        main_layout.setSpacing(h(40))
         
         # 범례 항목들
         self.checkbox_map = {}  # 체크박스 참조 저장
@@ -78,7 +83,7 @@ class LegendWidget(QWidget):
         
         # 색상 표시
         color_frame = QFrame()
-        color_frame.setFixedSize(30, 30)
+        color_frame.setFixedSize(w(15), h(15))
         color_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {color};
