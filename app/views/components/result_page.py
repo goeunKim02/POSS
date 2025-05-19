@@ -24,6 +24,8 @@ from app.views.components.result_components.table_widget.split_allocation_widget
 from app.views.components.result_components.right_section.kpi_widget import KpiScore
 from app.models.output.assignment_model import AssignmentModel
 from app.controllers.adjustment_controller import AdjustmentController
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -61,6 +63,9 @@ class ResultPage(QWidget):
         print("==== ResultPage: connect_signals 호출 완료 ====\n")
 
     def init_ui(self):
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
+
         # 레이아웃 설정
         result_layout = QVBoxLayout(self)
         result_layout.setContentsMargins(0, 0, 0, 0)
@@ -68,49 +73,35 @@ class ResultPage(QWidget):
 
         # 타이틀 프레임
         title_frame = QFrame()
-        title_frame.setFrameShape(QFrame.StyledPanel)
-        title_frame.setStyleSheet("QFrame { min-height:61px; max-height:62px; border:none }")
+        title_frame.setStyleSheet("background-color: transparent;")
         title_layout = QHBoxLayout(title_frame)
-        title_layout.setContentsMargins(25, 10, 15, 5)
-        title_layout.setSpacing(0)
+        title_layout.setContentsMargins(10, 10, 10, 0)
+        title_layout.setSpacing(w(10))
+        title_layout.setAlignment(Qt.AlignVCenter)
 
         # 타이틀 레이블
         title_label = QLabel("Result")
-        font = QFont()
-        font.setFamily("Arial")
-        font.setPointSize(15)
-        font.setBold(True)
-        font.setWeight(99)
-        title_label.setFont(font)
+        title_label.setStyleSheet(f"font-family: {bold_font}; font-size: {f(21)}px; font-weight: 900;")
+        title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        title_layout.addWidget(title_label, 0, Qt.AlignVCenter)
-        title_layout.addStretch(1)
-
-        # 버튼 레이아웃
-        export_layout = QHBoxLayout()
-        export_layout.setContentsMargins(0, 0, 0, 0)  # 여백 수정
-        export_layout.setSpacing(10)
 
         # Export 버튼
-        export_btn = QPushButton()
-        export_btn.setText("Export")
-        export_btn.setFixedSize(130, 40)
+        export_btn = QPushButton("Export")
         export_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        export_btn.setFixedSize(w(100), h(40))
         export_btn.clicked.connect(self.export_results)
         export_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
         # Report 버튼
-        report_btn = QPushButton()
-        report_btn.setText("Report")
-        report_btn.setFixedSize(140, 40)
+        report_btn = QPushButton("Report")
         report_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        report_btn.setFixedSize(w(100), h(40))
         report_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
-        export_layout.addWidget(export_btn)
-        export_layout.addWidget(report_btn)
-
-        # 버튼 레이아웃을 타이틀 레이아웃에 추가
-        title_layout.addLayout(export_layout)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch(1)
+        title_layout.addWidget(export_btn)
+        title_layout.addWidget(report_btn)
 
         # 타이틀 프레임을 메인 레이아웃에 추가
         result_layout.addWidget(title_frame)
