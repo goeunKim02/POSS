@@ -37,6 +37,7 @@ class PlanningPage(QWidget):
         super().__init__()
         self.main_window = main_window
         self._df = pd.DataFrame()
+        self._splitter_ratio = 3/4
         self._setup_ui()
 
     def _setup_ui(self):
@@ -123,18 +124,16 @@ class PlanningPage(QWidget):
         right_l.addStretch()
 
         # QSplitter
-        splitter = QSplitter(Qt.Horizontal, self)
-        splitter.setContentsMargins(0, 0, 0, 0)
-        splitter.setHandleWidth(10)
-        splitter.setChildrenCollapsible(False)
+        self.splitter = QSplitter(Qt.Horizontal, self)
+        self.splitter.setContentsMargins(0, 0, 0, 0)
+        self.splitter.setHandleWidth(10)
+        self.splitter.setChildrenCollapsible(False)
 
-        splitter.addWidget(self.leftContainer)
-        splitter.addWidget(self.rightContainer)
+        self.splitter.addWidget(self.leftContainer)
+        self.splitter.addWidget(self.rightContainer)
+        self.main_layout.addWidget(self.splitter, 1)
 
-        # 초기 분할 비율
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 1)
-        self.main_layout.addWidget(splitter, 1)
+        self.splitter.splitterMoved.connect(self._on_splitter_moved)
 
         self.setLayout(self.main_layout)
 
@@ -371,6 +370,11 @@ class PlanningPage(QWidget):
         # self.stack.setCurrentWidget(summary)
         self.btn_summary.setStyleSheet(ACTIVE_BUTTON_STYLE)
 
+        sizes = self.splitter.sizes()
+        total = sum(sizes)
+        if total:
+            self._splitter_ratio = sizes[0] / total
+
     """
     필터 기능
     """
@@ -415,3 +419,21 @@ class PlanningPage(QWidget):
         
         # 스크롤바 여백 조정
         self._sync_header_margin()
+
+    """
+    사용자 스플리터 변경
+    """
+    def _on_splitter_moved(self, pos, index):
+        sizes = self.splitter.sizes()
+        total = sum(sizes)
+        if total:
+            self._splitter_ratio = sizes[0] / total
+
+    """
+    스플리터 오버라이드
+    """
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        total_w = self.width()
+        left_w = int(total_w * self._splitter_ratio)
+        self.splitter.setSizes([left_w, total_w - left_w])
