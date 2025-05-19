@@ -7,6 +7,8 @@ import json
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from .item_position_manager import ItemPositionManager
 from app.utils.item_key_manager import ItemKeyManager
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """
 아이템들을 담는 컨테이너 위젯
@@ -21,7 +23,7 @@ class ItemsContainer(QWidget):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(12)
+        self.layout.setSpacing(w(2))
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
         self.selected_item = None  # 현재 선택된 아이템

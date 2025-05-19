@@ -42,6 +42,7 @@ class ResultStyles:
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
+                padding: 8px 15px;
                 border-radius: 5px;
                 font-family: {normal_font};
                 font-size: {f(16)}px;

@@ -38,6 +38,7 @@ class ItemGridWidget(QWidget):
         self.grid_layout = QGridLayout(self.scroll_content)
         self.scroll_area.setWidget(self.scroll_content)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
+        self.grid_layout.setSpacing(w(3))
 
         self.main_layout.addWidget(self.scroll_area)
 
@@ -190,7 +191,7 @@ class ItemGridWidget(QWidget):
                     for col in range(columns):
                         container = ItemsContainer()
                         container.setMinimumHeight(h(200))
-                        container.setMinimumWidth(w(250))  # 요일 너비
+                        container.setMinimumWidth(w(214))  # 요일 너비
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -250,7 +251,7 @@ class ItemGridWidget(QWidget):
                 for col in range(columns):
                     container = ItemsContainer()
                     container.setMinimumHeight(h(200))
-                    container.setMinimumWidth(w(250))
+                    container.setMinimumWidth(w(221))
                     container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                     # 아이템 선택 이벤트 연결
