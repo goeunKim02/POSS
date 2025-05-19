@@ -508,7 +508,6 @@ class ResultPage(QWidget):
                 
                 # 조정 여부에 따라 시각화 데이터 설정
                 if has_user_adjustments:
-                    print("[디버그] 조정 후 - 비교 차트 출력")
                     if self.controller and self.controller.model:
                         comparison_df = self.controller.model.get_comparison_dataframe()
                         
