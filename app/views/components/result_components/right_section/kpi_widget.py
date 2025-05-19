@@ -55,10 +55,11 @@ class KpiWidget(QWidget):
     점수 업데이트
     """
     def update_scores(self, base_scores=None, adjust_scores=None):
+        print(f"3. update_scores 호출됨: base_scores={base_scores}, adjust_scores={adjust_scores}")
         # 기본 점수
         if base_scores:
-            self.base_scores = adjust_scores
-            self.update_adjust_scores()
+            self.base_scores = base_scores
+            self.update_base_scores()
 
         # 조정 점수
         if adjust_scores:
@@ -72,6 +73,7 @@ class KpiWidget(QWidget):
     기본 점수 라벨 업데이트
     """
     def update_base_scores(self):
+        print(f"4. kpi_labels 키: {list(self.kpi_labels.keys())}")
         for score_type, score in self.base_scores.items():
             label_key = f"Base_{score_type}"
             if label_key in self.kpi_labels:
@@ -92,7 +94,7 @@ class KpiWidget(QWidget):
     """
     def update_adjust_scores(self):
         for score_type, adjust_score in self.adjust_scores.items():
-            label_key = f"Adjst_{score_type}"
+            label_key = f"Adjust_{score_type}"
             if label_key in self.kpi_labels:
                 # 기본 점수 참조
                 base_score = self.base_scores.get(score_type, 0)
@@ -127,7 +129,7 @@ class KpiWidget(QWidget):
     """
     def reset_adjust_scores(self):
         for score_type in ['Total', 'Mat', 'SOP', 'Util']:
-            label_key = f"Ajust_{score_type}"
+            label_key = f"Adjust_{score_type}"
             if label_key in self.kpi_labels:
                     self.kpi_labels[label_key].setText("--")
                     self.kpi_labels[label_key].setStyleSheet("""

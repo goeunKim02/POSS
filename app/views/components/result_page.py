@@ -1141,8 +1141,14 @@ class ResultPage(QWidget):
     Base KPI 점수를 계산하고 위젯에 표시
     """
     def _refresh_base_kpi(self):
+        # _refresh_base_kpi 메서드 초반에 추가
+        print(f"1. kpi_widget 존재 여부: {hasattr(self, 'kpi_widget')}")
+        if hasattr(self, 'kpi_widget'):
+            print(f"1-1. kpi_widget 타입: {type(self.kpi_widget).__name__}")
+            print(f"1-2. kpi_widget의 메서드들: {[method for method in dir(self.kpi_widget) if not method.startswith('_')]}")
+
         demand_df = None
-        
+
         # 원본 결과(조정 전) 점수 계산
         demand_path = FilePaths.get("demand_excel_file")
         if demand_path and os.path.exists(demand_path):
@@ -1158,6 +1164,7 @@ class ResultPage(QWidget):
 
         # Base 점수 계산 (소수점 값 그대로 전달)
         base_scores = self.kpi_score.calculate_all_scores()
+        print(f"base_scores : {base_scores}")
         
         # 새로운 KpiScoreWidget에 Base 점수 설정
         self.kpi_widget.update_scores(base_scores=base_scores)

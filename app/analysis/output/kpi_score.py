@@ -140,11 +140,16 @@ class KpiScore:
         # Shift별 실제 생산량
         result_pivot = self.df.groupby('Time')['Qty'].sum()
 
+        print(f"Time별 생산량: {result_pivot.to_dict()}")  # 디버깅용
+
         # 가중치 적용 : weight_day_ox가 켜져있으면 weight_day 사용
         if self.opts.get('weight_day_ox', 0):
             weights = self.opts.get('weight_day', [1.0] * 14)
         else:  # 아니면 균등 가중치
             weights = [1.0] * 14  
+
+        # master에서 각 shift 별 최대 생산 가능량 가져오기 
+        capa_data = self.load_capa_from_master()
 
         # 실제 생산량에 가중치 적용
         weighted_result = 0
@@ -154,16 +159,17 @@ class KpiScore:
             if shift <= len(weights):
                 weight = weights[shift - 1]
                 qty = result_pivot.get(shift, 0)
-                
-                # 최대 용량 계산 (마스터 데이터에서 가져와야 함)
-                # 여기서는 실제 생산량을 기준으로 계산
-                capacity = qty  # 임시로 실제값 사용
 
-                weighted_result += qty * weight
-                weighted_capacity += capacity * weight
+                capacity = capa_data.get(shift)
 
-        # 가동률 계산
-        util_score = (weighted_result / weighted_capacity) * 100
+                weighted_qty_sum += qty * weight
+                weighted_capa_sum += capacity * weight
+
+        # 가동률 계산: (가중 물량 합계 / 가중 Capa 합계)
+        if weighted_capa_sum > 0:
+            util_score = (weighted_qty_sum / weighted_capa_sum) * 100
+        else:
+            util_score = 100.0
         
         return util_score
     
@@ -193,12 +199,31 @@ class KpiScore:
     def calculate_all_scores(self):
         self.get_options()
 
+        print("==== KPI 계산 디버깅 ====")
+        print(f"결과 데이터프레임 크기: {len(self.df) if self.df is not None else 0}")
+
+        # Mat 점수 계산에 사용되는 데이터 확인
+        if hasattr(self, 'material_analyzer') and self.material_analyzer:
+            shortage_count = len(self.material_analyzer.shortage_results) if hasattr(self.material_analyzer, 'shortage_results') else 0
+            print(f"자재 부족 아이템 수: {shortage_count}")
+
         # 각 점수 계산
         mat_score = self.calculate_material_score()
         sop_score = self.calculate_sop_score()
         util_score = self.calculate_utilization_score()
         total_score = self.calculate_total_score(mat_score, sop_score, util_score)
+
+        scores = {
+            'Mat': mat_score,
+            'SOP': sop_score,
+            'Util': util_score,
+            'Total': total_score
+        }
         
+        # 각 점수 로깅 (변수 생성 후에 호출)
+        print(f"계산된 KPI 점수: Mat={scores['Mat']:.2f}, SOP={scores['SOP']:.2f}, Util={scores['Util']:.2f}, Total={scores['Total']:.2f}")
+        print("=======================")
+
         return {
             'Mat': mat_score,
             'SOP': sop_score,
