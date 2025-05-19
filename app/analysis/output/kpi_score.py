@@ -178,7 +178,7 @@ class KpiScore:
             for factory in ['I', 'D', 'K', 'M']:
                 # 해당 공장 라인들 가져오기
                 factory_lines = df_capa_qty[df_capa_qty['Line'].str.startswith(f'{factory}_')].index.tolist()
-                print(f"factor_lines : {factory_lines}")
+                # print(f"factor_lines : {factory_lines}")
             
                 if not factory_lines:
                     print(f"Factory {factory}에 라인 없음")
@@ -195,7 +195,7 @@ class KpiScore:
                 # 제약 값 확인
                 if not max_line_row.empty and shift in max_line_row.columns and pd.notna(max_line_row.iloc[0][shift]):
                     max_line = max_line_row.iloc[0][shift]
-                    print(f"Factory {factory} Max Line 값: {max_line}")
+                    # print(f"Factory {factory} Max Line 값: {max_line}")
                     
                     # 중요: 제약이 0이면 해당 제조동의 생산량은 0
                     if max_line == 0:
@@ -203,11 +203,11 @@ class KpiScore:
                         continue
                 else:
                     max_line = len(factory_lines)
-                    print(f"Factory {factory} Max Line 정보 없음, 기본값 사용: {max_line}")
+                    # print(f"Factory {factory} Max Line 정보 없음, 기본값 사용: {max_line}")
 
                 if not max_qty_row.empty and shift in max_qty_row.columns and pd.notna(max_qty_row.iloc[0][shift]):
                     max_qty = max_qty_row.iloc[0][shift]
-                    print(f"Factory {factory} Max Qty 값: {max_qty}")
+                    # print(f"Factory {factory} Max Qty 값: {max_qty}")
                     
                     # 중요: 제약이 0이면 해당 제조동의 생산량은 0
                     if max_qty == 0:
@@ -241,7 +241,7 @@ class KpiScore:
                 shift_total_capacity += factory_capacity
 
             shift_capacity[shift] = shift_total_capacity
-            print(f"Shift {shift} 생산 능력: {shift_total_capacity}")
+            # print(f"Shift {shift} 생산 능력: {shift_total_capacity}")
 
         # Best 배치 계산: 앞 시프트부터 최대로 채움
         best_allocation = {}
@@ -256,7 +256,7 @@ class KpiScore:
             else:
                 best_allocation[shift] = 0
             
-            print(f"Shift {shift} Best 배치: {best_allocation[shift]}")
+            # print(f"Shift {shift} Best 배치: {best_allocation[shift]}")
         
         # Result 값과 Best 값에 가중치 적용하여 계산
         weighted_result_sum = 0

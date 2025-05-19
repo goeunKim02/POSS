@@ -164,7 +164,7 @@ class CapaUtilization:
                 else:
                     # day_capacity에 해당 일이 없는 경우 (발생하지 않아야 함)
                     utilization_rate[day] = 0
-                    
+
             print("daily utilization rate(%):")
             for day, rate in utilization_rate.items():
                 if rate is not None:
@@ -176,10 +176,6 @@ class CapaUtilization:
         
         except Exception as e:
                 print(f"가동률 계산 중 오류 발생: {str(e)}")
-                # traceback.print_exc()
-                # # 빈 결과 반환
-                # return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-
 
     """
     셀 이동 시 요일별 가동률 업데이트

@@ -174,10 +174,29 @@ class AdjustmentController(QObject):
         code = new_data.get('Item')
         if code:
             item_id = new_data.get('_id')  # id 추출
-            print(f"Controller: 셀 이동 {code} -> {new_data.get('Line')}-{new_data.get('Time')}")
+
+            # 이전 위치 정보 추출
+            old_line = old_data.get('Line')
+            old_time = old_data.get('Time') 
+            
+            # 새 위치 정보 추출
+            new_line = new_data.get('Line')
+            new_time = new_data.get('Time')
+            
+            print(f"Controller: 셀 이동 {code} @ {old_line}-{old_time} -> {new_line}-{new_time}")
+                
+            # 올바른 순서로 파라미터 전달
+            self.model.move_item(
+                code,         # item
+                old_line,     # old_line
+                old_time,     # old_time
+                new_line,     # new_line
+                new_time,     # new_time
+                item_id       # item_id
+            )
             
             # 1. Model에 데이터 변경 알림
-            self.model.move_item(code, new_data['Line'], new_data['Time'], item_id)
+            # self.model.move_item(code, new_data['Line'], new_data['Time'], item_id)
             
             # 2. 필요시 추가 작업 (시각화 업데이트, 분석 등)
             # 예: 부모 컴포넌트에 셀 이동 이벤트 전달

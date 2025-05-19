@@ -3,6 +3,7 @@ import pandas as pd
 from app.models.common.file_store import DataStore, FilePaths
 from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.utils.conversion import convert_value
+from app.utils.item_key_manager import ItemKeyManager
 
 """
 결과 조정 시 제약사항 점검 클래스
@@ -269,7 +270,7 @@ class PlanAdjustmentValidator:
     Returns:
         tuple: (성공 여부, 오류 메시지)
     """
-    def validate_capacity(self, line, time, new_qty, item=None, is_move=False):
+    def validate_capacity(self, line, time, new_qty, item=None, is_move=False, item_id=None):
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
 
@@ -279,24 +280,26 @@ class PlanAdjustmentValidator:
         # 같은 위치에서 수량만 변경인 경우 기존 할당량 제외
         existing_qty = 0
         if not is_move and item:
-            existing_mask = (
-                (self.result_data['Line'] == line) &
-                (self.result_data['Time'] == time) &
-                (self.result_data['Item'] == item)
-            )
-            if existing_mask.any():
-                existing_qty = self.result_data.loc[existing_mask, 'Qty'].iloc[0]
+            # ID가 있으면 ID로 마스크 생성, 없으면 Line/Time/Item으로 마스크 생성
+            if item_id:
+                mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
+            else:
+                mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
+                
+            if mask.any():
+                existing_qty = self.result_data.loc[mask, 'Qty'].iloc[0]
                 current_allocation -= existing_qty
         
         # 이동인 경우 해당 아이템의 기존 할당량 제외
         if is_move and item:
-            source_mask = (
-                (self.result_data['Line'] == line) &
-                (self.result_data['Time'] == time) &
-                (self.result_data['Item'] == item)
-            )
-            if source_mask.any():
-                current_allocation -= self.result_data.loc[source_mask, 'Qty'].iloc[0]
+             # ID가 있으면 ID로 마스크 생성, 없으면 Line/Time/Item으로 마스크 생성
+            if item_id:
+                mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
+            else:
+                mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
+                
+            if mask.any():
+                current_allocation -= self.result_data.loc[mask, 'Qty'].iloc[0]
     
         # 마스터 데이터에서 라인과 시프트 용량 가져오기
         capacity = self.get_line_capacity(line, time)
@@ -355,7 +358,7 @@ class PlanAdjustmentValidator:
     Returns:
         tuple: (성공 여부, 오류 메시지)
     """
-    def validate_utilization_rate(self, line, time, item, new_qty):
+    def validate_utilization_rate(self, line, time, item, new_qty, item_id=None):
         # 시프트별 최대 가동률 설정 
         max_utilization_by_shift = {
             1: 100, 2: 100, 3: 100,  4: 100,  5: 100,  6: 100,
@@ -408,12 +411,12 @@ class PlanAdjustmentValidator:
     Returns:
         tuple: (성공 여부, 오류 메시지)
     """
-    def validate_adjustment(self, line, time, item, new_qty, source_line=None, source_time=None):
+    def validate_adjustment(self, line, time, item, new_qty, source_line=None, source_time=None, item_id=None):
         # 이동 여부 확인
         is_move = source_line is not None and source_time is not None
 
         # 기존 수량 조회 (현재 위치에서)
-        old_qty = self.get_item_qty_at_position(line, time, item)
+        old_qty = self.get_item_qty_at_position(line, time, item, item_id)
         print(f"[DEBUG] validate_adjustment: {item} at {line}-{time}, old_qty={old_qty}, new_qty={new_qty}, is_move={is_move}")
 
         # 타입 변환 (문자열 -> 숫자)
@@ -434,9 +437,9 @@ class PlanAdjustmentValidator:
         # 각 제약 요소 검증
         validations = [
             self.validate_line_item_compatibility(line, item),
-            self.validate_capacity(line, time, new_qty, item, is_move),
+            self.validate_capacity(line, time, new_qty, item, is_move, item_id),
             self.validate_due_date(item, time),
-            self.validate_utilization_rate(line, time, item, new_qty)
+            self.validate_utilization_rate(line, time, item, new_qty, item_id)
         ]
 
         # 개별 검증 결과 확인
@@ -445,7 +448,7 @@ class PlanAdjustmentValidator:
                 return False, message
         
         # 제조동 비율 제약조건 검증 (임시 데이터셋 생성 후 검증)
-        temp_result_data = self._calculate_adjusted_data(line, time, item, new_qty, source_line, source_time)
+        temp_result_data = self._calculate_adjusted_data(line, time, item, new_qty, source_line, source_time, item_id)
         valid, message = self.validate_building_ratios(temp_result_data)
    
         if not valid:
@@ -483,40 +486,38 @@ class PlanAdjustmentValidator:
             if len(line) >= 1:
                 factory = line[0]  # 라인 코드의 첫 글자 (예: 'I'_01 -> 'I')
                 
-                # 최대 라인 수 제약
-                max_line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == f'Max_line_{factory}']
-                if not max_line_rows.empty and time in max_line_rows.columns:
-                    max_line = max_line_rows.iloc[0][time]
-
-                    # 여기서 추가: max_line이 0인 경우 즉시 0 반환
-                    if pd.notna(max_line) and max_line == 0:
-                        print(f"제조동 {factory}의 Max_line이 0으로 설정됨: 생산 능력 0")
-                        return 0
+                # 최대 라인 수 제약 확인
+            max_line_key = f'Max_line_{factory}'
+            max_line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == max_line_key]
+            
+            if not max_line_rows.empty and time in max_line_rows.columns:
+                max_line = max_line_rows.iloc[0][time]
+                
+                if pd.notna(max_line) and max_line == 0:
+                    return 0
                     
-                    # 해당 공장 라인들 가져오기
-                    factory_lines = self.capa_qty_data[
-                        self.capa_qty_data['Line'].str.startswith(f'{factory}_', na=False)
-                    ]['Line'].tolist()
-
-                    # 최대 라인 수 제약이 있고, 현재 라인이 해당 제약 내에 있는지 확인
-                    if pd.notna(max_line) and factory_lines:
-                        # 용량 기준으로 정렬
-                        line_capacities = []
-                        for l in factory_lines:
-                            line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == l]
-                            if not line_rows.empty and time in line_rows.columns:
-                                capacity = line_rows.iloc[0][time]
-                                if pd.notna(capacity):
-                                    line_capacities.append((l, float(capacity)))
-
-                        line_capacities.sort(key=lambda x: x[1], reverse=True)
-                        
-                        # 사용 가능한 라인 목록
-                        usable_lines = [l for l, _ in line_capacities[:int(max_line)]]
-                        
-                        # 현재 라인이 사용 가능한 라인 목록에 없으면 용량 제한
-                        if line not in usable_lines:
-                            return 0
+                # 해당 제조동의 모든 라인 찾기
+                factory_lines = self.capa_qty_data[
+                    self.capa_qty_data['Line'].str.startswith(f'{factory}_', na=False)
+                ]
+                
+                # 생산능력 기준으로 라인 정렬 (내림차순)
+                line_capacities = []
+                for l_idx, l_row in factory_lines.iterrows():
+                    l_name = l_row['Line']
+                    if time in self.capa_qty_data.columns:
+                        capacity = self.capa_qty_data.loc[l_idx, time]
+                        if pd.notna(capacity):
+                            line_capacities.append((l_name, float(capacity)))
+                
+                line_capacities.sort(key=lambda x: x[1], reverse=True)
+                
+                # 상위 N개 라인만 사용 가능
+                usable_lines = [l for l, _ in line_capacities[:int(max_line)]]
+                
+                # 현재 라인이 사용 가능한 라인 목록에 없으면 용량 0 반환
+                if line not in usable_lines:
+                    return 0
                 
                  # 최대 수량 제약
                 max_qty_rows = self.capa_qty_data[self.capa_qty_data['Line'] == f'Max_qty_{factory}']
@@ -578,15 +579,18 @@ class PlanAdjustmentValidator:
         item: 특정 아이템의 할당량 (line + time + item)
         factory: 제조동 전체 할당량 (factory + time)
     """
-    def get_current_allocation(self, line=None, time=None, item=None, factory=None):
-        
+    def get_current_allocation(self, line=None, time=None, item=None, factory=None, item_id=None):
+        # 0. ID 기준 할당량 조회 (ID로 아이템 검색)
+        if item_id:
+            mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
+            if mask.any():
+                if time is not None:  # 시간 조건도 확인
+                    mask = mask & (self.result_data['Time'] == time)
+                return float(self.result_data.loc[mask, 'Qty'].sum())
+
         # 1. 특정 아이템의 할당량
         if line and time and item:
-            mask = (
-                (self.result_data['Line'] == line) &
-                (self.result_data['Time'] == time) &
-                (self.result_data['Item'] == item)
-            )
+            mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
             matched = self.result_data[mask]
             return float(matched.iloc[0]['Qty']) if not matched.empty else 0
         
@@ -612,13 +616,20 @@ class PlanAdjustmentValidator:
     """
     특정 라인/시프느에서 특정 아이템의 수량 조회
     """
-    def get_item_qty_at_position(self, line, time, item):
+    def get_item_qty_at_position(self, line, time, item, item_id=None):
         try:
-            mask = (
-                (self.result_data['Line'] == str(line)) &
-                (self.result_data['Time'] == int(time)) &
-                (self.result_data['Item'] == str(item))
-            )
+            # ID가 있으면 ID로 마스크 생성
+            if item_id:
+                mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
+                # 라인/시프트 조건 추가
+                if line is not None and time is not None:
+                    mask = mask & (
+                        (self.result_data['Line'] == str(line)) &
+                        (self.result_data['Time'] == int(time))
+                    )
+            else:
+                # Line/Time/Item으로 마스크 생성
+                mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
 
             matched_rows = self.result_data[mask]
 
@@ -723,27 +734,35 @@ class PlanAdjustmentValidator:
     Returns:
         DataFrame: 조정된 결과 데이터
     """
-    def _calculate_adjusted_data(self, line, time, item, new_qty, source_line=None, source_time=None):
+    def _calculate_adjusted_data(self, line, time, item, new_qty, source_line=None, source_time=None, item_id=None):
         # 제조동별 검증
         temp_result_data = self.result_data.copy()
 
         # 이동인 경우 원본 위치에서 제거
         if source_line and source_time:
-            mask = (
-                (temp_result_data['Line'] == source_line) & 
-                (temp_result_data['Time'] == source_time) & 
-                (temp_result_data['Item'] == item)
-            )
-            if mask.any():
+            # ID가 있으면 ID로 마스크 생성
+            if item_id:
+                source_mask = ItemKeyManager.create_mask_by_id(temp_result_data, item_id)
+            else:
+                # 소스 위치에서의 마스크 생성
+                source_mask = ItemKeyManager.create_mask_for_item(temp_result_data, source_line, source_time, item)
+                
+            if source_mask.any():
                 # 원본 데이터 삭제
-                temp_result_data = temp_result_data[~mask].reset_index(drop=True)
+                temp_result_data = temp_result_data[~source_mask].reset_index(drop=True)
 
         # 새 위치에 할당
-        target_mask = (
-            (temp_result_data['Line'] == line) &
-            (temp_result_data['Time'] == time) &
-            (temp_result_data['Item'] == item)
-        )
+        # ID가 있으면 ID로 마스크 생성
+        if item_id:
+            target_mask = ItemKeyManager.create_mask_by_id(temp_result_data, item_id)
+            # 위치 조건 추가
+            target_mask = target_mask & (
+                (temp_result_data['Line'] == line) &
+                (temp_result_data['Time'] == time)
+            )
+        else:
+            # 타겟 위치에서의 마스크 생성
+            target_mask = ItemKeyManager.create_mask_for_item(temp_result_data, line, time, item)
 
         # 대상 위치에 있으면 업데이트, 없으면 추가
         if target_mask.any():
