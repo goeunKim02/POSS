@@ -53,9 +53,10 @@ class FileTabManager:
                 border: 1px solid #cccccc;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
-                padding: {h(6)}px {w(10)}px;
+                padding: {h(2)}px {w(5)}px;
                 margin-right: 2px;
-                min-width: {w(50)}px;
+                min-width: {w(40)}px;
+                min-height: {h(10)}px;
                 font-family: {font_manager.get_just_font("SamsungOne-700").family()};
                 font-weight: bold;
                 font-size: {f(12)}px;

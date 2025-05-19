@@ -86,7 +86,8 @@ class PandasModel(QAbstractTableModel):
 
         # 폰트 역할 추가
         elif role == Qt.FontRole:
-            font = QFont(font_manager.get_just_font("SamsungOne-700").family(), f(6))
+            font = QFont(font_manager.get_just_font("SamsungOne-700").family())
+            font.setPixelSize(f(14))
             return font
 
         # 배경색 역할 추가 (필요 시)
@@ -262,11 +263,14 @@ class EnhancedTableFilterComponent(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
+
         # 테이블 뷰 생성
         self.table_view = QTableView()
         self.table_view.setAlternatingRowColors(True)
         # 테이블 수정가능하게 하는것
         self.table_view.setEditTriggers(QTableView.DoubleClicked | QTableView.EditKeyPressed)
+        self.table_view.verticalHeader().setDefaultSectionSize(h(19))
+        self.table_view.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
 
         # 사용자 정의 헤더 설정
         header = FilterHeader(Qt.Horizontal, self.table_view)
@@ -281,7 +285,8 @@ class EnhancedTableFilterComponent(QWidget):
                 border-right: 1px solid #cccccc;
                 padding: 2px;
                 border-radius: 0px; 
-                font-size: {f(18)}px;
+                font-size: {f(16)}px;
+                min-height: {h(30)}px;
             }}
         """)
         self.table_view.setHorizontalHeader(header)

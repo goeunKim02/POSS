@@ -145,7 +145,7 @@ class LeftParameterComponent(QWidget):
             }
         """)
         content_layout = QVBoxLayout(content_frame)
-        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setContentsMargins(0, 0, 0, 0)
         content_layout.setSpacing(0)
 
         self.tab_widget = QTabWidget()
@@ -200,7 +200,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 0px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {f(16)}px;
+                        font-size: {f(13)}px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px; 
@@ -209,7 +209,7 @@ class LeftParameterComponent(QWidget):
                     QTreeWidget::item:selected {{
                         background-color: #E8ECFF;
                         color: black;
-                        font-size: {f(21)}px;
+                        font-size: {f(13)}px;
                     }}
                     QTreeWidget::item:hover {{
                         background-color: #F5F7FF;
@@ -218,10 +218,10 @@ class LeftParameterComponent(QWidget):
                         background-color: #F5F5F5;
                         color: #333333;
                         border: none;
-                        padding: 4px;
+                        padding: {h(3)}px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
-                        font-size: {f(18)}px;
+                        font-size: {f(13)}px;
                     }}
                     QScrollBar:vertical {{
                         border: none;
@@ -287,8 +287,6 @@ class LeftParameterComponent(QWidget):
                         outline: none;
                         background-color: white;
                         border-radius: 6px;
-                        font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {f(11)}px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px 10px;
@@ -302,13 +300,39 @@ class LeftParameterComponent(QWidget):
                     }}
                     QScrollBar:vertical {{
                         border: none;
-                        width: 6px;
+                        width: 10px;
                         margin: 0px;
                     }}
                     QScrollBar::handle:vertical {{
                         background: #CCCCCC;
                         min-height: 20px;
-                        border-radius: 3px;
+                        border-radius: 5px;
+                    }}
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                        border: none;
+                        background: none;
+                        height: 0px;
+                    }}
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                        background: none;
+                    }}
+                    QScrollBar:horizontal {{
+                        border: none;
+                        height: 10px;
+                        margin: 0px;
+                    }}
+                    QScrollBar::handle:horizontal {{
+                        background: #CCCCCC;
+                        min-width: 20px;
+                        border-radius: 5px;
+                    }}
+                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                        border: none;
+                        background: none;
+                        width: 0px;
+                    }}
+                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+                        background: none;
                     }}
                 """)
                 summary_table.setColumnCount(2)
@@ -507,7 +531,6 @@ class LeftParameterComponent(QWidget):
                         pass
 
                     table.addTopLevelItem(item)
-
         except Exception as e:
             raise DataError(f'Error displaying data : {str(e)}', {'metric': metric})
 
@@ -567,13 +590,15 @@ class LeftParameterComponent(QWidget):
                 item = QTreeWidgetItem([label, str(value)])
 
                 # 라벨 스타일링
-                label_font = font_manager.get_font("SamsungOne-700", 11)
+                label_font = font_manager.get_just_font("SamsungOne-700")
                 label_font.setBold(True)
+                label_font.setPixelSize(f(13))
                 item.setFont(0, label_font)
                 item.setForeground(0, QColor("#666666"))
 
                 # 값 스타일링
-                value_font = font_manager.get_font("SamsungOne-700", 11)
+                value_font = font_manager.get_just_font("SamsungOne-700")
+                value_font.setPixelSize(f(13))
                 item.setFont(1, value_font)
 
                 # 특정 값에 대한 색상 설정

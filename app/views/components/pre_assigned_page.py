@@ -2,7 +2,7 @@ import pandas as pd
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QSplitter,
-    QMessageBox, QScrollArea, QStackedWidget, QCheckBox
+    QMessageBox, QScrollArea, QStackedWidget, QCheckBox, QFrame
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -13,15 +13,14 @@ from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
 from app.utils.fileHandler import create_from_master
 from app.utils.export_manager import ExportManager
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 """
 공통으로 사용하는 버튼 생성 함수
 """
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
-    font = QFont("Arial", 9)
-    font.setBold(True)
-    btn.setFont(font)
     btn.setCursor(QCursor(Qt.PointingHandCursor))
     btn.setFixedSize(100, 40)
     btn.setStyleSheet(
@@ -45,12 +44,13 @@ class PlanningPage(QWidget):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setAlignment(Qt.AlignTop)
 
+        bold_font = font_manager.get_just_font("SamsungSharSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
+
         title_hbox = QHBoxLayout()
-        title_hbox.setContentsMargins(0, 10, 0, 10)
+        title_hbox.setContentsMargins(0, 0, 0, 0)
         lbl = QLabel("Pre-Assignment")
-        f = QFont("Arial", 15)
-        f.setBold(True)
-        lbl.setFont(f)
+        lbl.setStyleSheet(f"font-family:{bold_font}; font-size:{f(21)}px; font-weight: 900;")
         title_hbox.addWidget(lbl)
 
         # Export 버튼
@@ -75,7 +75,7 @@ class PlanningPage(QWidget):
         self.leftContainer.setObjectName("leftContainer")
         self.leftContainer.setStyleSheet("""
             QWidget#leftContainer {
-                border: 1px solid #cccccc;
+                border: 3px solid #cccccc;
             }
             QWidget#leftContainer, 
             QWidget#leftContainer * {
@@ -96,7 +96,7 @@ class PlanningPage(QWidget):
         self.rightContainer.setObjectName("rightContainer")
         self.rightContainer.setStyleSheet("""
             QWidget#rightContainer {
-                border: 1px solid #cccccc;
+                border: 3px solid #cccccc;
             }
             QWidget#rightContainer, 
             QWidget#rightContainer * {

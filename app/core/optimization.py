@@ -1,6 +1,7 @@
 import pandas as pd
 import pulp 
 import re
+from pulp import LpStatus
 
 class Optimization:
     def __init__(self,input):
@@ -101,11 +102,18 @@ class Optimization:
         # fixed_option 시트
         new_labels = []
         for idx, row in self.df_fixed_option.iterrows():
-            regex = '^' + row['Fixed_Group'].replace('*','.') + '$'
-            for item in df_demand_item.index:
-                if re.fullmatch(regex,item):
-                    qty = df_demand_item.loc[item,'MFG']
-                    new_labels.append({'Item':item,'Line':row['Fixed_Line'],'Time':row['Fixed_Time'],'Qty':qty})
+            if '*' in row['Fixed_Group'] and str.isdigit(str(row['Qty'])):
+                print('ignore row : ',row)
+                continue
+            if '*' in row['Fixed_Group'] or str(row['Qty']).lower()=='all':
+                regex = '^' + row['Fixed_Group'].replace('*','.') + '$'
+                for item in df_demand_item.index:
+                    if re.fullmatch(regex,item):
+                        qty = df_demand_item.loc[item,'MFG']
+                        new_labels.append({'Item':item,'Line':row['Fixed_Line'],'Time':row['Fixed_Time'],'Qty':qty})
+            else:
+                new_labels.append({'Item':row['Fixed_Group'],'Line':row['Fixed_Line'],'Time':row['Fixed_Time'],'Qty':row['Qty']})
+
 
         df_new_labels = pd.DataFrame(new_labels)
         self.df_combined = pd.concat([self.df_combined,df_new_labels], ignore_index=True)
@@ -120,23 +128,15 @@ class Optimization:
         df_demand_item = pd.merge(df_demand_item,self.df_due_LT,how='left',on=['Project','Tosite_group'])
         df_demand_item = df_demand_item.set_index('Item')
 
-        
-
-
-
         # 문제 정의
         x = pulp.LpVariable.dicts("produce", [(d, l, t) for d in demands for l in self.line for t in self.time], lowBound=0, cat='Continuous')
         model = pulp.LpProblem("LineShift_Production_Scheduling", pulp.LpMaximize)
-
-        
-        # df_qty_sum = self.df_capa_qty.loc[self.line,self.time].sum()
-        # print(df_qty_sum)
         
         # 제약조건 0: 사전할당 테이블
         for idx, row in self.df_combined.iterrows():
-            line = str(row['Line']).split(',') if pd.notna(row['Line']) else self.line
+            line = list(map(str.strip,str(row['Line']).split(','))) if pd.notna(row['Line']) else self.line
             time = list(map(int, str(row['Time']).split(','))) if pd.notna(row['Time']) else self.time
-            model += pulp.lpSum(x[(row['Item'], l, t)] for l in line for t in time) >= row['Qty']
+            model += (pulp.lpSum([x[(row['Item'], l, t)] for l in line for t in time]) >= row['Qty'], f"pre_assign_{row['Item']}_{idx}")
 
         # 제약조건 1: 모델별 총 수요량 충족 
         for d in demands:
@@ -206,8 +206,10 @@ class Optimization:
         obj1 = pulp.lpSum(shift_weight[t-1] * x[(d, l, t)] for d in demands for l in self.line for t in self.time)
         obj2 = pulp.lpSum(shipment_variable[d] for d in demands)
         # model += -1 * obj1 + obj2
-        model +=  -0.001 * obj1 + obj2
+        model += obj2
         model.solve()
+
+        
 
         print(pulp.value(model.objective))
         results = []
@@ -231,7 +233,14 @@ class Optimization:
             line_production =pulp.value(pulp.lpSum([x[(d, l, t)] for (d, l, t) in x if l.startswith(row['name'])]))
             line_ratio = (line_production / total_production) * 100 if total_production != 0 else 0
             print(f"{row['name']}라인 생산량: {int(line_production)}개, {row['name']}라인 비중: {line_ratio:.2f}%")
-        
+        if LpStatus[model.status] == 'Optimal':
+            print("해를 찾았습니다!")
+        else:
+            print("해를 찾지 못했습니다. 상태:", LpStatus[model.status])
+            # for name, constraint in model.constraints.items():
+                
+                    
+            
         self.df_pre_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
         return {'result':self.df_pre_result, 'combined' : self.df_combined }
     """사전할당 알고리즘 함수"""
@@ -602,13 +611,11 @@ class Optimization:
 
 
 if __name__ == "__main__":
-
-
     input = {
         'demand': pd.read_excel('ssafy_demand_0507.xlsx',sheet_name=None),
         'master': pd.read_excel('ssafy_master_0507.xlsx',sheet_name=None),
         'dynamic': pd.read_excel('ssafy_dynamic_0507.xlsx',sheet_name=None),
     }
+
     optimization = Optimization(input)
-    optimization.linear_programming()
-    
+    optimization.pre_assign()
