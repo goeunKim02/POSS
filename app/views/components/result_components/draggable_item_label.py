@@ -6,6 +6,8 @@ import json
 import uuid
 from app.resources.styles.item_style import ItemStyle
 from app.utils.field_filter import filter_internal_fields
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
 
 """드래그 가능한 아이템 라벨"""
@@ -48,7 +50,9 @@ class DraggableItemLabel(QFrame):
         self.setAcceptDrops(False)
         self.drag_start_position = None
         self.setMinimumHeight(25)
-        self.setMinimumWidth(250)
+        self.setMinimumWidth(w(215))
+        self.setMaximumWidth(w(215))
+
         self.adjustSize()
 
         # 아이템 데이터 저장 (엑셀 행 정보)
@@ -88,8 +92,8 @@ class DraggableItemLabel(QFrame):
     """내부 레이아웃 설정 - 아이템명과 수량을 분리"""
     def setup_layout(self, text):
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(8, 4, 8, 4)
-        layout.setSpacing(4)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(w(2))
 
         # 텍스트에서 아이템명과 수량 분리
         if self.item_data and 'Item' in self.item_data:
@@ -107,17 +111,16 @@ class DraggableItemLabel(QFrame):
 
         # 아이템명 라벨 (왼쪽 정렬)
         self.item_label = QLabel(item_name)
-        self.item_label.setFont(QFont("Arial", 9, QFont.Bold))
+        font = font_manager.get_just_font("SamsungOne-700").family()
         self.item_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.item_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.item_label.setStyleSheet("background: transparent; border: none;")
+        self.item_label.setStyleSheet(f"background: transparent; border: none; font-family: {font}; font-size: {f(11)}px; font-weight: bold;")
         self.item_label.setWordWrap(True)  # WordWrap 활성화 : 활성화해야 컨테이너 높이 자동화 가능 
 
         # 수량 라벨 (오른쪽 정렬)
         self.qty_label = QLabel(str(qty) if qty > 0 else "0")  # 0이어도 표시
-        self.qty_label.setFont(QFont("Arial", 9))
         self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.qty_label.setStyleSheet("background: transparent; border: none;")
+        self.qty_label.setStyleSheet(f"background: transparent; border: none; font-family: {font}; font-size: {f(11)}px; font-weight: bold;")
         self.item_label.setWordWrap(True)  # WordWrap 활성화
 
         layout.addWidget(self.item_label)
