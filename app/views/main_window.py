@@ -287,18 +287,23 @@ class MainWindow(QMainWindow):
         default_return=None
     )
     def handle_optimization_result(self, results):
+        print("main_window : handle_optimization_result 호출")
         # Args:
         #     results (dict): 최적화 결과를 포함하는 딕셔너리
 
         if not results or not isinstance(results, dict) :
+            print("main_window : raise ValidationError('Invalid optimization results')")
             raise ValidationError('Invalid optimization results')
 
         if not hasattr(self, 'result_page'):
+            print("main_window : self.central_widget.addWidget(self.result_page)")
             self.result_page = ResultPage(self)
             self.central_widget.addWidget(self.result_page)
 
         if 'assignment_result' in results and results['assignment_result'] is not None:
-            self.result_page.left_section.update_data(results['assignment_result'])
+            print("main_window : self.central_widget.addWidget(self.result_page)")
+            # self.result_page.left_section.update_data(results['assignment_result'])
+            self.result_page.set_optimization_result(results)
         else :
             print('No assignment results available')
 
