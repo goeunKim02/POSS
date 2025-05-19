@@ -246,7 +246,7 @@ class AdjustmentController(QObject):
             print(f"DEBUG: ID로 삭제: {item_id}")
             return self.model.delete_item_by_id(item_id)
 
-        if hasattr(item_or_id, 'item_data') and item_or_id.item_data:
+        elif hasattr(item_or_id, 'item_data') and item_or_id.item_data:
             # ItemKeyManager를 사용하여 아이템 정보 추출
             line, time, item_code = ItemKeyManager.get_item_from_data(item_or_id.item_data)
             
@@ -257,7 +257,7 @@ class AdjustmentController(QObject):
                 return self.model.delete_item_by_id(item_id)
             
             # ID가 없으면 Line/Time/Item 기반으로 삭제
-            if line is not None and time is not None and item_code is not None:
+            elif line is not None and time is not None and item_code is not None:
                 print(f"컨트롤러: 아이템 삭제 처리 - {item_code} @ {line}-{time}")
                 return self.model.delete_item(item_code, line, time)
         

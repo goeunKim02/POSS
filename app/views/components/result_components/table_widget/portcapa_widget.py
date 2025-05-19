@@ -49,6 +49,7 @@ class PortCapaWidget(QWidget):
         df_portcapa = self.df_capa_outgoing.drop_duplicates(subset='Tosite_port').reset_index(drop=True)
         df_portcapa['Port Capa'] = df_portcapa.iloc[:, 2:9].sum(axis=1)
         df_portcapa = pd.merge(df_portcapa,self.df_demand,on="To_Site",how='left').fillna(0)
+        df_portcapa.infer_objects(copy=False)
         df_portcapa['Rate(%)'] = df_portcapa['SOP']/df_portcapa['Port Capa'] * 100
         df_portcapa['Rate(%)'] = (df_portcapa['Rate(%)']).round(2)
         df_portcapa = df_portcapa[['Tosite_port','SOP','Port Capa','Rate(%)']].sort_values(by='SOP',ascending=False)

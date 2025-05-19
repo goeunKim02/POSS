@@ -2,6 +2,7 @@ import pandas as pd
 import pulp 
 import re
 from pulp import LpStatus
+# from app.models.common.settings_store import SettingsStore
 
 class Optimization:
     def __init__(self,input):
@@ -71,8 +72,8 @@ class Optimization:
         self.df_pre_result = None
         self.df_result = None
 
-        self.df_material_item = self.df_material_item.drop(['종류','가용 L/T'],axis=1)
         self.df_material_item = self.df_material_item[self.df_material_item['Active_OX']=='O']
+        self.df_material_item = self.df_material_item.drop(['Active_OX','종류','가용 L/T'],axis=1)
         # print(self.df_material_item)
 
         self.df_material_qty = self.df_material_qty[self.df_material_qty['Active_OX']=='O']
@@ -193,16 +194,25 @@ class Optimization:
 
         # 목적함수
         shipment_variable = pulp.LpVariable.dict("shipment_variable",[d for d in demands], cat='Binary')
-        # material_variable = pulp.LpVariable.dict("material_variable",)
         for d in demands:
             lt = df_demand_item.loc[d,'Due_date_LT']
             sop = df_demand_item.loc[d,'SOP']
             sop_result = pulp.lpSum(x[(d, l, t)] for l in self.line for t in range(1,lt+1))
             model += sop_result - sop <= BIG_M * shipment_variable[d]
             model += sop_result >= sop * shipment_variable[d]
+        print(self.df_material_item.columns)
+        print(len(self.df_material_item))
+        onhand_idx = self.df_material_item.columns.get_loc('On-Hand')
 
+        cols = self.df_material_item.columns
+        for i in range(14):
+            self.df_material_item[cols[onhand_idx + i + 1]] += self.df_material_item[cols[onhand_idx + i]]
+        print(self.df_material_item)
+        # material_variable = pulp.LpVariable.dict("material_variable",)
 
-        shift_weight = [0,0,0.001,0.001,0.003,0.003,0.006,0.006,0.02,0.02,0.1,0.1,0.1,0.1]
+        
+        # shift_weight = SettingsStore.get("weight_day",default=[0]*14)
+        shift_weight = [0] * 14
         obj1 = pulp.lpSum(shift_weight[t-1] * x[(d, l, t)] for d in demands for l in self.line for t in self.time)
         obj2 = pulp.lpSum(shipment_variable[d] for d in demands)
         # model += -1 * obj1 + obj2
@@ -236,11 +246,9 @@ class Optimization:
         if LpStatus[model.status] == 'Optimal':
             print("해를 찾았습니다!")
         else:
-            print("해를 찾지 못했습니다. 상태:", LpStatus[model.status])
-            # for name, constraint in model.constraints.items():
+            print("해를 찾지 못했습니다. 상태:", LpStatus[model.status])        
+        
                 
-                    
-            
         self.df_pre_result = pd.DataFrame(results,columns=['Line','Time','Demand','Item','Qty','Project','To_site','SOP','MFG','RMC','Due_LT'])
         return {'result':self.df_pre_result, 'combined' : self.df_combined }
     """사전할당 알고리즘 함수"""
