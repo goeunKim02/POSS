@@ -24,6 +24,7 @@ class ShipmentWidget(QWidget):
         self.failed_models_data = []  # 실패 모델 데이터 저장 (정렬용)
         self.sort_column = 0  # 정렬 기준 컬럼
         self.sort_order = Qt.AscendingOrder  # 정렬 방향
+        self.last_analyzed_data_hash = None
         self.init_ui()
         
     def init_ui(self):
@@ -340,7 +341,7 @@ class ShipmentWidget(QWidget):
     """당주 출하 분석 실행"""    
     def run_analysis(self, result_data=None):
         try:
-            # DataStore 확인
+            # 데이터가 없으면 DataStore에서 가져오기 시도
             from app.models.common.file_store import DataStore
             stored_data = DataStore.get("result_data")
             
@@ -348,6 +349,24 @@ class ShipmentWidget(QWidget):
             if result_data is None:
                 result_data = stored_data
             
+            # 데이터가 여전히 없으면 분석 중단
+            if result_data is None:
+                self.reset_state()
+                return
+                
+            # 데이터 변경 여부 확인 (해시값 기반)
+            current_hash = self._compute_data_hash(result_data)
+            
+            # 같은 데이터로 이미 분석했고 결과가 있다면 재분석 생략
+            if hasattr(self, 'last_analyzed_data_hash') and current_hash == self.last_analyzed_data_hash and self.result_df is not None and hasattr(self, 'failure_items'):
+                # 기존 결과로 시그널 재발생
+                self.shipment_status_updated.emit(self.failure_items)
+                return
+            
+            # 현재 해시 저장
+            self.last_analyzed_data_hash = current_hash
+            
+            # 기존 분석 코드 계속 실행
             # analyze_and_get_results 함수 호출 및 반환값 예외 처리
             result = analyze_and_get_results(result_data=result_data)
             
@@ -387,6 +406,28 @@ class ShipmentWidget(QWidget):
             import traceback
             traceback.print_exc()
             self.reset_state()  # 오류 발생 시 상태 초기화
+
+    """데이터 해시값 계산 (변경 감지용)"""
+    def _compute_data_hash(self, df):
+        if df is None:
+            return None
+            
+        try:
+            # 데이터프레임 핵심 정보 기반 해시값 생성
+            # 모든 데이터를 해시하면 너무 느리므로 주요 특성만 사용
+            key_cols = ['Item', 'Line', 'Time', 'Qty']
+            cols_to_use = [col for col in key_cols if col in df.columns]
+            
+            if not cols_to_use:
+                # 핵심 컬럼이 없으면 행과 열 수로 간단히 해시
+                return hash((df.shape[0], df.shape[1]))
+                
+            # 주요 컬럼의 값들을 문자열로 연결해 해시
+            data_str = str(df[cols_to_use].values.tobytes())
+            return hash(data_str)
+        except Exception as e:
+            print(f"데이터 해시값 계산 오류: {e}")
+            return hash(str(df.shape))  # 폴백: 행렬 크기만 고려
             
     """요약 정보 업데이트"""
     def update_summary_info(self):
@@ -585,10 +626,69 @@ class ShipmentWidget(QWidget):
             return "Qty<SOP"
         return "Unknown reason"
     
-    """출하 실패 아이템을 찾아 시그널 발생"""
     def detect_and_emit_failures(self):
-        if self.result_df is None:
-            return
+        try:
+            # 모든 검증 통과 후 실패 아이템 정보 수집
+            failure_items = {}
+            
+            # 모델 단위 출하 정보 확인
+            models_df = self.summary.get('models_df')
+            if models_df is None or models_df.empty:
+                self.failure_items = {}  # 빈 딕셔너리로 초기화
+                self.shipment_status_updated.emit({})
+                return
+                
+            # 출하 실패인 모델만 필터링
+            failed_models = models_df[~models_df['IsShippable']]
+            
+            
+            # 각 실패 모델에 대한 정보 수집
+            for _, row in failed_models.iterrows():
+                item_code = row['Item']
+                
+                # To_site 필드 이름 확인 (다양한 이름 시도)
+                to_site = None
+                for field in ['Tosite', 'To_site', 'ToSite', 'to_site']:
+                    if field in row and pd.notna(row[field]):
+                        to_site = str(row[field])
+                        break
+                
+                
+                # SOP와 생산량 정보 가져오기
+                sop = row.get('SOP', 0)
+                production = row.get('DueLTProduction', 0)
+                
+                # 출하 실패 이유 
+                reason = row.get('FailureReason') or '생산량 부족'
+                if not reason and production < sop:
+                    reason = f"생산량 부족 (생산: {production}, 요구: {sop})"
+                    
+                # 복합 키 생성 - Item_To_site 형태 
+                item_key = f"{item_code}_{to_site}" if to_site else item_code
+                
+                # 출하 실패 정보 구성
+                failure_items[item_code] = {
+                    'item': item_code,
+                    'to_site': to_site,
+                    'composite_key': item_key,  # 복합 키 저장
+                    'sop': sop,
+                    'production': production,
+                    'reason': reason,
+                    'status_type': 'shipment'  # 상태 타입 추가
+                }
+            
+            # 중요: 실패 아이템 정보 저장
+            self.failure_items = failure_items
+            
+            # 시그널 발생 (ModifiedLeftSection에서 처리)
+            self.shipment_status_updated.emit(failure_items)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            # 에러 발생시 빈 값 설정
+            self.failure_items = {}
+            self.shipment_status_updated.emit({})
         
         # 실패 아이템 정보 저장
         failure_items = {}
@@ -670,8 +770,48 @@ class ShipmentWidget(QWidget):
         # 테이블 컬럼 너비 재조정
         self.adjust_column_widths()
         
-    """위젯이 숨겨질 때 호출됨"""    
-    def hideEvent(self, event):
-        super().hideEvent(event)
-        # 다른 탭으로 전환 시 출하 실패 표시 초기화
-        self.shipment_status_updated.emit({})
+    # """위젯이 숨겨질 때 호출됨"""    
+    # def hideEvent(self, event):
+    #     super().hideEvent(event)
+    #     # 다른 탭으로 전환 시 출하 실패 표시 초기화
+    #     self.shipment_status_updated.emit({})
+
+    """
+    출하 실패 아이템 정보를 변환하여 시그널 발생
+    """
+    def _emit_shipment_status(self, models_df):
+        if models_df is None or models_df.empty:
+            self.shipment_status_updated.emit({})
+            return
+        
+        # 출하 실패 아이템 추출
+        failure_items = {}
+        
+        # 출하 실패인 모델만 필터링
+        try:
+            # ShipmentStatus 필드가 있는 경우
+            if 'ShipmentStatus' in models_df.columns:
+                failed_models = models_df[models_df['ShipmentStatus'] == '출하실패']
+            # IsShippable 필드를 사용하는 경우
+            elif 'IsShippable' in models_df.columns:
+                failed_models = models_df[~models_df['IsShippable']]
+            else:
+                failed_models = pd.DataFrame()
+            
+            
+            for _, row in failed_models.iterrows():
+                item_code = row['Item']
+                
+                # 출하 실패 정보 구성
+                failure_items[item_code] = {
+                    'item': item_code,
+                    'sop': row.get('SOP', 0),
+                    'production': row.get('DueLTProduction', 0),
+                    'reason': row.get('FailureReason') or '생산량 부족'
+                }
+            
+            # 출하 상태 업데이트 시그널 발생
+            self.shipment_status_updated.emit(failure_items)
+        
+        except Exception as e:
+            self.shipment_status_updated.emit({})
