@@ -17,51 +17,102 @@ class AdjustmentController(QObject):
         self.model = model
         self.view = view  # ModifiedLeftSection
         self.error_manager = error_manager
+        self.result_page = None  # 명시적으로 초기화 (result_page는 외부에서 설정)
+        
+        # 시그널 연결 상태 추적 (중복 연결 방지)
+        self._signals_connected = False
 
+        # 초기화 상태 추적
+        self._views_initialized = False
 
-       # ResultPage 찾기
-        self.result_page = view.parent_page if hasattr(view, 'parent_page') else None
+    #    # ResultPage 찾기
+    #     self.result_page = view.parent_page if hasattr(view, 'parent_page') else None
 
-        if self.result_page:
-            print("ModifiedLeftSection의 parent_page 참조를 통해 ResultPage 찾음")
-            # ResultPage에 컨트롤러 설정
-            if hasattr(self.result_page, 'set_controller'):
-                self.result_page.set_controller(self)
-        else:
-            print("경고: ModifiedLeftSection에 parent_page 참조가 없음")
+    #     if self.result_page:
+    #         print("ModifiedLeftSection의 parent_page 참조를 통해 ResultPage 찾음")
+    #         # ResultPage에 컨트롤러 설정
+    #         if hasattr(self.result_page, 'set_controller'):
+    #             # self.result_page.set_controller(self)
+    #     else:
+    #         print("경고: ModifiedLeftSection에 parent_page 참조가 없음")
      
         # Controller에서 모든 시그널 연결 관리
-        self._connect_signals()
+        # self._connect_signals()
+        
+    def set_result_page(self, result_page):
+        """ResultPage 참조 설정"""
+        self.result_page = result_page
+        print("Controller: ResultPage 참조 설정됨")
 
-    def _connect_signals(self):
-        """시그널 연결"""
+    def initialize_views(self):
+        # 이미 초기화된 경우 중복 초기화 방지
+        if self._views_initialized:
+            print("Controller: 뷰가 이미 초기화되어 있어 중복 초기화를 방지합니다.")
+            return False
+        
+        """초기 데이터로 뷰 초기화 (시그널 연결 전에 호출)"""
+        df = self.model.get_dataframe()
+        
+        # 왼쪽 섹션 초기화
+        self.view.set_data_from_external(df)
+        print("Controller: initialize_views 왼쪽 섹션 초기화)")
+        
+        # ResultPage 초기화 (설정된 경우)
+        if self.result_page and hasattr(self.result_page, 'on_data_changed'):
+            self.result_page.on_data_changed(df)
+            print("Controller: initialize_views 오른쪽 섹션 초기화)")
+
+        # 초기화 상태 설정
+        self._views_initialized = True
+        
+        print("Controller: 뷰 초기 데이터 설정 완료")
+        return True
+
+    """
+    시그널 연결
+    """
+    def connect_signals(self):
+         # 이미 연결된 경우 중복 연결 방지
+        if self._signals_connected:
+            print("Controller: 시그널이 이미 연결되어 있어 중복 연결을 방지합니다.")
+            return False
+        
         # Model -> Error Manager
         self.model.validationFailed.connect(self.error_manager.add_validation_error)
+        print("Controller: 에러 매니저 시그널 연결")
         
         # Model -> Controller (데이터 변경 시)
         self.model.modelDataChanged.connect(self._on_model_data_changed)
+        print("Controller: modelDataChanged 시그널 연결")
         
         # View -> Controller (아이템 데이터 변경)
         if hasattr(self.view, 'itemModified'):
+            print("Controller: itemModified 시그널 연결")
             self.view.itemModified.connect(self._on_item_data_changed)
         
         # View -> Controller (셀 이동)  
         if hasattr(self.view, 'cellMoved'):
+            print("Controller: cellMoved 시그널 연결")
             self.view.cellMoved.connect(self._on_cell_moved)
 
         # View -> Controller (아이템 삭제) - 이 부분이 추가되어야 함
         if hasattr(self.view, 'grid_widget') and hasattr(self.view.grid_widget, 'itemRemoved'):
-            print("Controller: 삭제 시그널 연결")
+            print("Controller: itemRemoved 시그널 연결")
             self.view.grid_widget.itemRemoved.connect(self.on_item_deleted)
         
         # View -> Controller (아이템 복사)
         if hasattr(self.view, 'grid_widget') and hasattr(self.view.grid_widget, 'itemCopied'):
+            print("Controller: itemCopied 시그널 연결")
             self.view.grid_widget.itemCopied.connect(self.on_item_copied)
 
         # 최초 한 번, 뷰에 초기 데이터 설정
-        self.view.set_data_from_external(self.model.get_dataframe())
+        # self.view.set_data_from_external(self.model.get_dataframe())
+        # print("Controller: set_data_from_external 시그널 연결 (뷰 초기 데이터 설정)")
         
+        # 연결 완료 상태 설정
+        self._signals_connected = True        
         print("Controller: 시그널 연결 완료")
+        return True
 
     def _on_item_data_changed(self, item: object, new_data: Dict, changed_fields=None):
         """
@@ -109,11 +160,20 @@ class AdjustmentController(QObject):
         
         # left_section(View) 업데이트
         self.view.update_from_model(df)
+        print("Controller: view.update_from_model 업데이트")
 
-        # result page 업데이트
-        if self.result_page and hasattr(self.result_page, 'update_ui_from_model'):
-            print("Controller: result page 함께 업데이트")
-            self.result_page.update_ui_from_model(df)
+        # result page 업데이트 - 시각화를 위한 데이터 변경 전파
+        # if self.result_page and hasattr(self.result_page, 'update_ui_from_model'):
+            # print("Controller: result_page.update_ui_from_model 업데이트")
+            # self.result_page.update_ui_from_model(df)
+            # result page 업데이트 - 시각화를 위한 데이터 변경 전파
+        if self.result_page:
+            if hasattr(self.result_page, 'update_ui_from_model'):
+                print("Controller: result_page.update_ui_from_model 호출")
+                self.result_page.update_ui_from_model(df)
+            elif hasattr(self.result_page, 'on_data_changed'):
+                print("Controller: result_page.on_data_changed 호출")
+                self.result_page.on_data_changed(df)
 
     """
     드래그·드롭으로 위치 이동했을 때
@@ -156,9 +216,23 @@ class AdjustmentController(QObject):
         line = data.get('Line')
         time = data.get('Time')
         
-        # 모델에 명시적으로 추가
-        self.model.add_new_item(code, line, time, 0, data)
-        print(f"컨트롤러: 복사된 아이템 등록 - {code} @ {line}-{time}")
+        # # 모델에 명시적으로 추가
+        # self.model.add_new_item(code, line, time, 0, data)
+        # print(f"컨트롤러: 복사된 아이템 등록 - {code} @ {line}-{time}")
+
+        # 필수 데이터 검증
+        if not code or not line or time is None:
+            print(f"Controller: 복사 시 필수 데이터 누락 - Item: {code}, Line: {line}, Time: {time}")
+            return
+
+        # 복사된 항목임을 표시하는 플래그 추가
+        if '_is_copy' not in data:
+            data['_is_copy'] = True
+            
+        # 모델에 명시적으로 추가 - 기본적으로 수량은 0으로 설정
+        qty = data.get('Qty', 0)
+        self.model.add_new_item(code, line, time, qty, data)
+        print(f"Controller: 복사된 아이템 등록 - {code} @ {line}-{time}")
 
     """
     삭제된 아이템 처리
