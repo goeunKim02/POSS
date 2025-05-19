@@ -373,15 +373,6 @@ class PlanAdjustmentValidator:
         # 5. 가동률 계산
         utilization_rate = (new_total_allocation / line_capacity) * 100
         
-        # print(f"[DEBUG] 가동률 계산:")
-        # print(f"  - 아이템: {item}")
-        # print(f"  - 전체할당: {current_total_allocation}")
-        # print(f"  - 기존수량: {existing_item_qty}")
-        # print(f"  - 새수량: {new_qty}")
-        # print(f"  - 새총할당: {new_total_allocation}")
-        # print(f"  - 용량: {line_capacity}")
-        # print(f"  - 가동률: {utilization_rate:.1f}%")
-        
         # 6. 최대 가동률 검증
         max_rate = max_utilization_by_shift.get(int(time), 100)
         
@@ -389,44 +380,6 @@ class PlanAdjustmentValidator:
             return False, f"시프트 {time}의 최대 가동률 {max_rate}% 초과\n현재: {utilization_rate:.1f}%"
         
         return True, "가동률 제약 만족"
-
-
-        # # 라인-시프트 키 생성
-        # key = f"{line}_{time}"
-        # current_allocation = self.line_shift_allocation.get(key, 0)
-        
-        # # 라인의 기본 용량 확인
-        # line_capacity = None
-        # if line in self.line_capacities and time in self.line_capacities[line]:
-        #     line_capacity = self.line_capacities[line][time]
-
-        # # 용량 정보가 없는 경우 처리
-        # if line_capacity is None or line_capacity < 0:
-        #     # 용량 정보가 없으면 다른 방법으로 제약 조건 확인 : 해당 라인/시프트의 capacity 값 직접 조회
-        #     capacity = self.get_line_capacity(line, time)
-        #     if capacity is not None and capacity >= 0:
-        #         line_capacity = capacity
-        #     else:
-        #         # 용량 정보를 찾을 수 없는 경우
-        #         print(f"경고: 라인 '{line}'의 시프트 {time}에 대한 용량 정보를 찾을 수 없습니다.")
-        #         # 용량 정보가 없으면 제약 조건을 검증할 수 없으므로 통과
-        #         return True, ""
-    
-        # adjusted_qty = new_qty - old_qty
-        # print(f"adj : {adjusted_qty}")
-        # new_total = current_allocation + adjusted_qty
-        # print(f"new: {new_total}")
-        # utilization_rate = (new_total / line_capacity) * 100 if line_capacity > 0 else 0
-        # print(f"가동률 : {utilization_rate}")
-
-        # # 해당 시프트의 최대 가동률 가져오기
-        # max_rate = max_utilization_by_shift.get(time, 100)  # 기본값 100%
-        
-        # if utilization_rate > max_rate:
-        #     return False, f"Maximum utilization rate for shift {time} exceeded ({max_rate}%).\nCurrent: {utilization_rate:.1f}%"
-    
-        # return True, ""
-    
     
 
     """
@@ -731,7 +684,6 @@ class PlanAdjustmentValidator:
         return 0
     
 
-    
     """
     조정된 결과 데이터를 계산 (제약조건 검증용 임시 데이터)
     

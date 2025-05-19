@@ -11,6 +11,8 @@ from .legend_widget import LegendWidget
 from .filter_widget import FilterWidget
 from app.utils.fileHandler import load_file
 from app.utils.item_key_manager import ItemKeyManager
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 class ModifiedLeftSection(QWidget):
     # 데이터 변경을 통합해서 한 번만 내보내는 시그널
@@ -77,31 +79,37 @@ class ModifiedLeftSection(QWidget):
 
         # 통합 컨트롤 레이아웃 (버튼, 필터, 검색 섹션을 한 줄에 배치)
         control_layout = QHBoxLayout()
-        control_layout.setContentsMargins(10, 5, 10, 5)
-        control_layout.setSpacing(10)
+        control_layout.setContentsMargins(5, 5, 5, 5)
+        control_layout.setSpacing(w(5))
 
         # 왼쪽 버튼 섹션 (Import/Reset)
         button_section = QHBoxLayout()
-        button_section.setSpacing(5)
+        button_section.setSpacing(10)
+
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
         # 엑셀 파일 불러오기 버튼 - 길이 증가
         self.load_button = QPushButton("Import Excel")
-        self.load_button.setStyleSheet("""
-            QPushButton {
+        self.load_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 140px;  /* 버튼 길이 증가 */
-                max-width: 160px;  /* 버튼 길이 증가 */
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #004C99;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #003366;
-            }
+            }}
         """)
         self.load_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.load_button.clicked.connect(self.load_excel_file)
@@ -109,22 +117,25 @@ class ModifiedLeftSection(QWidget):
 
         # 원본 복원 버튼 
         self.reset_button = QPushButton("Reset")
-        self.reset_button.setStyleSheet("""
-            QPushButton {
+        self.reset_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #808080;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 80px;
-                max-width: 100px;
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #606060;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #404040;
-            }
+            }}
         """)
         self.reset_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.reset_button.clicked.connect(self.reset_to_original)
@@ -140,50 +151,9 @@ class ModifiedLeftSection(QWidget):
         # 필터 위젯 추가 - Line과 Project 버튼 간격 조정 및 스타일 변경
         self.filter_widget = FilterWidget()
         self.filter_widget.filter_changed.connect(self.on_excel_filter_changed)
-        self.filter_widget.setFixedWidth(400)
-        self.filter_widget.setStyleSheet("""
-            border: none;
-        """)
-        
-        # FilterWidget 스타일 변경 (line_filter_btn, project_filter_btn)
-        self.filter_widget.line_filter_btn.setStyleSheet("""
-            QToolButton {
-                background-color: white;
-                color: black;
-                font-weight: bold;
-                padding: 6px 8px;
-                border-radius: 4px;
-                min-width: 120px;
-                border: none;
-                margin-right: 10px;
-            }
-            QToolButton:hover {
-                background-color: #f0f0f0;
-            }
-            QToolButton:pressed {
-                background-color: #e0e0e0;
-            }
-        """)
-        
-        self.filter_widget.project_filter_btn.setStyleSheet("""
-            QToolButton {
-                background-color: white;
-                color: black;
-                font-weight: bold;
-                padding: 6px 8px;
-                border-radius: 4px;
-                min-width: 120px;
-                border: none;
-            }
-            QToolButton:hover {
-                background-color: #f0f0f0;
-            }
-            QToolButton:pressed {
-                background-color: #e0e0e0;
-            }
-        """)
-        
+        # self.filter_widget.setFixedWidth(400)
         control_layout.addWidget(self.filter_widget)
+        control_layout.addStretch(1)
 
         # 검색 섹션 - 오른쪽에 붙이기
         search_section = QHBoxLayout()
@@ -192,44 +162,48 @@ class ModifiedLeftSection(QWidget):
         # 검색 필드 수정 - 크기 증가
         self.search_field = QLineEdit()
         self.search_field.setPlaceholderText('searching...')
-        self.search_field.setStyleSheet("""
-            QLineEdit {
+        self.search_field.setStyleSheet(f"""
+            QLineEdit {{
                 border: 1px solid #808080;  /* 테두리 색상 통일 */
                 border-radius: 4px;
                 background-color: white;
                 selection-background-color: #1428A0;
-                font-size: 22px;
-                padding: 8px;
-                min-height: 36px;
-            }
-            QLineEdit:focus {
+                font-size: {f(16)}px;
+                padding: 6px 8px;
+                font-family:{normal_font};
+                min-height: {h(30)}px;
+            }}
+            QLineEdit:focus {{
                 border: 1px solid #1428A0;
-            }
+            }}
         """)
         self.search_field.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.search_field.setFixedWidth(350)  # 검색 박스 폭 더 증가
+        self.search_field.setFixedWidth(w(250))  # 검색 박스 폭 더 증가
         # self.search_field.setFixedHeight(36)
         self.search_field.returnPressed.connect(self.search_items)
         search_section.addWidget(self.search_field)
 
         # 검색 버튼
         self.search_button = QPushButton('Search')
-        self.search_button.setStyleSheet("""
-            QPushButton {
+        self.search_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 80px;
-                max-width: 100px;
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #004C99;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #003366;
-            }
+            }}
         """)
 
         self.search_button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -238,22 +212,25 @@ class ModifiedLeftSection(QWidget):
 
         # 검색 초기화 버튼
         self.clear_search_button = QPushButton('Reset')
-        self.clear_search_button.setStyleSheet("""
-            QPushButton {
+        self.clear_search_button.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #808080;
                 color: white;
                 font-weight: bold;
                 padding: 8px 15px;
                 border-radius: 4px;
-                min-width: 80px;
-                max-width: 100px;
-            }
-            QPushButton:hover {
+                min-width: {w(80)}px;
+                border:none;
+                font-family:{normal_font};
+                font-size: {f(16)}px;
+                min-height: {h(28)}px;
+            }}
+            QPushButton:hover {{
                 background-color: #606060;
-            }
-            QPushButton:pressed {
+            }}
+            QPushButton:pressed {{
                 background-color: #404040;
-            }
+            }}
         """)
         self.clear_search_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.clear_search_button.clicked.connect(self.clear_search)
@@ -780,6 +757,8 @@ class ModifiedLeftSection(QWidget):
         if hasattr(self, 'controller') and self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
             self.itemModified.emit(item, new_data, changed_fields)
+            # 디버깅 추가: 변경 후 리셋 버튼 상태 확인
+            print(f"[DEBUG] 데이터 변경 후 리셋 버튼 상태: {self.reset_button.isEnabled()}")
             return
 
     """
@@ -911,9 +890,10 @@ class ModifiedLeftSection(QWidget):
         self.controller = controller
         print("MVC 컨트롤러가 설정되었습니다")
 
-        # 컨트롤러 설정 후 시그널 재연결
-        # print("ResultPage: 컨트롤러 설정 후 시그널 재연결")
-        # self.connect_signals()
+        # 모델 변경 시그널 연결
+        if self.controller and hasattr(self.controller.model, 'modelDataChanged'):
+            self.controller.model.modelDataChanged.connect(self.update_from_model)
+            print("ModifiedLeftSection: 모델 변경 시그널 연결 완료")
 
     """
     검증기 설정
@@ -929,6 +909,7 @@ class ModifiedLeftSection(QWidget):
     엑셀 파일 로드
     """
     def load_excel_file(self):
+        print("엑셀 파일 로드 시작")
         file_path, _ = QFileDialog.getOpenFileName(
             self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls)"
         )
@@ -937,16 +918,70 @@ class ModifiedLeftSection(QWidget):
             try:
                 self.clear_all_items()
 
-                self.data = load_file(file_path)
+                loaded_result = load_file(file_path)
 
-                # 만약 여러 시트가 반환되면 첫 번째 시트 사용
-                if isinstance(self.data, dict):
-                    # 첫 번째 시트 선택
-                    first_sheet_name = list(self.data.keys())[0]
-                    self.data = self.data[first_sheet_name]
-                    
+                # 'result' 키에서 DataFrame 추출
+                if isinstance(loaded_result, dict) and 'result' in loaded_result:
+                    loaded_data = loaded_result['result']
+                    print("'result' 키에서 데이터프레임 추출 성공")
+                else:
+                    # 이미 DataFrame이거나 다른 형태면 그대로 사용
+                    loaded_data = loaded_result
+                    # print(f"로드된 데이터 타입: {type(loaded_data)}")
+                
+                # DataFrame 확인
+                if not isinstance(loaded_data, pd.DataFrame):
+                    loaded_data = pd.DataFrame()  # 빈 데이터프레임 생성
+                
                 FilePaths.set("result_file", file_path)
-                self.update_table_from_data()
+                
+                # 로드된 데이터가 비어있는지 확인
+                if loaded_data.empty:
+                    print("경고: 로드된 데이터가 비어있습니다.")
+                    EnhancedMessageBox.show_validation_error(self, "파일 로드 문제", "로드된 데이터가 비어있습니다.")
+                    return
+                
+                # 데이터 타입 안전하게 정규화
+                try:
+                    loaded_data = self._normalize_data_types(loaded_data)
+                except Exception as type_error:
+                    print(f"데이터 타입 정규화 중 오류: {type_error}")
+                    # 기본 타입 변환만 시도
+                    if 'Line' in loaded_data.columns:
+                        loaded_data['Line'] = loaded_data['Line'].astype(str)
+                    if 'Time' in loaded_data.columns:
+                        loaded_data['Time'] = pd.to_numeric(loaded_data['Time'], errors='coerce').fillna(0).astype(int)
+                
+                # 현재 데이터와 원본 데이터 모두 저장
+                self.data = loaded_data.copy()
+                self.original_data = loaded_data.copy()
+
+                # 컨터롤러 확인
+                if hasattr(self, 'controller') and self.controller is not None:
+                    # 컨트롤러가 있는 경우, 모델을 새 데이터로 업데이트
+                    if hasattr(self.controller, 'update_model_data'):
+                        # 컨트롤러를 통해 모델 업데이트
+                        success = self.controller.update_model_data(loaded_data)  # 변수 이름 변경
+                        if success:
+                            print("컨트롤러를 통해 모델 데이터 업데이트 완료")
+                        else:
+                            print("컨트롤러를 통한 모델 업데이트 실패")
+                    else:
+                        # update_model_data 메서드가 없는 경우, 직접 업데이트 시도
+                        try:
+                            self.controller.model._df = loaded_data.copy()  # 변수 이름 변경
+                            self.controller.model._original_df = loaded_data.copy()  # 변수 이름 변경
+                            self.controller.model.modelDataChanged.emit()
+                            print("컨트롤러 모델 직접 업데이트 완료")
+                        except Exception as e:
+                            print(f"컨트롤러 모델 직접 업데이트 중 오류 발생: {e}")
+                else:
+                    print("컨트롤러 없음.")
+                    # 컨트롤러가 없는 경우 직접 업데이트 
+                    self.update_table_from_data()
+
+                # 새로운 원본 상태가 있으므로 리셋 버튼 활성화
+                self.reset_button.setEnabled(False)
 
                 EnhancedMessageBox.show_validation_success(self, "File Loaded Successfully",
                                         f"File has been successfully loaded.\nRows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
@@ -1150,22 +1185,37 @@ class ModifiedLeftSection(QWidget):
         )
 
         if reply:
-            # 원본 데이터로 복원
-            self.data = self.original_data.copy()
-            self.update_table_from_data()
+            # 컨트롤러 연결
+            if hasattr(self, 'controller') and self.controller:
+                print("컨트롤러를 통해 리셋 요청")
+                self.controller.reset_data()
+                
+                # Reset 버튼 비활성화
+                self.reset_button.setEnabled(False)
 
-            # Reset 버튼 비활성화
-            self.reset_button.setEnabled(False)
+                # 성공 메세지
+                EnhancedMessageBox.show_validation_success(
+                    self, "Reset Complete", "Data has been successfully reset to the original values."
+                )
+            else: 
+                # 레거시 방식
+                # 원본 데이터로 복원
+                self.data = self.original_data.copy()
+                self.update_table_from_data()
 
-            # 성공 메세지
-            EnhancedMessageBox.show_validation_success(
-                self, "Reset Complete", "Data has been successfully reset to the original values."
-            )
+                # Reset 버튼 비활성화
+                self.reset_button.setEnabled(False)
+
+                # 성공 메세지
+                EnhancedMessageBox.show_validation_success(
+                    self, "Reset Complete", "Data has been successfully reset to the original values."
+                )
     
     """
     데이터가 수정되었음을 표시하는 메서드
     """
     def mark_as_modified(self):
+        print("[DEBUG] mark_as_modified 호출됨 - 리셋 버튼 활성화")
         self.reset_button.setEnabled(True)
 
     """
@@ -1346,25 +1396,21 @@ class ModifiedLeftSection(QWidget):
     아이템 삭제 처리 메서드 (ItemContainer에서 발생한 삭제를 처리)
     """
     def on_item_removed(self, item_or_id):
-        print("DEBUG: ModifiedLeftSection.on_item_removed 호출됨")
+        # print("DEBUG: ModifiedLeftSection.on_item_removed 호출됨")
 
         # MVC 컨트롤러 확인
         has_controller = hasattr(self, 'controller') and self.controller is not None
-        print(f"DEBUG: MVC 컨트롤러 존재 여부: {has_controller}")
         
         # MVC 컨트롤러가 있으면 컨트롤러에서 처리
         if has_controller:
-            print("DEBUG: 컨트롤러를 통해 삭제 처리 시도")
             # 컨트롤러에 연결이 제대로 되어 있는지 확인
             if hasattr(self.controller, 'on_item_deleted'):
-                print("DEBUG: 컨트롤러의 on_item_deleted 메서드 호출")
                 self.controller.on_item_deleted(item_or_id)
                 return
             else:
                 print("DEBUG: 컨트롤러에 on_item_deleted 메서드가 없음")
         
         # 컨트롤러가 없거나 처리하지 않은 경우 기존 로직 사용
-        print("DEBUG: 기존 로직으로 삭제 처리")
         if self.data is None:
             print("DEBUG: 데이터가 없음")
             return
@@ -1379,7 +1425,6 @@ class ModifiedLeftSection(QWidget):
                 df = self.extract_dataframe()
                 self.viewDataChanged.emit(df)
                 self.mark_as_modified()
-                print("DEBUG: ID 기반 삭제 완료")
             else:
                 print(f"DEBUG: ID {item_id}로 아이템을 찾을 수 없음")
             return
@@ -1396,7 +1441,6 @@ class ModifiedLeftSection(QWidget):
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    print("DEBUG: ID 기반 삭제 완료")
                     return
             
             # ID가 없으면 Line/Time/Item으로 찾기
@@ -1409,7 +1453,6 @@ class ModifiedLeftSection(QWidget):
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    print("DEBUG: Line/Time/Item 기반 삭제 완료")
                 else:
                     print(f"DEBUG: Line/Time/Item으로 아이템을 찾을 수 없음")
         else:
@@ -1429,9 +1472,17 @@ class ModifiedLeftSection(QWidget):
     """
     모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
     """
-    def update_from_model(self, model_df):
-
+    def update_from_model(self, model_df=None):
+        print("ModifiedLeftSection: update_from_model 호출")
+        
+        # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
+            if hasattr(self, 'controller') and self.controller:
+                model_df = self.controller.model.get_dataframe()
+                print("컨트롤러에서 데이터 가져옴")
+        
+        if model_df is None:
+            print("데이터가 없습니다.")
             return
             
         # 타입 변환을 한 번에 처리

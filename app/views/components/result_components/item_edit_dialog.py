@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont, QCursor
 import pandas as pd
+from app.utils.field_filter import filter_internal_fields
 
 
 """
@@ -16,8 +17,12 @@ class ItemEditDialog(QDialog):
 
     def __init__(self, item_data=None, parent=None):
         super().__init__(parent)
-        self.item_data = item_data or {}
-        self.original_data = self.item_data.copy() if item_data else {}
+        # 원본 데이터 보존 
+        self.original_data = item_data.copy() if item_data else {}
+
+        # 화면에 표시할 데이터 필터링
+        self.item_data = filter_internal_fields(item_data)
+
         # 다이얼로그 스타일시트에 margin 관련 속성 추가
         self.setStyleSheet("""
             QDialog {
@@ -36,39 +41,6 @@ class ItemEditDialog(QDialog):
 
         self.init_ui()
 
-    """
-    그리드 위젯에서 사용 가능한 Line 값들을 가져옵니다.
-    """
-    def get_available_lines(self):
-        try:
-            # 부모 위젯 계층을 탐색하여 ModifiedLeftSection 또는 row_headers를 가진 위젯 찾기
-            parent = self.parent()
-            while parent:
-                if hasattr(parent, 'row_headers') and parent.row_headers:
-                    # row_headers에서 Line 값 추출
-                    lines = set()
-                    for header in parent.row_headers:
-                        if '_(' in header:  # Line_(교대) 형식 확인
-                            line = header.split('_(')[0]
-                            lines.add(line)
-                    return sorted(list(lines))
-
-                if hasattr(parent, 'grid_widget') and hasattr(parent.grid_widget, 'row_headers'):
-                    # grid_widget을 통해 row_headers 접근
-                    lines = set()
-                    for header in parent.grid_widget.row_headers:
-                        if '_(' in header:
-                            line = header.split('_(')[0]
-                            lines.add(line)
-                    return sorted(list(lines))
-
-                parent = parent.parent()
-
-            # 기본값 제공
-            return [f"Line {i}" for i in range(1, 6)]
-        except Exception as e:
-            print(f"사용 가능한 Line 가져오기 오류: {e}")
-            return [f"Line {i}" for i in range(1, 6)]
 
     """
     UI 초기화
@@ -202,6 +174,40 @@ class ItemEditDialog(QDialog):
         button_layout.setContentsMargins(10, 10, 10, 10)
 
         main_layout.addWidget(button_container)
+
+    """
+    그리드 위젯에서 사용 가능한 Line 값들을 가져옵니다.
+    """
+    def get_available_lines(self):
+        try:
+            # 부모 위젯 계층을 탐색하여 ModifiedLeftSection 또는 row_headers를 가진 위젯 찾기
+            parent = self.parent()
+            while parent:
+                if hasattr(parent, 'row_headers') and parent.row_headers:
+                    # row_headers에서 Line 값 추출
+                    lines = set()
+                    for header in parent.row_headers:
+                        if '_(' in header:  # Line_(교대) 형식 확인
+                            line = header.split('_(')[0]
+                            lines.add(line)
+                    return sorted(list(lines))
+
+                if hasattr(parent, 'grid_widget') and hasattr(parent.grid_widget, 'row_headers'):
+                    # grid_widget을 통해 row_headers 접근
+                    lines = set()
+                    for header in parent.grid_widget.row_headers:
+                        if '_(' in header:
+                            line = header.split('_(')[0]
+                            lines.add(line)
+                    return sorted(list(lines))
+
+                parent = parent.parent()
+
+            # 기본값 제공
+            return [f"Line {i}" for i in range(1, 6)]
+        except Exception as e:
+            print(f"사용 가능한 Line 가져오기 오류: {e}")
+            return [f"Line {i}" for i in range(1, 6)]
 
     """
     필드에 맞는 위젯 생성
@@ -346,10 +352,15 @@ class ItemEditDialog(QDialog):
                         changed_fields['_validation_failed'] = True
                         changed_fields['_validation_message'] = f"Validation error: {str(e)}"
 
+                # 내부 필드 보존하여 결과 데이터 생성
+                result_data = self.original_data.copy()
+                for key, value in updated_data.items():
+                    result_data[key] = value
+
                 # 검증 통과 또는 validator 없음 - 변경 사항 적용
                 # 변경 사항이 있으면 시그널 발생 (변경된 필드 정보 포함)
-                self.item_data.update(updated_data)
-                self.itemDataChanged.emit(self.item_data, changed_fields)
+                # self.item_data.update(updated_data)
+                self.itemDataChanged.emit(result_data, changed_fields)
 
             # 다이얼로그 닫기
             self.accept()
