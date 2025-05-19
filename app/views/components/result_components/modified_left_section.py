@@ -72,6 +72,7 @@ class ModifiedLeftSection(QWidget):
         # 범례 위젯 추가
         self.legend_widget = LegendWidget()
         self.legend_widget.filter_changed.connect(self.on_filter_changed)
+        self.legend_widget.filter_activation_requested.connect(self.on_filter_activation_requested)
         main_layout.addWidget(self.legend_widget)
 
         # 통합 컨트롤 레이아웃 (버튼, 필터, 검색 섹션을 한 줄에 배치)
@@ -404,25 +405,41 @@ class ModifiedLeftSection(QWidget):
             return
 
         excel_filter_active = (any(not all(states.values()) for states in self.current_excel_filter_states.values())
-                                if hasattr(self, 'current_excel_filter_states') else False)
+                            if hasattr(self, 'current_excel_filter_states') else False)
         
+        # 현재 검색 상태 저장
+        search_active = self.search_active
+        search_text = self.last_search_text
+                
         for row_containers in self.grid_widget.containers:
             for container in row_containers:
                 for item in container.items:
+                    # 아이템 표시 상태 기본값: 표시
+                    should_show_item = True
+                    
+                    # 1. 상태선(범례) 표시 업데이트 - 라벨만 업데이트, 아이템 가시성은 변경 안함
                     self.update_item_status_line_visibility(item)
-
-                    if excel_filter_active :
-                        should_show = self.should_show_item_excel_filter(item)
-
-                        if should_show:
-                            item.show()
-                        else :
-                            item.hide()
-                    else :
-                        item.show()
-                        
+                    
+                    # 2. 엑셀 스타일 필터 적용
+                    if excel_filter_active:
+                        should_show_item = self.should_show_item_excel_filter(item)
+                    
+                    # 3. 검색 필터 적용 (검색 활성화 상태일 때)
+                    if should_show_item and search_active and search_text:
+                        # 검색 조건에 맞는지 확인
+                        if hasattr(item, 'item_data') and item.item_data:
+                            item_code = str(item.item_data.get('Item', '')).lower()
+                            should_show_item = search_text in item_code
+                    
+                    # 최종 표시 상태 적용
+                    item.setVisible(should_show_item)
+                    
                 # 컨테이너 높이 재조정
                 container.adjustSize()
+        
+        # 검색 결과가 있고 활성화된 상태라면 검색 결과 UI 업데이트
+        if search_active and self.search_results:
+            self.update_result_navigation()
 
     """
     엑셀 필터를 고려한 아이템 표시 여부
@@ -458,6 +475,18 @@ class ModifiedLeftSection(QWidget):
                 return False
         
         return True
+    
+    """필터 활성화 요청 처리"""
+    def on_filter_activation_requested(self, status_type):
+        # 출하 상태 필터가 활성화된 경우
+        if status_type == 'shipment':
+            # 현재 데이터가 있는지 확인
+            if self.data is not None and not self.data.empty:
+                # 결과 페이지 참조 찾기
+                result_page = self.parent_page
+                if result_page and hasattr(result_page, 'analyze_shipment_with_current_data'):
+                    # 현재 데이터로 출하 분석 실행 요청
+                    result_page.analyze_shipment_with_current_data(self.data)
     
     """
     데이터 로드 후 필터 데이터 업데이트
@@ -508,29 +537,28 @@ class ModifiedLeftSection(QWidget):
         self.search_results = []
         self.current_result_index = -1
 
-        visible_count = 0
         invalid_items = []
 
+        # 검색 조건에 맞는 아이템 찾기
         for item in self.all_items[:] :
             try:
-                if self.apply_search_to_item(item, search_text):
-                    visible_count += 1
+                is_match = self.apply_search_to_item(item, search_text)
+                if is_match:
                     self.search_results.append(item)
             except RuntimeError:
                 invalid_items.append(item)
             except Exception as e:
                 print(f"검색 중 오류 발생: {e}")
         
+        # 잘못된 아이템 제거
         for item in invalid_items:
             if item in self.all_items:
                 self.all_items.remove(item)
 
-        try:
-            if hasattr(self.grid_widget, 'update_container_visibility'):
-                self.grid_widget.update_container_visibility()
-        except Exception as e:
-            print(f"컨테이너 가시성 업데이트 오류: {e}")
+        # 모든 필터 재적용 (검색 포함)
+        self.apply_all_filters()
 
+        # 검색 결과 UI 업데이트
         self.search_result_label.show()
         self.prev_result_button.show()
         self.next_result_button.show()
@@ -547,9 +575,9 @@ class ModifiedLeftSection(QWidget):
     """
     아이템에 검색 조건 적용
     """
-    def apply_search_to_item(self, item, search_text) :
+    def apply_search_to_item(self, item, search_text):
         try :
-            if not item or not hasattr(item, 'item_data') or not item.item_data :
+            if not item or not hasattr(item, 'item_data') or not item.item_data:
                 return False
             
             try:
@@ -557,20 +585,13 @@ class ModifiedLeftSection(QWidget):
             except RuntimeError:
                 if item in self.all_items:
                     self.all_items.remove(item)
-
                 return False
             
             item_code = str(item.item_data.get('Item', '')).lower()
             is_match = search_text in item_code
-
-            item.setVisible(is_match)
-
-            container = item.parent()
-
-            if container :
-                if hasattr(container, 'update_visibility') :
-                    container.update_visibility()
-
+            
+            # 현재 필터 상태를 유지하며 검색 결과 적용
+            # 아이템의 가시성을 직접 변경하지 않고 검색 결과만 반환
             return is_match
         except RuntimeError:
             return False
@@ -581,7 +602,7 @@ class ModifiedLeftSection(QWidget):
     """
     검색 초기화
     """
-    def clear_search(self) :
+    def clear_search(self):
         if not self.search_active:
             return
         
@@ -609,6 +630,9 @@ class ModifiedLeftSection(QWidget):
         self.search_result_label.hide()
         self.prev_result_button.hide()
         self.next_result_button.hide()
+        
+        # 검색을 제외한 다른 필터 상태를 유지하며 모든 필터 적용
+        self.apply_all_filters()
         
         for item in self.all_items:
             try:
@@ -887,10 +911,6 @@ class ModifiedLeftSection(QWidget):
         self.controller = controller
         print("MVC 컨트롤러가 설정되었습니다")
 
-        # 컨트롤러 설정 후 시그널 재연결
-        # print("ResultPage: 컨트롤러 설정 후 시그널 재연결")
-        # self.connect_signals()
-
     """
     검증기 설정
     """
@@ -905,6 +925,7 @@ class ModifiedLeftSection(QWidget):
     엑셀 파일 로드
     """
     def load_excel_file(self):
+        print("엑셀 파일 로드 시작")
         file_path, _ = QFileDialog.getOpenFileName(
             self, "엑셀 파일 선택", "", "Excel Files (*.xlsx *.xls)"
         )
@@ -912,17 +933,80 @@ class ModifiedLeftSection(QWidget):
         if file_path:
             try:
                 self.clear_all_items()
+                print("clear_all_items()")
 
-                self.data = load_file(file_path)
+                loaded_result = load_file(file_path)
+                print(f"로드 파일 결과 타입: {type(loaded_result)}")
 
-                # 만약 여러 시트가 반환되면 첫 번째 시트 사용
-                if isinstance(self.data, dict):
-                    # 첫 번째 시트 선택
-                    first_sheet_name = list(self.data.keys())[0]
-                    self.data = self.data[first_sheet_name]
-                    
+                # 'result' 키에서 DataFrame 추출
+                if isinstance(loaded_result, dict) and 'result' in loaded_result:
+                    loaded_data = loaded_result['result']
+                    print("'result' 키에서 데이터프레임 추출 성공")
+                else:
+                    # 이미 DataFrame이거나 다른 형태면 그대로 사용
+                    loaded_data = loaded_result
+                    print(f"로드된 데이터 타입: {type(loaded_data)}")
+                
+                # DataFrame 확인
+                if not isinstance(loaded_data, pd.DataFrame):
+                    print(f"오류: 데이터프레임이 아닌 타입: {type(loaded_data)}")
+                    loaded_data = pd.DataFrame()  # 빈 데이터프레임 생성
+                
                 FilePaths.set("result_file", file_path)
-                self.update_table_from_data()
+                
+                # 로드된 데이터가 비어있는지 확인
+                if loaded_data.empty:
+                    print("경고: 로드된 데이터가 비어있습니다.")
+                    EnhancedMessageBox.show_validation_error(self, "파일 로드 문제", "로드된 데이터가 비어있습니다.")
+                    return
+                
+                # # 데이터 컬럼 출력 (디버깅용)
+                # print(f"로드된 데이터 컬럼: {loaded_data.columns.tolist()}")
+                # print(f"로드된 데이터 첫 5행:\n{loaded_data.head()}")
+                
+                # 데이터 타입 안전하게 정규화
+                try:
+                    loaded_data = self._normalize_data_types(loaded_data)
+                except Exception as type_error:
+                    print(f"데이터 타입 정규화 중 오류: {type_error}")
+                    # 기본 타입 변환만 시도
+                    if 'Line' in loaded_data.columns:
+                        loaded_data['Line'] = loaded_data['Line'].astype(str)
+                    if 'Time' in loaded_data.columns:
+                        loaded_data['Time'] = pd.to_numeric(loaded_data['Time'], errors='coerce').fillna(0).astype(int)
+                
+                # 현재 데이터와 원본 데이터 모두 저장
+                self.data = loaded_data.copy()
+                self.original_data = loaded_data.copy()
+                print("데이터 복사: 현재/원본")
+
+                # 컨터롤러 확인
+                if hasattr(self, 'controller') and self.controller is not None:
+                    print("컨트롤러 확인")
+                    # 컨트롤러가 있는 경우, 모델을 새 데이터로 업데이트
+                    if hasattr(self.controller, 'update_model_data'):
+                        # 컨트롤러를 통해 모델 업데이트
+                        success = self.controller.update_model_data(loaded_data)  # 변수 이름 변경
+                        if success:
+                            print("컨트롤러를 통해 모델 데이터 업데이트 완료")
+                        else:
+                            print("컨트롤러를 통한 모델 업데이트 실패")
+                    else:
+                        # update_model_data 메서드가 없는 경우, 직접 업데이트 시도
+                        try:
+                            self.controller.model._df = loaded_data.copy()  # 변수 이름 변경
+                            self.controller.model._original_df = loaded_data.copy()  # 변수 이름 변경
+                            self.controller.model.modelDataChanged.emit()
+                            print("컨트롤러 모델 직접 업데이트 완료")
+                        except Exception as e:
+                            print(f"컨트롤러 모델 직접 업데이트 중 오류 발생: {e}")
+                else:
+                    print("컨트롤러 없음.")
+                    # 컨트롤러가 없는 경우 직접 업데이트 
+                    self.update_table_from_data()
+
+                # 새로운 원본 상태가 있으므로 리셋 버튼 활성화
+                self.reset_button.setEnabled(True)
 
                 EnhancedMessageBox.show_validation_success(self, "File Loaded Successfully",
                                         f"File has been successfully loaded.\nRows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
@@ -956,6 +1040,34 @@ class ModifiedLeftSection(QWidget):
         # self.data_changed.emit(self.data)
         df = self.extract_dataframe()
         self.viewDataChanged.emit(df)
+
+        self.preload_analyses()
+
+    """데이터 로드 후 사전 분석 실행"""
+    def preload_analyses(self):
+        # 데이터가 없으면 건너뜀
+        if self.data is None or self.data.empty:
+            return
+            
+        # 결과 페이지 참조 확인
+        result_page = self.parent_page
+        if not result_page:
+            return
+            
+        try:
+            # 탭 위젯들 초기화 요청
+            if hasattr(result_page, 'preload_tab_analyses'):
+                result_page.preload_tab_analyses(self.data)
+                
+            # 범례에도 필터 상태 업데이트 알림
+            if hasattr(self, 'legend_widget'):
+                # 현재 필터 상태 가져오기
+                current_states = self.legend_widget.filter_states
+                
+                # 강제로 필터 변경 이벤트 재발생
+                self.on_filter_changed(current_states)
+        except Exception as e:
+            print(f"사전 분석 초기화 중 오류: {e}")
 
     """
     Line과 Time으로 데이터 그룹화하고 개별 아이템으로 표시
@@ -1120,8 +1232,58 @@ class ModifiedLeftSection(QWidget):
     현재 자재부족 아이템 정보 저장
     """
     def set_current_shortage_items(self, shortage_items):
+        # 자재 부족 정보 저장
         self.current_shortage_items = shortage_items
-        self.apply_all_states()
+        
+        # 시프트 기반으로 자재 부족 상태 적용
+        self.update_left_widget_shortage_status(shortage_items)
+
+    """
+    왼쪽 위젯의 아이템들에 자재 부족 상태 적용
+
+    Args:
+        shortage_dict: {item_code: [{shift: shift_num, material: material_code, shortage: shortage_amt}]}
+    """
+    def update_left_widget_shortage_status(self, shortage_dict):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        print(f"자재 부족 상태 적용 시작: {len(shortage_dict)}개 아이템")
+        status_applied_count = 0
+        
+        # 그리드의 모든 컨테이너 순회
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                # 각 컨테이너의 아이템들 순회
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
+                        item_code = item.item_data['Item']
+                        item_time = item.item_data.get('Time')  # 시프트(Time) 정보 가져오기
+                        
+                        # 해당 아이템이 자재 부족 목록에 있는지 확인
+                        if item_code in shortage_dict:
+                            # 시프트별 부족 정보 검사
+                            shortages_for_item = shortage_dict[item_code]
+                            matching_shortages = []
+                            
+                            for shortage in shortages_for_item:
+                                shortage_shift = shortage.get('shift')
+                                
+                                # 시프트가 일치하면 부족 정보 저장
+                                if shortage_shift and item_time and int(shortage_shift) == int(item_time):
+                                    matching_shortages.append(shortage)
+                            
+                            # 일치하는 시프트의 부족 정보가 있으면 부족 상태로 설정
+                            if matching_shortages:
+                                item.set_shortage_status(True, matching_shortages)
+                                status_applied_count += 1
+                            else:
+                                item.set_shortage_status(False)
+                        else:
+                            # 부족 목록에 없는 경우 부족 상태 해제
+                            item.set_shortage_status(False)
+        
+        print(f"자재 부족 상태 적용 완료: {status_applied_count}개 아이템에 적용됨")
 
     """
     모든 상태 정보를 현재 아이템들에 적용
@@ -1135,6 +1297,7 @@ class ModifiedLeftSection(QWidget):
                 for item in container.items:
                     if hasattr(item, 'item_data') and item.item_data and 'Item' in item.item_data:
                         item_code = item.item_data['Item']
+                        item_time = item.item_data.get('Time')
 
                         # 사전할당 상태
                         if item_code in self.pre_assigned_items:
@@ -1145,18 +1308,44 @@ class ModifiedLeftSection(QWidget):
                             failure_info = self.shipment_failure_items[item_code]
                             item.set_shipment_failure(True, failure_info.get('reason', 'Unknown'))
 
-                        # 자재 부족 상태
+                        # 자재 부족 상태 - 시프트별 체크 적용
                         if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
-                            shortage_info = self.current_shortage_items[item_code]
-                            item.set_shortage_status(True, shortage_info)
+                            shortages = self.current_shortage_items[item_code]
+                            matching_shortages = []
+                            
+                            # 시프트별 부족 정보 검사
+                            for shortage in shortages:
+                                shortage_shift = shortage.get('shift')
+                                
+                                # 시프트가 일치하는 경우만 처리
+                                if shortage_shift and item_time and int(shortage_shift) == int(item_time):
+                                    matching_shortages.append(shortage)
+                            
+                            # 일치하는 시프트의 부족 정보가 있으면 부족 상태로 설정
+                            if matching_shortages:
+                                item.set_shortage_status(True, matching_shortages)
+                            else:
+                                item.set_shortage_status(False)
 
-    """
-    범례 위젯에서 필터가 변경될 때 호출
-    """
+    """범례 위젯에서 필터가 변경될 때 호출"""
     def on_filter_changed(self, filter_states):
         self.current_filter_states = filter_states
+        
+        # 필터 적용 전 기본 상태 확인
+        if filter_states.get('shipment', False):
+            # 출하 필터가 켜져 있고, 아직 출하 상태가 설정되지 않았으면
+            # 결과 페이지 참조 찾기
+            result_page = self.parent_page
+            if result_page and hasattr(result_page, 'shipment_widget') and result_page.shipment_widget:
+                # 출하 분석 상태 확인
+                if not hasattr(result_page.shipment_widget, 'failure_items') or not result_page.shipment_widget.failure_items:
+                    # 출하 분석 데이터가 없으면 분석 요청
+                    if hasattr(result_page, 'analyze_shipment_with_current_data') and self.data is not None:
+                        result_page.analyze_shipment_with_current_data(self.data)
+        
+        # 상태선 표시만 업데이트
         self.apply_visibility_filter()
-    
+        
     """
     현재 필터 상태에 따라 아이템 가시성 조정
     """
@@ -1177,35 +1366,8 @@ class ModifiedLeftSection(QWidget):
     - 모든 체크박스 해제: 모든 아이템 표시
     """
     def should_show_item(self, item):
-        if not hasattr(self, 'current_filter_states'):
-            return True
-        
-        # 아이템의 상태 확인
-        is_shortage = hasattr(item, 'is_shortage') and item.is_shortage
-        is_shipment = hasattr(item, 'is_shipment_failure') and item.is_shipment_failure
-        is_pre_assigned = hasattr(item, 'is_pre_assigned') and item.is_pre_assigned
-        
-        # 각 상태별 필터 확인
-        shortage_filter = self.current_filter_states.get('shortage', False)
-        shipment_filter = self.current_filter_states.get('shipment', False)
-        pre_assigned_filter = self.current_filter_states.get('pre_assigned', False)
-
-        # 모든 필터가 해제되어 있으면 모든 아이템 표시
-        if not (shortage_filter or shipment_filter or pre_assigned_filter):
-            return True
-        
-        # 체크된 필터에 해당하는 아이템들을 or 조건으로 표시
-        should_show = False
-        
-        # 체크된 각 필터에 대해 해당 상태를 가지고 있는지 확인
-        if shortage_filter and is_shortage:
-            should_show = True
-        if shipment_filter and is_shipment:
-            should_show = True
-        if pre_assigned_filter and is_pre_assigned:
-            should_show = True
-        
-        return should_show
+        # 항상 모든 아이템을 표시하도록 변경
+        return True
     
     """
     아이템의 상태선 업데이트
@@ -1244,18 +1406,18 @@ class ModifiedLeftSection(QWidget):
     아이템 삭제 처리 메서드 (ItemContainer에서 발생한 삭제를 처리)
     """
     def on_item_removed(self, item_or_id):
-        print("DEBUG: ModifiedLeftSection.on_item_removed 호출됨")
+        # print("DEBUG: ModifiedLeftSection.on_item_removed 호출됨")
 
         # MVC 컨트롤러 확인
         has_controller = hasattr(self, 'controller') and self.controller is not None
-        print(f"DEBUG: MVC 컨트롤러 존재 여부: {has_controller}")
+        # print(f"DEBUG: MVC 컨트롤러 존재 여부: {has_controller}")
         
         # MVC 컨트롤러가 있으면 컨트롤러에서 처리
         if has_controller:
             print("DEBUG: 컨트롤러를 통해 삭제 처리 시도")
             # 컨트롤러에 연결이 제대로 되어 있는지 확인
             if hasattr(self.controller, 'on_item_deleted'):
-                print("DEBUG: 컨트롤러의 on_item_deleted 메서드 호출")
+                # print("DEBUG: 컨트롤러의 on_item_deleted 메서드 호출")
                 self.controller.on_item_deleted(item_or_id)
                 return
             else:
@@ -1277,7 +1439,7 @@ class ModifiedLeftSection(QWidget):
                 df = self.extract_dataframe()
                 self.viewDataChanged.emit(df)
                 self.mark_as_modified()
-                print("DEBUG: ID 기반 삭제 완료")
+                # print("DEBUG: ID 기반 삭제 완료")
             else:
                 print(f"DEBUG: ID {item_id}로 아이템을 찾을 수 없음")
             return
@@ -1294,7 +1456,7 @@ class ModifiedLeftSection(QWidget):
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    print("DEBUG: ID 기반 삭제 완료")
+                    # print("DEBUG: ID 기반 삭제 완료")
                     return
             
             # ID가 없으면 Line/Time/Item으로 찾기
@@ -1307,7 +1469,7 @@ class ModifiedLeftSection(QWidget):
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    print("DEBUG: Line/Time/Item 기반 삭제 완료")
+                    # print("DEBUG: Line/Time/Item 기반 삭제 완료")
                 else:
                     print(f"DEBUG: Line/Time/Item으로 아이템을 찾을 수 없음")
         else:
@@ -1449,3 +1611,58 @@ class ModifiedLeftSection(QWidget):
             print("컨트롤러 없음: 레거시 처리 방식으로 복사 처리")
             df = self.extract_dataframe()
             self.viewDataChanged.emit(df)
+
+    """
+    출하 실패 아이템 정보 설정
+    """
+    def set_shipment_failure_items(self, failure_items):
+                
+        # 이전 출하 실패 정보 초기화
+        old_failure_items = getattr(self, 'shipment_failure_items', {})
+        
+        # 새 출하 실패 정보 저장
+        self.shipment_failure_items = failure_items
+        
+        # 상태 변화가 있을 때만 UI 업데이트
+        if old_failure_items != failure_items:
+            self.apply_shipment_failure_status()
+
+    """출하 실패 상태를 모든 아이템에 적용"""
+    def apply_shipment_failure_status(self):
+        if not hasattr(self, 'grid_widget') or not hasattr(self.grid_widget, 'containers'):
+            return
+        
+        # 출하 실패 아이템 목록이 없는 경우 초기화
+        if not hasattr(self, 'shipment_failure_items'):
+            self.shipment_failure_items = {}
+        
+        status_applied_count = 0
+        
+        # 모든 컨테이너와 아이템 순회
+        for row_containers in self.grid_widget.containers:
+            for container in row_containers:
+                for item in container.items:
+                    if not hasattr(item, 'item_data') or not item.item_data:
+                        continue
+                        
+                    item_data = item.item_data
+                    
+                    # 필수 필드 확인
+                    if 'Item' not in item_data:
+                        continue
+                        
+                    item_code = item_data['Item']
+                    
+                    # 간단하게 아이템 코드로만 검색 (복합 키는 제외)
+                    if item_code in self.shipment_failure_items:
+                        # 출하 실패 정보 가져오기
+                        failure_info = self.shipment_failure_items[item_code]
+                        reason = failure_info.get('reason', '출하 실패')
+                        
+                        # 출하 실패 상태로 설정
+                        item.set_shipment_failure(True, reason)
+                        status_applied_count += 1
+                    else:
+                        # 출하 성공 상태로 설정 (기존 실패였던 경우)
+                        if hasattr(item, 'is_shipment_failure') and item.is_shipment_failure:
+                            item.set_shipment_failure(False, None)
