@@ -185,7 +185,7 @@ class PjtGroupAnalyzer:
                 try :
                     group_data = results_df[results_df['PJT Group'] == group]
                     total_row = group_data[group_data['PJT'] == 'Total']
-                    other_rows = group_data[group_data['PJT'] != 'Total'].sort_values('MFG', ascending=False)
+                    other_rows = group_data[group_data['PJT'] != 'Total'].sort_values('PJT')
 
                     if not total_row.empty and not other_rows.empty :
                         sorted_results.append(pd.concat([other_rows, total_row], ignore_index=True))

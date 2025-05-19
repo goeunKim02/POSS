@@ -10,7 +10,7 @@ class ItemPositionManager:
             day_idx = (time_int - 1) // 2
 
             # 요일 인덱스(0-6)와 교대(주간/야간) 반환
-            shift = "Day" if time_int % 2 == 1 else "Night"
+            shift = "주간" if time_int % 2 == 1 else "야간"
             return day_idx, shift
         except (ValueError, TypeError):
             return -1, None
@@ -39,7 +39,7 @@ class ItemPositionManager:
     def get_shift_index(shift, shifts=None):
         """교대 정보로 교대 인덱스 반환"""
         if shifts is None:
-            shifts = ["Day", "Night"]
+            shifts = ["주간", "야간"]
         try:
             return shifts.index(shift)
         except ValueError:
@@ -60,7 +60,7 @@ class ItemPositionManager:
         - 행 인덱스 (실제 그리드에서의 행 번호)
         """
         if shifts is None:
-            shifts = ["Day", "Night"]
+            shifts = ["주간", "야간"]
 
         try:
             line_idx = lines.index(line)

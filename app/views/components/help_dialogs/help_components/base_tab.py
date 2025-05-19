@@ -65,7 +65,7 @@ class BaseTabComponent(QWidget):
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
-        self.content_layout.setSpacing(5)
+        self.content_layout.setSpacing(10)
         self.content_layout.setAlignment(Qt.AlignTop)
 
         # 스크롤 영역에 콘텐츠 위젯 설정

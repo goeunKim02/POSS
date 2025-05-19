@@ -3,8 +3,6 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
 from .help_section_component import HelpSectionComponent
-from app.resources.fonts.font_manager import font_manager
-from app.models.common.screen_manager import *
 
 
 """
@@ -34,113 +32,102 @@ class ResultTabComponent(BaseTabComponent):
         # 콘텐츠 프레임 레이아웃
         frame_layout = QVBoxLayout(self.content_frame)
         frame_layout.setContentsMargins(20, 20, 20, 20)
-        frame_layout.setSpacing(h(10))
-
-        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
-        normal_font = font_manager.get_just_font("SamsungOne-700").family()
+        frame_layout.setSpacing(15)
 
         # 제목 레이블
         title_label = QLabel("Results Analysis")
+        title_font = QFont("Arial", 14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
         title_label.setStyleSheet(
-            f"color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent; font-family: {bold_font}; font-size: {f(21)}px;")
+            "color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent;")
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
         desc_label = QLabel("This page allows you to analyze and visualize the optimization results.")
         desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("margin-bottom: 15px; background-color: transparent; border:none; font-family: {normal_font}; font-size: {f(16)}px;")
+        desc_font = QFont("Arial", 11)
+        desc_label.setFont(desc_font)
+        desc_label.setStyleSheet("margin-bottom: 15px; background-color: transparent; border:none;")
 
         # 섹션들을 담을 프레임
         sections_frame = QFrame()
         sections_frame.setStyleSheet("background-color: transparent; border:none;")
         sections_layout = QVBoxLayout(sections_frame)
         sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(h(10))
+        sections_layout.setSpacing(15)
 
-        section1 = HelpSectionComponent(
+        # 주요 기능 섹션
+        features_section = HelpSectionComponent(
             number=1,
-            title="View Planning Results",
-            description="The results are displayed in a calendar format.",
-            image_path="app/resources/help_images/select_date.png"
+            title="Main Features",
+            description="The Results page offers several function for analysis:"
         )
 
-        # 팁 섹션
-        section2 = HelpSectionComponent(
+        # 기능 항목
+        features_section.add_list_item("Results Table: View detailed results in the left panel.")
+        features_section.add_list_item("Visualization: View results graphically in the right panel.")
+        features_section.add_list_item("Modified Data: Dates can be modified via drag-and-drop, and the changes are reflected in real time.")
+        features_section.add_list_item("Export Data: Click the 'Export' button to save results as a Excel file.")
+
+        # 시각화 유형 섹션
+        viz_section = HelpSectionComponent(
             number=2,
-            title="View Visualization Results",
-            description="Here, you can see the quantified results of the output.",
-            image_path="app/resources/help_images/select_date.png"
+            title="Visualization Types",
+            description="You can access different visualization types by clicking the corresponding buttons:"
         )
 
-        section3 = HelpSectionComponent(
-            number=3,
-            title="Drag & Drop",
-            description="Here, you can drag and drop items to move them to your desired location.",
-            image_path="app/resources/help_images/select_date.png"
-        )
-        section3.add_list_item("If the movement affects the plan, it will be reported in the error section.")
+        # 버튼 컨테이너
+        buttons_container = QFrame()
+        buttons_container.setStyleSheet("""
+            background-color: #F5F5F5; 
+            border: 1px solid #E0E0E0;
+            border-radius: 8px;
+            padding: 5px;
+        """)
+        buttons_layout = QHBoxLayout(buttons_container)
+        buttons_layout.setContentsMargins(10, 10, 10, 10)
+        buttons_layout.setSpacing(15)
 
-        section3_1 = HelpSectionComponent(
-            number="3-1",
-            title="Error Section",
-            description="Here, it will notify you of the incorrect part, and if you click on the selected area, you will be taken to that issue",
-            image_path="app/resources/help_images/select_date.png"
-        )
-        section3_1.add_list_item("If corrected properly, this log will disappear.")
+        # 버튼 스타일
+        button_types = ["Capa", "Utilization", "PortCapa", "Plan"]
 
-        section3_2 = HelpSectionComponent(
-            number="3-2",
-            title="Item Copy",
-            description="If you hold the Control key while moving, the item will be copied with a quantity of zero.",
-            image_path="app/resources/help_images/select_date.png"
-        )
+        for btn_text in button_types:
+            btn_label = QLabel(btn_text)
+            btn_label.setAlignment(Qt.AlignCenter)
+            btn_label.setMinimumSize(100, 35)
+            btn_label.setStyleSheet("""
+                background-color: #1428A0;
+                color: white;
+                padding: 8px 15px;
+                border-radius: 5px;
+                font-weight: bold;
+                font-family: Arial;
+                border: 1px solid #0D1B6D;
+            """)
+            buttons_layout.addWidget(btn_label)
 
-        section3_3 = HelpSectionComponent(
-            number="3-3",
-            title="Item Delete",
-            description="If you right-click the mouse, you can delete the item.",
-            image_path="app/resources/help_images/select_date.png"
-        )
+        buttons_layout.addStretch(1)
 
-        section3_4 = HelpSectionComponent(
-            number="3-4",
-            title="Change Visualization",
-            description="If you perform any of the actions above, the results in the area will update in real time.",
-            image_path="app/resources/help_images/select_date.png"
-        )
+        # 버튼 설명
+        button_desc = QLabel("Click each button to view different types of visualizations.")
+        button_desc.setWordWrap(True)
+        button_desc.setStyleSheet("font-size: 9pt; font-family: Arial; margin-top: 5px; border: none;")
 
-        section4 = HelpSectionComponent(
-            number=4,
-            title="Export Results",
-            description="Clicking this button allows you to save the results as an Excel file.",
-            image_path="app/resources/help_images/select_date.png"
-        )
+        viz_widget = QWidget()
+        viz_widget.setObjectName("viz_container")
+        viz_widget.setStyleSheet("border: none; background-color: transparent;")
+        viz_layout = QVBoxLayout(viz_widget)
+        viz_layout.setContentsMargins(20, 5, 5, 5)
+        viz_layout.setSpacing(5)
 
-        section5_1 = HelpSectionComponent(
-            number="5-1",
-            title="Item Filtering",
-            description="Here, you can view the filtered results.",
-            image_path="app/resources/help_images/select_date.png"
-        )
+        viz_layout.addWidget(buttons_container)
+        viz_layout.addWidget(button_desc)
 
-        section5_2 = HelpSectionComponent(
-            number="5-2",
-            title="Item Search",
-            description="If you search for the model name here, the corresponding item will be found.",
-            image_path="app/resources/help_images/select_date.png"
-        )
+        viz_section.text_widget.layout().addWidget(viz_widget)
 
-        # 섹션 프레임에 모든 섹션
-        sections_layout.addWidget(section1)
-        sections_layout.addWidget(section2)
-        sections_layout.addWidget(section3)
-        sections_layout.addWidget(section3_1)
-        sections_layout.addWidget(section3_2)
-        sections_layout.addWidget(section3_3)
-        sections_layout.addWidget(section3_4)
-        sections_layout.addWidget(section4)
-        sections_layout.addWidget(section5_1)
-        sections_layout.addWidget(section5_2)
+        sections_layout.addWidget(features_section)
+        sections_layout.addWidget(viz_section)
 
         # 메모 레이블
         note_label = QLabel(

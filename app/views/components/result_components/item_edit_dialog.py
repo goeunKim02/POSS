@@ -6,10 +6,8 @@ from PyQt5.QtGui import QFont, QCursor
 import pandas as pd
 
 
-"""
-아이템 정보 수정 다이얼로그
-"""
 class ItemEditDialog(QDialog):
+    """아이템 정보 수정 다이얼로그"""
 
     # 아이템 정보가 수정되었을 때 발생하는 시그널 (변경된 데이터, 필드별 변경 정보)
     itemDataChanged = pyqtSignal(dict, dict)
@@ -36,10 +34,8 @@ class ItemEditDialog(QDialog):
 
         self.init_ui()
 
-    """
-    그리드 위젯에서 사용 가능한 Line 값들을 가져옵니다.
-    """
     def get_available_lines(self):
+        """그리드 위젯에서 사용 가능한 Line 값들을 가져옵니다."""
         try:
             # 부모 위젯 계층을 탐색하여 ModifiedLeftSection 또는 row_headers를 가진 위젯 찾기
             parent = self.parent()
@@ -70,10 +66,8 @@ class ItemEditDialog(QDialog):
             print(f"사용 가능한 Line 가져오기 오류: {e}")
             return [f"Line {i}" for i in range(1, 6)]
 
-    """
-    UI 초기화
-    """
     def init_ui(self):
+        """UI 초기화"""
         self.setWindowTitle("아이템 정보 수정")
         self.setMinimumWidth(900)
         self.setMinimumHeight(300)
@@ -203,10 +197,8 @@ class ItemEditDialog(QDialog):
 
         main_layout.addWidget(button_container)
 
-    """
-    필드에 맞는 위젯 생성
-    """
     def _create_field_widget(self, field, layout):
+        """필드에 맞는 위젯 생성"""
         value = self.item_data.get(field)
         value_str = str(value) if pd.notna(value) else ""
 
@@ -259,10 +251,8 @@ class ItemEditDialog(QDialog):
 
         return widget
 
-    """
-    변경 사항 적용
-    """
     def accept_changes(self):
+        """변경 사항 적용"""
         try:
             # 수정된 데이터 수집
             updated_data = {}

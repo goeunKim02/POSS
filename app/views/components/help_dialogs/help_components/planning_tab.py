@@ -2,8 +2,6 @@ from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
 from PyQt5.QtGui import QFont
 from .base_tab import BaseTabComponent
 from .help_section_component import HelpSectionComponent
-from app.resources.fonts.font_manager import font_manager
-from app.models.common.screen_manager import *
 
 
 """
@@ -30,86 +28,58 @@ class PlanningTabComponent(BaseTabComponent):
             }
         """)
 
-
         # 콘텐츠 프레임 레이아웃
         frame_layout = QVBoxLayout(self.content_frame)
         frame_layout.setContentsMargins(20, 20, 20, 20)
-        frame_layout.setSpacing(h(10))
-
-        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
-        normal_font = font_manager.get_just_font("SamsungOne-700").family()
+        frame_layout.setSpacing(15)
 
         # 제목 레이블
         title_label = QLabel("Pre-Assigned Result")
+        title_font = QFont("Arial", 14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
         title_label.setStyleSheet(
-            f"color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent; font-family: {bold_font}; font-size: {f(21)}px;")
+            "color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent;")
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
         desc_label = QLabel("This page allows you to review the pre-assigned results.")
-        desc_label.setStyleSheet(f"margin-bottom: 15px; background-color: transparent; border:none; font-family: {normal_font}; font-size: {f(16)}px;")
+        desc_label.setWordWrap(True)
+        desc_font = QFont("Arial", 11)
+        desc_label.setFont(desc_font)
+        desc_label.setStyleSheet("margin-bottom: 15px; background-color: transparent; border:none;")
 
         # 섹션들을 담을 프레임
         sections_frame = QFrame()
         sections_frame.setStyleSheet("background-color: transparent; border:none;")
         sections_layout = QVBoxLayout(sections_frame)
         sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(h(10))
+        sections_layout.setSpacing(15)
 
         # 기능 섹션
-        ### 사진 수정 필요
-        section1 = HelpSectionComponent(
+        features_section = HelpSectionComponent(
             number=1,
-            title="View Assignment Results",
-            description="The results are displayed in a calendar format.",
-            image_path = "app/resources/help_images/select_date.png"
+            title="Features",
+            description="The pre-assigned result page provides several key functions:"
         )
+
+        # 기능 항목
+        features_section.add_list_item("Results Verification: Check the pre-assigned tasks in the table.")
+        features_section.add_list_item("Filtering: Click on headers to filter data by specific conditions.")
+        features_section.add_list_item("Sorting: Click on headers to apply ascending/descending sorting.")
+        features_section.add_list_item("Exporting: Click 'Export Excel' button to save results as an Excel file.")
+        features_section.add_list_item("Reset: Click 'Reset' button to revert any changes.")
 
         # 팁 섹션
-        section2 = HelpSectionComponent(
+        tips_section = HelpSectionComponent(
             number=2,
-            title="View Summary Results",
-            description="Here, you can see the quantified results of the output.",
-            image_path = "app/resources/help_images/select_date.png"
+            title="Tips",
+            description="Providing accurate information during the data input stage is essential for obtaining optimal results."
         )
-
-        section3 = HelpSectionComponent(
-            number=3,
-            title="Reset Results",
-            description="This button resets the results when clicked.",
-            image_path="app/resources/help_images/select_date.png"
-        )
-
-        section4 = HelpSectionComponent(
-            number=4,
-            title="Export Results",
-            description="Clicking this button allows you to save the results as an Excel file.",
-            image_path="app/resources/help_images/select_date.png"
-        )
-
-        section5_1 = HelpSectionComponent(
-            number="5-1",
-            title="Run Second Optimization",
-            description="By clicking this button, the secondary production scheduling algorithm will be executed.",
-            image_path="app/resources/help_images/select_date.png"
-        )
-
-        section5_2 = HelpSectionComponent(
-            number="5-2",
-            title="Select Project",
-            description="Here, you can select the projects to be reflected in the results.",
-            image_path="app/resources/help_images/select_date.png"
-        )
-
-
 
         # 섹션 프레임에 모든 섹션
-        sections_layout.addWidget(section1)
-        sections_layout.addWidget(section2)
-        sections_layout.addWidget(section3)
-        sections_layout.addWidget(section4)
-        sections_layout.addWidget(section5_1)
-        sections_layout.addWidget(section5_2)
+        sections_layout.addWidget(features_section)
+        sections_layout.addWidget(tips_section)
 
         # 메모 레이블
         note_label = QLabel(

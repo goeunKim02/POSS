@@ -27,22 +27,35 @@ class FilterWidget(QWidget):
         
     def init_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # 마진 제거
         main_layout.setSpacing(5)
+        
+        # 필터 제목 레이블
+        filter_label = QLabel("Filters:")
+        filter_label.setStyleSheet("""
+            QLabel {
+                color: #333333;
+                font-weight: bold;
+                font-size: 14px;  # 텍스트 크기 12px에서 14px로 증가
+                background-color: transparent;
+                border: none;
+            }
+        """)
+        main_layout.addWidget(filter_label)
         
         # 라인 필터 버튼
         self.line_filter_btn = QToolButton(self)
         self.line_filter_btn.setText("Line")
         self.line_filter_btn.setStyleSheet("""
             QToolButton {
-                background-color: white;
-                color: black;
+                background-color: white;  /* 배경색을 흰색으로 변경 */
+                color: black;  /* 텍스트 색을 검은색으로 변경 */
                 font-weight: bold;
                 padding: 6px 8px;
                 border-radius: 4px;
                 min-width: 120px;
-                border: 1px solid #808080;
-                margin-right: 10px;
+                border: 1px solid #808080;  /* 테두리 색상을 회색으로 통일 */
+                margin-right: 10px;  /* 버튼 간격 추가 */
             }
             QToolButton:hover {
                 background-color: #f0f0f0;
@@ -62,26 +75,19 @@ class FilterWidget(QWidget):
                 background-color: white;
                 border: 1px solid #d0d0d0;
                 padding: 5px;
-                min-width: 250px;
             }
             QMenu::item {
-                padding: 5px 20px 5px 20px;
+                padding: 5px 20px 5px 10px;
                 border: none;
             }
             QMenu::item:selected {
                 background-color: #f0f0f0;
-            }
-            QMenu::separator {
-                height: 1px;
-                background-color: #d0d0d0;
-                margin: 5px 15px;
             }
         """)
         
         # 메뉴 헤더 위젯 (Select All/Clear All 버튼)
         line_menu_header = QWidget()
         line_menu_header.setStyleSheet("background-color: transparent; border: none;")
-        line_menu_header.setMinimumWidth(300)
         line_header_layout = QHBoxLayout(line_menu_header)
         line_header_layout.setContentsMargins(5, 2, 5, 5)
         
@@ -93,7 +99,7 @@ class FilterWidget(QWidget):
                 font-weight: bold;
                 padding: 4px 8px;
                 border-radius: 4px;
-                min-width: 120px;
+                max-width: 100px;
                 border: none;
             }
             QPushButton:hover {
@@ -111,7 +117,7 @@ class FilterWidget(QWidget):
                 font-weight: bold;
                 padding: 4px 8px;
                 border-radius: 4px;
-                min-width: 120px;
+                max-width: 100px;
                 border: none;
             }
             QPushButton:hover {
@@ -145,7 +151,6 @@ class FilterWidget(QWidget):
         line_scroll.setWidget(self.line_checkbox_container)
         line_scroll.setStyleSheet("background-color: white; border: none;")
         line_scroll.setMaximumHeight(200)  # 최대 높이 제한
-        line_scroll.setMinimumWidth(300)
         
         # 스크롤 영역을 액션으로 추가
         line_scroll_action = QWidgetAction(self.line_filter_menu)
@@ -197,7 +202,6 @@ class FilterWidget(QWidget):
         # 메뉴 헤더 위젯
         project_menu_header = QWidget()
         project_menu_header.setStyleSheet("background-color: transparent; border: none;")
-        project_menu_header.setMinimumWidth(300)
         project_header_layout = QHBoxLayout(project_menu_header)
         project_header_layout.setContentsMargins(5, 2, 5, 5)
         
@@ -209,7 +213,7 @@ class FilterWidget(QWidget):
                 font-weight: bold;
                 padding: 4px 8px;
                 border-radius: 4px;
-                min-width: 120px;
+                max-width: 80px;
                 border: none;
             }
             QPushButton:hover {
@@ -227,7 +231,7 @@ class FilterWidget(QWidget):
                 font-weight: bold;
                 padding: 4px 8px;
                 border-radius: 4px;
-                min-width: 120px;
+                max-width: 80px;
                 border: none;
             }
             QPushButton:hover {
@@ -261,7 +265,6 @@ class FilterWidget(QWidget):
         project_scroll.setWidget(self.project_checkbox_container)
         project_scroll.setStyleSheet("background-color: white; border: none;")
         project_scroll.setMaximumHeight(200)  # 최대 높이 제한
-        project_scroll.setMinimumWidth(300)
         
         # 스크롤 영역을 액션으로 추가
         project_scroll_action = QWidgetAction(self.project_filter_menu)
@@ -292,8 +295,6 @@ class FilterWidget(QWidget):
             
     """필터 데이터 설정"""
     def set_filter_data(self, lines=None, projects=None):
-        max_width = 250
-
         if lines:
             # 모든 라인을 문자열로 변환하여 저장
             self.filter_data['line'] = sorted([str(line) for line in lines])

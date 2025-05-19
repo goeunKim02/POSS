@@ -9,9 +9,7 @@ from app.utils.fileHandler import load_file
 from app.views.components.common.custom_table import CustomTable
 from app.utils.sort_line import sort_line
 
-"""
-결과 요약 정보 표시 위젯
-"""
+"""결과 요약 정보 표시 위젯"""
 class SummaryWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,9 +27,7 @@ class SummaryWidget(QWidget):
         main_layout.addWidget(self.summary_table)
 
 
-    """
-    master 파일에서 라인별 생산능력 로드
-    """
+    """master 파일에서 라인별 생산능력 로드"""
     def load_line_capacity_data(self):
         try:
             master_file = FilePaths.get('master_excel_file')
@@ -66,9 +62,7 @@ class SummaryWidget(QWidget):
             print(f"라인별 생산능력 로드 오류: {e}")
 
 
-    """
-    라인별 가동률 계산
-    """
+    """라인별 가동률 계산"""
     def calculate_line_utilization(self, result_data):
         try:
             # 라인별 생산량 계산
@@ -93,9 +87,7 @@ class SummaryWidget(QWidget):
             print(f"라인별 가동률 계산 오류: {e}")
 
 
-    """
-    결과 분석 및 테이블 업데이트
-    """
+    """결과 분석 및 테이블 업데이트"""
     def run_analysis(self, result_data):
         if result_data is None or result_data.empty:
             self.clear_table()
@@ -119,9 +111,7 @@ class SummaryWidget(QWidget):
             print(f"summary 요약 중 에러 : {e}")
 
 
-    """
-    요약 데이터 생성
-    """
+    """요약 데이터 생성"""
     def create_summary(self, result_data, capa_ratios):
         # 제조동별 데이터 추출
         result_data = result_data.copy()
@@ -269,9 +259,7 @@ class SummaryWidget(QWidget):
         return summary_df
     
 
-    """
-    테이블 업데이트
-    """
+    """테이블 업데이트"""
     def update_table(self, summary_df):
         if summary_df.empty:
             self.clear_table()
@@ -365,9 +353,7 @@ class SummaryWidget(QWidget):
         self.summary_table.setColumnWidth(0, 150)
 
 
-    """
-    테이블 초기화
-    """
+    """테이블 초기화"""
     def clear_table(self):
         self.summary_table.setRowCount(0)
         self.summary_table.setColumnCount(0)

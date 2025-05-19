@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-                             QTabWidget, QTabBar, QFrame, QMessageBox, QCheckBox,
+                             QTabWidget, QFrame, QMessageBox, QCheckBox,
                              QFormLayout, QDoubleSpinBox)
-from PyQt5.QtGui import QFont, QCursor, QColor, QFontMetrics
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
+from PyQt5.QtGui import QFont, QCursor, QColor
+from PyQt5.QtCore import Qt, pyqtSignal
 
 from app.resources.fonts.font_manager import font_manager
 
@@ -14,50 +14,11 @@ from app.views.components.settings_dialogs.settings_components import (
 
 from app.models.common.settings_store import SettingsStore
 from app.views.components.settings_dialogs.settings_components.settings_section import ModernSettingsSectionComponent
-from app.models.common.screen_manager import *
-
-"""
-커스텀 탭바 클래스 - 탭 크기 자동 계산
-"""
-
-
-class CustomTabBar(QTabBar):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setExpanding(False)
-        self.setUsesScrollButtons(False)
-        self.setElideMode(Qt.ElideNone)
-        self.setDocumentMode(True)
-
-    def tabSizeHint(self, index):
-        # 기본 힌트 가져오기
-        hint = super().tabSizeHint(index)
-
-        # 텍스트 너비 계산
-        text = self.tabText(index)
-        font = self.font()
-        font.setFamily(font_manager.get_just_font("SamsungOne-700").family())
-        font.setPointSizeF(f(14))
-        font.setBold(True)
-
-        metrics = QFontMetrics(font)
-        text_width = metrics.horizontalAdvance(text)
-
-        # 최소 필요 너비 (텍스트 + 여유 공간)
-        padding = 24  # 좌우 패딩 합계
-        min_width = text_width + padding
-
-        # 힌트 너비 설정 (최소 필요 너비)
-        hint.setWidth(min_width)
-
-        return hint
 
 
 """
 설정 다이얼로그 창
 """
-
-
 class SettingsDialog(QDialog):
     settings_changed = pyqtSignal(dict)
 
@@ -81,7 +42,6 @@ class SettingsDialog(QDialog):
     """
     공통 스타일 설정
     """
-
     def setStyle(self):
         self.setStyleSheet("""
             QDialog {
@@ -113,12 +73,8 @@ class SettingsDialog(QDialog):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # 탭 위젯 (커스텀 탭바 적용)
+        # 탭 위젯
         self.tab_widget = QTabWidget()
-        custom_tab_bar = CustomTabBar()
-        self.tab_widget.setTabBar(custom_tab_bar)
-
-        # 간단한 스타일시트 적용
         self.tab_widget.setStyleSheet(f"""      
             QTabWidget::pane {{
                 background-color: #ffffff;
@@ -136,12 +92,12 @@ class SettingsDialog(QDialog):
             QTabBar::tab {{
                 background: transparent;
                 color: #666;
-                padding: 8px 12px;
+                padding: 16px 24px;
                 font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                font-size: {f(14)}px;
+                font-size: 14px;
                 font-weight: 600;
                 border-bottom: 3px solid transparent;
-                margin-right: 2px;
+                margin-right: 0px;
             }}
 
             QTabBar::tab:hover {{
@@ -171,7 +127,6 @@ class SettingsDialog(QDialog):
 
         self.connect_material_constraint_to_weight()
 
-        # 탭 추가
         self.tab_widget.addTab(self.basic_tab, "Basic")
         self.tab_widget.addTab(self.pre_option_tab, "Pre-Option")
         self.tab_widget.addTab(self.detail_tab, "Detail")
@@ -250,7 +205,6 @@ class SettingsDialog(QDialog):
     """
     탭에 스타일 적용
     """
-
     def apply_modern_style_to_tab(self, tab):
         tab.setStyleSheet("""
             QScrollArea {
@@ -279,14 +233,13 @@ class SettingsDialog(QDialog):
     """
     Material Constraint와 Weight by Material Quantity 연동
     """
-
     def connect_material_constraint_to_weight(self):
         try:
             material_constraint_checkbox = None
 
             for i in range(self.detail_tab.content_layout.count()):
                 section = self.detail_tab.content_layout.itemAt(i).widget()
-
+                
                 if isinstance(section, ModernSettingsSectionComponent) and section.title == "Material":
                     for j in range(section.settings_layout.rowCount()):
                         label_item = section.settings_layout.itemAt(j, QFormLayout.LabelRole)
@@ -306,7 +259,7 @@ class SettingsDialog(QDialog):
 
             for i in range(self.basic_tab.content_layout.count()):
                 section = self.basic_tab.content_layout.itemAt(i).widget()
-
+                
                 if isinstance(section, ModernSettingsSectionComponent) and section.title == "Weight":
                     for j in range(section.settings_layout.rowCount()):
                         label_item = section.settings_layout.itemAt(j, QFormLayout.LabelRole)
@@ -316,8 +269,7 @@ class SettingsDialog(QDialog):
                             label_widget = label_item.widget()
                             field_widget = field_item.widget()
 
-                            if isinstance(label_widget,
-                                          QLabel) and label_widget.text() == "Weight by Material Quantity":
+                            if isinstance(label_widget,QLabel) and label_widget.text() == "Weight by Material Quantity":
                                 if isinstance(field_widget, QDoubleSpinBox):
                                     weight_material_spinbox = field_widget
                                     break
@@ -335,7 +287,6 @@ class SettingsDialog(QDialog):
                 """
                 체크박스 상태 변경 시 스핀박스 활성/비활성화
                 """
-
                 def on_material_constraint_changed(state):
                     is_checked = bool(state)
                     weight_material_spinbox.setEnabled(is_checked)
@@ -345,7 +296,6 @@ class SettingsDialog(QDialog):
                     else:
                         weight_material_spinbox.setStyleSheet(self._get_disabled_doublespinbox_style())
                         # 비활성화되어도 값은 그대로 유지
-
                 material_constraint_checkbox.stateChanged.connect(on_material_constraint_changed)
 
         except Exception as e:
@@ -354,7 +304,6 @@ class SettingsDialog(QDialog):
     """
     활성화된 더블스핀박스 스타일
     """
-
     def _get_enabled_doublespinbox_style(self):
         return """
             QDoubleSpinBox {
@@ -385,7 +334,6 @@ class SettingsDialog(QDialog):
     """
     비활성화된 더블스핀박스 스타일
     """
-
     def _get_disabled_doublespinbox_style(self):
         return """
             QDoubleSpinBox {
@@ -408,7 +356,6 @@ class SettingsDialog(QDialog):
     """
     저장된 설정 로드
     """
-
     def load_settings(self):
         SettingsStore.load_settings()
         self.settings_map = SettingsStore.get_all()
@@ -416,14 +363,12 @@ class SettingsDialog(QDialog):
     """
     설정 변경 시 호출되는 콜백
     """
-
     def on_setting_changed(self, key, value):
         self.settings_map[key] = value
 
     """
     설정 저장 및 다이얼로그 종료
     """
-
     def save_settings(self):
         try:
             SettingsStore.update(self.settings_map)

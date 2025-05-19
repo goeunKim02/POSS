@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import (
     QFrame, QSizePolicy, QGridLayout, QMessageBox
 )
 from PyQt5.QtCore import Qt
-from typing import List
 
 from ....resources.styles.pre_assigned_style import (
     LINE_LABEL_STYLE, DAY_LABEL_STYLE, NIGHT_LABEL_STYLE, SEPARATOR_STYLE
@@ -17,7 +16,7 @@ from .detail_dialog import DetailDialog
 주간 캘린더 형태로 데이터 표시하는 위젯
 """
 class WeeklyCalendar(QWidget):
-    def __init__(self, data: pd.DataFrame, line_order: List[str]=None):
+    def __init__(self, data: pd.DataFrame):
         super().__init__()
         self.data = data.rename(columns={
             "Line": "line",
@@ -35,7 +34,6 @@ class WeeklyCalendar(QWidget):
            11: "Sat-Day",12: "Sat-Night",
            13: "Sun-Day",14: "Sun-Night"
         }
-        self.line_order = line_order
         self.init_ui()
 
     def init_ui(self):
@@ -61,11 +59,7 @@ class WeeklyCalendar(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
 
-        if self.line_order:
-            lines = self.line_order
-        else:
-            lines = sorted(self.data['line'].unique())
-            
+        lines = sorted(self.data['line'].unique())
         row_index = 0
 
         for line in lines:

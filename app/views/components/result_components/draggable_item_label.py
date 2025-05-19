@@ -3,7 +3,6 @@ from PyQt5.QtCore import Qt, QMimeData, pyqtSignal
 from PyQt5.QtGui import QDrag, QPixmap, QPainter, QColor, QFont
 import pandas as pd
 import json
-import uuid
 from app.resources.styles.item_style import ItemStyle
 
 
@@ -15,9 +14,6 @@ class DraggableItemLabel(QFrame):
 
     # 아이템 더블클릭 이벤트를 위한 시그널 추가
     itemDoubleClicked = pyqtSignal(object)  # 더블클릭된 아이템 참조를 전달
-
-    # 검색 포커스 상태 변수
-    is_search_focused = False
 
     # 아이템 삭제를 위한 시그널 추가
     itemDeleteRequested = pyqtSignal(object) # 마우스 우측 클릭하면 삭제 버튼이 나옴
@@ -53,10 +49,6 @@ class DraggableItemLabel(QFrame):
         # 아이템 데이터 저장 (엑셀 행 정보)
         self.item_data = item_data
 
-        # 고유 ID 확인 및 생성
-        if self.item_data and '_id' not in self.item_data:
-            self.item_data['_id'] = str(uuid.uuid4())
-
         # 아이템 상태선 제어 속성
         self.show_shortage_line = True  # 자재부족 선 표시 여부
         self.show_shipment_line = False
@@ -77,12 +69,11 @@ class DraggableItemLabel(QFrame):
         # 툴팁 자동 표시 활성화
         self.setMouseTracking(True)
 
-        # 검색 포커스 상태
-        self.is_search_focused = False
-
         # 컨텍스트 메뉴 설정
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_context_menu)
+
+
 
     """내부 레이아웃 설정 - 아이템명과 수량을 분리"""
     def setup_layout(self, text):
@@ -93,16 +84,16 @@ class DraggableItemLabel(QFrame):
         # 텍스트에서 아이템명과 수량 분리
         if self.item_data and 'Item' in self.item_data:
             item_name = str(self.item_data['Item'])
-            qty = self.item_data.get('Qty', 0)  # 숫자로 저장 (기본값 0)
+            qty = self.item_data.get('Qty', '') if self.item_data else ''
         else:
             # 기존 텍스트 파싱 (Item    Qty 형태)
             parts = text.split()
             if len(parts) >= 2:
                 item_name = parts[0]
-                qty = int(parts[-1])
+                qty = parts[-1]
             else:
                 item_name = text
-                qty = 0
+                qty = ''
 
         # 아이템명 라벨 (왼쪽 정렬)
         self.item_label = QLabel(item_name)
@@ -113,7 +104,7 @@ class DraggableItemLabel(QFrame):
         self.item_label.setWordWrap(True)  # WordWrap 활성화 : 활성화해야 컨테이너 높이 자동화 가능 
 
         # 수량 라벨 (오른쪽 정렬)
-        self.qty_label = QLabel(str(qty) if qty > 0 else "0")  # 0이어도 표시
+        self.qty_label = QLabel(str(qty) if qty else '')
         self.qty_label.setFont(QFont("Arial", 9))
         self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.qty_label.setStyleSheet("background: transparent; border: none;")
@@ -266,12 +257,6 @@ class DraggableItemLabel(QFrame):
                 else:
                     serializable_data[k] = str(v)
 
-            # 고유 ID 확인
-            if '_id' not in serializable_data:
-                serializable_data['_id'] = str(uuid.uuid4())
-                # 원본 item_data에도 ID 추가
-                self.item_data['_id'] = serializable_data['_id']
-
             # JSON으로 직렬화하여 MIME 데이터에 저장
             json_data = json.dumps(serializable_data)
             mime_data.setData("application/x-item-full-data", json_data.encode())
@@ -383,10 +368,6 @@ class DraggableItemLabel(QFrame):
 
     """현재 상태에 맞게 스타일 업데이트"""
     def update_style(self):
-        # 검색 포커스 스타일
-        if self.is_search_focused:
-            self.setStyleSheet(ItemStyle.SEARCH_FOCUSED_STYLE)
-            return
         if self.is_selected:
             if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_SELECTED_STYLE)
@@ -426,22 +407,12 @@ class DraggableItemLabel(QFrame):
     def update_text_from_data(self):        
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
-            qty = self.item_data.get('Qty', 0)
+            qty = str(self.item_data['Qty']) if 'Qty' in self.item_data and pd.notna(self.item_data['Qty']) else ''
             
-            # 수량 처리 - None이나 공백도 0으로 표시
-            if qty is None or qty == '':
-                qty = 0
-            
-            # 문자열인 경우 정수로 변환 시도
-            if isinstance(qty, str):
-                qty_value = int(qty)
-            else:
-                qty_value = qty
-                
             if hasattr(self, 'item_label'):
                 self.item_label.setText(item_info)
             if hasattr(self, 'qty_label'):
-                self.qty_label.setText(str(qty) if qty_value > 0 else "0")
+                self.qty_label.setText(qty)
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):
@@ -551,16 +522,6 @@ class DraggableItemLabel(QFrame):
             self.item_label.setWordWrap(wrap)
         if hasattr(self, 'qty_label'):
             self.qty_label.setWordWrap(wrap)
-
-    """
-    검색 포커스 설정 메서드
-    """
-    def set_search_focus(self, focused=True):
-        if self.is_search_focused == focused:
-            return
-        
-        self.is_search_focused = focused
-        self.update_style()
 
     """ 아이템을 삭제할 때 사용할 메서드 입니다."""
     def show_context_menu(self, position):

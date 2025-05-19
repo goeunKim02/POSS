@@ -16,28 +16,18 @@ class SummaryWidget(QWidget):
         layout.setSpacing(12)
 
         # 데이터 집계
-        df_qty = (
-            df.groupby('Line', as_index=False)['Qty'].sum()
-            .sort_values(by='Qty', ascending=False)
-            .reset_index(drop=True)
-        )
+        df_qty = df.groupby('Line', as_index=False)['Qty'].sum()
         grand_total = df_qty['Qty'].sum()
 
         # 동별 그룹핑
         groups = {}
+
         for line in df_qty['Line']:
             prefix = line.split('_')[0]
             groups.setdefault(prefix, []).append(line)
 
-        # 그룹별 총합 계산 및 정렬
-        group_summaries = []
-        for prefix, lines in groups.items():
-            group_sum = df_qty[df_qty['Line'].isin(lines)]['Qty'].sum()
-            group_summaries.append((prefix, lines, group_sum))
-        group_summaries.sort(key=lambda x: x[2], reverse=True)
-
         # 전체 행 개수 계산
-        total_rows = 1 + sum(1 + len(lines) for _, lines, _ in group_summaries)
+        total_rows = 1 + sum(1 + len(lines) for lines in groups.values())
         table = QTableWidget(total_rows, 4, self)
         table.setHorizontalHeaderLabels(["Building", "Line", "Sum", "Portion"])
         table.verticalHeader().setVisible(False)
@@ -87,9 +77,10 @@ class SummaryWidget(QWidget):
         row += 1
 
         # 그룹별
-        for prefix, lines, group_sum in group_summaries:
+        for prefix, lines in groups.items():
             start = row
-            span_count = 1 + len(lines)
+            span_count = len(lines) + 1
+            group_sum = df_qty[df_qty['Line'].isin(lines)]['Qty'].sum()
             group_share = round(group_sum / grand_total * 100, 1)
 
             # Building

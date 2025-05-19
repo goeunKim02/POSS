@@ -66,10 +66,10 @@ def analyze_line_allocation(result_df=None, only_split=True):
             print("분석할 결과 데이터가 없습니다.")
             return None, None, None
         
-        # print(f"결과 파일의 총 레코드: {len(result_df)}")
-        # print(f"고유 라인 수: {result_df['Line'].nunique()}")
-        # print(f"고유 프로젝트 수: {result_df['Project'].nunique()}")
-        # print(f"고유 모델(Item) 수: {result_df['Item'].nunique()}")
+        print(f"결과 파일의 총 레코드: {len(result_df)}")
+        print(f"고유 라인 수: {result_df['Line'].nunique()}")
+        print(f"고유 프로젝트 수: {result_df['Project'].nunique()}")
+        print(f"고유 모델(Item) 수: {result_df['Item'].nunique()}")
         
         # 올바른 방법으로 Item에서 지역 추출
         result_df['Region'] = result_df.apply(

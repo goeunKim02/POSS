@@ -1,16 +1,14 @@
-from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QLineEdit, QCheckBox, QWidget, QDoubleSpinBox, QGridLayout
+from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QLineEdit, QCheckBox
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt
 from .base_tab import BaseTabComponent
 from .settings_section import ModernSettingsSectionComponent
 from app.models.common.settings_store import SettingsStore
 from app.resources.fonts.font_manager import font_manager
 
+
 """
 Detail 탭 컴포넌트
 """
-
-
 class ModernDetailTabComponent(BaseTabComponent):
 
     def __init__(self, parent=None):
@@ -20,7 +18,6 @@ class ModernDetailTabComponent(BaseTabComponent):
     """
     콘텐츠 초기화
     """
-
     def init_content(self):
         # 헤더 섹션
         header_frame = QFrame()
@@ -153,20 +150,19 @@ class ModernDetailTabComponent(BaseTabComponent):
             default=bool(SettingsStore.get("weight_day_ox", 0))
         )
 
-        # 기존 weight_day 값 가져오기
-        weight_day = SettingsStore.get("weight_day", [1.0] * 14)
-        # 리스트 길이가 14가 아니면 14개로 맞추기
-        if len(weight_day) != 14:
-            weight_day = weight_day + [1.0] * (14 - len(weight_day)) if len(weight_day) < 14 else weight_day[:14]
+        # shift별 가중치 처리
+        weight_day = SettingsStore.get("weight_day", [1.0, 1.0, 1.0])
+        weight_day_str = ", ".join(map(str, weight_day))
 
-        # Shift-Based Weights Grid 생성
-        shift_weights_grid = operation_rate_section.add_setting_item(
-            "Shift-Based Weights", "weight_day", "shift_grid",
-            default_values=weight_day
+        # Shift-Based Weights 입력 필드
+        shift_weights_input = operation_rate_section.add_setting_item(
+            "Shift-Based Weights(Comma-separated)", "weight_day_str", "input",
+            default=weight_day_str
         )
 
-        # 체크박스와 그리드 연결
-        self._connect_checkbox_to_grid(shift_weight_checkbox, shift_weights_grid)
+        # 체크박스와 입력 필드 연결 (Operation Rate)
+        self._connect_checkbox_to_input(shift_weight_checkbox, shift_weights_input,
+                                        default_value="1.0, 1.0, 1.0")
 
         self.content_layout.addWidget(path_section)
         self.content_layout.addWidget(line_change_section)
@@ -179,7 +175,6 @@ class ModernDetailTabComponent(BaseTabComponent):
     """
     체크박스와 입력 필드를 연결하는 헬퍼 메서드
     """
-
     def _connect_checkbox_to_input(self, checkbox_widget, input_widget, default_value=""):
         if isinstance(checkbox_widget, QCheckBox) and isinstance(input_widget, QLineEdit):
             input_widget.setEnabled(checkbox_widget.isChecked())
@@ -189,6 +184,7 @@ class ModernDetailTabComponent(BaseTabComponent):
 
             input_widget.setProperty('default_value', default_value)
 
+            # 체크박스 상태 변경 시 입력 필드 활성/비활성화
             # 체크박스 상태 변경 시 입력 필드 활성/비활성화
             def on_checkbox_state_changed(state):
                 is_checked = bool(state)
@@ -204,53 +200,8 @@ class ModernDetailTabComponent(BaseTabComponent):
             checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
 
     """
-    체크박스와 그리드를 연결하는 헬퍼 메서드
-    """
-
-    def _connect_checkbox_to_grid(self, checkbox_widget, grid_widget):
-        if isinstance(checkbox_widget, QCheckBox):
-            grid_widget.setEnabled(checkbox_widget.isChecked())
-
-            if not checkbox_widget.isChecked():
-                grid_widget.setStyleSheet("""
-                    QWidget {
-                        background-color: #f5f5f5;
-                        border: 1px solid #ddd;
-                        color: #888;
-                    }
-                    QDoubleSpinBox {
-                        background-color: #f5f5f5;
-                        border: 1px solid #ddd;
-                        color: #888;
-                    }
-                """)
-
-            def on_checkbox_state_changed(state):
-                is_checked = bool(state)
-                grid_widget.setEnabled(is_checked)
-
-                if is_checked:
-                    grid_widget.setStyleSheet("")  # 기본 스타일로 복원
-                else:
-                    grid_widget.setStyleSheet("""
-                        QWidget {
-                            background-color: #f5f5f5;
-                            border: 1px solid #ddd;
-                            color: #888;
-                        }
-                        QDoubleSpinBox {
-                            background-color: #f5f5f5;
-                            border: 1px solid #ddd;
-                            color: #888;
-                        }
-                    """)
-
-            checkbox_widget.stateChanged.connect(on_checkbox_state_changed)
-
-    """
     활성화된 입력 필드 스타일
     """
-
     def _get_enabled_input_style(self):
         return """
             QLineEdit {
@@ -272,7 +223,6 @@ class ModernDetailTabComponent(BaseTabComponent):
     """
     비활성화된 입력 필드 스타일
     """
-
     def _get_disabled_input_style(self):
         return """
             QLineEdit {
@@ -289,7 +239,18 @@ class ModernDetailTabComponent(BaseTabComponent):
     """
     설정 변경 시 호출되는 콜백
     """
-
     def on_setting_changed(self, key, value):
-        SettingsStore.set(key, value)
-        self.settings_changed.emit(key, value)
+        if key == "weight_day_str":
+            try:
+                # 쉼표로 구분된 문자열을 리스트로 변환
+                value_list = [float(item.strip()) for item in value.split(",")]
+                SettingsStore.set("weight_day", value_list)
+                self.settings_changed.emit("weight_day", value_list)
+            except ValueError:
+                # 숫자로 변환할 수 없는 경우 기본값 사용
+                print("올바른 숫자 형식이 아닙니다. 기본값을 사용합니다.")
+                SettingsStore.set("weight_day", [1.0, 1.0, 1.0])
+                self.settings_changed.emit("weight_day", [1.0, 1.0, 1.0])
+        else:
+            SettingsStore.set(key, value)
+            self.settings_changed.emit(key, value)

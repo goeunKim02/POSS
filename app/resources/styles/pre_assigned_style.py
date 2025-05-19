@@ -1,83 +1,32 @@
 # 버튼 스타일
-from app.models.common.screen_manager import *
-from app.resources.fonts.font_manager import font_manager
-
-button_font = font_manager.get_just_font("SamsungOne-700").family()
-
-PRIMARY_BUTTON_STYLE = f"""
-QPushButton {{
-    background-color: #1428A0; 
-    color: white; 
-    border: none;
+PRIMARY_BUTTON_STYLE = """
+QPushButton {
+    background-color: #1428A0;
+    color: white;
+    padding: 8px 10px;
     border-radius: 5px;
-    padding: {h(8)}px {w(16)}px;
-    min-width: {w(60)}px;
-    min-height: {h(10)}px;
-    font-family: {button_font};
-    font-size: {f(16)}px;
-}}
-QPushButton:hover {{
-    background-color: #0069d9;
-}}
-QPushButton:pressed {{
-    background-color: #0062cc;
-}}
+}
+QPushButton:hover {
+    background-color: #004C99;
+}
+QPushButton:pressed {
+    background-color: #003366;
+}
 """
 
-SECONDARY_BUTTON_STYLE = f"""
-QPushButton {{
+SECONDARY_BUTTON_STYLE = """
+QPushButton {
     background-color: #ACACAC;
     color: white;
+    padding: 8px 10px;
     border-radius: 5px;
-    padding: {h(8)}px {w(16)}px;
-    min-width: {w(60)}px;
-    min-height: {h(10)}px;
-    font-family: {button_font};
-    font-size: {f(16)}px;
-}}
-QPushButton:hover {{
+}
+QPushButton:hover {
     background-color: #C0C0C0;
-}}
-QPushButton:pressed {{
+}
+QPushButton:pressed {
     background-color: #848282;
-}}
-"""
-
-ACTIVE_BUTTON_STYLE = """
-    QPushButton {
-        background-color: #1428A0; 
-        color: white; 
-        font-weight: bold; 
-        padding: 8px 8px; 
-        border-radius: 4px;
-    }
-    QPushButton:disabled {
-        background-color: #1428A0; 
-        color: white; 
-        font-weight: bold; 
-        padding: 8px 8px; 
-        border-radius: 4px;
-    }
-"""
-
-INACTIVE_BUTTON_STYLE = """
-    QPushButton {
-        background-color: #8E9CC9; 
-        color: white; 
-        font-weight: bold; 
-        padding: 8px 8px; 
-        border-radius: 4px;
-    }
-    QPushButton:disabled {
-        background-color: #8E9CC9; 
-        color: white; 
-        font-weight: bold; 
-        padding: 8px 8px; 
-        border-radius: 4px;
-    }
-    QPushButton:hover {
-        background-color: #1428A0;
-    }
+}
 """
 
 # 캘린더 헤더의 요일 레이블 스타일

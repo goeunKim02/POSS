@@ -28,9 +28,7 @@ from app.analysis.input.shipment_analysis import calculate_fulfillment_rate
 from app.models.input.capa import process_data
 from app.models.input.shipment import preprocess_data_for_fulfillment_rate
 from app.resources.fonts.font_manager import font_manager
-from app.utils.command.undo_redo_initializer import initialize_undo_redo_in_data_input_page
 from app.models.common.screen_manager import *
-from app.models.common.settings_store import SettingsStore
 
 class DataInputPage(QWidget) :
     file_selected = pyqtSignal(str)
@@ -51,8 +49,6 @@ class DataInputPage(QWidget) :
 
         self._connect_signals()
 
-        initialize_undo_redo_in_data_input_page(self)
-
     def init_ui(self) :
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -66,40 +62,40 @@ class DataInputPage(QWidget) :
 
         top_container = QFrame()
         top_container_layout = QVBoxLayout(top_container)
-        top_container_layout.setContentsMargins(w(10), h(10), w(10), h(10))
-        top_container_layout.setSpacing(h(10))
+        top_container_layout.setContentsMargins(m(10), m(10), m(10), m(10))
+        top_container_layout.setSpacing(s(10))
         top_container.setStyleSheet("background-color: #F5F5F5; border-radius: 0px;")
         top_container.setMinimumHeight(h(100))
 
-        # title_row 레이아웃을 수정하여 타이틀과 버튼이 같은 높이에 있도록 합니다
         title_row = QFrame()
-        title_row.setStyleSheet("background-color: transparent;")
+        title_row.setStyleSheet(f"background-color: transparent; padding-bottom:10px;")
         title_row_layout = QHBoxLayout(title_row)
-        title_row_layout.setContentsMargins(0, 0, 0, 0)  # 여백 제거
-        title_row_layout.setSpacing(w(10))  # 구성 요소 사이 간격 설정
-        title_row_layout.setAlignment(Qt.AlignVCenter)  # 수직 중앙 정렬
+        title_row_layout.setContentsMargins(0, 0, m(16), 0)
+        title_row_layout.setAlignment(Qt.AlignVCenter)
 
-        # 타이틀 레이블 설정
+
         title_label = QLabel("Upload Data")
-        title_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
-        title_label.setStyleSheet(f"font-family: {title_font}; font-size: {f(21)}px; font-weight: 900;")
+        title_label.setStyleSheet("padding: 0px;")
+        title_label.setMinimumWidth(h(25))  # 버튼과 동일한 높이
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)  # 수직 중앙, 수평 왼쪽 정렬
+        title_font = font_manager.get_font("SamsungOne-700", 15)
+        title_font.setBold(True)
+        title_font.setWeight(99)
+        title_label.setFont(title_font)
 
-        # 버튼 폰트 설정
-        button_font = font_manager.get_just_font("SamsungOne-700").family()
+        title_row_layout.addWidget(title_label, 1)
 
-        # 버튼 생성 및 스타일 설정
         save_btn = QPushButton("Save")
         save_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        save_btn.setFixedSize(w(100), h(40))  # 버튼 크기 고정
         save_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                font-family: {button_font};
-                font-size: {f(16)}px;
+                padding: 8px 16px;
+                min-width: 30px;
+                min-height: 10px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -107,19 +103,21 @@ class DataInputPage(QWidget) :
             QPushButton:pressed {{
                 background-color: #0062cc;
             }}
-        """)
+        """)  # f-string으로 변경하고 모든 중괄호 두 개로 수정
+        # save_btn.setFixedWidth(80)  # 원래 크기로
+        # save_btn.setFixedHeight(30)  # 원래 크기로
 
         run_btn = QPushButton("Run")
         run_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        run_btn.setFixedSize(w(100), h(40))  # 버튼 크기 고정
         run_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: #1428A0; 
                 color: white; 
                 border: none;
                 border-radius: 5px;
-                font-family: {button_font};
-                font-size: {f(16)}px;
+                padding: 8px 16px;
+                min-width: 30px;
+                min-height: 10px;
             }}
             QPushButton:hover {{
                 background-color: #0069d9;
@@ -128,28 +126,29 @@ class DataInputPage(QWidget) :
                 background-color: #0062cc;
             }}
         """)
+        # run_btn.setFixedWidth(80)
+        # run_btn.setFixedHeight(30)
 
-        # 버튼 클릭 이벤트 연결
+        # font_manager 사용법 수정
+        run_font = font_manager.get_font("SamsungOne-700", 9)
+        run_font.setBold(True)
+        run_btn.setFont(run_font)
+        save_btn.setFont(run_font)
+
         run_btn.clicked.connect(self.on_run_clicked)
         save_btn.clicked.connect(self.on_save_clicked)
 
-        # 레이아웃에 위젯 추가 (타이틀, 스트레치, 버튼들)
-        title_row_layout.addWidget(title_label)
-        title_row_layout.addStretch(1)  # 타이틀과 버튼 사이에 신축성 있는 공간 추가
         title_row_layout.addWidget(save_btn)
         title_row_layout.addWidget(run_btn)
-
-        # top_container_layout에 title_row 추가
-        top_container_layout.addWidget(title_row)
 
         input_section = QFrame()
         input_section.setFrameShape(QFrame.StyledPanel)
         input_section.setStyleSheet("background-color: white; border-radius: 0px; border: 3px solid #cccccc;")
-        input_section.setFixedHeight(h(50))
+        input_section.setFixedHeight(50)
 
         input_layout = QHBoxLayout(input_section)
-        input_layout.setContentsMargins(w(10), h(5), w(10), h(5))
-        input_layout.setSpacing(30)
+        input_layout.setContentsMargins(10, 5, 10, 5)
+        input_layout.setSpacing(0)
 
         self.date_selector = DateRangeSelector()
         self.file_uploader = FileUploadComponent()
@@ -163,10 +162,10 @@ class DataInputPage(QWidget) :
         bottom_container = QFrame()
         bottom_container.setStyleSheet("background-color: #F5F5F5;")
         bottom_container_layout = QVBoxLayout(bottom_container)
-        bottom_container_layout.setContentsMargins(w(10), h(10), w(10), h(10))
+        bottom_container_layout.setContentsMargins(10, 10, 10, 10)
 
         main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setHandleWidth(w(5))
+        main_splitter.setHandleWidth(5)
         main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
         main_splitter.setContentsMargins(0, 0, 0, 0)
 
@@ -176,7 +175,7 @@ class DataInputPage(QWidget) :
         right_area.setFrameShape(QFrame.NoFrame)
         right_area.setStyleSheet("background-color: #F5F5F5; border-radius: 0px; border: none;")
         right_layout = QVBoxLayout(right_area)
-        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setContentsMargins(5, 5, 5, 5)
 
         vertical_splitter = QSplitter(Qt.Vertical)
         vertical_splitter.setHandleWidth(10)
@@ -201,8 +200,7 @@ class DataInputPage(QWidget) :
 
         maximize_button = QPushButton()
         maximize_button.setIcon(self.style().standardIcon(self.style().SP_TitleBarShadeButton))
-        maximize_button.setStyleSheet("border: none; margin-top: 5px;")
-        maximize_button.setCursor(QCursor(Qt.PointingHandCursor))
+        maximize_button.setStyleSheet("border: 1px solid gray; border-radius: 0px; margin-top: 5px; margin-right:12px")
         maximize_button.clicked.connect(self.open_parameter_component) 
         maximize_button.setVisible(False)
         maximize_button.setObjectName("maximize_button")
@@ -368,9 +366,8 @@ class DataInputPage(QWidget) :
     """
 
     def show_optimization_progress(self):
-        """최적화 프로그래스 다이얼로그 표시"""
-        # 프로그래스 다이얼로그 생성 (DataInputPage 객체 전달)
-        self.progress_dialog = OptimizationProgressDialog(self, self)
+        # 프로그래스 다이얼로그 생성
+        self.progress_dialog = OptimizationProgressDialog(self)
 
         # 최적화 완료 시그널 연결
         self.progress_dialog.optimization_completed.connect(self.on_optimization_completed)
@@ -379,23 +376,20 @@ class DataInputPage(QWidget) :
         # 다이얼로그가 닫힐 때 호출되는 함수
         self.progress_dialog.finished.connect(self.on_dialog_finished)
 
-        # 먼저 다이얼로그 표시
-        self.progress_dialog.show()
+        # 최적화 시작을 먼저 호출
+        self.progress_dialog.start_optimization()
 
-        # UI가 업데이트될 시간을 주기 위해 약간의 지연 후 최적화 시작
-        QTimer.singleShot(300, self.progress_dialog.start_optimization)
+        # 모달 다이얼로그로 실행 (exec_() 사용)
+        self.progress_dialog.exec_()
 
-    def on_optimization_completed(self, result):
-        """최적화 완료 처리"""
-        if result:
-            # 결과를 전달하는 대신, run_button_clicked 시그널을 발생시킵니다
-            self.run_button_clicked.emit()
-        else:
-            QMessageBox.warning(
-                self,
-                "최적화 오류",
-                "최적화 과정에서 오류가 발생했습니다."
-            )
+    """
+    최적화 완료 처리
+    """
+
+    def on_optimization_completed(self):
+        self.prepare_dataframes_for_optimization()
+        self.run_button_clicked.emit()
+
     """
     최적화 취소 처리
     """
@@ -488,33 +482,22 @@ class DataInputPage(QWidget) :
     def run_combined_analysis(self) :
         failures = run_allocation()
 
-        item_plan_retention, rmc_plan_retention,df_result = calc_plan_retention()
-        if item_plan_retention is not None:
-            sku1 = SettingsStore.get('op_SKU_1',0)
-            rmc1 = SettingsStore.get('op_RMC_1',0)
-            sku2 = SettingsStore.get('op_SKU_2',0)
-            rmc2 = SettingsStore.get('op_RMC_2',0)
-            plan_retention_errors = []
-            if item_plan_retention < sku1:
-                plan_retention_errors.append({'reason':f'The selected sku1 plan retention ratio {sku1}% is greater than the maximum {item_plan_retention:.1f}%.'})
-            if item_plan_retention < sku2:
-                plan_retention_errors.append({'reason':f'The selected sku2 plan retention ratio {sku2}% is greater than the maximum {item_plan_retention:.1f}%.'})
-            if rmc_plan_retention < rmc1:
-                plan_retention_errors.append({'reason':f'The selected rmc1 plan retention ratio {rmc1}% is greater than the maximum {rmc_plan_retention:.1f}%.'})
-            if rmc_plan_retention < rmc2:
-                plan_retention_errors.append({'reason':f'The selected rmc2 plan retention ratio {rmc2}% is greater than the maximum {rmc_plan_retention:.1f}%.'})
-            failures['plan_retention'] = plan_retention_errors
-            summary = {
-                'Maximum SKU Plan Retention Rate':item_plan_retention,
-                'Maximum RMC Plan Retention Rate':rmc_plan_retention,
-            }
-            current_data = self.left_parameter_component.all_project_analysis_data.copy()
-            display_df = df_result
-            current_data['Plan Retention'] = {
+
+        summary = {'SKU Plan Retention':'SKU Plan Retention','RMC Plan Retention':'RMC Plan Retention'}
+        display_df = pd.DataFrame([1,3,5,7,9,11])
+        current_data = self.left_parameter_component.all_project_analysis_data.copy()
+        current_data['Plan Retention'] = {
                 'display_df' : display_df,
                 'summary' : summary
             }
-            self.left_parameter_component.set_project_analysis_data(current_data)
+        self.left_parameter_component.set_project_analysis_data(current_data)
+
+        item_plan_retention, rmc_plan_retention = calc_plan_retention()    
+        failures["plan_retention"] = {
+            "item_plan_retention": item_plan_retention,
+            "rmc_plan_retention": rmc_plan_retention
+        }
+
 
         try :
             shipment_data = preprocess_data_for_fulfillment_rate()
@@ -546,7 +529,6 @@ class DataInputPage(QWidget) :
                             'Fulfillment Rate': f"{data['rate']:.2f}%",
                             'Status': 'OK' if data['rate'] >= 95 else 'Warning' if data['rate'] >= 80 else 'Error'
                         })
-                    project_rows = sorted(project_rows,key=lambda x:x['SOP'],reverse=True)
 
                     site_rows = []
 
@@ -559,7 +541,6 @@ class DataInputPage(QWidget) :
                             'Fulfillment Rate': f"{data['rate']:.2f}%",
                             'Status': 'OK' if data['rate'] >= 95 else 'Warning' if data['rate'] >= 80 else 'Error'
                         })
-                    site_rows = sorted(site_rows,key=lambda x:x['SOP'], reverse=True)
 
                     total_row = {
                         'Category': 'Total',

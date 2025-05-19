@@ -12,7 +12,7 @@ from app.utils.error_handler import (
     DataError, ValidationError
 )
 from app.models.common.screen_manager import *
-from app.models.common.settings_store import SettingsStore
+
 """
 좌측 파라미터 영역에 프로젝트 분석 결과 표시
 """
@@ -75,26 +75,28 @@ class LeftParameterComponent(QWidget):
             QFrame {{
                 background-color: #F5F5F5;
                 border: none;
-                border-bottom: {f(1)}px solid #E0E0E0;
+                border-bottom: {s(1)}px solid #E0E0E0;
                 border-radius: 0px;
             }}
         """)
 
         button_group_layout = QHBoxLayout(button_frame)
-        button_group_layout.setSpacing(f(2))
-        button_group_layout.setContentsMargins(w(10), h(8), w(10), h(8))
+        button_group_layout.setSpacing(s(2))
+        button_group_layout.setContentsMargins(m(10), m(8), m(10), m(8))
 
         for i, btn_text in enumerate(self.metrics):
             btn = QPushButton(btn_text)
-            btn_font = font_manager.get_just_font("SamsungOne-700").family()
+            btn_font = font_manager.get_font("SamsungOne-700", 11)
+            btn_font.setBold(True)
+            btn.setFont(btn_font)
             btn.setCursor(QCursor(Qt.PointingHandCursor))
 
             btn.setMinimumWidth(w(80))
 
             # 버튼 스타일 업데이트
             if i == 0:
-                btn.setStyleSheet(f"""
-                            QPushButton {{
+                btn.setStyleSheet("""
+                            QPushButton {
                                 background-color: #1428A0;
                                 color: white;
                                 border: none;
@@ -102,16 +104,14 @@ class LeftParameterComponent(QWidget):
                                 padding: 4px 8px;
                                 min-height: 26px;
                                 font-weight: bold;
-                                font-family: {btn_font};
-                                font-size: {f(16)}px;
-                            }}
-                            QPushButton:hover {{
+                            }
+                            QPushButton:hover {
                                 background-color: #0F1F8A;
-                            }}
+                            }
                         """)
             else:
-                btn.setStyleSheet(f"""
-                            QPushButton {{
+                btn.setStyleSheet("""
+                            QPushButton {
                                 background-color: white;
                                 color: #666666;
                                 border: 1px solid #E0E0E0;
@@ -119,14 +119,12 @@ class LeftParameterComponent(QWidget):
                                 padding: 4px 8px;
                                 min-height: 26px;
                                 font-weight: bold;
-                                font-family: {btn_font};
-                                font-size: {f(16)}px;
-                            }}
-                            QPushButton:hover {{
+                            }
+                            QPushButton:hover {
                                 background-color: #F5F5F5;
                                 color: #1428A0;
                                 border-color: #1428A0;
-                            }}
+                            }
                         """)
 
             btn.clicked.connect(lambda checked, idx=i: self.switch_tab(idx))
@@ -200,7 +198,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 0px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {f(16)}px;
+                        font-size: 16px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px; 
@@ -209,7 +207,7 @@ class LeftParameterComponent(QWidget):
                     QTreeWidget::item:selected {{
                         background-color: #E8ECFF;
                         color: black;
-                        font-size: {f(21)}px;
+                        font-size: {fs(21)}px;
                     }}
                     QTreeWidget::item:hover {{
                         background-color: #F5F7FF;
@@ -221,7 +219,7 @@ class LeftParameterComponent(QWidget):
                         padding: 4px;
                         font-weight: bold;
                         border-bottom: 2px solid #E0E0E0;
-                        font-size: {f(18)}px;
+                        font-size: {fs(24)}px;
                     }}
                     QScrollBar:vertical {{
                         border: none;
@@ -288,7 +286,7 @@ class LeftParameterComponent(QWidget):
                         background-color: white;
                         border-radius: 6px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {f(11)}px;
+                        font-size: {fs(11)}px;
                     }}
                     QTreeWidget::item {{
                         padding: 6px 10px;
@@ -430,7 +428,7 @@ class LeftParameterComponent(QWidget):
                 elif metric == 'Current Shipment':
                     headers = ["Category", "Name", "SOP", "Production", "Fulfillment Rate", "Status"]
                 elif metric == 'Plan Retention':
-                    headers = ['Line','Time','RMC','Item','Previous Qty','Max Item Qty','Max RMC Qty']
+                    headers =['RMC','Item','Previous','Max Qty','shortage','Total']
                 else:
                     headers = list(display_df.columns) if hasattr(display_df, 'columns') else []
 
@@ -499,10 +497,7 @@ class LeftParameterComponent(QWidget):
                                 for col in range(len(headers)):
                                     item.setForeground(col, green_brush)
                         elif metric == 'Plan Retention':
-                            if round(row['Max Item Qty']) < round(row['Previous Qty']) or round(row['Max RMC Qty']) < round(row['Previous Qty']):
-                                for col in range(len(header)):
-                                    item.setForeground(col,red_brush)
-
+                            pass
                     except Exception as style_error:
                         pass
 
@@ -552,15 +547,13 @@ class LeftParameterComponent(QWidget):
                     ("Site Count", f"{summary.get('Site count', 0)}"),
                     ("Bottleneck Items", f"{summary.get('Bottleneck items', 0)}")
                 ]
+
             elif metric == 'Plan Retention':
                 summary_data = [
-                    ("Maximum SKU Plan Retention Rate",f"{summary.get('Maximum SKU Plan Retention Rate',0):.1f} %"),
-                    ("Maximum RMC Plan Retention Rate",f"{summary.get('Maximum RMC Plan Retention Rate',0):.1f} %"),
-                    ("Required SKU Plan Retention Rate1",f"{SettingsStore.get('op_SKU_1',0)} %"),
-                    ("Required RMC Plan Retention Rate1",f"{SettingsStore.get('op_RMC_1',0)} %"),
-                    ("Required SKU Plan Retention Rate2",f"{SettingsStore.get('op_SKU_2',0)} %"),
-                    ("Required RMC Plan Retention Rate2",f"{SettingsStore.get('op_RMC_2',0)} %"),
+                    ("SKU Plan Retention","SKU Plan Retention"),
+                    ("RMC Plan Retention","RMC Plan Retention"),
                 ]
+
             # Summary 테이블에 데이터 추가
             for label, value in summary_data:
                 item = QTreeWidgetItem([label, str(value)])

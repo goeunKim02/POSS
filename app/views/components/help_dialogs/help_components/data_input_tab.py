@@ -2,8 +2,7 @@ from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout
 from PyQt5.QtGui import QFont
 from .base_tab import BaseTabComponent
 from .help_section_component import HelpSectionComponent
-from app.resources.fonts.font_manager import font_manager
-from app.models.common.screen_manager import *
+
 
 """
 데이터 입력 탭 컴포넌트
@@ -28,30 +27,34 @@ class DataInputTabComponent(BaseTabComponent):
                 margin: 10px;
             }
         """)
-        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
-        normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
         # 콘텐츠 프레임 레이아웃
         frame_layout = QVBoxLayout(self.content_frame)
         frame_layout.setContentsMargins(20, 20, 20, 20)
-        frame_layout.setSpacing(h(10))
+        frame_layout.setSpacing(15)
 
         # 제목 레이블
         title_label = QLabel("Data Entry Guidelines")
+        title_font = QFont("Arial", 14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
         title_label.setStyleSheet(
-            f"color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent; font-family: {bold_font}; font-size: {f(21)}px;")
+            "color: #1428A0; border:none; padding-bottom: 10px; border-bottom: 2px solid #1428A0; background-color: transparent;")
         title_label.setMinimumHeight(40)
 
         # 설명 레이블
         desc_label = QLabel("This page provides instructions for entering and managing data in the system.")
-        desc_label.setStyleSheet(f"margin-bottom: 15px; background-color: transparent; border:none; font-family: {normal_font}; font-size: {f(16)}px;")
+        desc_label.setWordWrap(True)
+        desc_font = QFont("Arial", 11)
+        desc_label.setFont(desc_font)
+        desc_label.setStyleSheet("margin-bottom: 15px; background-color: transparent; border:none;")
 
         # 섹션들을 담을 프레임
         sections_frame = QFrame()
         sections_frame.setStyleSheet("background-color: transparent; border:none;")
         sections_layout = QVBoxLayout(sections_frame)
         sections_layout.setContentsMargins(0, 0, 0, 0)
-        sections_layout.setSpacing(h(10))  # 섹션간 간격
+        sections_layout.setSpacing(15)  # 섹션간 간격
 
         # 섹션 1 - 날짜 범위 선택
         section1 = HelpSectionComponent(
@@ -80,58 +83,28 @@ class DataInputTabComponent(BaseTabComponent):
             description="Select a file or sheet from the file explorer on the left to review its contents. Data can be edited as needed.",
             image_path="app/resources/help_images/data_content.png"
         )
-        section3.add_list_item("The user can edit the content and run it with the modified values.")
-
-        section3_1 = HelpSectionComponent(
-            number="3-1",
-            title="Edit File Contents",
-            description="If any edits are made, the modified files and sheets will be highlighted in red.",
-            image_path="app/resources/help_images/edit_data.png"
-        )
-
-        section3_2 = HelpSectionComponent(
-            number="3-2",
-            title="Save modified files",
-            description="If you click the Save button, the original file will be overwritten with the modified content.",
-            image_path="app/resources/help_images/save_btn.png"
-        )
 
         # 섹션 4 - 파라미터 설정
         section4 = HelpSectionComponent(
             number=4,
-            title="Adjust Settings",
-            description="You need to adjust the settings in the settings window before running.",
-            image_path = "app/resources/help_images/settings.png"
+            title="Parameter Settings",
+            description="Adjust optimization settings in the parameter section at the bottom."
         )
-        section4.add_list_item("Once you set it, the same settings will be saved for the next time as well.")
-
 
         # 섹션 5 - 실행
-        section5_1 = HelpSectionComponent(
-            number="5-1",
-            title="Run without any modifications.",
+        section5 = HelpSectionComponent(
+            number=5,
+            title="Run",
             description="Initiate the optimization process by clicking the 'Run' button.",
             image_path="app/resources/help_images/run_btn.png"
         )
-
-        section5_2 = HelpSectionComponent(
-            number="5-2",
-            title="Run with modifications.",
-            description="If you run without saving the modifications, you will be given the option to either save and run or run without saving.",
-            image_path="app/resources/help_images/save_change.png"
-        )
-
-
 
         # 섹션 프레임에 모든 섹션 추가
         sections_layout.addWidget(section1)
         sections_layout.addWidget(section2)
         sections_layout.addWidget(section3)
-        sections_layout.addWidget(section3_1)
-        sections_layout.addWidget(section3_2)
         sections_layout.addWidget(section4)
-        sections_layout.addWidget(section5_1)
-        sections_layout.addWidget(section5_2)
+        sections_layout.addWidget(section5)
 
         # 메모 레이블
         note_label = QLabel("Ensure all required files are uploaded before starting the optimization process.")

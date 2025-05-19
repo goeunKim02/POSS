@@ -16,6 +16,7 @@ from app.utils.error_handler import (
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.screen_manager import *
 
+
 class MainWindow(QMainWindow):
 
     @error_handler(
@@ -72,9 +73,9 @@ class MainWindow(QMainWindow):
                     QTabBar::tab {{
                         background: transparent;
                         color: #666;
-                        padding: {w(8)}px {w(12)}px;
+                        padding: 8px 12px;
                         font-family: {font_manager.get_just_font("SamsungOne-700").family()};
-                        font-size: {f(13)}px;
+                        font-size: {fs(20)}px;
                         font-weight: 600;
                         border-bottom: 3px solid transparent;
                         margin-right: 0px;
@@ -115,6 +116,7 @@ class MainWindow(QMainWindow):
     """
     특정 인덱스의 탭으로 이동
     """
+
     @error_handler(
         show_dialog=False,
         default_return=None
@@ -122,12 +124,13 @@ class MainWindow(QMainWindow):
     def navigate_to_page(self, index):
         if 0 <= index < self.tab_widget.count():
             self.tab_widget.setCurrentIndex(index)
-        else :
+        else:
             raise ValidationError(f'Invalid tab index : {index}')
 
     """ 
     도움말 표시 실행 함수
     """
+
     @error_handler(
         show_dialog=True,
         default_return=None
@@ -139,6 +142,7 @@ class MainWindow(QMainWindow):
     """
     설정 창 표시
     """
+
     @error_handler(
         show_dialog=True,
         default_return=None
@@ -157,17 +161,18 @@ class MainWindow(QMainWindow):
     """
     설정 변경 시 호출되는 콜백
     """
+
     @error_handler(
         show_dialog=False,
         default_return=None
     )
     def on_settings_changed(self, settings):
         # try:
-            # DataModel에 update_settings 메서드가 없으므로 주석 처리하거나 제거
-            # self.data_model.update_settings(settings)
+        # DataModel에 update_settings 메서드가 없으므로 주석 처리하거나 제거
+        # self.data_model.update_settings(settings)
 
-            # 대신 필요한 처리를 여기에 구현
-            # 예: 설정 변경 사항을 로그로 남김
+        # 대신 필요한 처리를 여기에 구현
+        # 예: 설정 변경 사항을 로그로 남김
         #     print("Settings have been changed:", settings)
         #
         #     # 사용자에게 알림
@@ -175,16 +180,17 @@ class MainWindow(QMainWindow):
         # except Exception as e:
         #     print(f"Error applying settings: {e}")
         pass
-    
+
     """
     파일 경로 중앙 관리를 위한 함수
     """
+
     @error_handler(
         show_dialog=True,
         default_return=None
     )
     def on_file_selected(self, file_path):
-        if not file_path or not os.path.exists(file_path) :
+        if not file_path or not os.path.exists(file_path):
             raise FileError(f'Invalid file path : {file_path}')
 
         file_name = os.path.basename(file_path)
@@ -202,12 +208,13 @@ class MainWindow(QMainWindow):
     """
     날짜 범위가 선택되면 처리
     """
+
     @error_handler(
         show_dialog=False,
         default_return=None
     )
     def on_date_range_selected(self, start_date, end_date):
-        if start_date > end_date :
+        if start_date > end_date:
             raise ValidationError('Start date cannot be later than end date')
 
         self.data_model.set_date_range(start_date, end_date)
@@ -219,18 +226,21 @@ class MainWindow(QMainWindow):
         # FilePaths.set("end_date", end_date_str)
 
     """
-    Run 버튼이 클릭되면 DataStore에서 데이터프레임 가져와 사용
+    Run 버튼이 클릭되면 실행되는 실제 최적화 로직
     """
+
     @error_handler(
         show_dialog=True,
         default_return=None
     )
-    def on_run_button_clicked(self):
+    def perform_optimization(self):
         demand_file = FilePaths.get("demand_excel_file")
         dynamic_file = FilePaths.get("dynamic_excel_file")
         master_file = FilePaths.get("master_excel_file")
 
+        # 다시 한번 파일 확인 (안전을 위해)
         if not all([demand_file, dynamic_file, master_file]):
+            # DataInputPage에서 이미 검증했으므로 여기서는 에러만 발생
             raise FileError('Required files are missing', {
                 "demand_file": bool(demand_file),
                 "dynamic_file": bool(dynamic_file),
@@ -239,10 +249,10 @@ class MainWindow(QMainWindow):
 
         all_dataframes = DataStore.get("organized_dataframes", {})
 
-        if not all_dataframes :
+        if not all_dataframes:
             raise DataError('No dataframes available for optimization')
 
-        try :
+        try:
             optimization = Optimization(all_dataframes)
 
             if hasattr(optimization, 'set_data') and callable(getattr(optimization, 'set_data')):
@@ -257,7 +267,7 @@ class MainWindow(QMainWindow):
             'Error during pre-assignment optimization'
         )
 
-        if not result_dict or 'result' not in result_dict :
+        if not result_dict or 'result' not in result_dict:
             raise CalculationError('Pre-assignment optimization failed or returned invalid results')
 
         df = result_dict['result']
@@ -266,14 +276,29 @@ class MainWindow(QMainWindow):
         self.navigate_to_page(1)
 
     """
+    DataInputPage에서 run_button_clicked 시그널을 받을 때 호출
+    프로그래스 다이얼로그가 완료된 후 실제 최적화 수행
+    """
+
+    @error_handler(
+        show_dialog=True,
+        default_return=None
+    )
+    def on_run_button_clicked(self):
+        # DataInputPage에서 프로그래스 다이얼로그가 완료된 후 이 메서드가 호출됨
+        # 실제 최적화 로직 수행
+        self.perform_optimization()
+
+    """
     결과 내보내기 로직
     """
+
     @error_handler(
         show_dialog=True,
         default_return=None
     )
     def export_results(self, file_path=None):
-        if not file_path :
+        if not file_path:
             raise FileError('No file path provided for export')
 
         print(f"결과를 다음 경로에 저장: {file_path}")
@@ -282,6 +307,7 @@ class MainWindow(QMainWindow):
     """
     최적화 결과 처리
     """
+
     @error_handler(
         show_dialog=True,
         default_return=None
@@ -290,7 +316,7 @@ class MainWindow(QMainWindow):
         # Args:
         #     results (dict): 최적화 결과를 포함하는 딕셔너리
 
-        if not results or not isinstance(results, dict) :
+        if not results or not isinstance(results, dict):
             raise ValidationError('Invalid optimization results')
 
         if not hasattr(self, 'result_page'):
@@ -299,7 +325,7 @@ class MainWindow(QMainWindow):
 
         if 'assignment_result' in results and results['assignment_result'] is not None:
             self.result_page.left_section.update_data(results['assignment_result'])
-        else :
+        else:
             print('No assignment results available')
 
         self.central_widget.setCurrentWidget(self.result_page)

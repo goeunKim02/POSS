@@ -18,20 +18,20 @@ class Navbar(QFrame):
         self.setStyleSheet(f"""
             QFrame {{
                 background-color: #1428A0;
-                min-height: {h(50)}px;
-                max-height: {h(50)}px;
+                min-height: {h(65)}px;
+                max-height: {h(65)}px;
             }}
             QLabel {{
                 color: white;
             }}
             QPushButton {{
                 color: white;
-                border: {w(2)}px solid white;
-                padding: {w(4)}px {w(8)}px;
+                border: {s(2)}px solid white;
+                padding: {p(4)}px {p(8)}px;
                 background-color: transparent;
-                border-radius: {w(5)}px;
-                min-width: {w(60)}px;
-                min-height: {h(20)}px;
+                border-radius: {s(5)}px;
+                min-width: {s(60)}px;
+                min-height: {s(30)}px;
             }}
             QPushButton:hover {{
                 background-color: #1e429f;
@@ -39,15 +39,17 @@ class Navbar(QFrame):
         """)
 
         navbar_layout = QHBoxLayout(self)
-        navbar_layout.setContentsMargins(w(20), 0, w(20), 0)
-        navbar_layout.setSpacing(w(10))  # 버튼 간격도 조정
+        navbar_layout.setContentsMargins(m(20), 0, m(20), 0)
+        navbar_layout.setSpacing(s(10))  # 버튼 간격도 조정
 
         logo_label = QLabel("SAMSUNG Production Planning Optimization")
         logo_label.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
 
         # font_manager 사용
-        logo_font = font_manager.get_just_font("SamsungOne-700").family()
-        logo_label.setStyleSheet(f" QLabel {{font-family : {logo_font}; font-size: {f(20)}px; font-weight: bold; color: white;}}")
+        logo_font = font_manager.get_font("SamsungOne-700", fs(15))
+        logo_font.setBold(True)
+        logo_font.setWeight(99)
+        logo_label.setFont(logo_font)
 
         navbar_layout.addWidget(logo_label)
         navbar_layout.addStretch()
@@ -56,12 +58,12 @@ class Navbar(QFrame):
         settings_btn.setCursor(QCursor(Qt.PointingHandCursor))
 
         # font_manager 사용
-        btn_font = font_manager.get_just_font("SamsungOne-700").family()
-        settings_btn.setStyleSheet(f" QPushButton {{ font-family : {btn_font}; font-size: {f(10)}; font-weight: bold; color: white;}}")
+        btn_font = font_manager.get_font("SamsungOne-700", fs(11), QFont.Bold)
+        settings_btn.setFont(btn_font)
 
         help_btn = QPushButton("Help")
         help_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        help_btn.setStyleSheet(f" QPushButton {{ font-family : {btn_font}; font-size: {f(10)}; font-weight: bold; color: white;}}")
+        help_btn.setFont(btn_font)  # 같은 폰트 사용
 
         # 시그널 연결
         help_btn.clicked.connect(self.help_clicked.emit)
