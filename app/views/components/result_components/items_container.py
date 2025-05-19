@@ -346,9 +346,6 @@ class ItemsContainer(QWidget):
 
                 # 변경 이벤트 발생 (복사임을 명시)
                 copy_info = {'operation': 'copy', 'source_id': id(source)}
-
-                # self.itemDataChanged.emit(new_item, item_data,
-                #                           {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
                 
                 # 새로운 복사 시그널 발생 
                 self.itemCopied.emit(new_item, item_data)
