@@ -434,7 +434,7 @@ class OptimizationProgressDialog(QDialog):
         """최적화 완료 처리"""
         self.update_progress(100)
         self.status_label.setText("Optimization is complete.")
-        self.time_label.setText("Complete")
+        self.time_label.setText("Complete! Please wait a moment.")
         self.cancel_button.setText("Cancel")
         self.log_message("Optimization is complete. Please wait a moment.")
 
