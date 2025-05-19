@@ -909,6 +909,7 @@ class ModifiedLeftSection(QWidget):
     엑셀 파일 로드 -  ResultPage의 통합 메서드 호출
     """
     def load_excel_file(self):
+        print("왼쪽의 load 버튼 호출")
         # 부모 페이지 확인
         if not hasattr(self, 'parent_page') or self.parent_page is None:
             print("[ERROR] parent_page 참조가 없습니다.")

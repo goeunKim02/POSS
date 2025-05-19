@@ -86,14 +86,6 @@ class ResultPage(QWidget):
         title_label.setStyleSheet(f"font-family: {bold_font}; font-size: {f(21)}px; font-weight: 900;")
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        # Import 버튼 (새로 추가)
-        import_btn = QPushButton()
-        import_btn.setText("Import")
-        import_btn.setFixedSize(130, 40)
-        import_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        import_btn.clicked.connect(self.load_result_file)  # 위에서 작성한 메서드 연결
-        import_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
-
         # Export 버튼
         export_btn = QPushButton("Export")
         export_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -109,7 +101,6 @@ class ResultPage(QWidget):
 
         title_layout.addWidget(title_label)
         title_layout.addStretch(1)
-        title_layout.addWidget(import_btn)
         title_layout.addWidget(export_btn)
         title_layout.addWidget(report_btn)
 
@@ -1205,8 +1196,10 @@ class ResultPage(QWidget):
         bool: 로드 성공 여부
     """
     def load_result_file(self, file_path=None):
+        print("result의 로드버튼 호출")
         # 파일 선택 (경로가 전달되지 않은 경우)
         if file_path is None:
+            print("파일 선택 대화상자 표시 시도") 
             file_path, _ = QFileDialog.getOpenFileName(
                 self, "결과 파일 선택", "", "Excel Files (*.xlsx *.xls *.csv)"
             )

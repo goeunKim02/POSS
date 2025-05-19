@@ -691,7 +691,6 @@ class ItemsContainer(QWidget):
 
         # 확인한 경우에만 삭제 진행
         if reply:
-            print("DEBUG: 사용자가 삭제 확인함")
             if item in self.items:
                 # 아이템 ID 정보 추출 (삭제 시 전달)
                 item_id = ItemKeyManager.extract_item_id(item)
@@ -701,10 +700,7 @@ class ItemsContainer(QWidget):
                     self.selected_item = None
 
                 # 아이템 제거
-                print("DEBUG: ItemsContainer에서 아이템 제거 시작")
                 self.remove_item(item)
-                print("DEBUG: ItemsContainer에서 아이템 제거 완료")
 
                 # 변경 신호 발생
-                print("DEBUG: itemsChanged 시그널 발생")
                 self.itemsChanged.emit(item_id)
