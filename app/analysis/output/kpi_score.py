@@ -148,28 +148,51 @@ class KpiScore:
         else:  # 아니면 균등 가중치
             weights = [1.0] * 14  
 
-        # master에서 각 shift 별 최대 생산 가능량 가져오기 
-        capa_data = self.load_capa_from_master()
+        # Best 값 계산 (앞에서부터 최대로 채운 결과)
+        total_qty = self.df['Qty'].sum()
 
-        # 실제 생산량에 가중치 적용
-        weighted_result = 0
-        weighted_capacity = 0
+        # Best 배치 계산: 앞 시프트부터 최대로 채움
+        best_allocation = {}
+        remaining_qty = total_qty
 
-        for shift in range(1, 15):
+        # 각 시프트별 capacity 설정 (최대 생산 가능량)
+        # 설정에서 가져오거나 기본값 사용
+        shift_capacity = self.opts.get('shift_capacity', {})
+        default_capacity = self.opts.get('default_capacity', 10000)
+        
+        # 앞에서부터 채우는 Best 배치
+        for shift in range(1, 11):  # 시프트 수는 설정에 따라 조정 가능
+            capacity = shift_capacity.get(shift, default_capacity)
+            if remaining_qty > 0:
+                allocated = min(capacity, remaining_qty)
+                best_allocation[shift] = allocated
+                remaining_qty -= allocated
+            else:
+                best_allocation[shift] = 0
+        
+        # Result 값과 Best 값에 가중치 적용하여 계산
+        weighted_result_sum = 0
+        weighted_best_sum = 0
+
+        for shift in range(1, 11):  # 시프트 수는 설정에 따라 조정 가능
             if shift <= len(weights):
                 weight = weights[shift - 1]
-                qty = result_pivot.get(shift, 0)
+                result_qty = result_pivot.get(shift, 0)
+                best_qty = best_allocation.get(shift, 0)
+                
+                weighted_result_sum += result_qty * weight
+                weighted_best_sum += best_qty * weight
+        
+        # 디버깅 정보 출력
+        print(f"Util 계산: Result={weighted_result_sum}, Best={weighted_best_sum}")
 
-                capacity = capa_data.get(shift)
-
-                weighted_qty_sum += qty * weight
-                weighted_capa_sum += capacity * weight
-
-        # 가동률 계산: (가중 물량 합계 / 가중 Capa 합계)
-        if weighted_capa_sum > 0:
-            util_score = (weighted_qty_sum / weighted_capa_sum) * 100
+        # 가동률 계산: Result 값 * 가중치 / Best 값 * 가중치
+        if weighted_best_sum > 0:
+            util_score = (1 - (weighted_result_sum / weighted_best_sum)) * 100
+            print(f"Util 점수: {util_score:.2f}%")
         else:
             util_score = 100.0
+            print("Best 합계가 0, Util 점수는 100%로 설정")
         
         return util_score
     

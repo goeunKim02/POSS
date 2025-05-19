@@ -731,7 +731,6 @@ class PlanAdjustmentValidator:
         return 0
     
 
-    
     """
     조정된 결과 데이터를 계산 (제약조건 검증용 임시 데이터)
     
