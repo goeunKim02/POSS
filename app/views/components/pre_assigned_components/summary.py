@@ -1,7 +1,11 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QSizePolicy, QAbstractScrollArea
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtCore import Qt
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
+bold_font   = font_manager.get_just_font("SamsungSharSans-Bold").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
 """
 데이터를 요약해서 표시하는 테이블 위젯
@@ -51,19 +55,24 @@ class SummaryWidget(QWidget):
         # 헤더 스타일 및 폰트
         header = table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
-        header.setStyleSheet(
-            "QHeaderView::section { background-color: #1428A0; color: white; border: none; }"
-        )
-        header_font = QFont("Arial", 10, QFont.Bold)
-        header.setFont(header_font)
+        header.setStyleSheet(f"""
+            QHeaderView::section {{
+                background-color: #1428A0;
+                color: white;
+                border: none;
+                font-family: {bold_font};
+                font-size: {f(12)}px;
+                font-weight: 900;
+            }}
+        """)
         
         table.verticalHeader().setDefaultSectionSize(35)
 
         # 폰트 정의
-        font_10 = QFont("Arial", 10)
-        font_9 = QFont("Arial", 9)
-        bold_font_10 = QFont("Arial", 10, QFont.Bold)
-        bold_font_9 = QFont("Arial", 9, QFont.Bold)
+        font_10      = QFont(normal_font, f(10))
+        font_9       = QFont(normal_font, f(9))
+        bold_font_10 = QFont(bold_font,   f(10), QFont.Bold)
+        bold_font_9  = QFont(bold_font,   f(9),  QFont.Bold)
 
         # 첫 행: Total
         row = 0

@@ -11,7 +11,11 @@ from ....resources.styles.pre_assigned_style import (
 )
 from .calendar_card import CalendarCard
 from .detail_dialog import DetailDialog
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
+bold_font   = font_manager.get_just_font("SamsungSharSans-Bold").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
 """
 주간 캘린더 형태로 데이터 표시하는 위젯
@@ -48,15 +52,16 @@ class WeeklyCalendar(QWidget):
         layout.setColumnStretch(1, 0)
 
         for c in range(2, total_cols):
+            layout.setColumnMinimumWidth(c, 100)
             layout.setColumnStretch(c, 1)
 
         present = set(self.data['time'])
 
         if not any(t in present for t in (11, 12, 13, 14)):
             layout.setColumnStretch(7, 0)
-            layout.setColumnMinimumWidth(7, 80)
+            layout.setColumnMinimumWidth(7, 75)
             layout.setColumnStretch(8, 0)
-            layout.setColumnMinimumWidth(8, 80)
+            layout.setColumnMinimumWidth(8, 75)
 
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(6)
@@ -84,7 +89,10 @@ class WeeklyCalendar(QWidget):
                 + (1 if not night_data.empty else 0)
             line_label = QLabel(f"<b>{line}</b>")
             line_label.setAlignment(Qt.AlignCenter)
-            line_label.setStyleSheet(LINE_LABEL_STYLE)
+            line_label.setStyleSheet(
+                LINE_LABEL_STYLE
+                + f" font-family:{bold_font}; font-size:{f(12)}px; font-weight:900;"
+            )
             line_label.setMaximumWidth(60)
             line_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
             layout.addWidget(line_label, row_index, 0, span, 1)
@@ -93,7 +101,10 @@ class WeeklyCalendar(QWidget):
             if not day_data.empty:
                 day_label = QLabel("Day")
                 day_label.setAlignment(Qt.AlignCenter)
-                day_label.setStyleSheet(DAY_LABEL_STYLE)
+                day_label.setStyleSheet(
+                    DAY_LABEL_STYLE
+                    + f" font-family:{normal_font}; font-size:{f(10)}px;"
+                )
                 day_label.setMaximumWidth(80)
                 layout.addWidget(day_label, row_index, 1)
 
@@ -116,7 +127,10 @@ class WeeklyCalendar(QWidget):
             if not night_data.empty:
                 night_label = QLabel("Night")
                 night_label.setAlignment(Qt.AlignCenter)
-                night_label.setStyleSheet(NIGHT_LABEL_STYLE)
+                night_label.setStyleSheet(
+                    NIGHT_LABEL_STYLE
+                    + f" font-family:{normal_font}; font-size:{f(10)}px;"
+                )
                 night_label.setMaximumWidth(80)
                 layout.addWidget(night_label, row_index, 1)
 
