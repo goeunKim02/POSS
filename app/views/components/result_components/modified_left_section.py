@@ -1055,13 +1055,26 @@ class ModifiedLeftSection(QWidget):
             return
 
         try:
+            # 제조동 정보 추출 (Line 이름의 첫 글자가 제조동)
+            self.data['Building'] = self.data['Line'].str[0]  # 라인명의 첫 글자를 제조동으로 사용
+
+            # 제조동별 생산량 계산
+            building_production = self.data.groupby('Building')['Qty'].sum()
+
+            # 생산량 기준으로 제조동 정렬 (내림차순)
+            sorted_buildings = building_production.sort_values(ascending=False).index.tolist()
+
             # Line과 Time 값 추출
-            lines = sorted(self.data['Line'].unique())
+            all_lines = self.data['Line'].unique()
             times = sorted(self.data['Time'].unique())
 
-            # 여기서는 원래 Line 값을 유지하고, 표시만 바뀌도록 처리
-            # 내부적으로는 원래 라인명(예: "1", "A" 등)을 사용하되,
-            # 화면에는 "ㅣ-01" 형식으로 표시
+            # 제조동 별로 정렬된 라인 목록 생성
+            lines = []
+            for building in sorted_buildings:
+                # 해당 제조동에 속하는 라인들 찾기
+                building_lines = [line for line in all_lines if line.startswith(building)]
+                # 라인을 알파벳/숫자 순으로 정렬하여 추가
+                lines.extend(sorted(building_lines))
 
             # 교대 시간 구분
             shifts = {}
@@ -1123,7 +1136,7 @@ class ModifiedLeftSection(QWidget):
                     if pd.isna(qty):
                         qty = 0
 
-                    # 수량을 숫자로 변환하여 저장
+                    # 수량을 정수로 변환하여 저장
                     item_data['Qty'] = int(float(qty)) if isinstance(qty, (int, float, str)) else 0
                     grouped_items[grid_key].append(item_data)
                 except ValueError as e:
