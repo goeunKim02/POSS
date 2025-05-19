@@ -13,7 +13,7 @@
 
 |                             김고은                             |                              박수미                           |                             박주찬                              |                             이국건                            |                            최은진                               |                            최유정                            
 | :-------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------: |
-| <img src="https://github.com/user-attachments/assets/ad2f896b-b3bd-43a7-ba0c-f7070b0aa188" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/5fe0b115865ecc60ccb67be965001aec9dad030047b6c637f56192d63d8c097a?s=1600&d=identicon" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/06f3973709d03d11b1afc119be856d713bde049f846aca023f157502fd6b884e?s=1600&d=identicon" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/73cfd003a12ce57f0c5274da1cf012317658e750575c33ff6e3cf48f43a4f2cf?s=1600&d=identicon" width="100" height="100"> | <img src="https://github.com/user-attachments/assets/a6c14a53-26ec-4980-a81c-6b89c439e1bb" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/6f3940d0790743c62c0641050bfa950f04d527e31f47adafac747a5b614440f4?s=1600&d=identicon" width="100" height="100"> |
+| <img src="./readmeImg/5fe639ef6c64fd6607b11bc7e90c5be6.jpg" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/5fe0b115865ecc60ccb67be965001aec9dad030047b6c637f56192d63d8c097a?s=1600&d=identicon" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/06f3973709d03d11b1afc119be856d713bde049f846aca023f157502fd6b884e?s=1600&d=identicon" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/73cfd003a12ce57f0c5274da1cf012317658e750575c33ff6e3cf48f43a4f2cf?s=1600&d=identicon" width="100" height="100"> | <img src="https://github.com/user-attachments/assets/a6c14a53-26ec-4980-a81c-6b89c439e1bb" width="100" height="100"> | <img src="https://secure.gravatar.com/avatar/6f3940d0790743c62c0641050bfa950f04d527e31f47adafac747a5b614440f4?s=1600&d=identicon" width="100" height="100"> |
 
 <br><br>
 ## 🔧 사용 스택
@@ -49,7 +49,7 @@
 ## 🎁 프로젝트 구성
 
 ### 1. 시스템 흐름도
-<img src="https://github.com/user-attachments/assets/71300ed0-0bb9-48bf-8276-95fac51568d0">
+<img src="./readmeImg/아키텍처.png">
 
 ### 2. 기능 명세서
 [여기](https://steady-elf-917.notion.site/1e310b2e3d6b8180b073efc8b2976081?pvs=4)에서 확인
@@ -61,7 +61,7 @@
 ## 🌈 주요 기능
 
 ### 1. 첨부한 파일로 계획 검증
-<img src="https://github.com/user-attachments/assets/eb67a26b-d1ab-48db-b10d-375b2fe257e9"/>
+<img src="./readmeImg/1.png"/>
 
 - .xlsx와 .csv 파일을 직접 첨부해 로컬에서 실행 가능하도록 구현
 - 현장 공장에서의 다양한 제약 사항을 반영해 지표로 제공하며 생산 계획 수립 전 검증
@@ -69,19 +69,19 @@
 - pyqt의 Thread를 이용해 progress bar를 구현하고 알고리즘을 기다리는 시간을 시각화 
 
 ### 2. 사전할당 알고리즘
-<img src="https://github.com/user-attachments/assets/28655ca6-f402-4d44-b536-43aa6b8cb9d4"/>
+<img src="./readmeImg/2.png"/>
 
 - 계획을 검증하기 전, 생산 계획을 짜는 시간을 단축하기 위해 미리 특정 생산을 효율적으로 특정 라인에 분배하는 사전할당 알고리즘 구현
 
 ### 3. 생산 계획 검증
-<img src="https://github.com/user-attachments/assets/a67b38f9-7cc8-4ea6-be5e-c3064913701e"/>
+<img src="./readmeImg/3.png"/>
 
 - 생산 계획 결과가 도출되면, 도출된 결과로 생산 계획 재검증
 - 실제 SOP와 Capacity로 실제 공장에서 사용할 수 있도록 함
 - Export로 결과를 언제든지 파일로 저장할 수 있음
 
 ### 4. 생산 계획 커스텀
-<img src="https://github.com/user-attachments/assets/50293fc6-9c15-48b7-952d-07537bb9afdd"/>
+<img src="./readmeImg/last.png"/>
 
 - 드래그 앤 드랍으로 사용자가 계획 커스텀을 할 수 있도록 구현
 - 계획 커스텀을 하면 실시간으로 지표에 반영 되어 빠른 결과 조회
