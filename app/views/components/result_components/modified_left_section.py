@@ -325,11 +325,49 @@ class ModifiedLeftSection(QWidget):
 
         # 새로운 그리드 위젯 추가
         self.grid_widget = ItemGridWidget()
+        self.grid_widget.scroll_area.setStyleSheet("""
+            QScrollBar:vertical {
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #CCCCCC;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #CCCCCC;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """)
         self.grid_widget.itemSelected.connect(self.on_grid_item_selected)  # 아이템 선택 이벤트 연결
         self.grid_widget.itemDataChanged.connect(self.on_item_data_changed)  # 아이템 데이터 변경 이벤트 연결
         self.grid_widget.itemCreated.connect(self.register_item)
         self.grid_widget.itemRemoved.connect(self.on_item_removed)
-        self.grid_widget.itemCopied.connect(self.on_item_copied)  # 아이템 복사 이벤트 연결 
+        self.grid_widget.itemCopied.connect(self.on_item_copied)  # 아이템 복사 이벤트 연결
         main_layout.addWidget(self.grid_widget, 1)
 
     
@@ -1061,6 +1099,9 @@ class ModifiedLeftSection(QWidget):
             # 제조동별 생산량 계산
             building_production = self.data.groupby('Building')['Qty'].sum()
 
+            # 라인별 생산량 계산
+            line_production = self.data.groupby('Line')['Qty'].sum()
+
             # 생산량 기준으로 제조동 정렬 (내림차순)
             sorted_buildings = building_production.sort_values(ascending=False).index.tolist()
 
@@ -1068,13 +1109,36 @@ class ModifiedLeftSection(QWidget):
             all_lines = self.data['Line'].unique()
             times = sorted(self.data['Time'].unique())
 
-            # 제조동 별로 정렬된 라인 목록 생성
+            # 제조동 별로 정렬된 라인 목록 생성 (각 제조동 내에서는 라인별 생산량 순으로 정렬)
             lines = []
             for building in sorted_buildings:
                 # 해당 제조동에 속하는 라인들 찾기
                 building_lines = [line for line in all_lines if line.startswith(building)]
-                # 라인을 알파벳/숫자 순으로 정렬하여 추가
-                lines.extend(sorted(building_lines))
+
+                # 해당 제조동의 라인들을 생산량 및 라인 번호 기준으로 정렬
+                # 1. 먼저 라인별 생산량을 사전으로 구성
+                building_line_qty = {line: line_production.get(line, 0) for line in building_lines}
+
+                # 2. 정렬 기준: 1차 생산량(내림차순), 2차 라인 번호(오름차순)
+                # 라인 번호 추출 함수 - 라인명에서 숫자 부분 추출(없으면 0)
+                def extract_line_number(line_name):
+                    try:
+                        # 언더스코어 뒤의 숫자 추출 (예: I_1 -> 1, D_10 -> 10)
+                        if '_' in line_name:
+                            return int(line_name.split('_')[1])
+                        else:
+                            return 0
+                    except (ValueError, IndexError):
+                        return 0
+
+                # 정렬: 1차 생산량(내림차순), 2차 라인 번호(오름차순)
+                sorted_building_lines = sorted(
+                    building_line_qty.items(),
+                    key=lambda x: (-x[1], extract_line_number(x[0]))  # -x[1]은 생산량 내림차순
+                )
+
+                # 정렬된 라인 추가
+                lines.extend([line for line, _ in sorted_building_lines])
 
             # 교대 시간 구분
             shifts = {}
