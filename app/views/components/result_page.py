@@ -639,33 +639,57 @@ class ResultPage(QWidget):
     def export_results(self):
         try:
             # 데이터가 있는지 확인
-            if hasattr(self, 'left_section') and hasattr(self.left_section,
-                                                            'data') and self.left_section.data is not None:
-                
-                # 날짜 범위 가져오기
-                start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                
-                # 통합 내보내기 로직
-                saved_path = ExportManager.export_data(
-                    parent=self,
-                    data_df=self.left_section.data,
-                    start_date=start_date,
-                    end_date=end_date,
-                    is_planning=False
-                )
+            if hasattr(self, 'controller') and self.controller and hasattr(self.controller, 'model'):
+                # 모델에서 데이터 가져오기
+                export_data = self.controller.model.get_dataframe()
 
-                # 성공적으로 파일 저장 시 시그널 발생
-                if saved_path:
-                    self.export_requested.emit(saved_path)
+                # 데이터가 존재하는지 확인
+                if export_data is not None and not export_data.empty:
+                    
+                    # 날짜 범위 가져오기
+                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                    
+                    # 통합 내보내기 로직
+                    saved_path = ExportManager.export_data(
+                        parent=self,
+                        data_df=self.left_section.data,
+                        start_date=start_date,
+                        end_date=end_date,
+                        is_planning=False
+                    )
+
+                    # 성공적으로 파일 저장 시 시그널 발생
+                    if saved_path:
+                        self.export_requested.emit(saved_path)
+
+                else:
+                    print("No data to export.")
+                    QMessageBox.warning(
+                        self,
+                        "Export Error",
+                        "No data to export."
+                    )
 
             else:
-                print("No data to export.")
-                QMessageBox.warning(
-                    self,
-                    "Export Error",
-                    "No data to export."
-                )
-
+                # 컨트롤러가 없으면 기존 방식으로 폴백
+                if hasattr(self, 'left_section') and hasattr(self.left_section, 'data') and self.left_section.data is not None:
+                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                    saved_path = ExportManager.export_data(
+                        parent=self,
+                        data_df=self.left_section.data,
+                        start_date=start_date,
+                        end_date=end_date,
+                        is_planning=False
+                    )
+                    if saved_path:
+                        self.export_requested.emit(saved_path)
+                else:
+                    print("No data to export.")
+                    QMessageBox.warning(
+                        self,
+                        "Export Error",
+                        "No data to export."
+                    )
         except Exception as e:
             print(f"Export 과정에서 오류 발생: {str(e)}")
             QMessageBox.critical(
