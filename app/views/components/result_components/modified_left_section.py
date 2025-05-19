@@ -780,6 +780,8 @@ class ModifiedLeftSection(QWidget):
         if hasattr(self, 'controller') and self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
             self.itemModified.emit(item, new_data, changed_fields)
+            # 디버깅 추가: 변경 후 리셋 버튼 상태 확인
+            print(f"[DEBUG] 데이터 변경 후 리셋 버튼 상태: {self.reset_button.isEnabled()}")
             return
 
     """
@@ -911,6 +913,11 @@ class ModifiedLeftSection(QWidget):
         self.controller = controller
         print("MVC 컨트롤러가 설정되었습니다")
 
+        # 모델 변경 시그널 연결
+        if self.controller and hasattr(self.controller.model, 'modelDataChanged'):
+            self.controller.model.modelDataChanged.connect(self.update_from_model)
+            print("ModifiedLeftSection: 모델 변경 시그널 연결 완료")
+
     """
     검증기 설정
     """
@@ -933,10 +940,8 @@ class ModifiedLeftSection(QWidget):
         if file_path:
             try:
                 self.clear_all_items()
-                print("clear_all_items()")
 
                 loaded_result = load_file(file_path)
-                print(f"로드 파일 결과 타입: {type(loaded_result)}")
 
                 # 'result' 키에서 DataFrame 추출
                 if isinstance(loaded_result, dict) and 'result' in loaded_result:
@@ -945,11 +950,10 @@ class ModifiedLeftSection(QWidget):
                 else:
                     # 이미 DataFrame이거나 다른 형태면 그대로 사용
                     loaded_data = loaded_result
-                    print(f"로드된 데이터 타입: {type(loaded_data)}")
+                    # print(f"로드된 데이터 타입: {type(loaded_data)}")
                 
                 # DataFrame 확인
                 if not isinstance(loaded_data, pd.DataFrame):
-                    print(f"오류: 데이터프레임이 아닌 타입: {type(loaded_data)}")
                     loaded_data = pd.DataFrame()  # 빈 데이터프레임 생성
                 
                 FilePaths.set("result_file", file_path)
@@ -959,10 +963,6 @@ class ModifiedLeftSection(QWidget):
                     print("경고: 로드된 데이터가 비어있습니다.")
                     EnhancedMessageBox.show_validation_error(self, "파일 로드 문제", "로드된 데이터가 비어있습니다.")
                     return
-                
-                # # 데이터 컬럼 출력 (디버깅용)
-                # print(f"로드된 데이터 컬럼: {loaded_data.columns.tolist()}")
-                # print(f"로드된 데이터 첫 5행:\n{loaded_data.head()}")
                 
                 # 데이터 타입 안전하게 정규화
                 try:
@@ -978,11 +978,9 @@ class ModifiedLeftSection(QWidget):
                 # 현재 데이터와 원본 데이터 모두 저장
                 self.data = loaded_data.copy()
                 self.original_data = loaded_data.copy()
-                print("데이터 복사: 현재/원본")
 
                 # 컨터롤러 확인
                 if hasattr(self, 'controller') and self.controller is not None:
-                    print("컨트롤러 확인")
                     # 컨트롤러가 있는 경우, 모델을 새 데이터로 업데이트
                     if hasattr(self.controller, 'update_model_data'):
                         # 컨트롤러를 통해 모델 업데이트
@@ -1006,7 +1004,7 @@ class ModifiedLeftSection(QWidget):
                     self.update_table_from_data()
 
                 # 새로운 원본 상태가 있으므로 리셋 버튼 활성화
-                self.reset_button.setEnabled(True)
+                self.reset_button.setEnabled(False)
 
                 EnhancedMessageBox.show_validation_success(self, "File Loaded Successfully",
                                         f"File has been successfully loaded.\nRows: {self.data.shape[0]}, Columns: {self.data.shape[1]}")
@@ -1210,22 +1208,37 @@ class ModifiedLeftSection(QWidget):
         )
 
         if reply:
-            # 원본 데이터로 복원
-            self.data = self.original_data.copy()
-            self.update_table_from_data()
+            # 컨트롤러 연결
+            if hasattr(self, 'controller') and self.controller:
+                print("컨트롤러를 통해 리셋 요청")
+                self.controller.reset_data()
+                
+                # Reset 버튼 비활성화
+                self.reset_button.setEnabled(False)
 
-            # Reset 버튼 비활성화
-            self.reset_button.setEnabled(False)
+                # 성공 메세지
+                EnhancedMessageBox.show_validation_success(
+                    self, "Reset Complete", "Data has been successfully reset to the original values."
+                )
+            else: 
+                # 레거시 방식
+                # 원본 데이터로 복원
+                self.data = self.original_data.copy()
+                self.update_table_from_data()
 
-            # 성공 메세지
-            EnhancedMessageBox.show_validation_success(
-                self, "Reset Complete", "Data has been successfully reset to the original values."
-            )
+                # Reset 버튼 비활성화
+                self.reset_button.setEnabled(False)
+
+                # 성공 메세지
+                EnhancedMessageBox.show_validation_success(
+                    self, "Reset Complete", "Data has been successfully reset to the original values."
+                )
     
     """
     데이터가 수정되었음을 표시하는 메서드
     """
     def mark_as_modified(self):
+        print("[DEBUG] mark_as_modified 호출됨 - 리셋 버튼 활성화")
         self.reset_button.setEnabled(True)
 
     """
@@ -1410,21 +1423,17 @@ class ModifiedLeftSection(QWidget):
 
         # MVC 컨트롤러 확인
         has_controller = hasattr(self, 'controller') and self.controller is not None
-        # print(f"DEBUG: MVC 컨트롤러 존재 여부: {has_controller}")
         
         # MVC 컨트롤러가 있으면 컨트롤러에서 처리
         if has_controller:
-            print("DEBUG: 컨트롤러를 통해 삭제 처리 시도")
             # 컨트롤러에 연결이 제대로 되어 있는지 확인
             if hasattr(self.controller, 'on_item_deleted'):
-                # print("DEBUG: 컨트롤러의 on_item_deleted 메서드 호출")
                 self.controller.on_item_deleted(item_or_id)
                 return
             else:
                 print("DEBUG: 컨트롤러에 on_item_deleted 메서드가 없음")
         
         # 컨트롤러가 없거나 처리하지 않은 경우 기존 로직 사용
-        print("DEBUG: 기존 로직으로 삭제 처리")
         if self.data is None:
             print("DEBUG: 데이터가 없음")
             return
@@ -1439,7 +1448,6 @@ class ModifiedLeftSection(QWidget):
                 df = self.extract_dataframe()
                 self.viewDataChanged.emit(df)
                 self.mark_as_modified()
-                # print("DEBUG: ID 기반 삭제 완료")
             else:
                 print(f"DEBUG: ID {item_id}로 아이템을 찾을 수 없음")
             return
@@ -1456,7 +1464,6 @@ class ModifiedLeftSection(QWidget):
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    # print("DEBUG: ID 기반 삭제 완료")
                     return
             
             # ID가 없으면 Line/Time/Item으로 찾기
@@ -1469,7 +1476,6 @@ class ModifiedLeftSection(QWidget):
                     df = self.extract_dataframe()
                     self.viewDataChanged.emit(df)
                     self.mark_as_modified()
-                    # print("DEBUG: Line/Time/Item 기반 삭제 완료")
                 else:
                     print(f"DEBUG: Line/Time/Item으로 아이템을 찾을 수 없음")
         else:
@@ -1489,9 +1495,17 @@ class ModifiedLeftSection(QWidget):
     """
     모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
     """
-    def update_from_model(self, model_df):
-
+    def update_from_model(self, model_df=None):
+        print("ModifiedLeftSection: update_from_model 호출")
+        
+        # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
+            if hasattr(self, 'controller') and self.controller:
+                model_df = self.controller.model.get_dataframe()
+                print("컨트롤러에서 데이터 가져옴")
+        
+        if model_df is None:
+            print("데이터가 없습니다.")
             return
             
         # 타입 변환을 한 번에 처리
