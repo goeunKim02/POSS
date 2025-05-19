@@ -27,18 +27,23 @@ class AdjustmentController(QObject):
         # 초기화 상태 추적
         self._views_initialized = False
         
+    """
+    ResultPage 참조 설정
+    """
     def set_result_page(self, result_page):
-        """ResultPage 참조 설정"""
         self.result_page = result_page
         print("Controller: ResultPage 참조 설정됨")
 
+
+    """
+    초기 데이터로 뷰 초기화 (시그널 연결 전에 호출)
+    """
     def initialize_views(self):
         # 이미 초기화된 경우 중복 초기화 방지
         if self._views_initialized:
             print("Controller: 뷰가 이미 초기화되어 있어 중복 초기화를 방지합니다.")
             return False
         
-        """초기 데이터로 뷰 초기화 (시그널 연결 전에 호출)"""
         df = self.model.get_dataframe()
         
         # 왼쪽 섹션 초기화
@@ -102,12 +107,13 @@ class AdjustmentController(QObject):
         print("Controller: 시그널 연결 완료")
         return True
 
+
+    """
+    아이템 데이터 변경 처리
+    - Qty만 바뀌었으면 update_qty 호출
+    - Line/Time이 바뀌었으면 move_item 호출
+    """
     def _on_item_data_changed(self, item: object, new_data: Dict, changed_fields=None):
-        """
-        아이템 데이터 변경 처리
-        - Qty만 바뀌었으면 update_qty 호출
-        - Line/Time이 바뀌었으면 move_item 호출
-        """
         code = new_data.get('Item')
         line = new_data.get('Line')
         time = new_data.get('Time')
@@ -137,6 +143,7 @@ class AdjustmentController(QObject):
             print(f"Controller: 수량 변경 {code} @ {line}-{time} -> {qty}")
             # 수정된 모델의 update_qty 메서드 호출 (라인, 시간 포함)
             self.model.update_qty(code, line, time, qty, item_id)
+
 
     """
     모델 데이터가 바뀔 때마다 뷰를 업데이트
@@ -179,19 +186,23 @@ class AdjustmentController(QObject):
             
             print(f"Controller: 셀 이동 처리 완료")
         
-    # 추가 유틸리티 메서드들
+    """
+    재 모델 데이터 반환
+    """
     def get_current_data(self):
-        """현재 모델 데이터 반환"""
         return self.model.get_dataframe()
 
+    """
+    데이터 리셋
+    """
     def reset_data(self):
-        """데이터 리셋"""
         self.model.reset()
 
+    """
+    변경사항 적용
+    """
     def apply_changes(self):
-        """변경사항 적용"""
         self.model.apply()
-
 
     """
     복사된 아이템 처리
@@ -221,6 +232,7 @@ class AdjustmentController(QObject):
         qty = data.get('Qty', 0)
         self.model.add_new_item(code, line, time, qty, data)
         print(f"Controller: 복사된 아이템 등록 - {code} @ {line}-{time}")
+
 
     """
     삭제된 아이템 처리

@@ -2,8 +2,9 @@ from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt
 import pandas as pd
 import numpy as np
-
+from app.models.common.file_store import FilePaths, DataStore
 from app.models.common.settings_store import SettingsStore
+from app.utils.fileHandler import load_file
 
 """
 KPI Score 계산
@@ -124,22 +125,38 @@ class KpiScore:
     가동률 점수 계산
     """
     def calculate_utilization_score(self):
-        if self.df is None:
-            return 0.0
+        # 마스터 파일에서 생산능력 데이터(capa_qty) 로드
+        master_file = FilePaths.get("master_excel_file")
+        if not master_file:
+            print("마스터 파일 경로가 설정되지 않았습니다.")
+            return {}
+
+        try:
+            sheets = load_file(master_file, sheet_name="capa_qty")
+
+            if isinstance(sheets, dict):
+                df_capa_qty = sheets.get('capa_qty', pd.DataFrame())
+            else:
+                df_capa_qty = sheets
+            
+            if df_capa_qty.empty:
+                print("capa_qty 데이터가 비어 있습니다.")
+                return {}
+            
+        except Exception as e:
+            print(f"생산능력 데이터 로드 중 오류 발생: {str(e)}")
+            return {}
         
-         # Time 컬럼이 있는지 확인
-        if 'Time' not in self.df.columns:
-            print("경고: 'Time' 컬럼이 데이터프레임에 없습니다.")
-            return 0.0
-        
-        # Qty 컬럼이 있는지 확인
-        if 'Qty' not in self.df.columns:
-            print("경고: 'Qty' 컬럼이 데이터프레임에 없습니다.")
-            return 0.0
+        # print("==== 데이터프레임 구조 확인 ====")
+        # print(f"df_capa_qty 인덱스: {df_capa_qty.index.tolist()}")
+        # print(f"df_capa_qty 컬럼: {df_capa_qty.columns.tolist()}")
+        # print(f"df_capa_qty 형태: {df_capa_qty.shape}")
+
+        # 총 생산량 계산
+        total_qty = self.df['Qty'].sum()
         
         # Shift별 실제 생산량
         result_pivot = self.df.groupby('Time')['Qty'].sum()
-
         print(f"Time별 생산량: {result_pivot.to_dict()}")  # 디버깅용
 
         # 가중치 적용 : weight_day_ox가 켜져있으면 weight_day 사용
@@ -148,33 +165,104 @@ class KpiScore:
         else:  # 아니면 균등 가중치
             weights = [1.0] * 14  
 
-        # Best 값 계산 (앞에서부터 최대로 채운 결과)
-        total_qty = self.df['Qty'].sum()
+        # shift별 best 생산 능력 계산
+        shift_capacity = {}
+        for shift in range(1, 15):
+            if shift not in df_capa_qty.columns:
+                shift_capacity[shift] = 0
+                continue
+
+            shift_total_capacity = 0
+
+            # 각 제조동별 처리
+            for factory in ['I', 'D', 'K', 'M']:
+                # 해당 공장 라인들 가져오기
+                factory_lines = df_capa_qty[df_capa_qty['Line'].str.startswith(f'{factory}_')].index.tolist()
+                print(f"factor_lines : {factory_lines}")
+            
+                if not factory_lines:
+                    print(f"Factory {factory}에 라인 없음")
+                    continue
+
+                # 최대 라인/수량 제약 확인
+                max_line_key = f'Max_line_{factory}'
+                max_qty_key = f'Max_qty_{factory}'
+
+                # 'Line' 컬럼에서 제약 조건 행 찾기
+                max_line_row = df_capa_qty[df_capa_qty['Line'] == max_line_key]
+                max_qty_row = df_capa_qty[df_capa_qty['Line'] == max_qty_key]
+
+                # 제약 값 확인
+                if not max_line_row.empty and shift in max_line_row.columns and pd.notna(max_line_row.iloc[0][shift]):
+                    max_line = max_line_row.iloc[0][shift]
+                    print(f"Factory {factory} Max Line 값: {max_line}")
+                    
+                    # 중요: 제약이 0이면 해당 제조동의 생산량은 0
+                    if max_line == 0:
+                        print(f"Factory {factory}의 Max Line이 0이므로 생산 능력 0")
+                        continue
+                else:
+                    max_line = len(factory_lines)
+                    print(f"Factory {factory} Max Line 정보 없음, 기본값 사용: {max_line}")
+
+                if not max_qty_row.empty and shift in max_qty_row.columns and pd.notna(max_qty_row.iloc[0][shift]):
+                    max_qty = max_qty_row.iloc[0][shift]
+                    print(f"Factory {factory} Max Qty 값: {max_qty}")
+                    
+                    # 중요: 제약이 0이면 해당 제조동의 생산량은 0
+                    if max_qty == 0:
+                        print(f"Factory {factory}의 Max Qty가 0이므로 생산 능력 0")
+                        continue
+                else:
+                    max_qty = float('inf')
+                    print(f"Factory {factory} Max Qty 정보 없음, 무제한으로 설정")
+
+                # 각 라인의 생산 능력 가져오기
+                line_capacities = [(line, df_capa_qty.loc[line, shift]) for line in factory_lines if pd.notna(df_capa_qty.loc[line, shift])]
+                line_capacities.sort(key=lambda x:x[1], reverse=True)  # 내림차순 정렬 
+    
+                # 라인 수와 최대 수량 간의 더 제한적인 제약 적용
+                factory_capacity = 0
+                for i, (line, capacity) in enumerate(line_capacities):
+                    if i >= max_line:
+                        break  # 라인 수 초과
+
+                    if factory_capacity + capacity <= max_qty:
+                        factory_capacity += capacity
+                    elif factory_capacity < max_qty:
+                        # 남은 만큼만 채움
+                        remaining = max_qty - factory_capacity
+                        if remaining > 0:
+                            factory_capacity += remaining
+                        break
+                    else:
+                        break  # 이미 max_qty를 넘었음
+
+                shift_total_capacity += factory_capacity
+
+            shift_capacity[shift] = shift_total_capacity
+            print(f"Shift {shift} 생산 능력: {shift_total_capacity}")
 
         # Best 배치 계산: 앞 시프트부터 최대로 채움
         best_allocation = {}
         remaining_qty = total_qty
 
-        # 각 시프트별 capacity 설정 (최대 생산 가능량)
-        # 설정에서 가져오거나 기본값 사용
-        shift_capacity = self.opts.get('shift_capacity', {})
-        default_capacity = self.opts.get('default_capacity', 10000)
-        
-        # 앞에서부터 채우는 Best 배치
-        for shift in range(1, 11):  # 시프트 수는 설정에 따라 조정 가능
-            capacity = shift_capacity.get(shift, default_capacity)
-            if remaining_qty > 0:
+        for shift in range(1, 15):
+            capacity = shift_capacity.get(shift, 0)
+            if remaining_qty > 0 and capacity > 0:
                 allocated = min(capacity, remaining_qty)
                 best_allocation[shift] = allocated
                 remaining_qty -= allocated
             else:
                 best_allocation[shift] = 0
+            
+            print(f"Shift {shift} Best 배치: {best_allocation[shift]}")
         
         # Result 값과 Best 값에 가중치 적용하여 계산
         weighted_result_sum = 0
         weighted_best_sum = 0
 
-        for shift in range(1, 11):  # 시프트 수는 설정에 따라 조정 가능
+        for shift in range(1, 15): 
             if shift <= len(weights):
                 weight = weights[shift - 1]
                 result_qty = result_pivot.get(shift, 0)
@@ -182,11 +270,13 @@ class KpiScore:
                 
                 weighted_result_sum += result_qty * weight
                 weighted_best_sum += best_qty * weight
+
+                print(f"Shift {shift}: Weight={weight}, Result={result_qty}, Best={best_qty}")
         
         # 디버깅 정보 출력
         print(f"Util 계산: Result={weighted_result_sum}, Best={weighted_best_sum}")
 
-        # 가동률 계산: Result 값 * 가중치 / Best 값 * 가중치
+        # 가동률 계산: 1 - (Result 값 * 가중치 / Best 값 * 가중치)
         if weighted_best_sum > 0:
             util_score = (1 - (weighted_result_sum / weighted_best_sum)) * 100
             print(f"Util 점수: {util_score:.2f}%")
@@ -231,9 +321,38 @@ class KpiScore:
             print(f"자재 부족 아이템 수: {shortage_count}")
 
         # 각 점수 계산
-        mat_score = self.calculate_material_score()
-        sop_score = self.calculate_sop_score()
-        util_score = self.calculate_utilization_score()
+        try:
+            mat_score = self.calculate_material_score()
+        except Exception as e:
+            print(f"자재 점수 계산 오류: {e}")
+            mat_score = 0.0
+        
+        try:
+            sop_score = self.calculate_sop_score()
+        except Exception as e:
+            print(f"SOP 점수 계산 오류: {e}")
+            sop_score = 0.0
+        
+        try:
+            util_score = self.calculate_utilization_score()
+            # util_score가 딕셔너리인지 확인하고 숫자 값 추출
+            if isinstance(util_score, dict):
+                print(f"util_score가 딕셔너리입니다: {util_score}")
+                # 임시 값으로 처리
+                util_value = 0.0
+                for key, val in util_score.items():
+                    if isinstance(val, (int, float)):
+                        util_value = val
+                        break
+                util_score = util_value
+        except Exception as e:
+            print(f"가동률 점수 계산 오류: {e}")
+            util_score = 0.0
+
+        # 각 점수 계산
+        # mat_score = self.calculate_material_score()
+        # sop_score = self.calculate_sop_score()
+        # util_score = self.calculate_utilization_score()
         total_score = self.calculate_total_score(mat_score, sop_score, util_score)
 
         scores = {

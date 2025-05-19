@@ -302,10 +302,16 @@ class PlanAdjustmentValidator:
         capacity = self.get_line_capacity(line, time)
         
         # 용량 검증
-        if capacity is not None:
-            if current_allocation + new_qty > capacity:
-                return False, f"Exceeds capacity for line '{line}' shift {time} ({capacity}). Current: {current_allocation}, Adding: {new_qty}"
+        if capacity is not None:  # 용량 정보가 있는 경우만 검증
+            # 생산 능력이 명시적으로 0인 경우 
+            if capacity <= 0:
+                return False, f"No capacity: line {line}, shift {time}."
+                
+            # 용량이 양수이고 할당량이 용량을 초과하는 경우
+            elif current_allocation + new_qty > capacity:
+                return False, f"Over capacity({capacity}): line {line}, shift {time}."
         
+        # 용량 정보가 없는 경우 (None) - 제약 없음으로 간주
         return True, ""
     
     
@@ -333,7 +339,7 @@ class PlanAdjustmentValidator:
             
         # 납기일 검증
         if due_time is not None and time > due_time:
-            return False, f"Item '{item}' exceeds due date (shift {due_time})."
+            return False, f"Item {item} past due: shift {due_time}."
             
         return True, ""
     
@@ -364,8 +370,14 @@ class PlanAdjustmentValidator:
 
         # 3. 라인 용량 조회 (이동하는 라인/시프트) 
         line_capacity = self.get_line_capacity(line, time)
-        if line_capacity is None or line_capacity <= 0:
-            return True, "용량 정보 없음"
+        
+        # 생산 능력이 0인 경우 
+        if line_capacity is not None and line_capacity <= 0:
+            return False, f"No capacity: line {line}, shift {time}."
+
+        # 용량 정보가 없는 경우 (None) - 제약 없음
+        if line_capacity is None:
+            return True, ""
     
         # 4. 새로운 총 할당량 계산
         new_total_allocation = current_total_allocation - existing_item_qty + new_qty
@@ -377,9 +389,9 @@ class PlanAdjustmentValidator:
         max_rate = max_utilization_by_shift.get(int(time), 100)
         
         if utilization_rate > max_rate:
-            return False, f"시프트 {time}의 최대 가동률 {max_rate}% 초과\n현재: {utilization_rate:.1f}%"
+            return False, f"Over utilization: shift {time}."
         
-        return True, "가동률 제약 만족"
+        return True, ""
     
 
     """
@@ -411,13 +423,13 @@ class PlanAdjustmentValidator:
 
         # 필수값 검증
         if line is None or time is None or item is None:
-            return False, "라인, 시프트, 아이템 정보는 필수입니다."
+            return False, "Missing data."
         
         if new_qty == 'ALL' or new_qty == 'All':
             # 해당 아이템의 전체 수량 가져오기
             new_qty = self._get_total_demand_for_item(item)
             if new_qty <= 0:
-                return False, f"아이템 '{item}'의 Qty를 찾을 수 없습니다."
+                return False, f"No qty for item {item}."
             
         # 각 제약 요소 검증
         validations = [
@@ -439,7 +451,7 @@ class PlanAdjustmentValidator:
         if not valid:
             return False, message
         
-        return True, "조정 가능합니다."
+        return True, ""
 
     
     """
@@ -475,6 +487,11 @@ class PlanAdjustmentValidator:
                 max_line_rows = self.capa_qty_data[self.capa_qty_data['Line'] == f'Max_line_{factory}']
                 if not max_line_rows.empty and time in max_line_rows.columns:
                     max_line = max_line_rows.iloc[0][time]
+
+                    # 여기서 추가: max_line이 0인 경우 즉시 0 반환
+                    if pd.notna(max_line) and max_line == 0:
+                        print(f"제조동 {factory}의 Max_line이 0으로 설정됨: 생산 능력 0")
+                        return 0
                     
                     # 해당 공장 라인들 가져오기
                     factory_lines = self.capa_qty_data[
@@ -505,6 +522,11 @@ class PlanAdjustmentValidator:
                 max_qty_rows = self.capa_qty_data[self.capa_qty_data['Line'] == f'Max_qty_{factory}']
                 if not max_qty_rows.empty and time in max_qty_rows.columns:
                     max_qty = max_qty_rows.iloc[0][time]
+
+                    # 여기서 추가: max_qty가 0인 경우 즉시 0 반환
+                    if pd.notna(max_qty) and max_qty == 0:
+                        print(f"제조동 {factory}의 Max_qty가 0으로 설정됨: 생산 능력 0")
+                        return 0
                     
                     # 최대 수량 제약이 있는 경우
                     if pd.notna(max_qty):
@@ -546,16 +568,17 @@ class PlanAdjustmentValidator:
     def get_existing_qty(self, line, time):
         return self.get_current_allocation(line=line, time=time)
 
+
+    """
+    현재 할당량을 계산하는 통합 함수
+    
+    Args:
+        line: 특정 라인의 할당량 (line + time)
+        time: 시프트 번호
+        item: 특정 아이템의 할당량 (line + time + item)
+        factory: 제조동 전체 할당량 (factory + time)
+    """
     def get_current_allocation(self, line=None, time=None, item=None, factory=None):
-        """
-        현재 할당량을 계산하는 통합 함수
-        
-        Args:
-            line: 특정 라인의 할당량 (line + time)
-            time: 시프트 번호
-            item: 특정 아이템의 할당량 (line + time + item)
-            factory: 제조동 전체 할당량 (factory + time)
-        """
         
         # 1. 특정 아이템의 할당량
         if line and time and item:
@@ -586,7 +609,9 @@ class PlanAdjustmentValidator:
         return 0
     
 
-    """특정 라인/시프느에서 특정 아이템의 수량 조회"""
+    """
+    특정 라인/시프느에서 특정 아이템의 수량 조회
+    """
     def get_item_qty_at_position(self, line, time, item):
         try:
             mask = (
@@ -625,7 +650,7 @@ class PlanAdjustmentValidator:
         )
     
         if not building_ratios:
-            return True, "No production volume or unable to calculate plant capacity ratios."
+            return True, "No data."
         
         violations = []
 
@@ -655,7 +680,7 @@ class PlanAdjustmentValidator:
         if violations:
             return False, "\n".join(violations)
         else:
-            return True, "Plant production capacity ratio constraints are satisfied."
+            return True, ""
 
 
     
