@@ -127,8 +127,20 @@ class KpiScore:
         if self.df is None:
             return 0.0
         
+         # Time 컬럼이 있는지 확인
+        if 'Time' not in self.df.columns:
+            print("경고: 'Time' 컬럼이 데이터프레임에 없습니다.")
+            return 0.0
+        
+        # Qty 컬럼이 있는지 확인
+        if 'Qty' not in self.df.columns:
+            print("경고: 'Qty' 컬럼이 데이터프레임에 없습니다.")
+            return 0.0
+        
         # Shift별 실제 생산량
         result_pivot = self.df.groupby('Time')['Qty'].sum()
+
+        print(f"Time별 생산량: {result_pivot.to_dict()}")  # 디버깅용
 
         # 가중치 적용 : weight_day_ox가 켜져있으면 weight_day 사용
         if self.opts.get('weight_day_ox', 0):
@@ -136,24 +148,51 @@ class KpiScore:
         else:  # 아니면 균등 가중치
             weights = [1.0] * 14  
 
-        # 실제 생산량에 가중치 적용
-        weighted_result = 0
-        weighted_capacity = 0
+        # Best 값 계산 (앞에서부터 최대로 채운 결과)
+        total_qty = self.df['Qty'].sum()
 
-        for shift in range(1, 15):
+        # Best 배치 계산: 앞 시프트부터 최대로 채움
+        best_allocation = {}
+        remaining_qty = total_qty
+
+        # 각 시프트별 capacity 설정 (최대 생산 가능량)
+        # 설정에서 가져오거나 기본값 사용
+        shift_capacity = self.opts.get('shift_capacity', {})
+        default_capacity = self.opts.get('default_capacity', 10000)
+        
+        # 앞에서부터 채우는 Best 배치
+        for shift in range(1, 11):  # 시프트 수는 설정에 따라 조정 가능
+            capacity = shift_capacity.get(shift, default_capacity)
+            if remaining_qty > 0:
+                allocated = min(capacity, remaining_qty)
+                best_allocation[shift] = allocated
+                remaining_qty -= allocated
+            else:
+                best_allocation[shift] = 0
+        
+        # Result 값과 Best 값에 가중치 적용하여 계산
+        weighted_result_sum = 0
+        weighted_best_sum = 0
+
+        for shift in range(1, 11):  # 시프트 수는 설정에 따라 조정 가능
             if shift <= len(weights):
                 weight = weights[shift - 1]
-                qty = result_pivot.get(shift, 0)
+                result_qty = result_pivot.get(shift, 0)
+                best_qty = best_allocation.get(shift, 0)
                 
-                # 최대 용량 계산 (마스터 데이터에서 가져와야 함)
-                # 여기서는 실제 생산량을 기준으로 계산
-                capacity = qty  # 임시로 실제값 사용
+                weighted_result_sum += result_qty * weight
+                weighted_best_sum += best_qty * weight
+        
+        # 디버깅 정보 출력
+        print(f"Util 계산: Result={weighted_result_sum}, Best={weighted_best_sum}")
 
-                weighted_result += qty * weight
-                weighted_capacity += capacity * weight
-
-        # 가동률 계산
-        util_score = (weighted_result / weighted_capacity) * 100
+        # 가동률 계산: Result 값 * 가중치 / Best 값 * 가중치
+        if weighted_best_sum > 0:
+            util_score = (1 - (weighted_result_sum / weighted_best_sum)) * 100
+            print(f"Util 점수: {util_score:.2f}%")
+        else:
+            util_score = 100.0
+            print("Best 합계가 0, Util 점수는 100%로 설정")
         
         return util_score
     
@@ -183,12 +222,31 @@ class KpiScore:
     def calculate_all_scores(self):
         self.get_options()
 
+        print("==== KPI 계산 디버깅 ====")
+        print(f"결과 데이터프레임 크기: {len(self.df) if self.df is not None else 0}")
+
+        # Mat 점수 계산에 사용되는 데이터 확인
+        if hasattr(self, 'material_analyzer') and self.material_analyzer:
+            shortage_count = len(self.material_analyzer.shortage_results) if hasattr(self.material_analyzer, 'shortage_results') else 0
+            print(f"자재 부족 아이템 수: {shortage_count}")
+
         # 각 점수 계산
         mat_score = self.calculate_material_score()
         sop_score = self.calculate_sop_score()
         util_score = self.calculate_utilization_score()
         total_score = self.calculate_total_score(mat_score, sop_score, util_score)
+
+        scores = {
+            'Mat': mat_score,
+            'SOP': sop_score,
+            'Util': util_score,
+            'Total': total_score
+        }
         
+        # 각 점수 로깅 (변수 생성 후에 호출)
+        print(f"계산된 KPI 점수: Mat={scores['Mat']:.2f}, SOP={scores['SOP']:.2f}, Util={scores['Util']:.2f}, Total={scores['Total']:.2f}")
+        print("=======================")
+
         return {
             'Mat': mat_score,
             'SOP': sop_score,

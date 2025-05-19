@@ -1,5 +1,7 @@
 from PyQt5.QtCore import QObject
 from typing import Any, Dict
+import uuid
+import pandas as pd
 from app.utils.item_key_manager import ItemKeyManager
 
 """
@@ -24,20 +26,6 @@ class AdjustmentController(QObject):
 
         # 초기화 상태 추적
         self._views_initialized = False
-
-    #    # ResultPage 찾기
-    #     self.result_page = view.parent_page if hasattr(view, 'parent_page') else None
-
-    #     if self.result_page:
-    #         print("ModifiedLeftSection의 parent_page 참조를 통해 ResultPage 찾음")
-    #         # ResultPage에 컨트롤러 설정
-    #         if hasattr(self.result_page, 'set_controller'):
-    #             # self.result_page.set_controller(self)
-    #     else:
-    #         print("경고: ModifiedLeftSection에 parent_page 참조가 없음")
-     
-        # Controller에서 모든 시그널 연결 관리
-        # self._connect_signals()
         
     def set_result_page(self, result_page):
         """ResultPage 참조 설정"""
@@ -117,8 +105,8 @@ class AdjustmentController(QObject):
     def _on_item_data_changed(self, item: object, new_data: Dict, changed_fields=None):
         """
         아이템 데이터 변경 처리
-        • Qty만 바뀌었으면 update_qty 호출
-        • Line/Time이 바뀌었으면 move_item 호출
+        - Qty만 바뀌었으면 update_qty 호출
+        - Line/Time이 바뀌었으면 move_item 호출
         """
         code = new_data.get('Item')
         line = new_data.get('Line')
@@ -162,11 +150,6 @@ class AdjustmentController(QObject):
         self.view.update_from_model(df)
         print("Controller: view.update_from_model 업데이트")
 
-        # result page 업데이트 - 시각화를 위한 데이터 변경 전파
-        # if self.result_page and hasattr(self.result_page, 'update_ui_from_model'):
-            # print("Controller: result_page.update_ui_from_model 업데이트")
-            # self.result_page.update_ui_from_model(df)
-            # result page 업데이트 - 시각화를 위한 데이터 변경 전파
         if self.result_page:
             if hasattr(self.result_page, 'update_ui_from_model'):
                 print("Controller: result_page.update_ui_from_model 호출")
@@ -210,15 +193,20 @@ class AdjustmentController(QObject):
         self.model.apply()
 
 
+    """
+    복사된 아이템 처리
+
+    parameter:
+        item: 복사된 아이템 위젯
+        data: 아이템 데이터가 포함된 딕셔너리
+    """
     def on_item_copied(self, item, data):
-        """복사된 아이템 처리"""
+        print(f"컨트롤러가 복사 아이템 처리 중: {data.get('Item')} @ {data.get('Line')}-{data.get('Time')}")
+
+        # 필수 정보 추출
         code = data.get('Item')
         line = data.get('Line')
         time = data.get('Time')
-        
-        # # 모델에 명시적으로 추가
-        # self.model.add_new_item(code, line, time, 0, data)
-        # print(f"컨트롤러: 복사된 아이템 등록 - {code} @ {line}-{time}")
 
         # 필수 데이터 검증
         if not code or not line or time is None:
@@ -261,4 +249,21 @@ class AdjustmentController(QObject):
                 print(f"컨트롤러: 아이템 삭제 처리 - {item_code} @ {line}-{time}")
                 return self.model.delete_item(item_code, line, time)
         
-        return False
+        return 
+    
+
+    """
+    모델을 완전히 새로운 데이터로 업데이트
+
+    parameter:
+        new_data: 사용할 새 데이터가 포함된 DataFrame
+    """
+    def update_model_data(self, new_df: pd.DataFrame) -> bool:
+        if hasattr(self.model, 'set_new_dataframe'):
+            self.model.set_new_dataframe(new_df)
+            return True
+        else:
+            print("Controller: model이 set_new_dataframe을 지원하지 않음")
+            return False
+        
+

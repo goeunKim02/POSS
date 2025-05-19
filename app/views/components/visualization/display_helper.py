@@ -25,22 +25,6 @@ class DisplayHelper:
         # 캔버스 초기화
         canvas.axes.clear()
 
-        # [디버그 1] 원본 데이터 로깅
-        # print(f"[디버그] DisplayHelper 입력 데이터 타입: {type(data)}")
-        if isinstance(data, dict):
-            # print(f"[디버그] 데이터 키: {list(data.keys())}")
-            # 데이터 예시 출력 (너무 많지 않게)
-            if 'original' in data:
-                # print(f"[디버그] original 키 타입: {type(data['original'])}")
-                if isinstance(data['original'], dict) and len(data['original']) > 0:
-                    first_key = next(iter(data['original']))
-                    # print(f"[디버그] original 데이터 샘플: {first_key}: {data['original'][first_key]}")
-            if 'adjusted' in data:
-                # print(f"[디버그] adjusted 키 타입: {type(data['adjusted'])}")
-                if isinstance(data['adjusted'], dict) and len(data['adjusted']) > 0:
-                    first_key = next(iter(data['adjusted']))
-                    # print(f"[디버그] adjusted 데이터 샘플: {first_key}: {data['adjusted'][first_key]}")
-
         # 비교 데이터 감지
         is_comparison_data = (
             isinstance(data, dict) and
@@ -48,14 +32,10 @@ class DisplayHelper:
             'adjusted' in data
         )
 
-         # [디버그 2] 비교 데이터 감지 결과
-        # print(f"[디버그] 비교 데이터 감지: {is_comparison_data}")
-
         # 비교 차트 타입인데 데이터가 비교 형식이 아니면 차트 타입 변경
         chart_type = chart_config.get('chart_type', 'bar')
         if chart_type == 'comparison_bar' and not is_comparison_data:
             chart_type = 'bar'
-            # print(f"[디버그] 차트 타입 변경: comparison_bar -> bar (비교 데이터 아님)")
 
         # 일반 데이터인데 비교 데이터 형식이면 차트 타입 변경
         if chart_type != 'comparison_bar' and is_comparison_data:
@@ -63,7 +43,6 @@ class DisplayHelper:
 
         # 차트 설정 업데이트
         chart_config['chart_type'] = chart_type
-        # print(f"[디버그] 최종 차트 타입: {chart_type}")
 
         # 데이터 유효성 확인
         has_data_func = chart_config.get('has_data_check', lambda x:x is not None and len(x) > 0)

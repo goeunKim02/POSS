@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Samsung Production Planning Optimization System")
+        # self.setFixedSize(1920, 1080)
 
         # Create a smaller icon
         # app_icon = QIcon('../resources/icon/samsung_icon1.png')
