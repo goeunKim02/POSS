@@ -127,6 +127,16 @@ class KpiScore:
         if self.df is None:
             return 0.0
         
+         # Time 컬럼이 있는지 확인
+        if 'Time' not in self.df.columns:
+            print("경고: 'Time' 컬럼이 데이터프레임에 없습니다.")
+            return 0.0
+        
+        # Qty 컬럼이 있는지 확인
+        if 'Qty' not in self.df.columns:
+            print("경고: 'Qty' 컬럼이 데이터프레임에 없습니다.")
+            return 0.0
+        
         # Shift별 실제 생산량
         result_pivot = self.df.groupby('Time')['Qty'].sum()
 

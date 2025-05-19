@@ -1,223 +1,141 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QLabel, QFrame
+from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel
 from PyQt5.QtCore import Qt
-from app.analysis.output.kpi_score import KpiScore
+from PyQt5.QtGui import QFont
 
 class KpiWidget(QWidget):
     def __init__(self, main_window=None):
         super().__init__()
-        self.main_window = main_window
-        self.kpi_calculator = None
-        self.scores_layout = None
-        
         self.init_ui()
+        self.base_scores = {}
+        self.adjust_scores = {}
 
+    """
+    KPI 위젯 UI 초기화"""
     def init_ui(self):
-        """KPI 위젯 UI 초기화"""
-        # 메인 프레임
-        frame = QFrame()
-        frame.setFrameStyle(QFrame.StyledPanel)
-        frame.setStyleSheet("""
-            QFrame {
-                background-color: #ffffff;
-                border: 1px solid #dee2e6;
-                border-radius: 8px;
-                padding: 15px;
-                margin: 5px;
-            }
-        """)
+        # 메인 레이아웃
+        self.layout = QGridLayout(self)
+        self.layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setSpacing(10)
         
-        # 레이아웃 구성
-        main_layout = QVBoxLayout()
-        frame_layout = QVBoxLayout()
-        
-        # 제목
-        self.title_label = QLabel("KPI Score")
-        self.title_label.setStyleSheet("""
-            QLabel {
-                font-weight: bold;
-                font-size: 16pt;
-                color: #1428A0;
-                text-align: center;
-                margin-bottom: 15px;
-                padding: 5px;
-            }
-        """)
-        self.title_label.setAlignment(Qt.AlignCenter)
-        frame_layout.addWidget(self.title_label)
-        
-        # 점수 표시 영역
-        self.scores_widget = QWidget()
-        self.scores_layout = QGridLayout()
-        self.scores_widget.setLayout(self.scores_layout)
-        frame_layout.addWidget(self.scores_widget)
-        
-        # 초기 빈 레이블들 생성
-        self.create_empty_labels()
-        
-        frame.setLayout(frame_layout)
-        main_layout.addWidget(frame)
-        self.setLayout(main_layout)
-        
-    def create_empty_labels(self):
-        """초기 빈 레이블들 생성"""
-        # Mat, SOP, Util 레이블 (첫 번째 행)
-        self.mat_label = QLabel("Mat: --")
-        self.sop_label = QLabel("SOP: --")
-        self.util_label = QLabel("Util: --")
-        
-        # Total 레이블 (두 번째 행)
-        self.total_label = QLabel("Total: --")
-        
-        # 스타일 적용
-        for label in [self.mat_label, self.sop_label, self.util_label]:
-            label.setStyleSheet("""
-                QLabel {
-                    font-weight: bold;
-                    font-size: 12pt;
-                    color: #666;
-                    padding: 5px;
-                    text-align: center;
-                }
-            """)
+        # 헤더 행 추가
+        headers = ["", "Total", "Mat.", "SOP", "Util."]
+        for j, header in enumerate(headers):
+            label = QLabel(header)
+            label.setFont(QFont("Arial", 10, QFont.Bold))
             label.setAlignment(Qt.AlignCenter)
+            label.setStyleSheet("color: #333; border: none; padding: 5px;")
+            self.layout.addWidget(label, 0, j)
         
-        # Total 레이블은 더 크게
-        self.total_label.setStyleSheet("""
-            QLabel {
-                font-weight: bold;
-                font-size: 14pt;
-                color: #666;
-                padding: 10px;
-                text-align: center;
-                border-top: 1px solid #eee;
-                margin-top: 10px;
-            }
-        """)
-        self.total_label.setAlignment(Qt.AlignCenter)
+        # Base/Adjust 행 추가
+        rows = ["Base", "Adjust"]
+        for i, row_name in enumerate(rows):
+            row_label = QLabel(row_name)
+            row_label.setFont(QFont("Arial", 10, QFont.Bold))
+            row_label.setAlignment(Qt.AlignCenter)
+            row_label.setStyleSheet("color: #333; border: none; padding: 5px;")
+            self.layout.addWidget(row_label, i+1, 0)
+            
+        # KPI 라벨 초기화
+        self.kpi_labels = {}
         
-        # 레이아웃에 추가
-        self.scores_layout.addWidget(self.mat_label, 0, 0)
-        self.scores_layout.addWidget(self.sop_label, 0, 1)
-        self.scores_layout.addWidget(self.util_label, 0, 2)
-        self.scores_layout.addWidget(self.total_label, 1, 0, 1, 3)
+        # 각 행의 점수 라벨들 생성
+        for i, row_name in enumerate(rows):
+            for j, col_name in enumerate(["Total", "Mat", "SOP", "Util"]):
+                score_label = QLabel("--")
+                score_label.setFont(QFont("Arial", 10, QFont.Bold))
+                score_label.setAlignment(Qt.AlignCenter)
+                score_label.setStyleSheet("color: #555; border: none; padding: 5px;")
+                self.layout.addWidget(score_label, i+1, j+1)
+                
+                # 라벨을 참조할 수 있도록 저장
+                self.kpi_labels[f"{row_name}_{col_name}"] = score_label
 
-    
-    """
-    데이터 설정 및 KPI Calculator 초기화
-    """
-    def set_data(self, result_df, material_analyzer=None, demand_df=None):
-        self.kpi_calculator = KpiScore(self.main_window)
-        self.kpi_calculator.set_data(result_df, material_analyzer, demand_df)
-        self.kpi_calculator.set_kpi_widget(self.scores_widget)
-
-        # 초기 점수 계산
-        self.refresh_scores()
 
     """
-    점수 새로고침
+    점수 업데이트
     """
-    def refresh_scores(self):
-        if not self.kpi_calculator:
-            return None
+    def update_scores(self, base_scores=None, adjust_scores=None):
+        # 기본 점수
+        if base_scores:
+            self.base_scores = adjust_scores
+            self.update_adjust_scores()
 
-        scores = self.kpi_calculator.calculate_all_scores()
-        self.update_labels(scores)
-        return scores
-    
-    """
-    라벨 업데이트
-    """
-    def update_labels(self, scores):
-        if not scores:
-            return
-        
-        # 점수에 따른 색상 결정
-        def get_color(score):
-            if score >= 90:
-                return "#28a745"  # 초록색
-            elif score >= 70:
-                return "#ffc107"  # 노란색
-            else:
-                return "#dc3545"  # 빨간색
-        
-        # 각 라벨 업데이트
-        mat_color = get_color(scores['Mat'])
-        sop_color = get_color(scores['SOP'])
-        util_color = get_color(scores['Util'])
-        total_color = get_color(scores['Total'])
-        
-        self.mat_label.setText(f"Mat: {scores['Mat']:.1f}%")
-        self.mat_label.setStyleSheet(f"""
-            QLabel {{
-                font-weight: bold;
-                font-size: 12pt;
-                color: {mat_color};
-                padding: 5px;
-                text-align: center;
-            }}
-        """)
-        
-        self.sop_label.setText(f"SOP: {scores['SOP']:.1f}%")
-        self.sop_label.setStyleSheet(f"""
-            QLabel {{
-                font-weight: bold;
-                font-size: 12pt;
-                color: {sop_color};
-                padding: 5px;
-                text-align: center;
-            }}
-        """)
-        
-        self.util_label.setText(f"Util: {scores['Util']:.1f}%")
-        self.util_label.setStyleSheet(f"""
-            QLabel {{
-                font-weight: bold;
-                font-size: 12pt;
-                color: {util_color};
-                padding: 5px;
-                text-align: center;
-            }}
-        """)
-        
-        self.total_label.setText(f"Total: {scores['Total']:.1f}%")
-        self.total_label.setStyleSheet(f"""
-            QLabel {{
-                font-weight: bold;
-                font-size: 14pt;
-                color: {total_color};
-                padding: 10px;
-                text-align: center;
-                border-top: 1px solid #eee;
-                margin-top: 10px;
-            }}
-        """)
+        # 조정 점수
+        if adjust_scores:
+            self.adjust_scores = adjust_scores
+            self.update_adjust_scores()
+        elif adjust_scores == {}:  # 없다면 점수 초기화
+            self.adjust_scores = {}
+            self.reset_adjust_scores()
 
     """
-    데이터 변경 시 호출
+    기본 점수 라벨 업데이트
     """
-    def on_data_changed(self):
-        self.refresh_scores()
-        
+    def update_base_scores(self):
+        for score_type, score in self.base_scores.items():
+            label_key = f"Base_{score_type}"
+            if label_key in self.kpi_labels:
+                # 소수점 한자리까지 표시
+                score_text = f"{score:.1f}" if isinstance(score, (int, float)) else str(score)
+                self.kpi_labels[label_key].setText(score_text)
+                self.kpi_labels[label_key].setStyleSheet(f"""
+                    QLabel {{
+                        color: #333;
+                        font-weight: bold;
+                        border: none;
+                        padding: 5px;
+                    }}
+                """)
+
     """
-    점수 초기화
+    조정 점수 라벨 업데이트
     """
-    def clear_scores(self):
-        self.mat_label.setText("Mat: --")
-        self.sop_label.setText("SOP: --")
-        self.util_label.setText("Util: --")
-        self.total_label.setText("Total: --")
-        
-        # 색상 초기화
-        default_style = """
-            QLabel {
-                font-weight: bold;
-                color: #666;
-                padding: 5px;
-                text-align: center;
-            }
-        """
-        self.mat_label.setStyleSheet(default_style + "font-size: 12pt;")
-        self.sop_label.setStyleSheet(default_style + "font-size: 12pt;")
-        self.util_label.setStyleSheet(default_style + "font-size: 12pt;")
-        self.total_label.setStyleSheet(default_style + "font-size: 14pt; border-top: 1px solid #eee; margin-top: 10px;")
-    
+    def update_adjust_scores(self):
+        for score_type, adjust_score in self.adjust_scores.items():
+            label_key = f"Adjst_{score_type}"
+            if label_key in self.kpi_labels:
+                # 기본 점수 참조
+                base_score = self.base_scores.get(score_type, 0)
+
+                # 점수 차이에 따라 스타일 변경
+                if adjust_score > base_score:
+                    color = "#1428A0"  # 파란색 (향상)
+                    arrow = "↑"
+                elif adjust_score < base_score:
+                    color = "#FF0000"  # 빨간색 (하락)
+                    arrow = "↓"
+                else:
+                    color = "#888888"  # 회색 (변화 없음)
+                    arrow = "-"
+
+                # 소수점 한자리까지 표시
+                score_text = f"{adjust_score:.1f}" if isinstance(adjust_score, (int, float)) else str(adjust_score)
+                self.kpi_labels[label_key].setText(f"{score_text} {arrow}")
+                self.kpi_labels[label_key].setStyleSheet(f"""
+                    QLabel {{
+                        color: {color};
+                        font-weight: bold;
+                        font-size: 10pt;
+                        border: none;
+                        padding: 5px;
+                    }}
+                """)
+
+
+    """
+    조정 점수 리셋
+    """
+    def reset_adjust_scores(self):
+        for score_type in ['Total', 'Mat', 'SOP', 'Util']:
+            label_key = f"Ajust_{score_type}"
+            if label_key in self.kpi_labels:
+                    self.kpi_labels[label_key].setText("--")
+                    self.kpi_labels[label_key].setStyleSheet("""
+                        QLabel {
+                            color: #555;
+                            font-weight: bold;
+                            font-size: 10pt;
+                            border: none;
+                            padding: 5px;
+                        }
+                    """)

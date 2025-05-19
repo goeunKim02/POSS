@@ -268,10 +268,10 @@ class ItemsContainer(QWidget):
                     item_data = json.loads(json_str)
                     print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
 
-                    # if isinstance(item_data, dict):
-                    #     item_data['_drop_pos_x'] = event.pos().x()
-                    #     item_data['_drop_pos_y'] = event.pos().y()
-                    # print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
+                    if isinstance(item_data, dict):
+                        item_data['_drop_pos_x'] = event.pos().x()
+                        item_data['_drop_pos_y'] = event.pos().y()
+                    print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
                 except Exception as e:
                     print(f"아이템 데이터 파싱 오류: {e}")
 

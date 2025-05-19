@@ -37,7 +37,7 @@ class AdjustmentController(QObject):
     #         print("경고: ModifiedLeftSection에 parent_page 참조가 없음")
      
         # Controller에서 모든 시그널 연결 관리
-        # self._connect_signals()
+        # self.connect_signals()
         
     def set_result_page(self, result_page):
         """ResultPage 참조 설정"""
