@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from .items_container import ItemsContainer
 from app.utils.item_key_manager import ItemKeyManager
@@ -120,7 +120,7 @@ class ItemGridWidget(QWidget):
                     background-color: #1428A0;
                     color: white;
                     border: 1px solid #0C1A6B;
-                    border-radius: 10px;
+                    border-radius: 0px;
                     font-family: Arial;
                 """)
                 line_label.setAlignment(Qt.AlignCenter)
@@ -142,6 +142,7 @@ class ItemGridWidget(QWidget):
                             font-weight: bold;
                             font-family: Arial;
                         """
+
                     else:  # 야간
                         shift_style = """
                             padding: 5px; 
@@ -151,6 +152,15 @@ class ItemGridWidget(QWidget):
                             font-weight: bold;
                             font-family: Arial;   
                         """
+                        # Night 위에 생기는 선
+                        separator = QFrame()
+                        separator.setFrameShape(QFrame.HLine)
+                        separator.setLineWidth(1)
+                        separator.setFixedHeight(1)
+                        separator.setStyleSheet("background-color: #cccccc")  # 파란색 구분선
+                        self.grid_layout.addWidget(separator, row_index, 1, 1, columns + 1)  # 행 전체에 걸쳐 구분선 추가
+                        row_index += 1
+
                     shift_label.setStyleSheet(shift_style)
                     shift_label.setAlignment(Qt.AlignCenter)
                     shift_label.setFixedWidth(80)
@@ -173,7 +183,7 @@ class ItemGridWidget(QWidget):
                     for col in range(columns):
                         container = ItemsContainer()
                         container.setMinimumHeight(200)
-                        container.setMinimumWidth(380)  # 요일 너비
+                        container.setMinimumWidth(350)  # 요일 너비
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -209,6 +219,14 @@ class ItemGridWidget(QWidget):
                 else:
                     # 교대가 하나뿐이면 병합 필요 없음
                     self.grid_layout.addWidget(line_label, start_row, 0)
+
+                # Night와 다음 Day를 구분하는 선
+                spacer = QFrame()
+                spacer.setMinimumHeight(10)  # 라인 간 간격 높이 설정
+                spacer.setStyleSheet("background-color: #F5F5F5;")  # 간격 배경색
+                self.grid_layout.addWidget(spacer, row_index, 0, 1, columns + 2)  # 모든 열에 걸쳐 추가
+                row_index += 1  # 간격 위젯 후 행 인덱스 증가
+
         else:
             for row in range(rows):
                 row_containers = []
