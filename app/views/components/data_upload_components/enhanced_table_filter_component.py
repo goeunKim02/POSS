@@ -121,13 +121,17 @@ class PandasModel(QAbstractTableModel):
             return False
 
         try:
-            # 빈 문자열이 입력되면 원래 값 유지
-            if value == "":
-                return False
-
             row, col = index.row(), index.column()
-            original_value = self._df.iat[row, col]
-            column_dtype = self._df[self._df.columns[col]].dtype
+
+            # 빈 문자열이 입력되면 NaN으로 변경
+            if value == "":
+                import numpy as np
+                self._df.iloc[row, col] = np.nan
+                self.dataChanged.emit(index, index)
+                return True
+
+            # 컬럼의 데이터 타입 가져오기 - iloc 사용하여 경고 제거
+            column_dtype = self._df.dtypes.iloc[col]
 
             # 데이터 타입에 따른 적절한 변환
             try:
@@ -142,7 +146,7 @@ class PandasModel(QAbstractTableModel):
                 converted_value = str(value)
 
             # 데이터프레임 업데이트 - 명시적 형변환
-            self._df.loc[self._df.index[row], self._df.columns[col]] = converted_value
+            self._df.iloc[row, col] = converted_value
             self.dataChanged.emit(index, index)
             return True
         except Exception as e:
@@ -571,16 +575,17 @@ class EnhancedTableFilterComponent(QWidget):
     """
     데이터 변경 시 undo/redo 호출
     """
+
     def on_data_changed_for_undo_redo(self, topLeft, bottomRight):
         if not hasattr(self, '_file_path') or not hasattr(self, '_sheet_name'):
             return
-        
+
         model = topLeft.model()
 
         for row in range(topLeft.row(), bottomRight.row() + 1):
             for col in range(topLeft.column(), bottomRight.column() + 1):
                 source_index = model.index(row, col)
-                
+
                 if not source_index.isValid():
                     continue
 
@@ -589,16 +594,17 @@ class EnhancedTableFilterComponent(QWidget):
                 try:
                     old_value = ""
 
-                    if 0 <= row < len(self._original_df_for_undo) and 0 <= col < len(self._original_df_for_undo.columns):
+                    if 0 <= row < len(self._original_df_for_undo) and 0 <= col < len(
+                            self._original_df_for_undo.columns):
                         old_value_raw = self._original_df_for_undo.iloc[row, col]
-                        
+
                         if pd.isna(old_value_raw):
                             old_value = ""
                         else:
                             old_value = str(old_value_raw)
                 except Exception as e:
                     old_value = ""
-                
+
                 if new_value != old_value:
                     command = DataCommand(
                         file_path=self._file_path,
@@ -609,11 +615,12 @@ class EnhancedTableFilterComponent(QWidget):
                         new_value=new_value,
                         update_callback=lambda fp, sn, r, c, v: self.update_cell_value(r, c, v)
                     )
-                    
+
                     undo_redo_manager.execute_command(command)
 
                     try:
-                        column_dtype = self._original_df_for_undo.dtypes[col]
+                        # 여기를 수정: dtypes[col] -> dtypes.iloc[col]
+                        column_dtype = self._original_df_for_undo.dtypes.iloc[col]
                         converted_value = new_value
 
                         if pd.api.types.is_integer_dtype(column_dtype):
@@ -632,7 +639,7 @@ class EnhancedTableFilterComponent(QWidget):
                                     converted_value = float(new_value)
                                 except ValueError:
                                     pass
-                        
+
                         self._original_df_for_undo.iloc[row, col] = converted_value
                     except Exception as e:
                         print(f"원본 데이터프레임 업데이트 오류: {e}")
@@ -640,6 +647,7 @@ class EnhancedTableFilterComponent(QWidget):
     """
     undo/redo 시 호출되는 함수
     """
+
     def update_cell_value(self, row, col, value):
         model = self.proxy_model.sourceModel()
         index = model.index(row, col)
@@ -649,15 +657,16 @@ class EnhancedTableFilterComponent(QWidget):
 
             if current_value != value:
                 model.setData(index, value, Qt.EditRole)
-                
+
                 if value != "":
                     self.edited_cells[(row, col)] = value
                 elif (row, col) in self.edited_cells:
                     del self.edited_cells[(row, col)]
-                
+
                 if hasattr(self, '_original_df_for_undo'):
                     try:
-                        column_dtype = self._original_df_for_undo.dtypes[col]
+                        # 여기를 수정: dtypes[col] -> dtypes.iloc[col]
+                        column_dtype = self._original_df_for_undo.dtypes.iloc[col]
                         converted_value = value
 
                         if pd.api.types.is_integer_dtype(column_dtype):
@@ -676,7 +685,7 @@ class EnhancedTableFilterComponent(QWidget):
                                     converted_value = float(value)
                                 except ValueError:
                                     pass
-                        
+
                         self._original_df_for_undo.iloc[row, col] = converted_value
                     except Exception as e:
                         print(f"원본 데이터프레임 업데이트 오류 (undo/redo): {e}")
