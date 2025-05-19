@@ -5,6 +5,7 @@ import pandas as pd
 import json
 import uuid
 from app.resources.styles.item_style import ItemStyle
+from app.utils.field_filter import filter_internal_fields
 
 
 """드래그 가능한 아이템 라벨"""
@@ -148,6 +149,9 @@ class DraggableItemLabel(QFrame):
     def _create_tooltip_text(self):
         if self.item_data is None:
             return self.text()
+        
+        # 필터링된 데이터로 툴팁 생성
+        filtered_data = filter_internal_fields(self.item_data)
 
         # 통일된 테이블 스타일
         tooltip = """
@@ -175,7 +179,7 @@ class DraggableItemLabel(QFrame):
             <tr><th colspan='2'>Item Information</th></tr>
         """
 
-        for key, value in self.item_data.items():
+        for key, value in filtered_data.items():
             if pd.notna(value):
                 tooltip += f"<tr><td><b>{key}</b></td><td>{value}</td></tr>"
 

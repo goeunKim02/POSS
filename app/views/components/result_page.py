@@ -641,10 +641,19 @@ class ResultPage(QWidget):
             # 데이터가 있는지 확인
             if hasattr(self, 'controller') and self.controller and hasattr(self.controller, 'model'):
                 # 모델에서 데이터 가져오기
-                export_data = self.controller.model.get_dataframe()
+                export_data = self.controller.model.get_dataframe_for_display()
+                print("모델에서 get_dataframe_for_display 가져오기")
+                print(f"필터링된 데이터 컬럼: {export_data.columns.tolist()}")
+
 
                 # 데이터가 존재하는지 확인
                 if export_data is not None and not export_data.empty:
+                    print("데이터 존재")
+                    # 내부 필드가 여전히 있는지 확인
+                    internal_fields = [col for col in export_data.columns if col.startswith('_') or col in ['_id', '_is_copy']]
+                    print(f"internal : {internal_fields}")
+                    if internal_fields:
+                        print(f"경고: 여전히 내부 필드가 존재합니다: {internal_fields}")
                     
                     # 날짜 범위 가져오기
                     start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
@@ -652,7 +661,7 @@ class ResultPage(QWidget):
                     # 통합 내보내기 로직
                     saved_path = ExportManager.export_data(
                         parent=self,
-                        data_df=self.left_section.data,
+                        data_df=export_data,
                         start_date=start_date,
                         end_date=end_date,
                         is_planning=False
@@ -671,9 +680,11 @@ class ResultPage(QWidget):
                     )
 
             else:
+                print("내보내기 컨트롤러 없음.")
                 # 컨트롤러가 없으면 기존 방식으로 폴백
                 if hasattr(self, 'left_section') and hasattr(self.left_section, 'data') and self.left_section.data is not None:
                     start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
+                    
                     saved_path = ExportManager.export_data(
                         parent=self,
                         data_df=self.left_section.data,
