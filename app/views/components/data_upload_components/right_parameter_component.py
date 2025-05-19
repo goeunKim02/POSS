@@ -133,27 +133,41 @@ class RightParameterComponent(QWidget):
                 background-color: #F8F9FA;
             }}
             QScrollBar:vertical {{
-                border: none;
-                background: #F5F5F5;
-                width: {w(8)}px;
-                margin: {f(5)}px {f(2)}px;
-                border-radius: {f(4)}px;
-            }}
-            QScrollBar::handle:vertical {{
-                background: #CCCCCC;
-                min-height: {h(30)}px;
-                border-radius: {f(4)}px;
-                margin: {f(1)}px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background: #AAAAAA;
-            }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
-                height: 0px;
-            }}
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
-                background: none;
-            }}
+                        border: none;
+                        width: 10px;
+                        margin: 0px;
+                    }}
+                    QScrollBar::handle:vertical {{
+                        background: #CCCCCC;
+                        min-height: 20px;
+                        border-radius: 5px;
+                    }}
+                    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                        border: none;
+                        background: none;
+                        height: 0px;
+                    }}
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                        background: none;
+                    }}
+                    QScrollBar:horizontal {{
+                        border: none;
+                        height: 10px;
+                        margin: 0px;
+                    }}
+                    QScrollBar::handle:horizontal {{
+                        background: #CCCCCC;
+                        min-width: 20px;
+                        border-radius: 5px;
+                    }}
+                    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                        border: none;
+                        background: none;
+                        width: 0px;
+                    }}
+                    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+                        background: none;
+                    }}
         """)
 
         list_layout.addWidget(self.list_widget)

@@ -20,7 +20,7 @@ class ItemsContainer(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(2, 2, 2, 2)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(12)
         self.setAcceptDrops(True)
         self.items = []  # 아이템 라벨 리스트
@@ -34,7 +34,7 @@ class ItemsContainer(QWidget):
         self.drop_indicator_position = -1
         self.show_drop_indicator = False
 
-        self.default_style = "border: 1px solid #D9D9D9; background-color: white;"
+        self.default_style = "border: 1px solid  background-color: white;"
         self.empty_style = "background-color: rgba(245, 245, 245, 0.5); border: 1px dashed #cccccc;"
 
         # 늘어나는 공간을 위한 스페이서 추가
@@ -268,10 +268,9 @@ class ItemsContainer(QWidget):
                     item_data = json.loads(json_str)
                     print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
 
-                    # if isinstance(item_data, dict):
-                    #     item_data['_drop_pos_x'] = event.pos().x()
-                    #     item_data['_drop_pos_y'] = event.pos().y()
-                    # print(f"드롭 이벤트에서 파싱된 아이템 데이터: {item_data}")
+                    if isinstance(item_data, dict):
+                        item_data['_drop_pos_x'] = event.pos().x()
+                        item_data['_drop_pos_y'] = event.pos().y()
                 except Exception as e:
                     print(f"아이템 데이터 파싱 오류: {e}")
 
@@ -347,9 +346,6 @@ class ItemsContainer(QWidget):
 
                 # 변경 이벤트 발생 (복사임을 명시)
                 copy_info = {'operation': 'copy', 'source_id': id(source)}
-
-                # self.itemDataChanged.emit(new_item, item_data,
-                #                           {'Qty': {'from': source.item_data.get('Qty', 0), 'to': 0}})
                 
                 # 새로운 복사 시그널 발생 
                 self.itemCopied.emit(new_item, item_data)
@@ -557,6 +553,39 @@ class ItemsContainer(QWidget):
                 item_id = item_data.get('_id')
           
             self.itemsChanged.emit(item_id)
+
+    """
+    시프트별 자재 부족 상태 업데이트
+    """
+    def update_item_shortage_status(self, item, shortage_dict):
+        if not hasattr(item, 'item_data') or not item.item_data or 'Item' not in item.item_data:
+            return
+        
+        item_code = item.item_data['Item']
+        item_time = item.item_data.get('Time')
+        
+        # 해당 아이템이 부족 목록에 있는지 확인
+        if item_code in shortage_dict:
+            shortages_for_item = shortage_dict[item_code]
+            matching_shortages = []
+            
+            # 시프트별 부족 정보 검사
+            for shortage in shortages_for_item:
+                shortage_shift = shortage.get('shift')
+                
+                # 시프트가 일치하는 경우만 처리
+                if shortage_shift and item_time and int(shortage_shift) == int(item_time):
+                    matching_shortages.append(shortage)
+            
+            # 일치하는 시프트의 부족 정보가 있으면 부족 상태로 설정
+            if matching_shortages:
+                item.set_shortage_status(True, matching_shortages)
+                return True
+        
+        # 부족 상태가 아니거나 시프트가 일치하지 않으면 상태 해제
+        item.set_shortage_status(False)
+        return False
+
 
     """
     컨테이너 위젯 그리기 - 드롭 인디케이터 표시

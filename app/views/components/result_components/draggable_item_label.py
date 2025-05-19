@@ -47,7 +47,7 @@ class DraggableItemLabel(QFrame):
         self.setAcceptDrops(False)
         self.drag_start_position = None
         self.setMinimumHeight(25)
-        self.setMinimumWidth(300)
+        self.setMinimumWidth(250)
         self.adjustSize()
 
         # 아이템 데이터 저장 (엑셀 행 정보)
@@ -126,7 +126,7 @@ class DraggableItemLabel(QFrame):
     def text(self):
         item_text = self.item_label.text() if hasattr(self, 'item_label') else ''
         qty_text = self.qty_label.text() if hasattr(self, 'qty_label') else ''
-        return f"{item_text}    {qty_text}" if qty_text else item_text
+        return f"{item_text}  {qty_text}" if qty_text else item_text
 
     def setText(self, text):
         """QLabel 호환성을 위한 setText() 메서드"""

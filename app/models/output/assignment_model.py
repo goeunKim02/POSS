@@ -78,9 +78,8 @@ class AssignmentModel(QObject):
     def update_qty(self, item: str, line: str, time: int, new_qty: int, item_id: str = None):
         # 1) 라인, 시간, 아이템으로 정확한 행 찾기
         # ID가 제공된 경우 ID로 찾기
-        if item_id and '_id' in self._df.columns:
-            print(f"update_qty / _id 존재 : {item_id}")
-            mask = self._df['_id'] == item_id
+        if item_id:
+            mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
             # 기존 방식으로 찾기
             mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
@@ -99,7 +98,7 @@ class AssignmentModel(QObject):
         print(f"Model: {item} @ {line}-{time} 수량 변경: {new_qty}")
 
         # 3) 수정된 아이템에 대해 검증 수행
-        error_msg = self._validate_item(item, line, time)
+        error_msg = self._validate_item(item, line, time, item_id)
         if error_msg:
             row = self._df.loc[mask].iloc[0].to_dict()  # 현재 행 전체 정보
             self.validationFailed.emit(row, error_msg)  # 검증 실패 시 오류 메시지 시그널 방출
@@ -113,18 +112,9 @@ class AssignmentModel(QObject):
     아이템을 new_line, new_shift로 이동
     """
     def move_item(self, item: str, old_line: str, old_time: int, new_line: str, new_time: int, item_id: str = None):
-        # # 디버깅 정보 추가
-        # print(f"[DEBUG] move_item 호출: item_id={item_id}, item={item}, old_line={old_line}, old_time={old_time}")
-        
-        # if '_id' in self._df.columns:
-        #     print(f"[DEBUG] DataFrame에 '_id' 컬럼 존재, 첫 5개 값: {self._df['_id'].head(5).tolist()}")
-        # else:
-        #     print(f"[DEBUG] DataFrame에 '_id' 컬럼 없음. 컬럼 목록: {self._df.columns.tolist()}")
-        
         # ID가 제공된 경우 ID로 찾기
-        if item_id and '_id' in self._df.columns:
-            print(f"move_item / _id 존재 : {item_id}")
-            mask = self._df['_id'] == item_id
+        if item_id:
+            mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
             # 기존 방식으로 찾기
             mask = ItemKeyManager.create_mask_for_item(self._df, old_line, old_time, item)
@@ -143,7 +133,7 @@ class AssignmentModel(QObject):
 
 
         # 이동 후 검증 실행
-        error_msg = self._validate_item(item, new_line, new_time)
+        error_msg = self._validate_item(item, new_line, new_time, item_id)
         if error_msg:
             row = self._df.loc[mask].iloc[0].to_dict()
             self.validationFailed.emit(row, error_msg)
@@ -169,11 +159,20 @@ class AssignmentModel(QObject):
     """
     PlanAdjustmentValidator로 검증, 오류 메시지 반환
     """
-    def _validate_item(self, item: str, line: str = None, time: int = None) -> Optional[str]:
+    def _validate_item(self, item: str, line: str = None, time: int = None, item_id: str = None) -> Optional[str]:
         try:
+           # ID가 제공된 경우 ID로 찾기
+            if item_id:
+                mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
+                if mask.any():
+                    row = self._df.loc[mask].iloc[0]
+                    item = row['Item']
+                    line = row['Line']
+                    time = row['Time']
+                else:
+                    return f"ID {item_id}를 가진 아이템을 찾을 수 없습니다."
             # 라인과 시간이 지정되지 않은 경우, DataFrame에서 해당 아이템 검색
-            if line is None or time is None:
-                # 마스크를 사용하여 첫 번째 항목 찾기
+            elif line is None or time is None:
                 mask = self._df['Item'] == item
                 if not mask.any():
                     return f"아이템 {item}을 찾을 수 없습니다."
@@ -187,7 +186,7 @@ class AssignmentModel(QObject):
                 line,
                 time, 
                 item,
-                self.get_item_qty(item, line, time)
+                self.get_item_qty(item, line, time, item_id)
             )
             return None if valid else message
         
@@ -196,11 +195,15 @@ class AssignmentModel(QObject):
             return f"검증 중 오류 발생: {str(e)}"
         
 
-    def get_item_qty(self, item: str, line: str, time: int) -> int:
+    def get_item_qty(self, item: str, line: str, time: int, item_id: str=None) -> int:
         """
         특정 위치의 아이템 수량 가져오기
         """
-        mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
+        if item_id:
+            mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
+        else:
+            mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
+
         if mask.any():
             return int(self._df.loc[mask, 'Qty'].iloc[0])
         return 0
@@ -269,3 +272,23 @@ class AssignmentModel(QObject):
         # 데이터 변경 알림
         self.modelDataChanged.emit()
         return True
+    
+
+    def get_comparison_dataframe(self):
+        return {
+            'original': self._ensure_correct_types(self._original_df.copy()),
+            'adjusted': self._ensure_correct_types(self._df.copy())
+        }
+
+    def set_new_dataframe(self, new_df: pd.DataFrame):
+        new_df = self._ensure_correct_types(new_df.copy())
+
+        # ID가 없거나 비어 있으면 새로 생성
+        if '_id' not in new_df.columns or new_df['_id'].isna().all():
+            new_df['_id'] = [str(uuid.uuid4()) for _ in range(len(new_df))]
+
+        self._df = new_df.copy()
+        self._original_df = new_df.copy()
+        print("[DEBUG] 모델에 새 데이터프레임 설정 완료")
+
+        self.modelDataChanged.emit()

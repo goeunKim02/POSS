@@ -9,6 +9,7 @@ from PyQt5.QtCore import (
     QVariant, QSortFilterProxyModel, QPoint, QTimer
 )
 import pandas as pd
+import numpy as np
 from app.resources.fonts.font_manager import font_manager
 from app.utils.command.undo_command import undo_redo_manager, DataCommand
 from app.models.common.screen_manager import *
@@ -54,7 +55,17 @@ class MultiFilterProxy(QSortFilterProxyModel):
 
     def sort(self, column, order=Qt.AscendingOrder):
         super().sort(column, order)
+    
+    def lessThan(self, left, right):
+        left_data = self.sourceModel().data(left, Qt.DisplayRole)
+        right_data = self.sourceModel().data(right, Qt.DisplayRole)
 
+        try:
+            # 숫자 비교 시도 (정수/실수 모두 지원)
+            return float(left_data) < float(right_data)
+        except (ValueError, TypeError):
+            # 숫자가 아니면 문자열 사전식 비교
+            return str(left_data) < str(right_data)
 
 """
 pandas DataFrame을 위한 테이블 모델

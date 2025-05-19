@@ -1,7 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QScrollArea, QGridLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from .items_container import ItemsContainer
 from app.utils.item_key_manager import ItemKeyManager
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """
 아이템 그리드 위젯 (테이블 대체)
@@ -17,6 +19,9 @@ class ItemGridWidget(QWidget):
         super().__init__(parent)
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
         self.setStyleSheet("""
             QWidget {
@@ -88,18 +93,19 @@ class ItemGridWidget(QWidget):
             # 빈 헤더 셀 (첫 번째 행, 첫 번째 열 - 라인 헤더 위)
             empty_header1 = QLabel("")
             empty_header1.setStyleSheet("background-color: transparent;")
-            empty_header1.setFixedWidth(100)
+            empty_header1.setFixedWidth(w(80))
             self.grid_layout.addWidget(empty_header1, 0, 0)
 
             # 빈 헤더 셀 (첫 번째 행, 두 번째 열 - 교대 헤더 위)
             empty_header2 = QLabel("")
-            empty_header2.setStyleSheet("background-color: #F0F0F0;")
-            empty_header2.setFixedWidth(80)
+            empty_header2.setStyleSheet("background-color: transparent;")
+            empty_header2.setFixedWidth(w(80))
             self.grid_layout.addWidget(empty_header2, 0, 1)
 
+            # 첫 행 데이터 넣는 곳?
             for col, header in enumerate(column_headers):
                 label = QLabel(header)
-                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0;")
+                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0; border: 1px solid #cccccc;")
                 label.setAlignment(Qt.AlignCenter)
                 # 데이터 열은 2부터 시작 (0: 라인 헤더, 1: 교대 헤더)
                 self.grid_layout.addWidget(label, 0, col + 2)
@@ -114,17 +120,17 @@ class ItemGridWidget(QWidget):
                 # 라인 헤더 (첫 번째 열, 셀 병합)
                 start_row = row_index
                 line_label = QLabel(line)
-                line_label.setStyleSheet("""
+                line_label.setStyleSheet(f"""
                     font-weight: bold; 
                     padding: 5px; 
                     background-color: #1428A0;
                     color: white;
                     border: 1px solid #0C1A6B;
-                    border-radius: 10px;
-                    font-family: Arial;
+                    border-radius: 0px;
+                    font-family: {font_manager.get_just_font("SamsungSharpSans-Bold").family()};
                 """)
                 line_label.setAlignment(Qt.AlignCenter)
-                line_label.setFixedWidth(100)
+                line_label.setFixedWidth(w(80))
 
                 # 교대 수에 따라 행 구성
                 shift_rows = []
@@ -135,25 +141,35 @@ class ItemGridWidget(QWidget):
 
                     # 주간/야간에 따라 스타일 다르게 적용
                     if shift == "Day":
-                        shift_style = """
+                        shift_style = f"""
                             padding: 5px; 
                             background-color: #F8F8F8;
                             border: 1px solid #D9D9D9;
                             font-weight: bold;
-                            font-family: Arial;
+                            font-family: {font_manager.get_just_font("SamsungSharpSans-Bold").family()};
                         """
+
                     else:  # 야간
-                        shift_style = """
+                        shift_style = f"""
                             padding: 5px; 
                             background-color: #F0F0F0;
                             border: 1px solid #D9D9D9;
                             color: #666666;
                             font-weight: bold;
-                            font-family: Arial;   
+                            font-family: {font_manager.get_just_font("SamsungSharpSans-Bold").family()};
                         """
+                        # Night 위에 생기는 선
+                        separator = QFrame()
+                        separator.setFrameShape(QFrame.HLine)
+                        separator.setLineWidth(1)
+                        separator.setFixedHeight(1)
+                        separator.setStyleSheet("background-color: #cccccc")  # 파란색 구분선
+                        self.grid_layout.addWidget(separator, row_index, 1, 1, columns + 1)  # 행 전체에 걸쳐 구분선 추가
+                        row_index += 1
+
                     shift_label.setStyleSheet(shift_style)
                     shift_label.setAlignment(Qt.AlignCenter)
-                    shift_label.setFixedWidth(80)
+                    shift_label.setFixedWidth(w(80))
 
                     # 교대 레이블을 두 번째 열에 배치
                     self.grid_layout.addWidget(shift_label, row_index, 1)
@@ -172,8 +188,8 @@ class ItemGridWidget(QWidget):
 
                     for col in range(columns):
                         container = ItemsContainer()
-                        container.setMinimumHeight(200)
-                        container.setMinimumWidth(380)  # 요일 너비
+                        container.setMinimumHeight(h(200))
+                        container.setMinimumWidth(w(270))  # 요일 너비
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
                         # 아이템 선택 이벤트 연결
@@ -209,6 +225,14 @@ class ItemGridWidget(QWidget):
                 else:
                     # 교대가 하나뿐이면 병합 필요 없음
                     self.grid_layout.addWidget(line_label, start_row, 0)
+
+                # Night와 다음 Day를 구분하는 선
+                spacer = QFrame()
+                spacer.setMinimumHeight(10)  # 라인 간 간격 높이 설정
+                spacer.setStyleSheet("background-color: #F5F5F5;")  # 간격 배경색
+                self.grid_layout.addWidget(spacer, row_index, 0, 1, columns + 2)  # 모든 열에 걸쳐 추가
+                row_index += 1  # 간격 위젯 후 행 인덱스 증가
+
         else:
             for row in range(rows):
                 row_containers = []
