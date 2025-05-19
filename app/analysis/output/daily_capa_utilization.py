@@ -75,36 +75,54 @@ class CapaUtilization:
                         if not factory_lines or shift not in df_capa_qty.columns:
                             continue
 
-                        # 최대 라인 제약 확인
+                        # 최대 라인/수량 제약 확인
                         max_line_key = f'Max_line_{factory}'
+                        max_qty_key = f'Max_qty_{factory}'
 
-                        # 제약이 없는 경우 전체 라인 수 사용
-                        max_line = df_capa_qty.loc[max_line_key, shift] if max_line_key in df_capa_qty.index and pd.notna(df_capa_qty.loc[max_line_key, shift]) else len(factory_lines)
+                        # 'Line' 컬럼에서 제약 조건 행 찾기
+                        max_line_row = df_capa_qty[df_capa_qty['Line'] == max_line_key]
+                        max_qty_row = df_capa_qty[df_capa_qty['Line'] == max_qty_key]
+
+                        # 제약 값 확인
+                        if not max_line_row.empty and shift in max_line_row.columns and pd.notna(max_line_row.iloc[0][shift]):
+                            max_line = max_line_row.iloc[0][shift]
+                            
+                            # 중요: 제약이 0이면 해당 제조동의 생산량은 0
+                            if max_line == 0:
+                                continue
+                        else:
+                            max_line = len(factory_lines)
+
+                        if not max_qty_row.empty and shift in max_qty_row.columns and pd.notna(max_qty_row.iloc[0][shift]):
+                            max_qty = max_qty_row.iloc[0][shift]
+                            
+                            # 중요: 제약이 0이면 해당 제조동의 생산량은 0
+                            if max_qty == 0:
+                                continue
+                        else:
+                            max_qty = float('inf')
 
                         # 각 라인의 생산 능력 가져오기
                         line_capacities = [(line, df_capa_qty.loc[line, shift]) for line in factory_lines if pd.notna(df_capa_qty.loc[line, shift])]
                         line_capacities.sort(key=lambda x:x[1], reverse=True)  # Sort by capacity in descending order
-                        
-                        # # print(f"[DEBUG] Shift {shift} ({day}) - {factory}공장 라인별 생산능력:")
-                        # for line, capacity in line_capacities:
-                        #     print(f"  - Line {line}: {capacity}")
-
-                        # 최대 수량 제약 확인
-                        max_qty_key = f'Max_qty_{factory}'
-                        max_qty = df_capa_qty.loc[max_qty_key, shift] if max_qty_key in df_capa_qty.index and pd.notna(df_capa_qty.loc[max_qty_key, shift]) else float('inf')
-
+                 
                         # 라인 수와 최대 수량 간의 더 제한적인 제약 적용
                         factory_capacity = 0
                         for i, (line, capacity) in enumerate(line_capacities):
-                            if i < max_line and factory_capacity + capacity <= max_qty:
-                                # print(f"[DEBUG]     누적 중: {line} 라인, 수용량 {capacity}, 현재 누적: {factory_capacity}")
+                            if i >= max_line:
+                                break  # 라인 수 초과
+
+                            if factory_capacity + capacity <= max_qty:
                                 factory_capacity += capacity
-                            elif i < max_line and factory_capacity < max_qty:
-                                # print(f"[WARNING]  Max Qty 도달로 factory_capacity 강제 설정: {factory_capacity} → {max_qty}")
-                                factory_capacity = max_qty # Max qty constraint reached
+                            elif factory_capacity < max_qty:
+                                # 남은 만큼만 추가
+                                remaining = max_qty - factory_capacity
+                                if remaining > 0:
+                                    factory_capacity += remaining
+                                break
+                            else:
                                 break
 
-                        # print(f"[DEBUG]  Shift {shift}_{line} - 공장 {factory} 생산능력: {factory_capacity}")
                         shift_capacity += factory_capacity
 
                     day_total_capacity += shift_capacity
@@ -119,13 +137,33 @@ class CapaUtilization:
             # 일별 가동률 계산
             utilization_rate = {}
             for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']:
-                if day in day_capacity and day_capacity[day] > 0:
-                    if day in day_production:
-                        utilization_rate[day] = (day_production[day] / day_capacity[day]) * 100
+                if day in day_capacity:
+                    # 생산 능력이 있는 경우
+                    if day_capacity[day] > 0:
+                        if day in day_production:
+                            # 생산량이 생산 능력보다 적거나 같은 경우 - 정상 가동률
+                            if day_production[day] <= day_capacity[day]:
+                                utilization_rate[day] = (day_production[day] / day_capacity[day]) * 100
+                            # 생산량이 생산 능력보다 많은 경우 - 과도한 생산
+                            else:
+                                # 옵션 1: 100%로 클리핑
+                                utilization_rate[day] = 100.0
+                                print(f"경고: {day}에 생산 능력({day_capacity[day]})보다 많은 생산량({day_production[day]})이 있습니다. 가동률은 100%로 제한됩니다.")
+                        else:
+                            utilization_rate[day] = 0
+                    # 생산 능력이 0인 경우
                     else:
-                        utilization_rate[day] = 0
+                        if day in day_production and day_production[day] > 0:
+                            # 생산 능력은 0이지만 생산량이 있는 경우
+                            print(f"경고: {day}에 생산 능력이 0이지만 생산량({day_production[day]})이 있습니다.")
+                            # 옵션 1: 100%로 설정 (가장 보수적인 처리)
+                            utilization_rate[day] = 100.0
+                        else:
+                            # 생산 능력도 0이고 생산량도 0인 경우
+                            utilization_rate[day] = 0
                 else:
-                    utilization_rate[day] = 0 if day_capacity[day] == 0 else None
+                    # day_capacity에 해당 일이 없는 경우 (발생하지 않아야 함)
+                    utilization_rate[day] = 0
 
             print("daily utilization rate(%):")
             for day, rate in utilization_rate.items():
@@ -138,10 +176,6 @@ class CapaUtilization:
         
         except Exception as e:
                 print(f"가동률 계산 중 오류 발생: {str(e)}")
-                # traceback.print_exc()
-                # # 빈 결과 반환
-                # return {day: 0 for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-
 
     """
     셀 이동 시 요일별 가동률 업데이트

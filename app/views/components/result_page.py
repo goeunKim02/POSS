@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
                              QFrame, QSplitter, QStackedWidget, QTableWidget, QHeaderView,
-                            QScrollArea, QGridLayout)
+                            QScrollArea, QGridLayout, QFileDialog)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtGui import QCursor, QFont
 import pandas as pd
@@ -26,6 +26,7 @@ from app.controllers.adjustment_controller import AdjustmentController
 from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
 from app.analysis.output.kpi_score import KpiScore
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
 
 class ResultPage(QWidget):
@@ -69,7 +70,7 @@ class ResultPage(QWidget):
 
         # 레이아웃 설정
         result_layout = QVBoxLayout(self)
-        result_layout.setContentsMargins(w(3), 0,w(3) , 0)
+        result_layout.setContentsMargins(0, 0, 0, 0)
         result_layout.setSpacing(0)
 
         # 타이틀 프레임
@@ -85,6 +86,13 @@ class ResultPage(QWidget):
         title_label.setStyleSheet(f"font-family: {bold_font}; font-size: {f(21)}px; font-weight: 900;")
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
+        # Import 버튼 (새로 추가)
+        import_btn = QPushButton()
+        import_btn.setText("Import")
+        import_btn.setFixedSize(130, 40)
+        import_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        import_btn.clicked.connect(self.load_result_file)  # 위에서 작성한 메서드 연결
+        import_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
         # Export 버튼
         export_btn = QPushButton("Export")
@@ -101,6 +109,7 @@ class ResultPage(QWidget):
 
         title_layout.addWidget(title_label)
         title_layout.addStretch(1)
+        title_layout.addWidget(import_btn)
         title_layout.addWidget(export_btn)
         title_layout.addWidget(report_btn)
 
@@ -116,7 +125,7 @@ class ResultPage(QWidget):
         # =============== 왼쪽 컨테이너 ===============
         left_frame = QFrame()
         left_frame.setFrameShape(QFrame.StyledPanel)
-        left_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
+        left_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
 
         left_layout = QVBoxLayout(left_frame)
         left_layout.setContentsMargins(10, 10, 10, 10)
@@ -138,13 +147,13 @@ class ResultPage(QWidget):
 
         # 2) 위쪽 영역을 수평 스플리터로 좌/우 분할
         right_top_horizontal_splitter = QSplitter(Qt.Horizontal)
-        right_top_horizontal_splitter.setHandleWidth(10)
+        right_top_horizontal_splitter.setHandleWidth(5)
         right_top_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
 
         # =============== 1. KPI Score 섹션 ===============
         kpi_frame = QFrame()
         kpi_frame.setFrameShape(QFrame.StyledPanel)
-        kpi_frame.setStyleSheet("background-color: white; border:3px solid #cccccc;")
+        kpi_frame.setStyleSheet("background-color: white; border:2px solid #cccccc;")
 
         kpi_layout = QGridLayout(kpi_frame)
         kpi_layout.setContentsMargins(10, 10, 10, 10)
@@ -152,7 +161,8 @@ class ResultPage(QWidget):
 
         # KPI 제목
         kpi_title = QLabel("KPI Score")
-        kpi_title.setStyleSheet(f"color: #333; border: none; font-family: {bold_font}; font-size: {f(16)}px; font-weight: 900;")
+        kpi_title.setFont(QFont("Arial", 14, QFont.Bold))
+        kpi_title.setStyleSheet("color: #333; border: none;")
         kpi_layout.addWidget(kpi_title)
 
         # KPI 위젯 영역 (계산된 점수들이 들어갈 공간)
@@ -179,7 +189,7 @@ class ResultPage(QWidget):
         # =============== 2. 조정 에러 메세지 섹션 ===============
         error_frame = QFrame()
         error_frame.setFrameShape(QFrame.StyledPanel)
-        error_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
+        error_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
         
         error_layout = QVBoxLayout(error_frame)
         error_layout.setContentsMargins(0, 0, 0, 0)
@@ -221,10 +231,9 @@ class ResultPage(QWidget):
         # =============== 3. 오른쪽 하단 섹션 : 지표 탭 ===============
         right_bottom_frame = QFrame()
         right_bottom_frame.setFrameShape(QFrame.StyledPanel)
-        right_bottom_frame.setStyleSheet("background-color: white; border: 3px solid #cccccc;")
+        right_bottom_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
 
         right_bottom_layout = QVBoxLayout(right_bottom_frame)
-        right_bottom_layout.setContentsMargins(0, 0, 0, 0)
 
         # 1) TabManager 인스턴스화
         self.tab_manager = TabManager(self)
@@ -239,7 +248,7 @@ class ResultPage(QWidget):
         # 4) 버튼 레이아웃 준비
         button_group_layout = QHBoxLayout()
         button_group_layout.setSpacing(5)
-        button_group_layout.setContentsMargins(5, 5, 5, 5)
+        button_group_layout.setContentsMargins(10, 10, 10, 5)
         button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
 
         # 5) 탭 버튼/페이지 생성
@@ -583,9 +592,7 @@ class ResultPage(QWidget):
                                 'original': CapaUtilization.analyze_utilization(comparison_df['original']),
                                 'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
                             }
-                            print("[디버그] 비교 데이터 생성 완료 (Capa + Utilization)")
                 else:
-                    print("[디버그] 조정 없음 - 단일 차트 출력")
                     self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
                     self.utilization_data = CapaUtilization.analyze_utilization(data)
 
@@ -684,7 +691,7 @@ class ResultPage(QWidget):
                 # 컨트롤러가 없으면 기존 방식으로 폴백
                 if hasattr(self, 'left_section') and hasattr(self.left_section, 'data') and self.left_section.data is not None:
                     start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                    
+
                     saved_path = ExportManager.export_data(
                         parent=self,
                         data_df=self.left_section.data,
@@ -1186,3 +1193,168 @@ class ResultPage(QWidget):
         # on_data_changed를 통해 모든 UI 업데이트 진행
         # 특별한 처리가 필요하면 여기에 추가
         self.on_data_changed(model_df)
+
+
+
+    """
+    결과 파일 로드 및 MVC 구조 초기화
+    
+    Args:
+        file_path: 선택적으로 파일 경로를 직접 전달 가능
+    Returns:
+        bool: 로드 성공 여부
+    """
+    def load_result_file(self, file_path=None):
+        # 파일 선택 (경로가 전달되지 않은 경우)
+        if file_path is None:
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "결과 파일 선택", "", "Excel Files (*.xlsx *.xls *.csv)"
+            )
+        
+        if not file_path or not os.path.exists(file_path):
+            print(f"유효한 파일 경로가 아닙니다: {file_path}")
+            return False
+        
+        try:
+            print(f"[INFO] 결과 파일 로드 시작: {file_path}")
+            
+            # 기존 데이터 정리
+            if hasattr(self, 'left_section'):
+                self.left_section.clear_all_items()
+            
+            # 파일 로드
+            from app.utils.fileHandler import load_file
+            result_data = load_file(file_path)
+            
+            # 여러 시트가 반환되면 첫 번째 시트 사용
+            if isinstance(result_data, dict):
+                if 'result' in result_data:
+                    result_data = result_data['result']
+                else:
+                    # 첫 번째 시트 사용
+                    first_sheet_name = list(result_data.keys())[0]
+                    result_data = result_data[first_sheet_name]
+                    print(f"[INFO] '{first_sheet_name}' 시트 데이터 사용")
+            
+            # DataFrame이 아니면 변환
+            if not isinstance(result_data, pd.DataFrame):
+                print("[ERROR] 데이터를 DataFrame으로 변환할 수 없습니다.")
+                EnhancedMessageBox.show_validation_error(
+                    self, 
+                    "파일 형식 오류", 
+                    "파일에서 유효한 데이터를 찾을 수 없습니다."
+                )
+                return False
+            
+            # 데이터 검증 - 필수 컬럼 확인
+            required_columns = ['Line', 'Time', 'Item']
+            missing_columns = [col for col in required_columns if col not in result_data.columns]
+            
+            if missing_columns:
+                EnhancedMessageBox.show_validation_error(
+                    self,
+                    "파일 형식 오류",
+                    f"필수 열이 없습니다: {', '.join(missing_columns)}\n올바른 형식의 파일을 선택해주세요."
+                )
+                return False
+            
+            # 데이터 타입 정규화
+            try:
+                if 'Line' in result_data.columns:
+                    result_data['Line'] = result_data['Line'].astype(str)
+                
+                if 'Time' in result_data.columns:
+                    result_data['Time'] = pd.to_numeric(result_data['Time'], errors='coerce').fillna(0).astype(int)
+                
+                if 'Item' in result_data.columns:
+                    result_data['Item'] = result_data['Item'].astype(str)
+                
+                if 'Qty' in result_data.columns:
+                    result_data['Qty'] = pd.to_numeric(result_data['Qty'], errors='coerce').fillna(0).astype(int)
+            except Exception as e:
+                print(f"[WARNING] 데이터 타입 변환 중 오류: {e}")
+            
+            # 파일 경로 저장
+            FilePaths.set("result_file", file_path)
+            
+            # MVC 구조 초기화
+            print("[INFO] MVC 구조 초기화 시작")
+            
+            # 1. 검증기(Validator) 생성
+            validator = PlanAdjustmentValidator(result_data)
+            print("[INFO] 검증기 생성 완료")
+            
+            # 2. 사전할당 아이템 식별
+            pre_assigned_items = set()
+            if 'Type' in result_data.columns:
+                pre_assigned_mask = result_data['Type'] == 'Pre-assigned'
+                if pre_assigned_mask.any():
+                    pre_assigned_items = set(result_data.loc[pre_assigned_mask, 'Item'].unique())
+                    print(f"[INFO] {len(pre_assigned_items)}개 사전할당 아이템 발견")
+            
+            # 3. 모델(Model) 생성
+            model = AssignmentModel(result_data, list(pre_assigned_items), validator)
+            print("[INFO] 모델 생성 완료")
+            
+            # 4. 컨트롤러(Controller) 생성
+            controller = AdjustmentController(model, self.left_section, self.error_manager)
+            print("[INFO] 컨트롤러 생성 완료")
+            
+            # 5. 컨트롤러에 ResultPage 참조 설정
+            controller.set_result_page(self)
+            
+            # 6. 클래스 변수에 컨트롤러 저장
+            self.controller = controller
+            
+            # 7. Left Section에 validator와 controller 설정
+            self.left_section.set_validator(validator)
+            self.left_section.set_controller(controller)
+            print("[INFO] 검증기 및 컨트롤러 설정 완료")
+            
+            # 8. 초기 데이터 설정
+            controller.initialize_views()
+            print("[INFO] 초기 데이터 설정 완료")
+            
+            # 9. 시그널 연결
+            controller.connect_signals()
+            print("[INFO] 시그널 연결 완료")
+            
+            # 10. 사전할당 상태 설정
+            self.pre_assigned_items = pre_assigned_items
+            if pre_assigned_items:
+                self.update_left_widget_pre_assigned_status(pre_assigned_items)
+                print(f"[INFO] {len(pre_assigned_items)}개 사전할당 아이템 상태 설정")
+            
+            # 11. 자재 부족 분석 실행
+            try:
+                if hasattr(self, 'material_widget') and self.material_widget:
+                    self.material_widget.run_analysis(result_data)
+                    self.material_analyzer = self.material_widget.get_material_analyzer()
+                    print("[INFO] 자재 부족 분석 완료")
+            except Exception as e:
+                print(f"[WARNING] 자재 부족 분석 중 오류: {e}")
+            
+            # 성공 메시지 표시
+            EnhancedMessageBox.show_validation_success(
+                self,
+                "File Loaded Successfully",
+                 f"File has been successfully loaded.\nRows: {result_data.shape[0]}, Columns: {result_data.shape[1]}"
+            )
+            
+            # 데이터 변경 이벤트 발생
+            if hasattr(self, 'on_data_changed'):
+                self.on_data_changed(result_data)
+            
+            print("[INFO] 파일 로드 및 MVC 초기화 완료")
+            return True
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            
+            EnhancedMessageBox.show_validation_error(
+                self,
+                "File Loding Error", 
+                f"An error occurred while loading the file.\n{str(e)}"
+            )
+            return False
