@@ -10,7 +10,8 @@ class KpiWidget(QWidget):
         self.adjust_scores = {}
 
     """
-    KPI 위젯 UI 초기화"""
+    KPI 위젯 UI 초기화
+    """
     def init_ui(self):
         # 메인 레이아웃
         self.layout = QGridLayout(self)

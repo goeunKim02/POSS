@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
-from PyQt5.QtWidgets import QMessageBox
+from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from app.utils.week_plan_manager import WeeklyPlanManager
+from app.utils.field_filter import filter_internal_fields
 
 """파일 내보내기 작업 클래스"""
 class ExportManager:
@@ -21,8 +22,11 @@ class ExportManager:
     def export_data(parent, data_df, start_date=None, end_date=None, is_planning=False):
         try:
             if data_df is None or data_df.empty:
-                QMessageBox.warning(parent, "Export Error", "No data to export")
+                EnhancedMessageBox.show_validation_error(parent, "Export Error", "No data to export")
                 return None
+            
+            # 데이터 필터링
+            export_df = filter_internal_fields(data_df)
             
             # 바탕화면 경로
             desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
@@ -48,8 +52,7 @@ class ExportManager:
                 file_path = os.path.join(week_folder, file_name)
 
                 data_df.to_excel(file_path, index=False)
-
-                QMessageBox.information(
+                EnhancedMessageBox.show_validation_success(
                     parent,
                     "Export Success",
                     f"File saved to desktop in {week_info} folder:\n{file_path}"
@@ -61,19 +64,11 @@ class ExportManager:
 
                     export_data = data_df
 
-                    if hasattr(parent, 'plan_maintenance_widget'):
-                        adjust_plan = parent.plan_maintenance_widget.get_adjusted_plan()
-
-                        if adjust_plan is not None:
-                            export_data = adjust_plan
-                        else:
-                            print("No adjusted plan found. Saving current plan.")
-
                     saved_path = plan_manager.save_plan_with_metadata(
                         export_data, start_date, end_date
                     )
 
-                    QMessageBox.information(
+                    EnhancedMessageBox.show_validation_success(
                         parent, 
                         "Export Success", 
                         f"File saved to desktop in {week_info} folder:\n{saved_path}"
@@ -89,7 +84,7 @@ class ExportManager:
                     
                     data_df.to_excel(fallback_path, index=False)
                     
-                    QMessageBox.information(
+                    EnhancedMessageBox.show_validation_success(
                         parent, 
                        "Export Success", 
                         f"File saved to desktop in {week_info} folder:\n{fallback_path}\n(No metadata)"
@@ -99,7 +94,7 @@ class ExportManager:
         except Exception as e:
             print(f"Error during export process: {str(e)}")
 
-            QMessageBox.critical(
+            EnhancedMessageBox.show_validation_error(
                 parent,
                 "Export Error", 
                 f"An error occurred during export:\n{str(e)}"
