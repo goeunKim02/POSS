@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                             QToolButton, QMenu, QAction, QWidgetAction)
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint
 from PyQt5.QtGui import QFont, QCursor, QIcon
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """필터 위젯 - 라인 및 프로젝트 선택 필터"""
 class FilterWidget(QWidget):
@@ -28,28 +30,32 @@ class FilterWidget(QWidget):
     def init_ui(self):
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(5)
+        main_layout.setSpacing(w(10))
+
+        bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
+        normal_font = font_manager.get_just_font("SamsungOne-700").family()
         
         # 라인 필터 버튼
         self.line_filter_btn = QToolButton(self)
         self.line_filter_btn.setText("Line")
-        self.line_filter_btn.setStyleSheet("""
-            QToolButton {
+        self.line_filter_btn.setStyleSheet(f"""
+            QToolButton {{
                 background-color: white;
                 color: black;
-                font-weight: bold;
                 padding: 6px 8px;
                 border-radius: 4px;
-                min-width: 120px;
+                min-width: {w(80)}px;
                 border: 1px solid #808080;
-                margin-right: 10px;
-            }
-            QToolButton:hover {
+                font-family: {normal_font};
+                font-size: {f(18)}px;
+                min-height: {h(28)}px;
+            }}
+            QToolButton:hover {{
                 background-color: #f0f0f0;
-            }
-            QToolButton:pressed {
+            }}
+            QToolButton:pressed {{
                 background-color: #e0e0e0;
-            }
+            }}
         """)
 
         self.line_filter_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -57,25 +63,61 @@ class FilterWidget(QWidget):
         
         # 라인 필터 메뉴 생성
         self.line_filter_menu = QMenu(self.line_filter_btn)
-        self.line_filter_menu.setStyleSheet("""
-            QMenu {
+        self.line_filter_menu.setStyleSheet(f"""
+            QMenu {{
                 background-color: white;
                 border: 1px solid #d0d0d0;
                 padding: 5px;
                 min-width: 250px;
-            }
-            QMenu::item {
-                padding: 5px 20px 5px 20px;
+            }}
+            QMenu::item {{
+                padding: 5px 5px 5px 5px;
                 border: none;
-            }
-            QMenu::item:selected {
+            }}
+            QMenu::item:selected {{
                 background-color: #f0f0f0;
-            }
-            QMenu::separator {
+            }}
+            QMenu::separator {{
                 height: 1px;
                 background-color: #d0d0d0;
                 margin: 5px 15px;
-            }
+            }}
+            QScrollBar:vertical {{
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: #CCCCCC;
+                min-height: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                border: none;
+                background: none;
+                height: 0px;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background: #CCCCCC;
+                min-width: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                border: none;
+                background: none;
+                width: 0px;
+            }}
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+                background: none;
+            }}
         """)
         
         # 메뉴 헤더 위젯 (Select All/Clear All 버튼)
@@ -86,8 +128,8 @@ class FilterWidget(QWidget):
         line_header_layout.setContentsMargins(5, 2, 5, 5)
         
         select_all_line_btn = QPushButton("Select All")
-        select_all_line_btn.setStyleSheet("""
-            QPushButton {
+        select_all_line_btn.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
@@ -95,28 +137,30 @@ class FilterWidget(QWidget):
                 border-radius: 4px;
                 min-width: 120px;
                 border: none;
-            }
-            QPushButton:hover {
+                font-family: {normal_font};
+            }}
+            QPushButton:hover {{
                 background-color: #004C99;
-            }
+            }}
         """)
         select_all_line_btn.setCursor(QCursor(Qt.PointingHandCursor))
         select_all_line_btn.clicked.connect(lambda: self.select_all_filters('line'))
         
         clear_all_line_btn = QPushButton("Clear All")
-        clear_all_line_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #808080;
+        clear_all_line_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #1428A0;
                 color: white;
                 font-weight: bold;
                 padding: 4px 8px;
                 border-radius: 4px;
                 min-width: 120px;
                 border: none;
-            }
-            QPushButton:hover {
-                background-color: #606060;
-            }
+                font-family: {normal_font};
+            }}
+            QPushButton:hover {{
+                background-color: #004C99;
+            }}
         """)
         clear_all_line_btn.setCursor(QCursor(Qt.PointingHandCursor))
         clear_all_line_btn.clicked.connect(lambda: self.clear_all_filters('line'))
@@ -144,8 +188,8 @@ class FilterWidget(QWidget):
         line_scroll.setWidgetResizable(True)
         line_scroll.setWidget(self.line_checkbox_container)
         line_scroll.setStyleSheet("background-color: white; border: none;")
-        line_scroll.setMaximumHeight(200)  # 최대 높이 제한
-        line_scroll.setMinimumWidth(300)
+        line_scroll.setMinimumWidth(w(300))
+        line_scroll.setMaximumHeight(h(200))
         
         # 스크롤 영역을 액션으로 추가
         line_scroll_action = QWidgetAction(self.line_filter_menu)
@@ -157,41 +201,85 @@ class FilterWidget(QWidget):
         # 프로젝트 필터 버튼
         self.project_filter_btn = QToolButton(self)
         self.project_filter_btn.setText("Project")
-        self.project_filter_btn.setStyleSheet("""
-            QToolButton {
-                background-color: white;  /* 배경색을 흰색으로 변경 */
-                color: black;  /* 텍스트 색을 검은색으로 변경 */
-                font-weight: bold;
+        self.project_filter_btn.setStyleSheet(f"""
+            QToolButton {{
+                background-color: white;
+                color: black;
                 padding: 6px 8px;
                 border-radius: 4px;
-                min-width: 120px;
-                border: 1px solid #808080;  /* 테두리 색상을 회색으로 통일 */
-            }
-            QToolButton:hover {
+                min-width: {w(80)}px;
+                border: 1px solid #808080;
+                font-family: {normal_font};
+                font-size: {f(18)}px;
+                min-height: {h(28)}px;
+            }}
+            QToolButton:hover {{
                 background-color: #f0f0f0;
-            }
-            QToolButton:pressed {
+            }}
+            QToolButton:pressed {{
                 background-color: #e0e0e0;
-            }
+            }}
         """)
         self.project_filter_btn.setCursor(QCursor(Qt.PointingHandCursor))
         self.project_filter_btn.setPopupMode(QToolButton.InstantPopup)
         
         # 프로젝트 필터 메뉴
         self.project_filter_menu = QMenu(self.project_filter_btn)
-        self.project_filter_menu.setStyleSheet("""
-            QMenu {
+        self.project_filter_menu.setStyleSheet(f"""
+            QMenu {{
                 background-color: white;
                 border: 1px solid #d0d0d0;
                 padding: 5px;
-            }
-            QMenu::item {
-                padding: 5px 20px 5px 10px;
+                min-width: 250px;
+            }}
+            QMenu::item {{
+                padding: 5px 5px 5px 5px;
                 border: none;
-            }
-            QMenu::item:selected {
+            }}
+            QMenu::item:selected {{
                 background-color: #f0f0f0;
-            }
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background-color: #d0d0d0;
+                margin: 5px 15px;
+            }}
+            QScrollBar:vertical {{
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: #CCCCCC;
+                min-height: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                border: none;
+                background: none;
+                height: 0px;
+            }}
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{
+                background: none;
+            }}
+            QScrollBar:horizontal {{
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background: #CCCCCC;
+                min-width: 20px;
+                border-radius: 5px;
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                border: none;
+                background: none;
+                width: 0px;
+            }}
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+                background: none;
+            }}
         """)
         
         # 메뉴 헤더 위젯
@@ -202,8 +290,8 @@ class FilterWidget(QWidget):
         project_header_layout.setContentsMargins(5, 2, 5, 5)
         
         select_all_project_btn = QPushButton("Select All")
-        select_all_project_btn.setStyleSheet("""
-            QPushButton {
+        select_all_project_btn.setStyleSheet(f"""
+            QPushButton {{
                 background-color: #1428A0;
                 color: white;
                 font-weight: bold;
@@ -211,28 +299,30 @@ class FilterWidget(QWidget):
                 border-radius: 4px;
                 min-width: 120px;
                 border: none;
-            }
-            QPushButton:hover {
+                font-family: {normal_font};
+            }}
+            QPushButton:hover {{
                 background-color: #004C99;
-            }
+            }}
         """)
         select_all_project_btn.setCursor(QCursor(Qt.PointingHandCursor))
         select_all_project_btn.clicked.connect(lambda: self.select_all_filters('project'))
         
         clear_all_project_btn = QPushButton("Clear All")
-        clear_all_project_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #808080;
+        clear_all_project_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #1428A0;
                 color: white;
                 font-weight: bold;
                 padding: 4px 8px;
                 border-radius: 4px;
                 min-width: 120px;
                 border: none;
-            }
-            QPushButton:hover {
-                background-color: #606060;
-            }
+                font-family: {normal_font};
+            }}
+            QPushButton:hover {{
+                background-color: #004C99;
+            }}
         """)
         clear_all_project_btn.setCursor(QCursor(Qt.PointingHandCursor))
         clear_all_project_btn.clicked.connect(lambda: self.clear_all_filters('project'))
@@ -260,8 +350,8 @@ class FilterWidget(QWidget):
         project_scroll.setWidgetResizable(True)
         project_scroll.setWidget(self.project_checkbox_container)
         project_scroll.setStyleSheet("background-color: white; border: none;")
-        project_scroll.setMaximumHeight(200)  # 최대 높이 제한
-        project_scroll.setMinimumWidth(300)
+        project_scroll.setMaximumHeight(h(200))  # 최대 높이 제한
+        project_scroll.setMinimumWidth(w(300))
         
         # 스크롤 영역을 액션으로 추가
         project_scroll_action = QWidgetAction(self.project_filter_menu)
