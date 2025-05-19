@@ -9,6 +9,8 @@ from app.views.components.result_components.right_section.plan_tab import PlanTa
 from app.views.components.result_components.right_section.portcapa_tab import PortCapaTab
 from app.views.components.result_components.right_section.shipment_tab import ShipmentTab
 from app.views.components.result_components.right_section.splitview_tab import SplitViewTab
+from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """결과 페이지 시각화 탭 관리 클래스"""
 class TabManager(QObject):
@@ -58,9 +60,19 @@ class TabManager(QObject):
     button_layout: 버튼을 붙일 레이아웃
     stack_widget은 반드시 set_stack_widget() 이후에 호출하세요.
     """
+
     def create_tab_buttons(self, button_layout: QHBoxLayout):
         if self.stack_widget is None:
             raise RuntimeError("Call set_stack_widget() 먼저 해주세요.")
+
+        # 간격 설정
+        button_layout.setSpacing(2)  # f(2)에 해당하는 값
+        button_layout.setContentsMargins(10, 8, 10, 8)  # w(10), h(8) 등에 해당하는 값
+
+        try:
+            btn_font = font_manager.get_just_font("SamsungOne-700").family()
+        except:
+            btn_font = "Arial"  # 기본 폰트로 대체
 
         for idx, name in enumerate(self.tab_names):
             # 1) 탭 페이지 생성
@@ -74,16 +86,49 @@ class TabManager(QObject):
             # 3) 버튼 생성
             btn = QPushButton(name)
             btn.setCursor(QCursor(Qt.PointingHandCursor))
+            btn.setMinimumWidth(80)  # w(80)에 해당하는 값
             btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            btn.setFixedHeight(50)
+
             # 첫 탭만 활성 스타일
-            btn.setStyleSheet(
-                ResultStyles.ACTIVE_BUTTON_STYLE if idx == 0 
-                else ResultStyles.INACTIVE_BUTTON_STYLE
-            )
+            if idx == 0:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: #1428A0;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        padding: {w(4)}px {h(8)}px;
+                        min-height: {h(26)}px;
+                        font-weight: bold;
+                        font-family: {btn_font};
+                        font-size: {f(13)}px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #0F1F8A;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: white;
+                        color: #666666;
+                        border: 1px solid #E0E0E0;
+                        border-radius: 5px;
+                        padding: {w(4)}px {h(8)}px;
+                        min-height: {h(26)}px;
+                        font-weight: bold;
+                        font-family: {btn_font};
+                        font-size: {f(13)}px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #F5F5F5;
+                        color: #1428A0;
+                        border-color: #1428A0;
+                    }}
+                """)
+
             # 클릭 시 전환
             btn.clicked.connect(lambda _, i=idx: self.switch_tab(i))
-
             button_layout.addWidget(btn)
             self.buttons.append(btn)
 
@@ -94,6 +139,7 @@ class TabManager(QObject):
     """
     버튼 클릭 시 호출되어 스택 위젯을 전환하고 버튼 스타일 갱신
     """
+
     def switch_tab(self, idx: int):
         if not self.stack_widget or idx < 0 or idx >= len(self.tab_names):
             return
@@ -102,29 +148,67 @@ class TabManager(QObject):
         self.stack_widget.setCurrentIndex(idx)
         self.current_tab_idx = idx
 
+        # 폰트 설정 - font_manager가 있다고 가정하고, 없으면 시스템 기본 글꼴 사용
+        try:
+            btn_font = font_manager.get_just_font("SamsungOne-700").family()
+        except:
+            btn_font = "Arial"  # 기본 폰트로 대체
+
         # 2) 버튼 스타일 업데이트
         for i, btn in enumerate(self.buttons):
-            btn.setStyleSheet(
-                ResultStyles.ACTIVE_BUTTON_STYLE if i == idx 
-                else ResultStyles.INACTIVE_BUTTON_STYLE
-            )
+            if i == idx:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: #1428A0;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        padding: {w(4)}px {h(8)}px;
+                        min-height: {h(26)}px;
+                        font-weight: bold;
+                        font-family: {btn_font};
+                        font-size: {f(13)}px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #0F1F8A;
+                    }}
+                """)
+            else:
+                btn.setStyleSheet(f"""
+                    QPushButton {{
+                        background-color: white;
+                        color: #666666;
+                        border: 1px solid #E0E0E0;
+                        border-radius: 5px;
+                        padding: {w(4)}px {h(8)}px;
+                        min-height: {h(26)}px;
+                        font-weight: bold;
+                        font-family: {btn_font};
+                        font-size: {f(13)}px;
+                    }}
+                    QPushButton:hover {{
+                        background-color: #F5F5F5;
+                        color: #1428A0;
+                        border-color: #1428A0;
+                    }}
+                """)
 
         # 3) 탭별 콘텐츠 업데이트 (필요한 경우)
         tab_name = self.tab_names[idx]
         page = self.tab_instances.get(tab_name)
-        
+
         # Material 탭이 선택된 경우, 자재 부족량 분석 실행
         if tab_name == 'Material' and page:
             # 자재 분석기가 있으면 설정
             if self.material_manager and hasattr(self.parent_page, 'result_data'):
                 # Material 탭의 콘텐츠 업데이트 전에 부족량 분석 실행
                 self.material_manager.analyze_material_shortage(self.parent_page.result_data)
-        
-        # capa 탭은 두가지 parameter 필요 
+
+        # capa 탭은 두가지 parameter 필요
         if tab_name == 'Capa' and page:
             page.update_content(getattr(self.parent_page, 'capa_ratio_data', None),
                                 getattr(self.parent_page, 'utilization_data', None))
-        
+
         # Shipment 탭은 result_data를 사용
         elif tab_name == 'Shipment' and page:
             if hasattr(self.parent_page, 'result_data') and self.parent_page.result_data is not None:
