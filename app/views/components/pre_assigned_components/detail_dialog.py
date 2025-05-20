@@ -104,12 +104,12 @@ class DetailDialog(QDialog):
         ]
 
         field_name_style = (
-            f"font-family:{bold_font}; font-size:{f(10)}px; font-weight:900; "
+            f"font-family:{bold_font}; font-size:{f(14)}px; font-weight:900; "
             "color:#555555; border:none;"
         )
 
         field_value_style = (
-            f"font-family:{normal_font}; font-size:{f(10)}px; color:#333333; "
+            f"font-family:{normal_font}; font-size:{f(14)}px; color:#333333; "
             "background-color:#f5f5f5; padding:5px 10px; border-radius:4px; "
             "min-width:280px; max-width:280px;"
         )
@@ -172,13 +172,13 @@ class DetailDialog(QDialog):
                     value = rec.get(key, "-")
                     name_lbl = QLabel(f"{key}:")
                     name_lbl.setStyleSheet(
-                        f"font-family:{bold_font}; font-size:{f(9)}px; font-weight:900; border:none;"
+                        f"font-family:{bold_font}; font-size:{f(14)}px; font-weight:900; border:none;"
                     )
                     name_lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                     
                     val_lbl = QLabel(str(value))
                     val_lbl.setStyleSheet(
-                        f"font-family:{normal_font}; font-size:{f(9)}px; border:none;"
+                        f"font-family:{normal_font}; font-size:{f(14)}px; border:none;"
                     )
 
                     row_idx = i // 2
@@ -206,7 +206,7 @@ class DetailDialog(QDialog):
         close_button.setStyleSheet(f"""
             QPushButton {{
                 font-family: {bold_font};
-                font-size: {f(11)}px;
+                font-size: {f(14)}px;
                 font-weight: 900;
                 background-color: #1428A0;
                 border: none;

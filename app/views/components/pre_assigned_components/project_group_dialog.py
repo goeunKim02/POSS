@@ -75,7 +75,7 @@ class ProjectGroupDialog(QDialog):
         self.desc_label.setFixedHeight(40)
         self.desc_label.setAlignment(Qt.AlignCenter)
         self.desc_label.setStyleSheet(
-            f"font-family:{bold_font}; font-size:{f(12)}px; font-weight:900; "
+            f"font-family:{bold_font}; font-size:{f(14)}px; font-weight:900; "
             "color:#333333; padding:10px;"
         )
         pd_layout.addWidget(self.desc_label)
@@ -92,7 +92,7 @@ class ProjectGroupDialog(QDialog):
         self.progress_bar.setStyleSheet(f"""
             QProgressBar {{
                 font-family:{normal_font};
-                font-size:{f(11)}px;
+                font-size:{f(14)}px;
                 font-weight:900;
                 border:2px solid #E0E0E0;
                 border-radius:8px;
@@ -118,7 +118,7 @@ class ProjectGroupDialog(QDialog):
         self.time_label = QLabel("remaining time: 0:00")
         self.time_label.setAlignment(Qt.AlignCenter)
         self.time_label.setStyleSheet(
-            f"font-family:{normal_font}; font-size:{f(10)}px; "
+            f"font-family:{normal_font}; font-size:{f(14)}px; "
             "color:#666666; background-color:#F5F5F5;"
         )
         self.time_label.hide()
@@ -136,7 +136,7 @@ class ProjectGroupDialog(QDialog):
             cb.setStyleSheet(f"""
                 QCheckBox {{
                     font-family:{normal_font};
-                    font-size:{f(11)}px;
+                    font-size:{f(14)}px;
                     color:#333333;
                     padding:8px;
                 }}
@@ -184,12 +184,10 @@ class ProjectGroupDialog(QDialog):
         # ok 버튼
         self.ok_button = QPushButton("OK")
         self.ok_button.setFixedSize(100, 40)
-        ok_font = QFont("Arial", 11); ok_font.setBold(True)
-        self.ok_button.setFont(ok_font)
         self.ok_button.setStyleSheet(f"""
             QPushButton {{
                 font-family:{bold_font};
-                font-size:{f(11)}px;
+                font-size:{f(14)}px;
                 font-weight:900;
                 background-color:#1428A0;
                 color:white;
@@ -210,12 +208,10 @@ class ProjectGroupDialog(QDialog):
         # Cancel 버튼
         self.cancel_button = QPushButton("Cancel")
         self.cancel_button.setFixedSize(100, 40)
-        can_font = QFont("Arial", 11); can_font.setBold(True)
-        self.cancel_button.setFont(can_font)
         self.cancel_button.setStyleSheet(f"""
             QPushButton {{
                 font-family:{bold_font};
-                font-size:{f(11)}px;
+                font-size:{f(14)}px;
                 font-weight:900;
                 background-color:#6C757D;
                 color:white;
