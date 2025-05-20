@@ -1599,6 +1599,15 @@ class ModifiedLeftSection(QWidget):
         current_filter_states = self.current_filter_states.copy()
         current_excel_filter_states = self.current_excel_filter_states.copy()
 
+        # 현재 스크롤 위치 저장
+        current_scroll_position = None
+        if hasattr(self.grid_widget, 'scroll_area'):
+            current_scroll_position = {
+                'horizontal': self.grid_widget.scroll_area.horizontalScrollBar().value(),
+                'vertical': self.grid_widget.scroll_area.verticalScrollBar().value()
+            }
+            print(f"현재 스크롤 위치 저장: {current_scroll_position}")
+
         # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
             if hasattr(self, 'controller') and self.controller:
@@ -1740,6 +1749,10 @@ class ModifiedLeftSection(QWidget):
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
 
+            # 스크롤 위치 복원
+            if current_scroll_position and hasattr(self.grid_widget, 'scroll_area'):
+                QTimer.singleShot(50, lambda: self._restore_scroll_position(current_scroll_position))
+
             # 저장했던 필터 및 검색 상태 복원
             self.search_active = current_search_active
             self.last_search_text = current_search_text
@@ -1844,3 +1857,15 @@ class ModifiedLeftSection(QWidget):
                 if current_data is not None and not current_data.empty:
                     print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
                     self.parent_page.analyze_shipment_with_current_data(current_data)
+
+    def _restore_scroll_position(self, position):
+        """스크롤 위치 복원"""
+        if hasattr(self.grid_widget, 'scroll_area'):
+            # 약간의 지연을 주고 스크롤 위치 복원
+            h_bar = self.grid_widget.scroll_area.horizontalScrollBar()
+            v_bar = self.grid_widget.scroll_area.verticalScrollBar()
+
+            if 'horizontal' in position:
+                h_bar.setValue(position['horizontal'])
+            if 'vertical' in position:
+                v_bar.setValue(position['vertical'])
