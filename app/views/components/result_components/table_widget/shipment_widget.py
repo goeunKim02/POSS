@@ -9,6 +9,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from app.analysis.output.this_week_shipment import analyze_and_get_results
 from app.resources.fonts.font_manager import font_manager
+from PyQt5.QtWidgets import QApplication
 
 """당주 출하 분석 위젯"""
 class ShipmentWidget(QWidget):
@@ -38,6 +39,7 @@ class ShipmentWidget(QWidget):
         QToolTip.setFont(tooltip_font)
         
         # 툴팁 색상 및 스타일 설정
+        app = QApplication.instance()
         palette = QToolTip.palette()
         palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 225))  # 연한 노란색 배경
         palette.setColor(QPalette.ToolTipText, QColor(0, 0, 0))        # 검은색 텍스트
@@ -418,7 +420,7 @@ class ShipmentWidget(QWidget):
             # 현재 해시 저장
             self.last_analyzed_data_hash = current_hash
             
-            print("왼쪽 결과 테이블 데이터로 출하 분석 실행")
+            # print("왼쪽 결과 테이블 데이터로 출하 분석 실행")
             
             # 기존 분석 코드 계속 실행
             # analyze_and_get_results 함수 호출 및 반환값 예외 처리
@@ -659,19 +661,7 @@ class ShipmentWidget(QWidget):
             if item_text in inconsistent_items_dict:
                 is_inconsistent = True
                 inc_info = inconsistent_items_dict[item_text]
-                all_values = inc_info['values']
-                selected = inc_info.get('Selected_SOP', inc_info.get('selected', 0))
-                
-                # HTML 형식으로 서식화된 툴팁 (SamsungOne 폰트 적용)
-                sop_tooltip = f"""
-                <div style='background-color: #FFFDE7; padding: 8px; border: 1px solid #FBC02D; border-radius: 4px; font-family: {self.regular_font_family};'>
-                    <h3 style='color: #D32F2F; margin: 0 0 5px 0; font-family: {self.bold_font_family};'>SOP 값 불일치 감지됨</h3>
-                    <p style='margin: 5px 0;'><b>발견된 모든 SOP 값:</b> {all_values}</p>
-                    <p style='margin: 5px 0;'><b>계산에 사용된 값:</b> {selected}</p>
-                    <p style='color: #0277BD; margin: 5px 0;'>첫 번째 발견된 SOP 값이 계산에 사용됩니다.</p>
-                </div>
-                """
-            
+
             # 수량 정보
             due_lt_production = model.get('DueLTProduction', 0)
             qty_text = f"{due_lt_production:,}"
@@ -725,13 +715,6 @@ class ShipmentWidget(QWidget):
                 font = QFont(self.bold_font_family)
                 item_cell.setFont(font)
                 
-                # 툴팁 설정 (SamsungOne 폰트 적용)
-                item_cell.setToolTip(f"""
-                <div style='background-color: #FFFDE7; padding: 5px; border-radius: 4px; font-family: {self.regular_font_family};'>
-                    <p style='color: #D32F2F; font-weight: bold; margin: 0; font-family: {self.bold_font_family};'>SOP 값이 일관되지 않은 아이템</p>
-                    <p style='margin: 5px 0 0 0;'>자세한 정보는 SOP 값에 마우스를 올려보세요.</p>
-                </div>
-                """)
                 
             self.failed_table.setItem(row_idx, 0, item_cell)
             
@@ -753,7 +736,6 @@ class ShipmentWidget(QWidget):
             # 불일치가 있는 경우 배경색 변경 및 툴팁 추가
             if is_inconsistent:
                 sop_cell.setBackground(QBrush(QColor(255, 255, 200)))  # 노란색 배경
-                sop_cell.setToolTip(sop_tooltip)  # HTML 툴팁 추가
                 # 굵은 폰트 사용
                 sop_cell.setFont(QFont(self.bold_font_family))
                 
@@ -823,19 +805,17 @@ class ShipmentWidget(QWidget):
                 
                 # 출하 실패 이유 결정
                 if is_inconsistent:
-                    reason = "SOP 값 불일치"
+                    reason = "SOP Value Inconsistency"
                     for inc in sop_inconsistencies:
                         if inc['Item'] == item_code:
-                            # 더 읽기 좋은 형식으로 제공
                             all_values = inc['SOP_Values']
-                            # Selected_SOP 키 사용 (selected 대신)
                             selected = inc.get('Selected_SOP', inc.get('selected', 0))
-                            reason = f"SOP 값 불일치 (발견된 값: {all_values} / 사용된 값: {selected})"
+                            reason = f"SOP Value Inconsistency (Found: {all_values} / Used: {selected})"
                             break
                 elif production < sop:
-                    reason = f"생산량 부족 (생산: {production}, 요구: {sop})"
+                    reason = f"Insufficient Production (Produced: {production}, Required: {sop})"
                 else:
-                    reason = row.get('FailureReason', '알 수 없는 이유')
+                    reason = row.get('FailureReason', 'Unknown reason')
                     
                 # 출하 실패 정보 구성
                 failure_items[item_code] = {
