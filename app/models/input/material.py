@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 from app.utils.fileHandler import load_file
-from app.models.common.file_store import FilePaths
+from app.models.common.file_store import FilePaths, DataStore
 from app.utils.error_handler import (
     error_handler, safe_operation, DataError, FileError
 )
@@ -24,10 +24,16 @@ def process_material_data():
             raise FileError('Material file path not found', {'file_type' : 'dynamic_excel_file'})
     except Exception as e :
         raise FileError('Error getting material file path', {'error' : str(e)})
+    
+    dfs = DataStore.get("dataframes", {})
+    key_mat = f"{material_file_path}:material_qty"
 
     try :
-        df_material = load_file(material_file_path)
-        df_material_qty = df_material.get('material_qty', pd.DataFrame())
+        if key_mat in dfs:
+            df_material_qty = dfs[key_mat]
+        else:
+            df_material = load_file(material_file_path)
+            df_material_qty = df_material.get('material_qty', pd.DataFrame())
 
         if df_material_qty.empty:
             return None
@@ -60,20 +66,29 @@ def process_material_satisfaction_data() :
     except Exception as e :
         return {'error' : f'Error getting file paths : {str(e)}'}
     
+    dfs = DataStore.get("dataframes", {})
+    key_qty  = f"{dynamic_file_path}:material_qty"
+    key_item = f"{dynamic_file_path}:material_item"
+    key_eq   = f"{dynamic_file_path}:material_equal"
+    key_dem  = f"{demand_file_path}:demand"
+
     try :
-        df_dynamic = safe_operation(load_file, 'Error loading dynamic file', dynamic_file_path)
-
-        if df_dynamic is None :
-            return {'error' : 'Failed to load dynamic file content'}
-        
-        df_demand = safe_operation(load_file, 'Error loading demand file', demand_file_path)
-
-        if df_demand is None :
-            return {'error' : 'Failed to load demand file content'}
-        
-        df_material_qty = df_dynamic.get('material_qty', pd.DataFrame())
-        df_material_item = df_dynamic.get('material_item', pd.DataFrame())
-        df_demand_data = df_demand.get('demand', pd.DataFrame())
+        raw_dyn = None
+        if not (key_qty in dfs and key_item in dfs and key_eq in dfs):
+            raw_dyn = safe_operation(load_file, 'Error loading dynamic file', dynamic_file_path)
+            
+        raw_dem = None
+        if key_dem not in dfs:
+            raw_dem = safe_operation(load_file, 'Error loading demand file', demand_file_path)
+            
+        df_material_qty = dfs.get(key_qty,
+                                   (raw_dyn or {}).get('material_qty', pd.DataFrame()))
+        df_material_item = dfs.get(key_item,
+                                   (raw_dyn or {}).get('material_item', pd.DataFrame()))
+        df_material_eq = dfs.get(key_eq,
+                                   (raw_dyn or {}).get('material_equal', pd.DataFrame()))
+        df_demand_data = dfs.get(key_dem,
+                                   (raw_dem or {}).get('demand', pd.DataFrame()))
 
         if df_demand_data.empty :
             return {'error' : 'Demand data not found in file'}
@@ -97,18 +112,14 @@ def process_material_satisfaction_data() :
 
         if material_data is None :
             return {'error' : 'Failed to preprocess material data'}
-        
-        material_df = material_data['material_df']
-        material_item_df = df_material_item.copy()
-        material_equal_df = df_dynamic.get('material_equal', pd.DataFrame())
 
         return {
-            'material_df' : material_df,
-            'material_item_df' : material_item_df,
-            'material_equal_df' : material_equal_df if not material_equal_df.empty else None,
-            'demand_df' : df_demand_data,
-            'date_columns' : material_data['date_columns'],
-            'weekly_columns' : material_data['weekly_columns']
+            'material_df': material_data['material_df'],
+            'material_item_df': df_material_item.copy(),
+            'material_equal_df': df_material_eq if not df_material_eq.empty else None,
+            'demand_df': df_demand_data,
+            'date_columns': material_data['date_columns'],
+            'weekly_columns': material_data['weekly_columns']
         }
 
     except Exception as e :
