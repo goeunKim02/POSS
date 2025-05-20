@@ -84,6 +84,8 @@ class DraggableItemLabel(QFrame):
 
         # 검색 포커스 상태
         self.is_search_focused = False
+        # 현재 검색 결과 표시 여부
+        self.is_search_current = False
 
         # 컨텍스트 메뉴 설정
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -222,7 +224,11 @@ class DraggableItemLabel(QFrame):
 
     """마우스가 위젯 위에 올라갔을 때 호출됨"""
     def enterEvent(self, event):
-        if not self.is_selected:
+        if self.is_search_current:
+            pass
+        elif self.is_search_focused:
+            self.setStyleSheet(ItemStyle.SEARCH_FOCUSED_HOVER_STYLE)
+        elif not self.is_selected:
             if self.is_pre_assigned and self.is_shortage and self.is_shipment_failure:  # 사전할당/자재부족/출하실패
                 self.setStyleSheet(ItemStyle.PRE_ASSIGNED_SHORTAGE_SHIPMENT_HOVER_STYLE)
             elif self.is_pre_assigned and self.is_shortage:  # 사전할당/자재부족
@@ -521,36 +527,34 @@ class DraggableItemLabel(QFrame):
         # 기본 QLabel 의 paintEvent 호출
         super().paintEvent(event)
         
-        # 상태별 색상 선 그리기
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        # 현재 표시 상태 확인
+        has_status_lines = (self.is_shortage and self.show_shortage_line) or \
+                        (self.is_shipment_failure and self.show_shipment_line) or \
+                        (self.is_pre_assigned and self.show_pre_assigned_line)
         
-        # 선의 시작 위치와 너비
-        line_width = 10
-        line_gap = 0
-        current_x = 0  # 왼쪽 여백
-
-        # 상하 여백
-        top_margin = 0
-        bottom_margin = 0
-        
-        # 상태에 따른 색상 순서 정의
-        status_colors = []
-        
-        if self.is_shortage and self.show_shortage_line:
-            status_colors.append(QColor("#ff6e63"))  # 빨간색
-        if self.is_shipment_failure and self.show_shipment_line:
-            status_colors.append(QColor("#fcc858"))  # 주황색
-        if self.is_pre_assigned and self.show_pre_assigned_line:
-            status_colors.append(QColor("#a8bbf0"))  # 파란색
-        
-        # 각 상태별로 선 그리기
-        for color in status_colors:
-            painter.fillRect(current_x, top_margin, line_width, 
-                        self.height() - top_margin - bottom_margin, color)
-            current_x += line_width + line_gap
-        
-        painter.end()
+        # 상태선이 있는 경우만 그리기 로직 실행
+        if has_status_lines:
+            painter = QPainter(self)
+            painter.setRenderHint(QPainter.Antialiasing)
+            
+            # 선 너비 및 위치 설정
+            line_width = 5
+            line_gap = 0
+            current_x = 0
+            
+            # 각 상태에 맞는 색상 선 그리기
+            if self.is_shortage and self.show_shortage_line:
+                painter.fillRect(current_x, 0, line_width, self.height(), QColor("#ff6e63"))
+                current_x += line_width + line_gap
+                
+            if self.is_shipment_failure and self.show_shipment_line:
+                painter.fillRect(current_x, 0, line_width, self.height(), QColor("#fcc858"))
+                current_x += line_width + line_gap
+                
+            if self.is_pre_assigned and self.show_pre_assigned_line:
+                painter.fillRect(current_x, 0, line_width, self.height(), QColor("#a8bbf0"))
+            
+            painter.end()
 
     def setWordWrap(self, wrap):
         """QLabel 호환성을 위한 setWordWrap() 메서드"""
@@ -567,7 +571,12 @@ class DraggableItemLabel(QFrame):
             return
         
         self.is_search_focused = focused
-        self.update_style()
+
+        # 포커스가 해제되면 현재 선택 상태도 함께 해제
+        if not focused and hasattr(self, 'is_search_current'):
+            self.is_search_current = False
+        
+        self.update_search_style()
 
     """ 아이템을 삭제할 때 사용할 메서드 입니다."""
     def show_context_menu(self, position):
@@ -603,3 +612,34 @@ class DraggableItemLabel(QFrame):
     """ 삭제 요청 메서드"""
     def request_delete(self):
         self.itemDeleteRequested.emit(self)
+
+    """검색 결과 중 현재 선택된 아이템 특별 스타일 적용"""
+    def set_search_selected(self, selected=False):
+        if selected:
+            self.setStyleSheet(ItemStyle.SEARCH_SELECTED_STYLE)
+        else:
+            if self.is_search_focused:
+                self.setStyleSheet(ItemStyle.SEARCH_FOCUSED_STYLE)
+            else:
+                self.update_style()
+
+    """
+    현재 검색 결과에서 특별히 강조할 아이템 설정
+    """
+    def set_search_current(self, is_current=False):
+        self.is_search_current = is_current
+        self.update_search_style()
+
+    """
+    검색 관련 스타일 업데이트
+    """
+    def update_search_style(self):
+        if hasattr(self, 'is_search_current') and self.is_search_current:
+            # 현재 검색 위치 강조 스타일
+            self.setStyleSheet(ItemStyle.SEARCH_CURRENT_STYLE)
+        elif self.is_search_focused:
+            # 일반 검색 결과 스타일
+            self.setStyleSheet(ItemStyle.SEARCH_FOCUSED_STYLE)
+        else:
+            # 기본 스타일
+            self.update_style()
