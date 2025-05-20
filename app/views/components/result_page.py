@@ -26,7 +26,8 @@ from app.controllers.adjustment_controller import AdjustmentController
 from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
 from app.analysis.output.kpi_score import KpiScore
-from app.views.components.common.enhanced_message_box import EnhancedMessageBox
+# from app.views.components.common.enhanced_message_box import EnhancedMessageBox
+# from app.utils.fileHandler import load_file
 
 
 class ResultPage(QWidget):
@@ -1187,167 +1188,165 @@ class ResultPage(QWidget):
 
 
 
-    """
-    결과 파일 로드 및 MVC 구조 초기화
+    # """
+    # 결과 파일 로드 및 MVC 구조 초기화
     
-    Args:
-        file_path: 선택적으로 파일 경로를 직접 전달 가능
-    Returns:
-        bool: 로드 성공 여부
-    """
-    def load_result_file(self, file_path=None):
-        print("result의 로드버튼 호출")
-        # 파일 선택 (경로가 전달되지 않은 경우)
-        if file_path is None:
-            print("파일 선택 대화상자 표시 시도") 
-            file_path, _ = QFileDialog.getOpenFileName(
-                self, "결과 파일 선택", "", "Excel Files (*.xlsx *.xls *.csv)"
-            )
+    # Args:
+    #     file_path: 선택적으로 파일 경로를 직접 전달 가능
+    # Returns:
+    #     bool: 로드 성공 여부
+    # """
+    # def load_result_file(self, file_path=None):
+    #     # 파일 선택 (경로가 전달되지 않은 경우)
+    #     if file_path is None:
+    #         file_path, _ = QFileDialog.getOpenFileName(
+    #             self, "결과 파일 선택", "", "Excel Files (*.xlsx *.xls *.csv)"
+    #         )
         
-        if not file_path or not os.path.exists(file_path):
-            print(f"유효한 파일 경로가 아닙니다: {file_path}")
-            return False
+    #     if not file_path or not os.path.exists(file_path):
+    #         print(f"유효한 파일 경로가 아닙니다: {file_path}")
+    #         return False
         
-        try:
-            print(f"[INFO] 결과 파일 로드 시작: {file_path}")
+    #     try:
+    #         print(f"[INFO] 결과 파일 로드 시작: {file_path}")
             
-            # 기존 데이터 정리
-            if hasattr(self, 'left_section'):
-                self.left_section.clear_all_items()
+    #         # 기존 데이터 정리
+    #         if hasattr(self, 'left_section'):
+    #             self.left_section.clear_all_items()
             
-            # 파일 로드
-            from app.utils.fileHandler import load_file
-            result_data = load_file(file_path)
+    #         # 파일 로드
+    #         from app.utils.fileHandler import load_file
+    #         result_data = load_file(file_path)
             
-            # 여러 시트가 반환되면 첫 번째 시트 사용
-            if isinstance(result_data, dict):
-                if 'result' in result_data:
-                    result_data = result_data['result']
-                else:
-                    # 첫 번째 시트 사용
-                    first_sheet_name = list(result_data.keys())[0]
-                    result_data = result_data[first_sheet_name]
-                    print(f"[INFO] '{first_sheet_name}' 시트 데이터 사용")
+    #         # 여러 시트가 반환되면 첫 번째 시트 사용
+    #         if isinstance(result_data, dict):
+    #             if 'result' in result_data:
+    #                 result_data = result_data['result']
+    #             else:
+    #                 # 첫 번째 시트 사용
+    #                 first_sheet_name = list(result_data.keys())[0]
+    #                 result_data = result_data[first_sheet_name]
+    #                 print(f"[INFO] '{first_sheet_name}' 시트 데이터 사용")
             
-            # DataFrame이 아니면 변환
-            if not isinstance(result_data, pd.DataFrame):
-                print("[ERROR] 데이터를 DataFrame으로 변환할 수 없습니다.")
-                EnhancedMessageBox.show_validation_error(
-                    self, 
-                    "파일 형식 오류", 
-                    "파일에서 유효한 데이터를 찾을 수 없습니다."
-                )
-                return False
+    #         # DataFrame이 아니면 변환
+    #         if not isinstance(result_data, pd.DataFrame):
+    #             print("[ERROR] 데이터를 DataFrame으로 변환할 수 없습니다.")
+    #             EnhancedMessageBox.show_validation_error(
+    #                 self, 
+    #                 "파일 형식 오류", 
+    #                 "파일에서 유효한 데이터를 찾을 수 없습니다."
+    #             )
+    #             return False
             
-            # 데이터 검증 - 필수 컬럼 확인
-            required_columns = ['Line', 'Time', 'Item']
-            missing_columns = [col for col in required_columns if col not in result_data.columns]
+    #         # 데이터 검증 - 필수 컬럼 확인
+    #         required_columns = ['Line', 'Time', 'Item']
+    #         missing_columns = [col for col in required_columns if col not in result_data.columns]
             
-            if missing_columns:
-                EnhancedMessageBox.show_validation_error(
-                    self,
-                    "파일 형식 오류",
-                    f"필수 열이 없습니다: {', '.join(missing_columns)}\n올바른 형식의 파일을 선택해주세요."
-                )
-                return False
+    #         if missing_columns:
+    #             EnhancedMessageBox.show_validation_error(
+    #                 self,
+    #                 "파일 형식 오류",
+    #                 f"필수 열이 없습니다: {', '.join(missing_columns)}\n올바른 형식의 파일을 선택해주세요."
+    #             )
+    #             return False
             
-            # 데이터 타입 정규화
-            try:
-                if 'Line' in result_data.columns:
-                    result_data['Line'] = result_data['Line'].astype(str)
+    #         # 데이터 타입 정규화
+    #         try:
+    #             if 'Line' in result_data.columns:
+    #                 result_data['Line'] = result_data['Line'].astype(str)
                 
-                if 'Time' in result_data.columns:
-                    result_data['Time'] = pd.to_numeric(result_data['Time'], errors='coerce').fillna(0).astype(int)
+    #             if 'Time' in result_data.columns:
+    #                 result_data['Time'] = pd.to_numeric(result_data['Time'], errors='coerce').fillna(0).astype(int)
                 
-                if 'Item' in result_data.columns:
-                    result_data['Item'] = result_data['Item'].astype(str)
+    #             if 'Item' in result_data.columns:
+    #                 result_data['Item'] = result_data['Item'].astype(str)
                 
-                if 'Qty' in result_data.columns:
-                    result_data['Qty'] = pd.to_numeric(result_data['Qty'], errors='coerce').fillna(0).astype(int)
-            except Exception as e:
-                print(f"[WARNING] 데이터 타입 변환 중 오류: {e}")
+    #             if 'Qty' in result_data.columns:
+    #                 result_data['Qty'] = pd.to_numeric(result_data['Qty'], errors='coerce').fillna(0).astype(int)
+    #         except Exception as e:
+    #             print(f"[WARNING] 데이터 타입 변환 중 오류: {e}")
             
-            # 파일 경로 저장
-            FilePaths.set("result_file", file_path)
+    #         # 파일 경로 저장
+    #         FilePaths.set("result_file", file_path)
             
-            # MVC 구조 초기화
-            print("[INFO] MVC 구조 초기화 시작")
+    #         # MVC 구조 초기화
+    #         print("[INFO] MVC 구조 초기화 시작")
             
-            # 1. 검증기(Validator) 생성
-            validator = PlanAdjustmentValidator(result_data)
-            print("[INFO] 검증기 생성 완료")
+    #         # 1. 검증기(Validator) 생성
+    #         validator = PlanAdjustmentValidator(result_data)
+    #         print("[INFO] 검증기 생성 완료")
             
-            # 2. 사전할당 아이템 식별
-            pre_assigned_items = set()
-            if 'Type' in result_data.columns:
-                pre_assigned_mask = result_data['Type'] == 'Pre-assigned'
-                if pre_assigned_mask.any():
-                    pre_assigned_items = set(result_data.loc[pre_assigned_mask, 'Item'].unique())
-                    print(f"[INFO] {len(pre_assigned_items)}개 사전할당 아이템 발견")
+    #         # 2. 사전할당 아이템 식별
+    #         pre_assigned_items = set()
+    #         if 'Type' in result_data.columns:
+    #             pre_assigned_mask = result_data['Type'] == 'Pre-assigned'
+    #             if pre_assigned_mask.any():
+    #                 pre_assigned_items = set(result_data.loc[pre_assigned_mask, 'Item'].unique())
+    #                 print(f"[INFO] {len(pre_assigned_items)}개 사전할당 아이템 발견")
             
-            # 3. 모델(Model) 생성
-            model = AssignmentModel(result_data, list(pre_assigned_items), validator)
-            print("[INFO] 모델 생성 완료")
+    #         # 3. 모델(Model) 생성
+    #         model = AssignmentModel(result_data, list(pre_assigned_items), validator)
+    #         print("[INFO] 모델 생성 완료")
             
-            # 4. 컨트롤러(Controller) 생성
-            controller = AdjustmentController(model, self.left_section, self.error_manager)
-            print("[INFO] 컨트롤러 생성 완료")
+    #         # 4. 컨트롤러(Controller) 생성
+    #         controller = AdjustmentController(model, self.left_section, self.error_manager)
+    #         print("[INFO] 컨트롤러 생성 완료")
             
-            # 5. 컨트롤러에 ResultPage 참조 설정
-            controller.set_result_page(self)
+    #         # 5. 컨트롤러에 ResultPage 참조 설정
+    #         controller.set_result_page(self)
             
-            # 6. 클래스 변수에 컨트롤러 저장
-            self.controller = controller
+    #         # 6. 클래스 변수에 컨트롤러 저장
+    #         self.controller = controller
             
-            # 7. Left Section에 validator와 controller 설정
-            self.left_section.set_validator(validator)
-            self.left_section.set_controller(controller)
-            print("[INFO] 검증기 및 컨트롤러 설정 완료")
+    #         # 7. Left Section에 validator와 controller 설정
+    #         self.left_section.set_validator(validator)
+    #         self.left_section.set_controller(controller)
+    #         print("[INFO] 검증기 및 컨트롤러 설정 완료")
             
-            # 8. 초기 데이터 설정
-            controller.initialize_views()
-            print("[INFO] 초기 데이터 설정 완료")
+    #         # 8. 초기 데이터 설정
+    #         controller.initialize_views()
+    #         print("[INFO] 초기 데이터 설정 완료")
             
-            # 9. 시그널 연결
-            controller.connect_signals()
-            print("[INFO] 시그널 연결 완료")
+    #         # 9. 시그널 연결
+    #         controller.connect_signals()
+    #         print("[INFO] 시그널 연결 완료")
             
-            # 10. 사전할당 상태 설정
-            self.pre_assigned_items = pre_assigned_items
-            if pre_assigned_items:
-                self.update_left_widget_pre_assigned_status(pre_assigned_items)
-                print(f"[INFO] {len(pre_assigned_items)}개 사전할당 아이템 상태 설정")
+    #         # 10. 사전할당 상태 설정
+    #         self.pre_assigned_items = pre_assigned_items
+    #         if pre_assigned_items:
+    #             self.update_left_widget_pre_assigned_status(pre_assigned_items)
+    #             print(f"[INFO] {len(pre_assigned_items)}개 사전할당 아이템 상태 설정")
             
-            # 11. 자재 부족 분석 실행
-            try:
-                if hasattr(self, 'material_widget') and self.material_widget:
-                    self.material_widget.run_analysis(result_data)
-                    self.material_analyzer = self.material_widget.get_material_analyzer()
-                    print("[INFO] 자재 부족 분석 완료")
-            except Exception as e:
-                print(f"[WARNING] 자재 부족 분석 중 오류: {e}")
+    #         # 11. 자재 부족 분석 실행
+    #         try:
+    #             if hasattr(self, 'material_widget') and self.material_widget:
+    #                 self.material_widget.run_analysis(result_data)
+    #                 self.material_analyzer = self.material_widget.get_material_analyzer()
+    #                 print("[INFO] 자재 부족 분석 완료")
+    #         except Exception as e:
+    #             print(f"[WARNING] 자재 부족 분석 중 오류: {e}")
             
-            # 성공 메시지 표시
-            EnhancedMessageBox.show_validation_success(
-                self,
-                "File Loaded Successfully",
-                 f"File has been successfully loaded.\nRows: {result_data.shape[0]}, Columns: {result_data.shape[1]}"
-            )
+    #         # 성공 메시지 표시
+    #         EnhancedMessageBox.show_validation_success(
+    #             self,
+    #             "File Loaded Successfully",
+    #              f"File has been successfully loaded.\nRows: {result_data.shape[0]}, Columns: {result_data.shape[1]}"
+    #         )
             
-            # 데이터 변경 이벤트 발생
-            if hasattr(self, 'on_data_changed'):
-                self.on_data_changed(result_data)
+    #         # 데이터 변경 이벤트 발생
+    #         if hasattr(self, 'on_data_changed'):
+    #             self.on_data_changed(result_data)
             
-            print("[INFO] 파일 로드 및 MVC 초기화 완료")
-            return True
+    #         print("[INFO] 파일 로드 및 MVC 초기화 완료")
+    #         return True
             
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
+    #     except Exception as e:
+    #         import traceback
+    #         traceback.print_exc()
             
-            EnhancedMessageBox.show_validation_error(
-                self,
-                "File Loding Error", 
-                f"An error occurred while loading the file.\n{str(e)}"
-            )
-            return False
+    #         EnhancedMessageBox.show_validation_error(
+    #             self,
+    #             "File Loding Error", 
+    #             f"An error occurred while loading the file.\n{str(e)}"
+    #         )
+    #         return False

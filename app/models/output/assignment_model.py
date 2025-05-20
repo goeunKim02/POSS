@@ -121,9 +121,11 @@ class AssignmentModel(QObject):
     def move_item(self, item: str, old_line: str, old_time: int, new_line: str, new_time: int, item_id: str = None):
         # ID가 제공된 경우 ID로 찾기
         if item_id:
+            print("id로 찾기")
             mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
             # 기존 방식으로 찾기
+            print("기존방식 찾기")
             mask = ItemKeyManager.create_mask_for_item(self._df, old_line, old_time, item)
 
         if not mask.any():
@@ -137,7 +139,6 @@ class AssignmentModel(QObject):
         # Line/Time 컬럼 업데이트
         self._df.loc[mask, 'Line'] = str(new_line)
         self._df.loc[mask, 'Time'] = int(new_time)
-
 
         # 이동 후 검증 실행
         error_msg = self._validate_item(item, new_line, new_time, item_id)
@@ -315,7 +316,7 @@ class AssignmentModel(QObject):
 
         self.modelDataChanged.emit()
 
-    
+
     """
     UI 표시용 필터링된 데이터프레임 반환
     """

@@ -280,26 +280,26 @@ class PlanAdjustmentValidator:
         # 같은 위치에서 수량만 변경인 경우 기존 할당량 제외
         existing_qty = 0
         if not is_move and item:
-            # ID가 있으면 ID로 마스크 생성, 없으면 Line/Time/Item으로 마스크 생성
-            if item_id:
-                mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
-            else:
-                mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
-                
-            if mask.any():
-                existing_qty = self.result_data.loc[mask, 'Qty'].iloc[0]
+            existing_mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time) &
+                (self.result_data['Item'] == item)
+            )
+            if existing_mask.any():
+                existing_qty = self.result_data.loc[existing_mask, 'Qty'].iloc[0]
                 current_allocation -= existing_qty
         
         # 이동인 경우 해당 아이템의 기존 할당량 제외
         if is_move and item:
-             # ID가 있으면 ID로 마스크 생성, 없으면 Line/Time/Item으로 마스크 생성
-            if item_id:
-                mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
-            else:
-                mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
-                
-            if mask.any():
-                current_allocation -= self.result_data.loc[mask, 'Qty'].iloc[0]
+            source_mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time) &
+                (self.result_data['Item'] == item)
+            )
+             
+            if source_mask.any():
+                current_allocation -= self.result_data.loc[source_mask, 'Qty'].iloc[0]
+
     
         # 마스터 데이터에서 라인과 시프트 용량 가져오기
         capacity = self.get_line_capacity(line, time)
@@ -580,17 +580,14 @@ class PlanAdjustmentValidator:
         factory: 제조동 전체 할당량 (factory + time)
     """
     def get_current_allocation(self, line=None, time=None, item=None, factory=None, item_id=None):
-        # 0. ID 기준 할당량 조회 (ID로 아이템 검색)
-        if item_id:
-            mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
-            if mask.any():
-                if time is not None:  # 시간 조건도 확인
-                    mask = mask & (self.result_data['Time'] == time)
-                return float(self.result_data.loc[mask, 'Qty'].sum())
 
         # 1. 특정 아이템의 할당량
         if line and time and item:
-            mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
+            mask = (
+                (self.result_data['Line'] == line) &
+                (self.result_data['Time'] == time) &
+                (self.result_data['Item'] == item)
+            )
             matched = self.result_data[mask]
             return float(matched.iloc[0]['Qty']) if not matched.empty else 0
         
@@ -618,19 +615,11 @@ class PlanAdjustmentValidator:
     """
     def get_item_qty_at_position(self, line, time, item, item_id=None):
         try:
-            # ID가 있으면 ID로 마스크 생성
-            if item_id:
-                mask = ItemKeyManager.create_mask_by_id(self.result_data, item_id)
-                # 라인/시프트 조건 추가
-                if line is not None and time is not None:
-                    mask = mask & (
-                        (self.result_data['Line'] == str(line)) &
-                        (self.result_data['Time'] == int(time))
-                    )
-            else:
-                # Line/Time/Item으로 마스크 생성
-                mask = ItemKeyManager.create_mask_for_item(self.result_data, line, time, item)
-
+            mask = (
+                (self.result_data['Line'] == str(line)) &
+                (self.result_data['Time'] == int(time)) &
+                (self.result_data['Item'] == str(item))
+            )
             matched_rows = self.result_data[mask]
 
             if not matched_rows.empty:
@@ -740,30 +729,21 @@ class PlanAdjustmentValidator:
 
         # 이동인 경우 원본 위치에서 제거
         if source_line and source_time:
-            # ID가 있으면 ID로 마스크 생성
-            if item_id:
-                source_mask = ItemKeyManager.create_mask_by_id(temp_result_data, item_id)
-            else:
-                # 소스 위치에서의 마스크 생성
-                source_mask = ItemKeyManager.create_mask_for_item(temp_result_data, source_line, source_time, item)
-                
-            if source_mask.any():
-                # 원본 데이터 삭제
-                temp_result_data = temp_result_data[~source_mask].reset_index(drop=True)
+            mask = (
+                (temp_result_data['Line'] == source_line) & 
+                (temp_result_data['Time'] == source_time) & 
+                (temp_result_data['Item'] == item)
+            )
+            if mask.any():
+                temp_result_data = temp_result_data[~mask].reset_index(drop=True)
 
         # 새 위치에 할당
-        # ID가 있으면 ID로 마스크 생성
-        if item_id:
-            target_mask = ItemKeyManager.create_mask_by_id(temp_result_data, item_id)
-            # 위치 조건 추가
-            target_mask = target_mask & (
-                (temp_result_data['Line'] == line) &
-                (temp_result_data['Time'] == time)
-            )
-        else:
-            # 타겟 위치에서의 마스크 생성
-            target_mask = ItemKeyManager.create_mask_for_item(temp_result_data, line, time, item)
-
+        target_mask = (
+            (temp_result_data['Line'] == line) &
+            (temp_result_data['Time'] == time) &
+            (temp_result_data['Item'] == item)
+        )
+        
         # 대상 위치에 있으면 업데이트, 없으면 추가
         if target_mask.any():
             temp_result_data.loc[target_mask, 'Qty'] = new_qty
