@@ -156,6 +156,7 @@ class AdjustmentController(QObject):
         # left_section(View) 업데이트
         self.view.update_from_model(df)
         print("Controller: view.update_from_model 업데이트")
+        
 
         if self.result_page:
             if hasattr(self.result_page, 'update_ui_from_model'):
@@ -164,6 +165,8 @@ class AdjustmentController(QObject):
             elif hasattr(self.result_page, 'on_data_changed'):
                 print("Controller: result_page.on_data_changed 호출")
                 self.result_page.on_data_changed(df)
+        
+        self.error_manager.update_error_display()
 
     """
     드래그·드롭으로 위치 이동했을 때

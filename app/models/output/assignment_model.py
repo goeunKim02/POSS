@@ -102,9 +102,8 @@ class AssignmentModel(QObject):
 
         # 3) 수정된 아이템에 대해 검증 수행
         error_msg = self._validate_item(item, line, time, item_id)
-        if error_msg:
-            row = self._df.loc[mask].iloc[0].to_dict()  # 현재 행 전체 정보
-            self.validationFailed.emit(row, error_msg)  # 검증 실패 시 오류 메시지 시그널 방출
+        row = self._df.loc[mask].iloc[0].to_dict()  # 현재 행 전체 정보
+        self.validationFailed.emit(row, error_msg)  
 
         # 원본과 현재 데이터 비교하여 변경 여부 확인
         has_changes = self._check_for_changes()
@@ -138,19 +137,18 @@ class AssignmentModel(QObject):
         self._df.loc[mask, 'Line'] = str(new_line)
         self._df.loc[mask, 'Time'] = int(new_time)
 
+        # 뷰에 데이터 변경 알림
+        self.modelDataChanged.emit()
 
         # 이동 후 검증 실행
         error_msg = self._validate_item(item, new_line, new_time, item_id)
-        if error_msg:
-            row = self._df.loc[mask].iloc[0].to_dict()
-            self.validationFailed.emit(row, error_msg)
+        row = self._df.loc[mask].iloc[0].to_dict()
+        self.validationFailed.emit(row, error_msg)
 
         # 원본과 현재 데이터 비교하여 변경 여부 확인
         has_changes = self._check_for_changes()
         self.dataModified.emit(has_changes)
         
-        # 뷰에 데이터 변경 알림
-        self.modelDataChanged.emit()
 
     """
     원본 상태로 복원

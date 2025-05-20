@@ -779,7 +779,7 @@ class ResultPage(QWidget):
         
         # ─── MVC 구조 초기화 ───
         # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
-        validator = PlanAdjustmentValidator(assignment_result)
+        validator = PlanAdjustmentValidator(assignment_result,self)
         
         # 2) AssignmentModel 생성
         model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
@@ -1281,7 +1281,7 @@ class ResultPage(QWidget):
             print("[INFO] MVC 구조 초기화 시작")
             
             # 1. 검증기(Validator) 생성
-            validator = PlanAdjustmentValidator(result_data)
+            validator = PlanAdjustmentValidator(result_data,self)
             print("[INFO] 검증기 생성 완료")
             
             # 2. 사전할당 아이템 식별
