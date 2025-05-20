@@ -1593,6 +1593,16 @@ class ModifiedLeftSection(QWidget):
     def update_from_model(self, model_df=None):
         print("ModifiedLeftSection: update_from_model 호출")
 
+        current_selected_item_id = None
+        if self.current_selected_item and hasattr(self.current_selected_item, 'item_data'):
+            current_selected_item_id = self.current_selected_item.item_data.get('_id')
+
+        # ... UI 업데이트 ...
+
+        # 선택된 아이템으로 스크롤 복원
+        if current_selected_item_id:
+            QTimer.singleShot(100, lambda: self._scroll_to_selected_item(current_selected_item_id))
+
         # 현재 검색 및 필터 상태 백업
         current_search_active = self.search_active
         current_search_text = self.last_search_text
@@ -1869,3 +1879,76 @@ class ModifiedLeftSection(QWidget):
                 h_bar.setValue(position['horizontal'])
             if 'vertical' in position:
                 v_bar.setValue(position['vertical'])
+
+    def _scroll_to_selected_item(self, item_id):
+        """선택된 아이템으로 스크롤 이동"""
+        if not item_id or not hasattr(self, 'grid_widget'):
+            return
+
+        # 아이템 ID로 아이템 위젯 찾기
+        found_item = None
+        found_container = None
+
+        for row_idx, row_containers in enumerate(self.grid_widget.containers):
+            for col_idx, container in enumerate(row_containers):
+                for item in container.items:
+                    if hasattr(item, 'item_data') and item.item_data and item.item_data.get('_id') == item_id:
+                        found_item = item
+                        found_container = container
+                        print(f"아이템 찾음: ID={item_id}, 위치=[{row_idx}][{col_idx}]")
+                        break
+                if found_item:
+                    break
+            if found_item:
+                break
+
+        if found_item and found_container:
+            # 아이템 선택 상태 설정
+            found_item.set_selected(True)
+            self.current_selected_item = found_item
+            self.current_selected_container = found_container
+
+            # 스크롤 위치 직접 설정 (아래 방법도 추가)
+            QTimer.singleShot(50, lambda: self._force_scroll_to_item(found_container, found_item))
+
+            # ItemGridWidget의 ensure_item_visible 호출 (기존 방식)
+            if hasattr(self.grid_widget, 'ensure_item_visible'):
+                self.grid_widget.ensure_item_visible(found_container, found_item)
+
+            print(f"아이템으로 스크롤 요청 완료: {item_id}")
+
+    def _force_scroll_to_item(self, container, item):
+        """직접 스크롤 위치 설정 (더 강력한 방법)"""
+        if not container or not item or not hasattr(self.grid_widget, 'scroll_area'):
+            return
+
+        try:
+            # 컨테이너 위치 계산
+            for row_idx, row in enumerate(self.grid_widget.containers):
+                if container in row:
+                    col_idx = row.index(container)
+
+                    # 스크롤 영역 가져오기
+                    scroll_area = self.grid_widget.scroll_area
+
+                    # 컨테이너와 아이템의 전역 위치 계산
+                    container_pos = container.mapTo(self.grid_widget.scroll_content, QPoint(0, 0))
+                    item_pos = item.mapTo(container, QPoint(0, 0))
+
+                    # 최종 타겟 위치 계산
+                    target_y = container_pos.y() + item_pos.y()
+
+                    # 스크롤바 이동
+                    v_bar = scroll_area.verticalScrollBar()
+
+                    # 아이템이 화면 중앙에 오도록 스크롤
+                    viewport_height = scroll_area.viewport().height()
+                    target_y = max(0, target_y - (viewport_height // 2) + (item.height() // 2))
+
+                    # 스크롤 위치 설정
+                    v_bar.setValue(target_y)
+                    print(f"스크롤 위치 설정: y={target_y}")
+
+                    break
+        except Exception as e:
+            print(f"강제 스크롤 중 오류 발생: {str(e)}")
