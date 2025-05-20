@@ -4,6 +4,11 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtCore import Qt
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
+
+bold_font   = font_manager.get_just_font("SamsungSharSans-Bold").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
 class DetailDialog(QDialog):
     def __init__(self, row: dict, time_map: dict, parent=None):
@@ -31,10 +36,9 @@ class DetailDialog(QDialog):
 
         # 제목 레이블
         title_label = QLabel("Project Detail")
-        title_font = QFont("Arial", 14)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet("color: white;")
+        title_label.setStyleSheet(
+            f"font-family:{bold_font}; font-size:{f(14)}px; font-weight:900; color:white;"
+        )
         title_layout.addWidget(title_label)
 
         main_layout.addWidget(title_frame)
@@ -99,24 +103,16 @@ class DetailDialog(QDialog):
             ("Qty", safe_get("qty")),
         ]
 
-        field_name_style = """
-            font-family: Arial;
-            font-size: 10pt;
-            font-weight: bold;
-            color: #555555;
-            border: none;
-        """
+        field_name_style = (
+            f"font-family:{bold_font}; font-size:{f(10)}px; font-weight:900; "
+            "color:#555555; border:none;"
+        )
 
-        field_value_style = """
-            font-family: Arial;
-            font-size: 10pt;
-            color: #333333;
-            background-color: #f5f5f5;
-            padding: 5px 10px;
-            border-radius: 4px;
-            min-width: 280px;
-            max-width: 280px;
-        """
+        field_value_style = (
+            f"font-family:{normal_font}; font-size:{f(10)}px; color:#333333; "
+            "background-color:#f5f5f5; padding:5px 10px; border-radius:4px; "
+            "min-width:280px; max-width:280px;"
+        )
 
         for i, (name, val) in enumerate(fields):
             lbl_name = QLabel(f"{name}:")
@@ -175,13 +171,15 @@ class DetailDialog(QDialog):
                 for i, key in enumerate(keys):
                     value = rec.get(key, "-")
                     name_lbl = QLabel(f"{key}:")
-                    name_lbl.setFont(QFont("Arial", 9, QFont.Bold))
-                    name_lbl.setStyleSheet("border: none;")
+                    name_lbl.setStyleSheet(
+                        f"font-family:{bold_font}; font-size:{f(9)}px; font-weight:900; border:none;"
+                    )
                     name_lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                     
                     val_lbl = QLabel(str(value))
-                    val_lbl.setStyleSheet("border: none;")
-                    val_lbl.setFont(QFont("Arial", 9))
+                    val_lbl.setStyleSheet(
+                        f"font-family:{normal_font}; font-size:{f(9)}px; border:none;"
+                    )
 
                     row_idx = i // 2
                     col_idx = (i % 2) * 2
@@ -205,21 +203,19 @@ class DetailDialog(QDialog):
 
         # 닫기 버튼
         close_button = QPushButton("Close")
-        close_button_font = QFont("Arial", 11)
-        close_button_font.setBold(True)
-        close_button.setFont(close_button_font)
-        close_button.setStyleSheet("""
-            QPushButton {
+        close_button.setStyleSheet(f"""
+            QPushButton {{
+                font-family: {bold_font};
+                font-size: {f(11)}px;
+                font-weight: 900;
                 background-color: #1428A0;
                 border: none;
                 color: white;
                 border-radius: 10px;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:hover {{
                 background-color: #1e429f;
-                border: none;
-                color: white;
-            }
+            }}
         """)
         close_button.setCursor(QCursor(Qt.PointingHandCursor))
         close_button.setFixedSize(100, 40)

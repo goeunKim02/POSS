@@ -3,7 +3,11 @@ import colorsys
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSizePolicy
 from PyQt5.QtCore import Qt, pyqtSignal
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
 
+bold_font   = font_manager.get_just_font("SamsungSharSans-Bold").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
 """
 pre-assigned에 캘린더처럼 표시되는 카드 UI 컴포넌트
@@ -58,12 +62,13 @@ class CalendarCard(QFrame):
         hl.setSpacing(4)
 
         lbl_item = QLabel(self._row.get('project', ''), self)
-        lbl_item.setFont(QFont("Arial", 10, QFont.Bold))
+        lbl_item.setStyleSheet(f"font-family:{bold_font}; font-size:{f(10)}px; font-weight:900;")
+
         lbl_item.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         lbl_item.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         lbl_qty = QLabel(str(self._row.get('qty', '')), self)
-        lbl_qty.setFont(QFont("Arial", 9))
+        lbl_qty.setStyleSheet(f"font-family:{normal_font}; font-size:{f(9)}px;")
         lbl_qty.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         hl.addWidget(lbl_item)
