@@ -1110,11 +1110,8 @@ class ModifiedLeftSection(QWidget):
             # 제조동 정보 추출 (Line 이름의 첫 글자가 제조동)
             self.data['Building'] = self.data['Line'].str[0]  # 라인명의 첫 글자를 제조동으로 사용
 
-            # 제조동별 생산량 계산
+            # 제조동별 생산량 계산 (정렬 목적)
             building_production = self.data.groupby('Building')['Qty'].sum()
-
-            # 라인별 생산량 계산
-            line_production = self.data.groupby('Line')['Qty'].sum()
 
             # 생산량 기준으로 제조동 정렬 (내림차순)
             sorted_buildings = building_production.sort_values(ascending=False).index.tolist()
@@ -1123,36 +1120,17 @@ class ModifiedLeftSection(QWidget):
             all_lines = self.data['Line'].unique()
             times = sorted(self.data['Time'].unique())
 
-            # 제조동 별로 정렬된 라인 목록 생성 (각 제조동 내에서는 라인별 생산량 순으로 정렬)
+            # 제조동 별로 정렬된 라인 목록 생성 (각 제조동 내에서는 라인 이름 기준 오름차순으로 정렬)
             lines = []
             for building in sorted_buildings:
                 # 해당 제조동에 속하는 라인들 찾기
                 building_lines = [line for line in all_lines if line.startswith(building)]
 
-                # 해당 제조동의 라인들을 생산량 및 라인 번호 기준으로 정렬
-                # 1. 먼저 라인별 생산량을 사전으로 구성
-                building_line_qty = {line: line_production.get(line, 0) for line in building_lines}
-
-                # 2. 정렬 기준: 1차 생산량(내림차순), 2차 라인 번호(오름차순)
-                # 라인 번호 추출 함수 - 라인명에서 숫자 부분 추출(없으면 0)
-                def extract_line_number(line_name):
-                    try:
-                        # 언더스코어 뒤의 숫자 추출 (예: I_1 -> 1, D_10 -> 10)
-                        if '_' in line_name:
-                            return int(line_name.split('_')[1])
-                        else:
-                            return 0
-                    except (ValueError, IndexError):
-                        return 0
-
-                # 정렬: 1차 생산량(내림차순), 2차 라인 번호(오름차순)
-                sorted_building_lines = sorted(
-                    building_line_qty.items(),
-                    key=lambda x: (-x[1], extract_line_number(x[0]))  # -x[1]은 생산량 내림차순
-                )
+                # 라인 이름 기준 오름차순 정렬
+                sorted_building_lines = sorted(building_lines)
 
                 # 정렬된 라인 추가
-                lines.extend([line for line, _ in sorted_building_lines])
+                lines.extend(sorted_building_lines)
 
             # 교대 시간 구분
             shifts = {}
@@ -1181,7 +1159,7 @@ class ModifiedLeftSection(QWidget):
                 line_shifts=line_shifts
             )
 
-            # 데이터를 행/열별로 그룹화하고 Qty 기준 정렬
+            # 데이터를 행/열별로 그룹화
             grouped_items = {}  # 키: (row_idx, col_idx), 값: 아이템 목록
 
             # 첫 번째 단계: 아이템을 행과 열 기준으로 그룹화
@@ -1221,12 +1199,9 @@ class ModifiedLeftSection(QWidget):
                     print(f"인덱스 찾기 오류: {e}")
                     continue
 
-            # 두 번째 단계: 각 그룹 내에서 Qty 기준으로 정렬하여 아이템 추가
+            # 두 번째 단계: 아이템을 정렬 없이 그대로 추가
             for (row_idx, col_idx), items in grouped_items.items():
-                # Qty 기준 내림차순 정렬
-                sorted_items = sorted(items, key=lambda x: x.get('Qty', 0), reverse=True)
-
-                for item_data in sorted_items:
+                for item_data in items:
                     item_info = str(item_data.get('Item', ''))
 
                     # Qty 표시
