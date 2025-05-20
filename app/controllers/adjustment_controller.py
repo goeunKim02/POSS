@@ -149,21 +149,28 @@ class AdjustmentController(QObject):
     모델 데이터가 바뀔 때마다 뷰를 업데이트
     - 전체 덮어쓰기보다는 델타 업데이트가 더 효율적일 수 있음
     """
-    def _on_model_data_changed(self):
-        print("Controller: Model 변경 감지, View 업데이트")
-        df = self.model.get_dataframe()
-        
-        # left_section(View) 업데이트
-        self.view.update_from_model(df)
-        print("Controller: view.update_from_model 업데이트")
 
+    def _on_model_data_changed(self):
+        print("Controller: Model 변경 감지, View 업데이트 (UI 재구성 없이)")
+        df = self.model.get_dataframe()
+
+        # 변경된 아이템만 업데이트 (전체 그리드 재구성 없이)
+        if hasattr(self.view, 'update_changed_items'):
+            self.view.update_changed_items(df)
+        else:
+            # 폴백: 기존 메서드 호출
+            self.view.update_from_model(df)
+
+        # 오른쪽 패널 업데이트
         if self.result_page:
             if hasattr(self.result_page, 'update_ui_from_model'):
-                print("Controller: result_page.update_ui_from_model 호출")
-                self.result_page.update_ui_from_model(df)
+                self.result_page.update_ui_from_model(df, rebuild_ui=False)
             elif hasattr(self.result_page, 'on_data_changed'):
-                print("Controller: result_page.on_data_changed 호출")
-                self.result_page.on_data_changed(df)
+                # ResultPage에도 재구성 없는 옵션 제공
+                if hasattr(self.result_page, 'on_data_changed_no_rebuild'):
+                    self.result_page.on_data_changed_no_rebuild(df)
+                else:
+                    self.result_page.on_data_changed(df)
 
     """
     드래그·드롭으로 위치 이동했을 때
@@ -215,7 +222,13 @@ class AdjustmentController(QObject):
     데이터 리셋
     """
     def reset_data(self):
-        self.model.reset()
+        print("Controller: reset_data 호출")
+        if hasattr(self, 'model') and self.model:
+            # 모델에 리셋 요청
+            self.model.reset()
+            print("Controller: 모델 reset 완료")
+        else:
+            print("Controller: 모델을 찾을 수 없음")
 
     """
     변경사항 적용
@@ -297,17 +310,7 @@ class AdjustmentController(QObject):
             print("Controller: model이 set_new_dataframe을 지원하지 않음")
             return False
         
-    """
-    데이터 원본 복원
-    """
-    def reset_data(self):
-        print("Controller: reset_data 호출")
-        if hasattr(self, 'model') and self.model:
-            # 모델에 리셋 요청
-            self.model.reset()
-            print("Controller: 모델 reset 완료")
-        else:
-            print("Controller: 모델을 찾을 수 없음")
+
 
     """
     모델 데이터의 변경 상태에 따라 리셋 버튼 상태 업데이트
@@ -315,3 +318,17 @@ class AdjustmentController(QObject):
     def on_data_modified(self, has_changes: bool):
         if hasattr(self.view, 'reset_button'):
             self.view.reset_button.setEnabled(has_changes)
+
+    def set_sort_criteria(self, column, ascending=True):
+        """뷰에서 요청한 정렬 기준을 모델에 전달"""
+        if self.model:
+            self.model.set_sort_criteria(column, ascending)
+
+    def get_sort_info(self):
+        """현재 정렬 정보 반환"""
+        if self.model:
+            return {
+                'column': self.model.sort_column,
+                'ascending': self.model.sort_ascending
+            }
+        return None

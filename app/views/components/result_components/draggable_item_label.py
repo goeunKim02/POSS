@@ -430,25 +430,32 @@ class DraggableItemLabel(QFrame):
                 self.setStyleSheet(ItemStyle.DEFAULT_STYLE)
 
     """아이템 데이터로부터 표시 텍스트 업데이트"""
-    def update_text_from_data(self):        
+
+    def update_text_from_data(self):
         if self.item_data and 'Item' in self.item_data:
             item_info = str(self.item_data['Item'])
             qty = self.item_data.get('Qty', 0)
-            
+
             # 수량 처리 - None이나 공백도 0으로 표시
             if qty is None or qty == '':
                 qty = 0
-            
+
             # 문자열인 경우 정수로 변환 시도
             if isinstance(qty, str):
-                qty_value = int(qty)
+                try:
+                    qty_value = int(qty)
+                except ValueError:
+                    qty_value = 0
             else:
                 qty_value = qty
-                
+
             if hasattr(self, 'item_label'):
                 self.item_label.setText(item_info)
             if hasattr(self, 'qty_label'):
                 self.qty_label.setText(str(qty) if qty_value > 0 else "0")
+
+            # 툴팁도 업데이트
+            self.setToolTip(self._create_tooltip_text())
 
     """아이템 데이터 업데이트"""
     def update_item_data(self, new_data):

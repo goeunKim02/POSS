@@ -1170,29 +1170,55 @@ class ResultPage(QWidget):
                     print(f"계획 유지율 위젯 수량 업데이트: {line}, {time}, {item_code}, {new_qty}")
                     self.plan_maintenance_widget.update_quantity(line, time, item_code, new_qty)
 
+    # ResultPage 클래스에 추가
+    def on_data_changed_no_rebuild(self, data):
+        print("on_data_changed_no_rebuild 호출됨 - 데이터만 업데이트")
+        self.result_data = data
+
+        # 시각화 관련 데이터 업데이트
+        try:
+            if data is not None and not data.empty:
+                # KPI 업데이트
+                self.update_kpi_scores()
+                self._refresh_base_kpi()
+
+                # 시각화 데이터 업데이트
+                self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
+                self.utilization_data = CapaUtilization.analyze_utilization(data)
+
+                # 시각화 갱신
+                self.update_all_visualizations()
+        except Exception as e:
+            print(f"데이터 분석 중 오류 발생: {e}")
+            import traceback
+            traceback.print_exc()
 
     """
     MVC 모델로부터 UI 업데이트하는 메서드
     모델 데이터 변경 시 실행되며, 중복 업데이트 방지 기능 포함
     """
-    def update_ui_from_model(self, model_df=None):
-        print("ResultPage: update_ui_from_model 호출됨")
-        
+
+    def update_ui_from_model(self, model_df=None, rebuild_ui=True):
+        print(f"ResultPage: update_ui_from_model 호출됨 (rebuild_ui={rebuild_ui})")
+
         # 모델 데이터가 전달되지 않았다면 컨트롤러에서 가져오기
         if model_df is None:
             if hasattr(self, 'controller') and self.controller:
                 model_df = self.controller.model.get_dataframe()
             elif hasattr(self, 'left_section') and hasattr(self.left_section, 'data'):
                 model_df = self.left_section.data
-        
+
         # 데이터 유효성 검사
         if model_df is None or model_df.empty:
             print("유효한 모델 데이터가 없어 업데이트 중단")
             return
-        
-        # on_data_changed를 통해 모든 UI 업데이트 진행
-        # 특별한 처리가 필요하면 여기에 추가
-        self.on_data_changed(model_df)
+
+        if rebuild_ui:
+            # 전체 UI 재구성
+            self.on_data_changed(model_df)
+        else:
+            # 데이터만 업데이트하고 UI 재구성 없음
+            self.on_data_changed_no_rebuild(model_df)
 
 
 

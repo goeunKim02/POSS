@@ -38,7 +38,9 @@ class AssignmentModel(QObject):
         self._df = assignment_df.copy()  # 실제 뷰로 전달되고 수정할 데이터
         self.pre_assigned = set(pre_assigned)  # 사전할당된 아이템 집합
         self.validator = validator  # 검증 인스턴스
-    
+        self.sort_column = 'Qty'  # 기본 정렬 컬럼 (수량)
+        self.sort_ascending = False  # 기본 내림차순
+
     """
     DataFrame의 타입을 올바르게 강제 변환
     """
@@ -65,8 +67,15 @@ class AssignmentModel(QObject):
     """
     현재 할당 결과 반환
     """
+
     def get_dataframe(self) -> pd.DataFrame:
+        """현재 정렬 상태가 적용된 DataFrame 반환"""
         df = self._df.copy()
+
+        # 정렬 적용
+        if self.sort_column and self.sort_column in df.columns:
+            df = df.sort_values(by=self.sort_column, ascending=self.sort_ascending)
+
         return self._ensure_correct_types(df)
 
     """
@@ -340,3 +349,13 @@ class AssignmentModel(QObject):
                     return True
         
         return False
+
+    def set_sort_criteria(self, column, ascending=True):
+        """정렬 기준 설정"""
+        if column in self._df.columns:
+            self.sort_column = column
+            self.sort_ascending = ascending
+            # 정렬 적용 후 데이터 변경 알림
+            self.modelDataChanged.emit()
+        else:
+            print(f"경고: 컬럼 '{column}'이(가) 데이터프레임에 존재하지 않습니다.")

@@ -1113,9 +1113,6 @@ class ModifiedLeftSection(QWidget):
             # 제조동별 생산량 계산
             building_production = self.data.groupby('Building')['Qty'].sum()
 
-            # 라인별 생산량 계산
-            line_production = self.data.groupby('Line')['Qty'].sum()
-
             # 생산량 기준으로 제조동 정렬 (내림차순)
             sorted_buildings = building_production.sort_values(ascending=False).index.tolist()
 
@@ -1123,36 +1120,17 @@ class ModifiedLeftSection(QWidget):
             all_lines = self.data['Line'].unique()
             times = sorted(self.data['Time'].unique())
 
-            # 제조동 별로 정렬된 라인 목록 생성 (각 제조동 내에서는 라인별 생산량 순으로 정렬)
+            # 제조동 별로 정렬된 라인 목록 생성 (각 제조동 내에서는 라인명 기준 오름차순으로 정렬)
             lines = []
             for building in sorted_buildings:
                 # 해당 제조동에 속하는 라인들 찾기
                 building_lines = [line for line in all_lines if line.startswith(building)]
 
-                # 해당 제조동의 라인들을 생산량 및 라인 번호 기준으로 정렬
-                # 1. 먼저 라인별 생산량을 사전으로 구성
-                building_line_qty = {line: line_production.get(line, 0) for line in building_lines}
-
-                # 2. 정렬 기준: 1차 생산량(내림차순), 2차 라인 번호(오름차순)
-                # 라인 번호 추출 함수 - 라인명에서 숫자 부분 추출(없으면 0)
-                def extract_line_number(line_name):
-                    try:
-                        # 언더스코어 뒤의 숫자 추출 (예: I_1 -> 1, D_10 -> 10)
-                        if '_' in line_name:
-                            return int(line_name.split('_')[1])
-                        else:
-                            return 0
-                    except (ValueError, IndexError):
-                        return 0
-
-                # 정렬: 1차 생산량(내림차순), 2차 라인 번호(오름차순)
-                sorted_building_lines = sorted(
-                    building_line_qty.items(),
-                    key=lambda x: (-x[1], extract_line_number(x[0]))  # -x[1]은 생산량 내림차순
-                )
+                # 라인명 기준 오름차순 정렬
+                sorted_building_lines = sorted(building_lines)
 
                 # 정렬된 라인 추가
-                lines.extend([line for line, _ in sorted_building_lines])
+                lines.extend(sorted_building_lines)
 
             # 교대 시간 구분
             shifts = {}
@@ -1181,7 +1159,7 @@ class ModifiedLeftSection(QWidget):
                 line_shifts=line_shifts
             )
 
-            # 데이터를 행/열별로 그룹화하고 Qty 기준 정렬
+            # 데이터를 행/열별로 그룹화
             grouped_items = {}  # 키: (row_idx, col_idx), 값: 아이템 목록
 
             # 첫 번째 단계: 아이템을 행과 열 기준으로 그룹화
@@ -1221,11 +1199,51 @@ class ModifiedLeftSection(QWidget):
                     print(f"인덱스 찾기 오류: {e}")
                     continue
 
-            # 두 번째 단계: 각 그룹 내에서 Qty 기준으로 정렬하여 아이템 추가
+            # 두 번째 단계: 각 그룹 내에서 정렬 적용
             for (row_idx, col_idx), items in grouped_items.items():
-                # Qty 기준 내림차순 정렬
-                sorted_items = sorted(items, key=lambda x: x.get('Qty', 0), reverse=True)
+                if not items:
+                    continue
 
+                # 컨트롤러에서 정렬 정보 가져오기
+                sort_info = None
+                if hasattr(self, 'controller') and self.controller and hasattr(self.controller, 'get_sort_info'):
+                    sort_info = self.controller.get_sort_info()
+
+                # 정렬 적용
+                if sort_info and 'column' in sort_info and sort_info['column'] in items[0]:
+                    # 정렬 키 함수 정의 (여러 데이터 타입 처리)
+                    def get_sort_key(item):
+                        # 컬럼 값 가져오기
+                        value = item.get(sort_info['column'])
+
+                        # 수량인 경우 숫자로 처리
+                        if sort_info['column'] == 'Qty':
+                            try:
+                                return float(value) if value is not None else 0
+                            except (ValueError, TypeError):
+                                return 0
+                        # 문자열인 경우 소문자로 변환
+                        elif isinstance(value, str):
+                            return value.lower()
+                        # 기타 타입
+                        else:
+                            return str(value) if value is not None else ""
+
+                    # 정렬 수행
+                    sorted_items = sorted(
+                        items,
+                        key=get_sort_key,
+                        reverse=not sort_info.get('ascending', True)
+                    )
+                else:
+                    # 기본 정렬: Qty 내림차순
+                    sorted_items = sorted(
+                        items,
+                        key=lambda x: float(x.get('Qty', 0)) if x.get('Qty') is not None else 0,
+                        reverse=True
+                    )
+
+                # 정렬된 아이템 추가
                 for item_data in sorted_items:
                     item_info = str(item_data.get('Item', ''))
 
@@ -1270,6 +1288,8 @@ class ModifiedLeftSection(QWidget):
         except Exception as e:
             # 에러 메시지 표시
             print(f"그룹핑 에러: {e}")
+            import traceback
+            traceback.print_exc()
             EnhancedMessageBox.show_validation_error(self, "Grouping Error",
                                                      f"An error occurred during data grouping.\n{str(e)}")
 
@@ -1593,141 +1613,52 @@ class ModifiedLeftSection(QWidget):
     """
     모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
     """
-    def update_from_model(self, model_df=None):
-        print("ModifiedLeftSection: update_from_model 호출")
 
-        # 현재 검색 및 필터 상태 백업
-        current_search_active = self.search_active
-        current_search_text = self.last_search_text
-        current_filter_states = self.current_filter_states.copy()
-        current_excel_filter_states = self.current_excel_filter_states.copy()
-        
+    def update_from_model(self, model_df=None):
+        print("ModifiedLeftSection: update_from_model 호출 - 델타 업데이트 모드")
+
         # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
             if hasattr(self, 'controller') and self.controller:
                 model_df = self.controller.model.get_dataframe()
                 print("컨트롤러에서 데이터 가져옴")
-        
+
         if model_df is None:
             print("데이터가 없습니다.")
             return
-            
-        # 타입 변환을 한 번에 처리
-        self.data = self._normalize_data_types(model_df.copy())
-        
-        # UI 업데이트 시작
-        if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
-            print("데이터가 없거나 필수 컬럼이 없음")
-            return
-            
+
+        # 기존 데이터와 새 데이터 비교하여 변경 사항만 반영
+        old_df = self.data if self.data is not None else pd.DataFrame()
+        new_df = self._normalize_data_types(model_df.copy())
+
+        # 데이터 저장 (화면 전체 재구성은 하지 않음)
+        self.data = new_df
+
         try:
-            # 기존 아이템 모두 지우기
-            self.clear_all_items()
-            
-            # Line과 Time 값 추출
-            lines = sorted(self.data['Line'].unique())
-            times = sorted(self.data['Time'].unique())
+            # 오른쪽 결과 영역 업데이트만 수행 (왼쪽 그리드 재구성 없이)
+            if hasattr(self, 'parent_page') and self.parent_page:
+                # 1. 결과 페이지의 시각화 업데이트
+                if hasattr(self.parent_page, 'update_all_visualizations'):
+                    self.parent_page.update_all_visualizations()
 
-            # 교대 시간 구분
-            shifts = {}
-            for time in times:
-                if int(time) % 2 == 1:
-                    shifts[time] = "Day"
-                else:
-                    shifts[time] = "Night"
+                # 2. KPI 점수 업데이트
+                if hasattr(self.parent_page, '_refresh_base_kpi'):
+                    self.parent_page._refresh_base_kpi()
 
-            # 라인별 교대 정보
-            line_shifts = {}
-            for line in lines:
-                line_shifts[line] = ["Day", "Night"]
+                # 3. 출하 분석 업데이트
+                self.trigger_shipment_analysis()
 
-            # 행 헤더
-            self.row_headers = []
-            for line in lines:
-                for shift in ["Day", "Night"]:
-                    self.row_headers.append(f"{line}_({shift})")
+                # 4. 분산 배치 분석 업데이트
+                if hasattr(self.parent_page, 'update_split_view_analysis'):
+                    self.parent_page.update_split_view_analysis(new_df)
 
-            # 그리드 설정
-            self.grid_widget.setupGrid(
-                rows=len(self.row_headers),
-                columns=len(self.days),
-                row_headers=self.row_headers,
-                column_headers=self.days,
-                line_shifts=line_shifts
-            )
+            # 데이터 변경 신호 발생 (UI 재구성 없이 데이터만 전달)
+            self.viewDataChanged.emit(new_df)
 
-            # 데이터에서 아이템 생성하여 그리드에 배치
-            for _, row_data in self.data.iterrows():
-                if 'Line' not in row_data or 'Time' not in row_data:
-                    continue
-
-                line = row_data['Line']
-                time = row_data['Time']
-                shift = shifts[time]
-                day_idx = (int(time) - 1) // 2
-
-                if day_idx >= len(self.days):
-                    continue
-
-                day = self.days[day_idx]
-                row_key = f"{line}_({shift})"
-
-                # Item 정보가 있으면 추출하여 저장
-                if 'Item' in row_data and pd.notna(row_data['Item']):
-                    item_info = str(row_data['Item'])
-
-                    # MFG 정보가 있으면 수량 정보로 추가
-                    if 'Qty' in row_data and pd.notna(row_data['Qty']):
-                        item_info += f"    {row_data['Qty']}"
-
-                    try:
-                        # 그리드에 아이템 추가
-                        row_idx = self.row_headers.index(row_key)
-                        col_idx = self.days.index(day)
-
-                        # 전체 행 데이터를 아이템 데이터(dict 형태)로 전달
-                        item_full_data = row_data.to_dict()
-                        new_item = self.grid_widget.addItemAt(row_idx, col_idx, item_info, item_full_data)
-
-                        if new_item:
-                            item_code = item_full_data.get('Item', '')
-
-                            # 사전할당 아이템인 경우
-                            if item_code in self.pre_assigned_items:
-                                new_item.set_pre_assigned_status(True)
-                                
-                            # 출하 실패 아이템인 경우
-                            if item_code in self.shipment_failure_items:
-                                failure_info = self.shipment_failure_items[item_code]
-                                new_item.set_shipment_failure(True, failure_info.get('reason', 'Unknown reason'))
-
-                            # 자재부족 아이템인 경우
-                            if hasattr(self, 'current_shortage_items') and item_code in self.current_shortage_items:
-                                shortage_info = self.current_shortage_items[item_code]
-                                new_item.set_shortage_status(True, shortage_info)
-
-                    except ValueError as e:
-                        print(f"인덱스 찾기 오류: {e}")
-            
-            # 저장했던 필터 및 검색 상태 복원
-            self.search_active = current_search_active
-            self.last_search_text = current_search_text
-            self.current_filter_states = current_filter_states
-            self.current_excel_filter_states = current_excel_filter_states
-            
-            # 필터 상태 즉시 재적용
-            if self.search_active or any(v for k, v in self.current_filter_states.items()):
-                self.apply_all_filters()
-                
-            # 검색 결과가 있었던 경우 검색 UI 즉시 복원
-            if self.search_active and self.last_search_text:
-                self.search_items_without_clear()
-            
-            # 출하 분석도 즉시 업데이트
-            self.trigger_shipment_analysis()
-            
         except Exception as e:
-            print(f"UI 업데이트 오류: {e}")
+            print(f"델타 업데이트 중 오류 발생: {e}")
+            import traceback
+            traceback.print_exc()
 
 
     """
@@ -1811,3 +1742,71 @@ class ModifiedLeftSection(QWidget):
                 if current_data is not None and not current_data.empty:
                     print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
                     self.parent_page.analyze_shipment_with_current_data(current_data)
+
+    def update_changed_items(self, updated_df):
+        """데이터프레임과 UI의 아이템 간 비교를 통해 변경된 아이템만 업데이트"""
+        print("ModifiedLeftSection: update_changed_items 호출 - 변경된 아이템만 업데이트")
+
+        if updated_df is None or not hasattr(self, 'grid_widget'):
+            return
+
+        try:
+            # 모든 그리드 아이템을 순회
+            for row_containers in self.grid_widget.containers:
+                for container in row_containers:
+                    for item in container.items:
+                        if hasattr(item, 'item_data') and item.item_data:
+                            # 아이템 식별자 가져오기 (ID 또는 Line+Time+Item 조합)
+                            item_id = item.item_data.get('_id')
+
+                            if item_id:
+                                # ID로 데이터프레임에서 해당 행 찾기
+                                mask = updated_df['_id'] == item_id
+                                if mask.any():
+                                    updated_row = updated_df.loc[mask].iloc[0].to_dict()
+
+                                    # 변경사항이 있는지 확인 (특히 Qty)
+                                    if item.item_data.get('Qty') != updated_row.get('Qty'):
+                                        # 아이템 데이터 업데이트
+                                        item.item_data.update(updated_row)
+
+                                        # 아이템 라벨 텍스트 업데이트
+                                        if hasattr(item, 'update_text_from_data'):
+                                            item.update_text_from_data()
+                                            print(f"아이템 {item_id} 텍스트 업데이트: Qty={updated_row.get('Qty')}")
+                            else:
+                                # ID가 없는 경우 Line+Time+Item 조합으로 찾기
+                                line = item.item_data.get('Line')
+                                time = item.item_data.get('Time')
+                                item_code = item.item_data.get('Item')
+
+                                if all([line, time, item_code]):
+                                    mask = (
+                                            (updated_df['Line'] == line) &
+                                            (updated_df['Time'] == time) &
+                                            (updated_df['Item'] == item_code)
+                                    )
+                                    if mask.any():
+                                        updated_row = updated_df.loc[mask].iloc[0].to_dict()
+
+                                        # 변경사항이 있는지 확인 (특히 Qty)
+                                        if item.item_data.get('Qty') != updated_row.get('Qty'):
+                                            # 아이템 데이터 업데이트
+                                            item.item_data.update(updated_row)
+
+                                            # 아이템 라벨 텍스트 업데이트
+                                            if hasattr(item, 'update_text_from_data'):
+                                                item.update_text_from_data()
+                                                print(
+                                                    f"아이템 {item_code}@{line}-{time} 텍스트 업데이트: Qty={updated_row.get('Qty')}")
+
+            # 데이터 저장 (전체 재구성 없이)
+            self.data = updated_df
+
+            # 데이터 변경 알림 (UI 재구성 요청 없이)
+            self.viewDataChanged.emit(updated_df)
+
+        except Exception as e:
+            print(f"아이템 업데이트 중 오류: {e}")
+            import traceback
+            traceback.print_exc()
