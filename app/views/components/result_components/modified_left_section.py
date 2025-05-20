@@ -495,13 +495,7 @@ class ModifiedLeftSection(QWidget):
     def on_filter_activation_requested(self, status_type):
         # 출하 상태 필터가 활성화된 경우
         if status_type == 'shipment':
-            # 현재 데이터가 있는지 확인
-            if self.data is not None and not self.data.empty:
-                # 결과 페이지 참조 찾기
-                result_page = self.parent_page
-                if result_page and hasattr(result_page, 'analyze_shipment_with_current_data'):
-                    # 현재 데이터로 출하 분석 실행 요청
-                    result_page.analyze_shipment_with_current_data(self.data)
+            self.trigger_shipment_analysis()
     
     """
     데이터 로드 후 필터 데이터 업데이트
@@ -795,9 +789,24 @@ class ModifiedLeftSection(QWidget):
         if hasattr(self, 'controller') and self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
             self.itemModified.emit(item, new_data, changed_fields)
+            self.trigger_shipment_analysis()
             # 디버깅 추가: 변경 후 리셋 버튼 상태 확인
-            print(f"[DEBUG] 데이터 변경 후 리셋 버튼 상태: {self.reset_button.isEnabled()}")
+            # print(f"[DEBUG] 데이터 변경 후 리셋 버튼 상태: {self.reset_button.isEnabled()}")
             return
+    
+    """데이터 변경 시 출하 분석을 트리거합니다"""
+    def trigger_shipment_analysis(self):
+        if hasattr(self, 'parent_page') and self.parent_page:
+            if hasattr(self.parent_page, 'analyze_shipment_with_current_data'):
+                current_data = self.extract_dataframe()
+                # 1. 출하 분석 요청
+                if current_data is not None and not current_data.empty:
+                    print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
+                    self.parent_page.analyze_shipment_with_current_data(current_data)
+                # 2. 분산 배치 분석 요청 - SplitView 업데이트
+                if hasattr(self.parent_page, 'update_split_view_analysis'):
+                    print("왼쪽 테이블 변경 감지 - 분산 배치 분석 실행")
+                    self.parent_page.update_split_view_analysis(current_data)
 
     """
     위치 변경 처리 로직 분리
@@ -996,6 +1005,8 @@ class ModifiedLeftSection(QWidget):
 
         self.preload_analyses()
 
+        self.trigger_shipment_analysis()
+        
     """데이터 로드 후 사전 분석 실행"""
     def preload_analyses(self):
         # 데이터가 없으면 건너뜀
@@ -1443,6 +1454,7 @@ class ModifiedLeftSection(QWidget):
             # 컨트롤러에 연결이 제대로 되어 있는지 확인
             if hasattr(self.controller, 'on_item_deleted'):
                 self.controller.on_item_deleted(item_or_id)
+                self.trigger_shipment_analysis()
                 return
             else:
                 print("DEBUG: 컨트롤러에 on_item_deleted 메서드가 없음")
@@ -1462,6 +1474,8 @@ class ModifiedLeftSection(QWidget):
                 df = self.extract_dataframe()
                 self.viewDataChanged.emit(df)
                 self.mark_as_modified()
+
+                self.trigger_shipment_analysis()
             else:
                 print(f"DEBUG: ID {item_id}로 아이템을 찾을 수 없음")
             return
@@ -1495,6 +1509,13 @@ class ModifiedLeftSection(QWidget):
         else:
             print("DEBUG: 유효하지 않은 아이템 객체")
 
+        # 처리 완료 후 출하 분석 업데이트
+        df = self.extract_dataframe()
+        self.viewDataChanged.emit(df)
+        self.mark_as_modified()
+        
+        # 출하 분석 업데이트 요청
+        self.trigger_shipment_analysis()
 
     """
     현재 뷰에 로드된 DataFrame(self.data)의 사본 반환
@@ -1622,6 +1643,8 @@ class ModifiedLeftSection(QWidget):
         except Exception as e:
             print(f"UI 업데이트 오류: {e}")
 
+        QTimer.singleShot(100, self.trigger_shipment_analysis)
+
 
     """
     복사된 아이템 처리
@@ -1636,9 +1659,11 @@ class ModifiedLeftSection(QWidget):
         # 컨트롤러가 없는 경우에만 직접 처리
         if not hasattr(self, 'controller') or not self.controller:
             # 컨트롤러가 없는 경우 기본 처리 - 레거시 지원
-            print("컨트롤러 없음: 레거시 처리 방식으로 복사 처리")
+            # print("컨트롤러 없음: 레거시 처리 방식으로 복사 처리")
             df = self.extract_dataframe()
             self.viewDataChanged.emit(df)
+
+            self.trigger_shipment_analysis()
 
     """
     출하 실패 아이템 정보 설정
@@ -1694,3 +1719,11 @@ class ModifiedLeftSection(QWidget):
                         # 출하 성공 상태로 설정 (기존 실패였던 경우)
                         if hasattr(item, 'is_shipment_failure') and item.is_shipment_failure:
                             item.set_shipment_failure(False, None)
+
+    def trigger_shipment_analysis(self):
+        if hasattr(self, 'parent_page') and self.parent_page:
+            if hasattr(self.parent_page, 'analyze_shipment_with_current_data'):
+                current_data = self.extract_dataframe()
+                if current_data is not None and not current_data.empty:
+                    print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
+                    self.parent_page.analyze_shipment_with_current_data(current_data)
