@@ -21,9 +21,9 @@ class PlanAdjustmentValidator:
     Args:
         result_data (DataFrame): 현재 생산 계획 결과 데이터
     """
-    def __init__(self, result_data):
+    def __init__(self, result_data ,result_page = None):
         self.result_data = result_data
-
+        self.result_page = result_page
          # 1. 먼저 DataStore에서 organized_dataframes 조회
         organized = DataStore.get("organized_dataframes", {})
 
@@ -146,13 +146,10 @@ class PlanAdjustmentValidator:
     def _cache_reference_data(self):
         if self.result_data is None or self.result_data.empty:
             return
-        
+
         # 라인별 시프트별 현재 할당량 계산
         self.line_shift_allocation = {}
 
-        grouped_data = self.result_data.groupby(['Line', 'Time'])['Qty'].sum()
-        self.line_shift_allocation = {f"{line}_{time}": qty for (line, time), qty in grouped_data.items()}
-                
         # 라인별 사용 가능한 아이템 목록 캐싱
         self.line_available_items = self.result_data.groupby('Line')['Item'].apply(set).to_dict()
         
@@ -271,6 +268,10 @@ class PlanAdjustmentValidator:
         tuple: (성공 여부, 오류 메시지)
     """
     def validate_capacity(self, line, time, new_qty, item=None, is_move=False, item_id=None):
+        self.result_data = self.result_page.left_section.data
+
+        grouped_data = self.result_data.groupby(['Line', 'Time'])['Qty'].sum()
+        self.line_shift_allocation = {f"{line}_{time}": qty for (line, time), qty in grouped_data.items()}
         # 라인-시프트 키 생성
         key = f"{line}_{time}"
 
@@ -304,6 +305,7 @@ class PlanAdjustmentValidator:
         # 마스터 데이터에서 라인과 시프트 용량 가져오기
         capacity = self.get_line_capacity(line, time)
         
+        print("___________________________",current_allocation,new_qty,capacity)
         # 용량 검증
         if capacity is not None:  # 용량 정보가 있는 경우만 검증
             # 생산 능력이 명시적으로 0인 경우 
@@ -332,6 +334,7 @@ class PlanAdjustmentValidator:
         # 아이템 또는 프로젝트의 납기일 확인
         due_time = None
         item_project = item[3:7] if len(item) >= 7 else ""
+        print("____________________________________",self.due_dates)
         
         # 직접 아이템에 대한 납기일 확인
         if item in self.due_dates:
@@ -339,6 +342,7 @@ class PlanAdjustmentValidator:
         # 프로젝트에 대한 납기일 확인
         elif item_project in self.due_dates:
             due_time = self.due_dates[item_project]
+
             
         # 납기일 검증
         if due_time is not None and time > due_time:
@@ -383,7 +387,7 @@ class PlanAdjustmentValidator:
             return True, ""
     
         # 4. 새로운 총 할당량 계산
-        new_total_allocation = current_total_allocation - existing_item_qty + new_qty
+        new_total_allocation = current_total_allocation - existing_item_qty
         
         # 5. 가동률 계산
         utilization_rate = (new_total_allocation / line_capacity) * 100
@@ -436,9 +440,9 @@ class PlanAdjustmentValidator:
             
         # 각 제약 요소 검증
         validations = [
+            self.validate_due_date(item, time),
             self.validate_line_item_compatibility(line, item),
             self.validate_capacity(line, time, new_qty, item, is_move, item_id),
-            self.validate_due_date(item, time),
             self.validate_utilization_rate(line, time, item, new_qty, item_id)
         ]
 

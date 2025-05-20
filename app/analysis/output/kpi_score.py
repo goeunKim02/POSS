@@ -278,7 +278,7 @@ class KpiScore:
 
         # 가동률 계산: 1 - (Result 값 * 가중치 / Best 값 * 가중치)
         if weighted_best_sum > 0:
-            util_score = (1 - (weighted_result_sum / weighted_best_sum)) * 100
+            util_score = (1 - (weighted_result_sum / weighted_best_sum)/100) * 100
             print(f"Util 점수: {util_score:.2f}%")
         else:
             util_score = 100.0
