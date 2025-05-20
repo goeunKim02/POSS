@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from app.utils.fileHandler import load_file
 from app.models.common.file_store import FilePaths
 from dataclasses import dataclass
@@ -16,7 +17,9 @@ class DataLoader:
             return pd.DataFrame()
         raw = load_file(path)
         fixed_opt  = raw.get('fixed_option', pd.DataFrame())
-        fixed_opt['Fixed_Time'] = fixed_opt['Fixed_Time'].astype(str)
+        fixed_opt['Fixed_Time'] = fixed_opt['Fixed_Time'].apply(
+            lambda x: str(x) if pd.notna(x) else np.nan
+        )
         pre_assign = raw.get('pre_assign',   pd.DataFrame())
         return fixed_opt, pre_assign
 
@@ -46,5 +49,3 @@ class DataLoader:
 
 # 할당 결과 모델
 type PreAssignFailures = Dict[str, List[Dict[str, Any]]]
-
-# 세상이 무너지고 끝날거만 같아도 건강하고 웃고 사랑하고 그대로 찬란하게 있어줘
