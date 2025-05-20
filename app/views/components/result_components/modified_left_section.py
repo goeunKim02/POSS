@@ -1116,6 +1116,25 @@ class ModifiedLeftSection(QWidget):
             # 생산량 기준으로 제조동 정렬 (내림차순)
             sorted_buildings = building_production.sort_values(ascending=False).index.tolist()
 
+            # ---- 데이터프레임 정렬을 위한 전처리 ----
+            # 1. 제조동 정렬 순서 생성
+            building_order = {b: i for i, b in enumerate(sorted_buildings)}
+            self.data['Building_sort'] = self.data['Building'].apply(lambda x: building_order.get(x, 999))
+
+            # 2. 같은 제조동 내에서 라인명으로 정렬 (I_01 -> 01 형태로 변환)
+            self.data['Line_sort'] = self.data['Line'].apply(
+                lambda x: x.split('_')[1] if '_' in x else x
+            )
+
+            # 3. 최종 정렬 적용 (제조동 순위 -> 라인명 -> 시간)
+            self.data = self.data.sort_values(by=['Building_sort', 'Line_sort', 'Time']).reset_index(drop=True)
+
+            # 4. 임시 정렬 컬럼 제거
+            self.data = self.data.drop(columns=['Building_sort', 'Line_sort'], errors='ignore')
+
+            # 5. 원본 데이터도 정렬된 상태로 저장
+            self.original_data = self.data.copy()
+
             # Line과 Time 값 추출
             all_lines = self.data['Line'].unique()
             times = sorted(self.data['Time'].unique())
@@ -1199,7 +1218,7 @@ class ModifiedLeftSection(QWidget):
                     print(f"인덱스 찾기 오류: {e}")
                     continue
 
-            # 두 번째 단계: 아이템을 정렬 없이 그대로 추가
+            # 두 번째 단계: 아이템을 그리드에 추가
             for (row_idx, col_idx), items in grouped_items.items():
                 for item_data in items:
                     item_info = str(item_data.get('Item', ''))
@@ -1245,6 +1264,8 @@ class ModifiedLeftSection(QWidget):
         except Exception as e:
             # 에러 메시지 표시
             print(f"그룹핑 에러: {e}")
+            import traceback
+            traceback.print_exc()
             EnhancedMessageBox.show_validation_error(self, "Grouping Error",
                                                      f"An error occurred during data grouping.\n{str(e)}")
 
@@ -1568,6 +1589,7 @@ class ModifiedLeftSection(QWidget):
     """
     모델로부터 UI 업데이트 - 이벤트 발생시키지 않음
     """
+
     def update_from_model(self, model_df=None):
         print("ModifiedLeftSection: update_from_model 호출")
 
@@ -1576,31 +1598,74 @@ class ModifiedLeftSection(QWidget):
         current_search_text = self.last_search_text
         current_filter_states = self.current_filter_states.copy()
         current_excel_filter_states = self.current_excel_filter_states.copy()
-        
+
+        # 현재 스크롤 위치 저장
+        current_scroll_position = None
+        if hasattr(self.grid_widget, 'scroll_area'):
+            current_scroll_position = {
+                'horizontal': self.grid_widget.scroll_area.horizontalScrollBar().value(),
+                'vertical': self.grid_widget.scroll_area.verticalScrollBar().value()
+            }
+            print(f"현재 스크롤 위치 저장: {current_scroll_position}")
+
         # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
             if hasattr(self, 'controller') and self.controller:
                 model_df = self.controller.model.get_dataframe()
                 print("컨트롤러에서 데이터 가져옴")
-        
+
         if model_df is None:
             print("데이터가 없습니다.")
             return
-            
+
         # 타입 변환을 한 번에 처리
         self.data = self._normalize_data_types(model_df.copy())
-        
+
         # UI 업데이트 시작
         if self.data is None or 'Line' not in self.data.columns or 'Time' not in self.data.columns:
             print("데이터가 없거나 필수 컬럼이 없음")
             return
-            
+
         try:
+            # 정렬 로직 적용 (update_ui_with_signals와 동일한 로직)
+            # 제조동 정보 추출 (Line 이름의 첫 글자가 제조동)
+            self.data['Building'] = self.data['Line'].str[0]  # 라인명의 첫 글자를 제조동으로 사용
+
+            # 제조동별 생산량 계산 (정렬 목적)
+            building_production = self.data.groupby('Building')['Qty'].sum()
+
+            # 생산량 기준으로 제조동 정렬 (내림차순)
+            sorted_buildings = building_production.sort_values(ascending=False).index.tolist()
+
+            # ---- 데이터프레임 정렬을 위한 전처리 ----
+            # 1. 제조동 정렬 순서 생성
+            building_order = {b: i for i, b in enumerate(sorted_buildings)}
+            self.data['Building_sort'] = self.data['Building'].apply(lambda x: building_order.get(x, 999))
+
+            # 2. 같은 제조동 내에서 라인명으로 정렬 (I_01 -> 01 형태로 변환)
+            self.data['Line_sort'] = self.data['Line'].apply(
+                lambda x: x.split('_')[1] if '_' in x else x
+            )
+
+            # 3. 최종 정렬 적용 (제조동 순위 -> 라인명 -> 시간)
+            self.data = self.data.sort_values(by=['Building_sort', 'Line_sort', 'Time']).reset_index(drop=True)
+
+            # 4. 임시 정렬 컬럼 제거
+            self.data = self.data.drop(columns=['Building_sort', 'Line_sort'], errors='ignore')
+
             # 기존 아이템 모두 지우기
             self.clear_all_items()
-            
+
             # Line과 Time 값 추출
-            lines = sorted(self.data['Line'].unique())
+            lines = []
+            for building in sorted_buildings:
+                # 해당 제조동에 속하는 라인들 찾기
+                building_lines = [line for line in self.data['Line'].unique() if line.startswith(building)]
+                # 라인 이름 기준 오름차순 정렬
+                sorted_building_lines = sorted(building_lines)
+                # 정렬된 라인 추가
+                lines.extend(sorted_building_lines)
+
             times = sorted(self.data['Time'].unique())
 
             # 교대 시간 구분
@@ -1658,7 +1723,7 @@ class ModifiedLeftSection(QWidget):
                     try:
                         # 그리드에 아이템 추가
                         row_idx = self.row_headers.index(row_key)
-                        col_idx = self.days.index(day)
+                        col_idx = day_idx
 
                         # 전체 행 데이터를 아이템 데이터(dict 형태)로 전달
                         item_full_data = row_data.to_dict()
@@ -1670,7 +1735,7 @@ class ModifiedLeftSection(QWidget):
                             # 사전할당 아이템인 경우
                             if item_code in self.pre_assigned_items:
                                 new_item.set_pre_assigned_status(True)
-                                
+
                             # 출하 실패 아이템인 경우
                             if item_code in self.shipment_failure_items:
                                 failure_info = self.shipment_failure_items[item_code]
@@ -1683,26 +1748,32 @@ class ModifiedLeftSection(QWidget):
 
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
-            
+
+            # 스크롤 위치 복원
+            if current_scroll_position and hasattr(self.grid_widget, 'scroll_area'):
+                QTimer.singleShot(50, lambda: self._restore_scroll_position(current_scroll_position))
+
             # 저장했던 필터 및 검색 상태 복원
             self.search_active = current_search_active
             self.last_search_text = current_search_text
             self.current_filter_states = current_filter_states
             self.current_excel_filter_states = current_excel_filter_states
-            
+
             # 필터 상태 즉시 재적용
             if self.search_active or any(v for k, v in self.current_filter_states.items()):
                 self.apply_all_filters()
-                
+
             # 검색 결과가 있었던 경우 검색 UI 즉시 복원
             if self.search_active and self.last_search_text:
                 self.search_items_without_clear()
-            
+
             # 출하 분석도 즉시 업데이트
             self.trigger_shipment_analysis()
-            
+
         except Exception as e:
             print(f"UI 업데이트 오류: {e}")
+            import traceback
+            traceback.print_exc()
 
 
     """
@@ -1786,3 +1857,15 @@ class ModifiedLeftSection(QWidget):
                 if current_data is not None and not current_data.empty:
                     print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
                     self.parent_page.analyze_shipment_with_current_data(current_data)
+
+    def _restore_scroll_position(self, position):
+        """스크롤 위치 복원"""
+        if hasattr(self.grid_widget, 'scroll_area'):
+            # 약간의 지연을 주고 스크롤 위치 복원
+            h_bar = self.grid_widget.scroll_area.horizontalScrollBar()
+            v_bar = self.grid_widget.scroll_area.verticalScrollBar()
+
+            if 'horizontal' in position:
+                h_bar.setValue(position['horizontal'])
+            if 'vertical' in position:
+                v_bar.setValue(position['vertical'])
