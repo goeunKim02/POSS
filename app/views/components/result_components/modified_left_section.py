@@ -495,13 +495,7 @@ class ModifiedLeftSection(QWidget):
     def on_filter_activation_requested(self, status_type):
         # 출하 상태 필터가 활성화된 경우
         if status_type == 'shipment':
-            # 현재 데이터가 있는지 확인
-            if self.data is not None and not self.data.empty:
-                # 결과 페이지 참조 찾기
-                result_page = self.parent_page
-                if result_page and hasattr(result_page, 'analyze_shipment_with_current_data'):
-                    # 현재 데이터로 출하 분석 실행 요청
-                    result_page.analyze_shipment_with_current_data(self.data)
+            self.trigger_shipment_analysis()
     
     """
     데이터 로드 후 필터 데이터 업데이트
@@ -775,10 +769,66 @@ class ModifiedLeftSection(QWidget):
         self.item_selected.emit(selected_item, container)
 
     """
+    검색 항목을 재검색하되 기존 검색 결과와 선택 상태를 유지
+    """
+    def search_items_without_clear(self):
+        search_text = self.last_search_text
+        if not search_text:
+            return
+        
+        # 현재 선택된 아이템 저장
+        current_selected_item = self.current_selected_item
+        
+        self.search_active = True
+        self.clear_search_button.setEnabled(True)
+        
+        # 검색 결과 업데이트
+        self.search_results = []
+        invalid_items = []
+        
+        # 검색 조건에 맞는 아이템만 표시 및 결과에 추가
+        for item in self.all_items[:]:
+            try:
+                is_match = self.apply_search_to_item(item, search_text)
+                if is_match:
+                    self.search_results.append(item)
+            except RuntimeError:
+                invalid_items.append(item)
+            except Exception as e:
+                print(f"검색 중 오류 발생: {e}")
+        
+        # 잘못된 아이템 제거
+        for item in invalid_items:
+            if item in self.all_items:
+                self.all_items.remove(item)
+        
+        # 모든 필터 적용 (검색 결과 포함)
+        self.apply_all_filters()
+        
+        # 검색 결과 UI 업데이트
+        self.search_result_label.show()
+        self.prev_result_button.show()
+        self.next_result_button.show()
+        
+        # 검색 결과가 있으면 선택 및 네비게이션 업데이트
+        if self.search_results:
+            # 이전에 선택된 아이템이 검색 결과에 있으면 선택 유지
+            if current_selected_item in self.search_results:
+                self.current_result_index = self.search_results.index(current_selected_item)
+            else:
+                self.current_result_index = 0
+            
+            self.select_current_result()
+            self.update_result_navigation()
+        else:
+            self.search_result_label.setText('result: No matching items')
+            self.prev_result_button.setEnabled(False)
+            self.next_result_button.setEnabled(False)
+
+    """
     아이템 데이터가 변경되면 호출되는 함수
     """
     def on_item_data_changed(self, item, new_data, changed_fields=None):
-
         if not item or not new_data or not hasattr(item, 'item_data'):
             print("아이템 또는 데이터가 없음")
             return
@@ -791,13 +841,35 @@ class ModifiedLeftSection(QWidget):
             new_data['Line'] = original_data.get('Line', new_data.get('Line'))
             new_data['Time'] = original_data.get('Time', new_data.get('Time'))
         
-        # MVC 컨트롤러가 있으면 시그널 발생 (
+        # MVC 컨트롤러가 있으면 시그널 발생
         if hasattr(self, 'controller') and self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
             self.itemModified.emit(item, new_data, changed_fields)
-            # 디버깅 추가: 변경 후 리셋 버튼 상태 확인
-            print(f"[DEBUG] 데이터 변경 후 리셋 버튼 상태: {self.reset_button.isEnabled()}")
+            
+            # 필터 및 검색 상태 즉시 재적용
+            self.apply_all_filters()
+            
+            # 검색이 활성화된 경우 검색 UI 즉시 업데이트
+            if self.search_active and self.last_search_text:
+                self.search_items_without_clear()
+                
+            # 출하 분석도 즉시 업데이트
+            self.trigger_shipment_analysis()
             return
+    
+    """데이터 변경 시 출하 분석을 트리거합니다"""
+    def trigger_shipment_analysis(self):
+        if hasattr(self, 'parent_page') and self.parent_page:
+            if hasattr(self.parent_page, 'analyze_shipment_with_current_data'):
+                current_data = self.extract_dataframe()
+                # 1. 출하 분석 요청
+                if current_data is not None and not current_data.empty:
+                    print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
+                    self.parent_page.analyze_shipment_with_current_data(current_data)
+                # 2. 분산 배치 분석 요청 - SplitView 업데이트
+                if hasattr(self.parent_page, 'update_split_view_analysis'):
+                    print("왼쪽 테이블 변경 감지 - 분산 배치 분석 실행")
+                    self.parent_page.update_split_view_analysis(current_data)
 
     """
     위치 변경 처리 로직 분리
@@ -995,6 +1067,8 @@ class ModifiedLeftSection(QWidget):
         self.viewDataChanged.emit(df)
 
         self.preload_analyses()
+
+        self.trigger_shipment_analysis()
 
     """데이터 로드 후 사전 분석 실행"""
     def preload_analyses(self):
@@ -1443,6 +1517,7 @@ class ModifiedLeftSection(QWidget):
             # 컨트롤러에 연결이 제대로 되어 있는지 확인
             if hasattr(self.controller, 'on_item_deleted'):
                 self.controller.on_item_deleted(item_or_id)
+                self.trigger_shipment_analysis()
                 return
             else:
                 print("DEBUG: 컨트롤러에 on_item_deleted 메서드가 없음")
@@ -1462,6 +1537,8 @@ class ModifiedLeftSection(QWidget):
                 df = self.extract_dataframe()
                 self.viewDataChanged.emit(df)
                 self.mark_as_modified()
+
+                self.trigger_shipment_analysis()
             else:
                 print(f"DEBUG: ID {item_id}로 아이템을 찾을 수 없음")
             return
@@ -1495,6 +1572,13 @@ class ModifiedLeftSection(QWidget):
         else:
             print("DEBUG: 유효하지 않은 아이템 객체")
 
+        # 처리 완료 후 출하 분석 업데이트
+        df = self.extract_dataframe()
+        self.viewDataChanged.emit(df)
+        self.mark_as_modified()
+        
+        # 출하 분석 업데이트 요청
+        self.trigger_shipment_analysis()
 
     """
     현재 뷰에 로드된 DataFrame(self.data)의 사본 반환
@@ -1511,6 +1595,12 @@ class ModifiedLeftSection(QWidget):
     """
     def update_from_model(self, model_df=None):
         print("ModifiedLeftSection: update_from_model 호출")
+
+        # 현재 검색 및 필터 상태 백업
+        current_search_active = self.search_active
+        current_search_text = self.last_search_text
+        current_filter_states = self.current_filter_states.copy()
+        current_excel_filter_states = self.current_excel_filter_states.copy()
         
         # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
@@ -1619,6 +1709,23 @@ class ModifiedLeftSection(QWidget):
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
             
+            # 저장했던 필터 및 검색 상태 복원
+            self.search_active = current_search_active
+            self.last_search_text = current_search_text
+            self.current_filter_states = current_filter_states
+            self.current_excel_filter_states = current_excel_filter_states
+            
+            # 필터 상태 즉시 재적용
+            if self.search_active or any(v for k, v in self.current_filter_states.items()):
+                self.apply_all_filters()
+                
+            # 검색 결과가 있었던 경우 검색 UI 즉시 복원
+            if self.search_active and self.last_search_text:
+                self.search_items_without_clear()
+            
+            # 출하 분석도 즉시 업데이트
+            self.trigger_shipment_analysis()
+            
         except Exception as e:
             print(f"UI 업데이트 오류: {e}")
 
@@ -1636,9 +1743,11 @@ class ModifiedLeftSection(QWidget):
         # 컨트롤러가 없는 경우에만 직접 처리
         if not hasattr(self, 'controller') or not self.controller:
             # 컨트롤러가 없는 경우 기본 처리 - 레거시 지원
-            print("컨트롤러 없음: 레거시 처리 방식으로 복사 처리")
+            # print("컨트롤러 없음: 레거시 처리 방식으로 복사 처리")
             df = self.extract_dataframe()
             self.viewDataChanged.emit(df)
+
+            self.trigger_shipment_analysis()
 
     """
     출하 실패 아이템 정보 설정
@@ -1694,3 +1803,11 @@ class ModifiedLeftSection(QWidget):
                         # 출하 성공 상태로 설정 (기존 실패였던 경우)
                         if hasattr(item, 'is_shipment_failure') and item.is_shipment_failure:
                             item.set_shipment_failure(False, None)
+
+    def trigger_shipment_analysis(self):
+        if hasattr(self, 'parent_page') and self.parent_page:
+            if hasattr(self.parent_page, 'analyze_shipment_with_current_data'):
+                current_data = self.extract_dataframe()
+                if current_data is not None and not current_data.empty:
+                    print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
+                    self.parent_page.analyze_shipment_with_current_data(current_data)

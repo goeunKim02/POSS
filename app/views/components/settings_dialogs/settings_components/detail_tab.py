@@ -162,9 +162,10 @@ class ModernDetailTabComponent(BaseTabComponent):
         # Shift-Based Weights Grid 생성
         shift_weights_grid = operation_rate_section.add_setting_item(
             "Shift-Based Weights", "weight_day", "shift_grid",
-            default_values=weight_day
+            default_values=weight_day,
+            min=0.0, max=1.0,
+            decimals=4, step=0.0001
         )
-
         # 체크박스와 그리드 연결
         self._connect_checkbox_to_grid(shift_weight_checkbox, shift_weights_grid)
 
