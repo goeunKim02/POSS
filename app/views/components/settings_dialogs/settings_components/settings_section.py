@@ -204,27 +204,28 @@ class ModernSettingsSectionComponent(QFrame):
 
             # 가중치 입력 스핀박스 (하단)
             spinboxes = []
-            default_values = kwargs.get('default_values', [1.0] * 14)
+            default_values = kwargs.get('default_values', [0.0001] * 14)
 
             for i in range(1, 15):
                 spinbox = QDoubleSpinBox()
-                spinbox.setMinimum(0.0)
-                spinbox.setMaximum(10.0)
-                spinbox.setDecimals(1)
-                spinbox.setSingleStep(0.1)
+                spinbox.setMinimum(0.0001)
+                spinbox.setMaximum(1.0000)
+                spinbox.setDecimals(4)
+                spinbox.setSingleStep(0.0001)
                 spinbox.setValue(default_values[i - 1])
-                spinbox.setStyleSheet("""
-                    QDoubleSpinBox {
+                spinbox.setStyleSheet(f"""
+                    QDoubleSpinBox {{
                         background-color: #ffffff;
                         border: 1px solid #dee2e6;
                         border-radius: 4px;
                         padding: 4px;
-                    }
-                    QDoubleSpinBox:focus {
+                        font-size: {f(13)}px;
+                    }}
+                    QDoubleSpinBox:focus {{
                         border-color: #1428A0;
-                    }
+                    }}
                 """)
-                spinbox.setFixedWidth(50)
+                spinbox.setFixedWidth(90)
                 spinbox.setFixedHeight(30)
 
                 # 홀수/짝수에 따라 행과 열 위치 결정
