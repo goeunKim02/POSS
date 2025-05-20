@@ -468,6 +468,8 @@ def check_all_violations(
     max_lines: pd.DataFrame,
     max_qtys: pd.DataFrame
 ) -> pd.DataFrame:
+    fx['Qty'] = pd.to_numeric(fx['Qty'], errors='coerce').fillna(0)
+    
     # 가능한 모든 (라인, 교대) 조합을 준비합니다.
     combos = {
         r: [(ln, sh)

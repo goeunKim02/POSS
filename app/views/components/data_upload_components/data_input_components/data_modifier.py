@@ -180,6 +180,11 @@ class DataModifier:
 
                 # 사이드바에 수정 표시 갱신
                 self.update_modified_status_in_sidebar(file_path, sheet_name)
+
+                try:
+                    self.parent.run_combined_analysis()
+                except Exception as e:
+                    print(f"[자동 분석 실행 오류] {e}")
             else:
                 # 수정되지 않았지만 이전에 수정됨으로 표시된 경우, 표시 제거
                 if (file_path in self.modified_data_dict and
