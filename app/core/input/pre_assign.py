@@ -1,7 +1,7 @@
 import fnmatch
 import pulp
 
-from typing import Tuple
+from typing import Tuple, List
 
 import pandas as pd
 import numpy as np
@@ -44,26 +44,62 @@ def load_data():
         capa_qty = capa_qty.set_index('Line')
     else:
         capa_qty = pd.DataFrame()
-
     return fixed_opt, pre_assign, demand, line_avail, capa_qty
 
 """pre_assign 데이터 fixed_option 이동"""
 def expand_pre_assign(fixed_opt: pd.DataFrame, pre_assign: pd.DataFrame) -> pd.DataFrame:
     records = []
     for _, row in pre_assign.iterrows():
+        line  = row['Line']
         shift = row['Shift']
         for k in range(1, 8):
             item, qty = row[f'Item{k}'], row[f'Qty{k}']
-            if pd.notna(item) and pd.notna(qty):
-                t = (k - 1) * 2 + shift
+            t = (k - 1) * 2 + shift
+            if pd.isna(item) and pd.isna(qty):
+                continue
+
+            if pd.isna(item) or pd.isna(qty):
                 records.append({
                     'Fixed_Group': item,
-                    'Fixed_Line' : row['Line'],
-                    'Fixed_Time' : t,
+                    'Fixed_Line' : [row['Line']],
+                    'Fixed_Time' : [t],
                     'Qty'        : qty
                 })
-    # print("expand_pre_assign")
-    # print(pd.concat([fixed_opt, pd.DataFrame(records)], ignore_index=True, sort=False))
+                continue
+
+            exact_mask = (
+                fixed_opt['Qty'].notna()
+                & (fixed_opt['Fixed_Group'] == item)
+                & fixed_opt['Fixed_Line'].apply(lambda lst: line in lst)
+                & fixed_opt['Fixed_Time'].apply(lambda lst: t    in lst)
+            )
+            fixed_exact = fixed_opt[exact_mask]['Qty'].sum()
+
+            remaining1 = float(qty) - float(fixed_exact)
+            if remaining1 <= 0:
+                continue
+
+            wc_mask = (
+                fixed_opt['Qty'].notna()
+                & fixed_opt['Fixed_Group'].notna()
+                & fixed_opt['Fixed_Group']
+                    .apply(lambda pat: isinstance(pat, str) and fnmatch.fnmatch(item, pat))
+                & ~exact_mask
+                & fixed_opt['Fixed_Line'].apply(lambda lst: line in lst)
+                & fixed_opt['Fixed_Time'].apply(lambda lst: t    in lst)
+            )
+            fixed_wild = fixed_opt[wc_mask]['Qty'].sum()
+
+            remaining2 = remaining1 - float(fixed_wild)
+            if remaining2 <= 0:
+                continue
+
+            records.append({
+                'Fixed_Group': item,
+                'Fixed_Line' : [row['Line']],
+                'Fixed_Time' : [t],
+                'Qty'        : remaining2
+            })
     return pd.concat([fixed_opt, pd.DataFrame(records)], ignore_index=True, sort=False)
 
 """Fixed_Line이 NaN인 경우 사용 가능한 모든 라인으로 대체"""
@@ -87,9 +123,38 @@ def fill_missing_lines(fixed_opt: pd.DataFrame, line_available: pd.DataFrame) ->
         new_row = row.copy()
         new_row['Fixed_Line'] = new_line
         records.append(new_row)
-    # print("fill_missing_lines")
-    # print(pd.DataFrame(records, columns=fixed_opt.columns))
     return pd.DataFrame(records, columns=fixed_opt.columns)
+
+"""Fixed_Line 검증"""
+def validate_fixed_option_lines(
+    fixed_opt: pd.DataFrame,
+    line_available: pd.DataFrame
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    valid_rows = []
+    invalid_rows = []
+
+    for _, row in fixed_opt.iterrows():
+        lines = row['Fixed_Line']
+        group = row['Fixed_Group']
+        proj = group[3:7] if isinstance(group, str) and len(group) >= 7 else None
+
+        valid_lines: List[str] = []
+        if proj and not line_available.empty:
+            sub = line_available[line_available['Project'] == proj]
+            if not sub.empty:
+                valid_lines = [
+                    col for col, flag in sub.iloc[0].items()
+                    if col != 'Project' and flag == 1
+                ]
+
+        if any(ln not in valid_lines for ln in lines):
+            invalid_rows.append(row)
+        else:
+            valid_rows.append(row)
+
+    valid_fx   = pd.DataFrame(valid_rows,   columns=fixed_opt.columns)
+    invalid_fx = pd.DataFrame(invalid_rows, columns=fixed_opt.columns)
+    return valid_fx, invalid_fx
 
 """Fixed_Time이 NaN인 경우 모든 시프트로 대체"""
 def fill_missing_times(fixed_opt: pd.DataFrame) -> pd.DataFrame:
@@ -108,15 +173,13 @@ def fill_missing_times(fixed_opt: pd.DataFrame) -> pd.DataFrame:
         new_row = row.copy()
         new_row['Fixed_Time'] = new_val
         records.append(new_row)
-    # print("fill_missing_times")
-    # print(pd.DataFrame(records, columns=fixed_opt.columns))
     return pd.DataFrame(records, columns=fixed_opt.columns)
 
 """Qty == 'ALL'일 때 demand 합계로 대체"""
 def process_all_qty(fixed_opt: pd.DataFrame, demand: pd.DataFrame) -> pd.DataFrame:
     def resolve_qty(qg, fixed_group):
-        if isinstance(qg, str) and qg.lower() == 'all':
-            pat = fixed_group.replace('*', '?')
+        if isinstance(qg, str) and qg.strip().lower() == 'all':
+            pat = fixed_group
             return demand.loc[
                 demand['Item'].apply(lambda s: fnmatch.fnmatch(s, pat)),
                 'MFG'
@@ -129,8 +192,6 @@ def process_all_qty(fixed_opt: pd.DataFrame, demand: pd.DataFrame) -> pd.DataFra
         new_row = row.copy()
         new_row['Qty'] = qty_resolved
         new_records.append(new_row)
-    # print("process_all_qty")
-    # print(pd.DataFrame(new_records, columns=fixed_opt.columns))
     return pd.DataFrame(new_records, columns=fixed_opt.columns)
 
 """1번 제약사항: 라인/시프트별 생산 용량"""
@@ -190,12 +251,13 @@ def extract_error_records(fx: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]
         if isinstance(val, (list, np.ndarray)):
             return len(val) == 0
         return pd.isna(val)
-
+    
+    mask_group = fx['Fixed_Group'].apply(is_bad)
     mask_line = fx['Fixed_Line'].apply(is_bad)
     mask_time = fx['Fixed_Time'].apply(is_bad)
     mask_qty = fx['Qty'].apply(is_bad)
 
-    mask_error = mask_line | mask_time | mask_qty
+    mask_error = mask_group | mask_line | mask_time | mask_qty
     error_fx = fx[mask_error].copy()
     valid_fx = fx[~mask_error].copy()
     return valid_fx, error_fx
@@ -556,30 +618,24 @@ def check_all_violations(
 def run_allocation() -> PreAssignFailures:
     # 데이터 로드 및 전처리
     fx, pa, dm, la, cq = load_data()
-    fx = expand_pre_assign(fx, pa)
     fx = fill_missing_lines(fx, la)
     fx = fill_missing_times(fx)
     fx = process_all_qty(fx, dm)
+    fx = expand_pre_assign(fx, pa)
 
+    # 결측 에러 분리
+    fx, missing_fixed = extract_error_records(fx)
+    fx, fx_invalid = validate_fixed_option_lines(fx, la)
+    
     # 제약조건 테이블 생성
     cap = get_capacity_constraints(cq)
     max_lines = get_max_line_constraints(cq)
     max_qtys  = get_max_qty_constraints(cq)
 
-    # 결측 에러 분리
-    fx, missing_fixed = extract_error_records(fx)
-
     # 개별 검사 함수
     # bad_cap = check_capacity_violations(fx, cap)
     # bad_max_line = check_max_line_violations(fx, max_lines)
     # bad_max_qty = check_max_qty_violations(fx, max_qtys)
-
-    # print("bad_cap")
-    # print(bad_cap)
-    # print("bad_max_line")
-    # print(bad_max_line)
-    # print("bad_max_qty")
-    # print(bad_max_qty)
 
     # 통합 검사 함수
     violations = check_all_violations(fx, cap, max_lines, max_qtys)
@@ -590,26 +646,24 @@ def run_allocation() -> PreAssignFailures:
 
     # 결측 에러 처리
     for _, row in missing_fixed.iterrows():
-        target = row['Fixed_Group']
-        if not row['Fixed_Line']:
-            failures['preassign'].append({
-                'Target': target,
-                'Reason': 'No fixed line specified',
-                'ViolationAmt': None
-            })
-        if not row['Fixed_Time']:
-            failures['preassign'].append({
-                'Target': target,
-                'Shift': None,
-                'Reason': 'No fixed time specified',
-                'ViolationAmt': None
-            })
-        if pd.isna(row['Qty']):
-            failures['preassign'].append({
-                'Target': target,
-                'Reason': 'No quantity specified',
-                'ViolationAmt': None
-            })
+        tgt = row['Fixed_Group']
+        failures['preassign'].append({
+            'Target': None if pd.isna(tgt) else tgt,
+            'Shift': None,
+            'Reason': 'No group specified' if pd.isna(tgt) else
+                'No quantity specified' if pd.isna(row['Qty']) else
+                'No fixed line specified' if not row['Fixed_Line'] else
+                'No fixed time specified',
+            'ViolationAmt': None
+        })
+    
+    for _, row in fx_invalid.iterrows():
+        failures['preassign'].append({
+            'Target':       row['Fixed_Group'],
+            'Shift':        None,
+            'Reason':       'Line not available',
+            'ViolationAmt': None
+        })
 
     # 제약 위반 에러 처리
     for vr in violations.to_dict('records'):
@@ -629,7 +683,4 @@ def run_allocation() -> PreAssignFailures:
             record['Reason'] = 'maximum production quantity'
 
         failures['preassign'].append(record)
-    
-    print(failures)
-
     return failures
