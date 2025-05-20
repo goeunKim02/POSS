@@ -71,7 +71,7 @@ class DraggableItemLabel(QFrame):
         self.setup_layout(text)
 
         # 툴팁 관련 설정
-        QToolTip.setFont(QFont('Arial', 10))
+        QToolTip.setFont(QFont(font_manager.get_just_font("SamsungOne-700").family(), f(10)))
 
         # 아이템 데이터가 있으면 툴팁 생성
         if self.item_data is not None:
@@ -114,13 +114,13 @@ class DraggableItemLabel(QFrame):
         font = font_manager.get_just_font("SamsungOne-700").family()
         self.item_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.item_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.item_label.setStyleSheet(f"background: transparent; border: none; font-family: {font}; font-size: {f(11)}px; font-weight: bold;")
+        self.item_label.setStyleSheet(f"background: transparent; border: none; font-family: {font}; font-size: {f(14)}px; font-weight: bold;")
         self.item_label.setWordWrap(True)  # WordWrap 활성화 : 활성화해야 컨테이너 높이 자동화 가능 
 
         # 수량 라벨 (오른쪽 정렬)
         self.qty_label = QLabel(str(qty) if qty > 0 else "0")  # 0이어도 표시
         self.qty_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.qty_label.setStyleSheet(f"background: transparent; border: none; font-family: {font}; font-size: {f(11)}px; font-weight: bold;")
+        self.qty_label.setStyleSheet(f"background: transparent; border: none; font-family: {font}; font-size: {f(14)}px; font-weight: bold;")
         self.item_label.setWordWrap(True)  # WordWrap 활성화
 
         layout.addWidget(self.item_label)
