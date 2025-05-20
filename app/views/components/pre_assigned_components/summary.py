@@ -1,3 +1,5 @@
+import pandas as pd
+
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QSizePolicy, QAbstractScrollArea
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtCore import Qt
@@ -11,7 +13,7 @@ normal_font = font_manager.get_just_font("SamsungOne-700").family()
 데이터를 요약해서 표시하는 테이블 위젯
 """
 class SummaryWidget(QWidget):
-    def __init__(self, df, parent=None):
+    def __init__(self, df: pd.DataFrame, line_order: list=None, parent=None):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
@@ -20,11 +22,16 @@ class SummaryWidget(QWidget):
         layout.setSpacing(12)
 
         # 데이터 집계
-        df_qty = (
-            df.groupby('Line', as_index=False)['Qty'].sum()
-            .sort_values(by='Qty', ascending=False)
-            .reset_index(drop=True)
-        )
+        df_qty = df.groupby('Line', as_index=False)['Qty'].sum()
+
+        if line_order:
+            # 카테고리로 만들어서 순서 고정
+            cat = pd.Categorical(df_qty['Line'], categories=line_order, ordered=True)
+            df_qty['Line'] = cat
+            df_qty = df_qty.sort_values('Line').reset_index(drop=True)
+        else:
+            df_qty = df_qty.sort_values('Qty', ascending=False).reset_index(drop=True)
+
         grand_total = df_qty['Qty'].sum()
 
         # 동별 그룹핑
@@ -40,6 +47,15 @@ class SummaryWidget(QWidget):
             group_summaries.append((prefix, lines, group_sum))
         group_summaries.sort(key=lambda x: x[2], reverse=True)
 
+        if line_order:
+            order_map = {}
+            for idx, ln in enumerate(line_order):
+                b = ln.split('_')[0]
+                order_map.setdefault(b, idx)
+            group_summaries.sort(key=lambda x: order_map[x[0]])
+        else:
+            group_summaries.sort(key=lambda x: x[2], reverse=True)
+
         # 전체 행 개수 계산
         total_rows = 1 + sum(1 + len(lines) for _, lines, _ in group_summaries)
         table = QTableWidget(total_rows, 4, self)
@@ -48,9 +64,6 @@ class SummaryWidget(QWidget):
         table.setEditTriggers(QTableWidget.NoEditTriggers)
         table.setSelectionMode(QTableWidget.NoSelection)
         table.setAlternatingRowColors(False)
-        table.setStyleSheet(
-            "QTableWidget { background-color: white; gridline-color: #dddddd; }"
-        )
 
         # 헤더 스타일 및 폰트
         header = table.horizontalHeader()
@@ -61,37 +74,49 @@ class SummaryWidget(QWidget):
                 color: white;
                 border: none;
                 font-family: {bold_font};
-                font-size: {f(12)}px;
+                font-size: {f(14)}px;
                 font-weight: 900;
             }}
         """)
         
         table.verticalHeader().setDefaultSectionSize(35)
 
-        # 폰트 정의
-        font_10      = QFont(normal_font, f(10))
-        font_9       = QFont(normal_font, f(9))
-        bold_font_10 = QFont(bold_font,   f(10), QFont.Bold)
-        bold_font_9  = QFont(bold_font,   f(9),  QFont.Bold)
+        # 스타일 정의
+        table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: white;
+                gridline-color: #dddddd;
+            }}
+            QTableView::item {{
+                font-family: {normal_font};
+                font-size: {f(14)}px;
+            }}
+            QHeaderView::section {{
+                background-color: #1428A0;
+                color: white;
+                border: none;
+                font-family: {bold_font};
+                font-size: {f(14)}px;
+                font-weight: 900;
+            }}
+        """)
 
         # 첫 행: Total
         row = 0
         table.setSpan(row, 0, 1, 2)
         item_tot_label = QTableWidgetItem("Total")
         item_tot_label.setTextAlignment(Qt.AlignCenter)
-        item_tot_label.setFont(bold_font_10)
         item_tot_label.setBackground(QColor('#e8f4fc'))
         table.setItem(row, 0, item_tot_label)
 
         item_tot_sum = QTableWidgetItem(f"{int(grand_total):,}")
         item_tot_sum.setTextAlignment(Qt.AlignCenter)
-        item_tot_sum.setFont(font_9)
         item_tot_sum.setBackground(QColor('#e8f4fc'))
         table.setItem(row, 2, item_tot_sum)
 
         item_tot_portion = QTableWidgetItem("-")
         item_tot_portion.setTextAlignment(Qt.AlignCenter)
-        item_tot_portion.setFont(font_10)
+
         table.setItem(row, 3, item_tot_portion)
         row += 1
 
@@ -105,21 +130,18 @@ class SummaryWidget(QWidget):
             table.setSpan(start, 0, span_count, 1)
             item_building = QTableWidgetItem(prefix)
             item_building.setTextAlignment(Qt.AlignCenter)
-            item_building.setFont(bold_font_10)
             item_building.setBackground(QColor('#e8f4fc'))
             table.setItem(start, 0, item_building)
 
             # Group total (1열)
             item_group = QTableWidgetItem(f"{prefix}_Total")
             item_group.setTextAlignment(Qt.AlignCenter)
-            item_group.setFont(bold_font_9)
             item_group.setBackground(QColor('#e8f4fc'))
             table.setItem(start, 1, item_group)
 
             # Sum (2열)
             item_group_sum = QTableWidgetItem(f"{int(group_sum):,}")
             item_group_sum.setTextAlignment(Qt.AlignCenter)
-            item_group_sum.setFont(font_9)
             item_group_sum.setBackground(QColor('#e8f4fc'))
             table.setItem(start, 2, item_group_sum)
 
@@ -127,7 +149,6 @@ class SummaryWidget(QWidget):
             table.setSpan(start, 3, span_count, 1)
             item_group_portion = QTableWidgetItem(f"{group_share}%")
             item_group_portion.setTextAlignment(Qt.AlignCenter)
-            item_group_portion.setFont(font_10)
             item_group_portion.setForeground(QColor('#1428A0'))
             table.setItem(start, 3, item_group_portion)
             row += 1
@@ -138,12 +159,10 @@ class SummaryWidget(QWidget):
                 item_line = QTableWidgetItem(ln)
                 item_line.setTextAlignment(Qt.AlignCenter)
                 item_line.setData(Qt.DisplayRole, f"    {ln}")
-                item_line.setFont(font_9)
                 table.setItem(row, 1, item_line)
 
                 item_line_sum = QTableWidgetItem(f"{qty_val:,}")
                 item_line_sum.setTextAlignment(Qt.AlignCenter)
-                item_line_sum.setFont(font_9)
                 table.setItem(row, 2, item_line_sum)
 
                 row += 1

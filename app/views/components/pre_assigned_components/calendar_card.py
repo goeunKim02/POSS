@@ -62,13 +62,13 @@ class CalendarCard(QFrame):
         hl.setSpacing(4)
 
         lbl_item = QLabel(self._row.get('project', ''), self)
-        lbl_item.setStyleSheet(f"font-family:{bold_font}; font-size:{f(10)}px; font-weight:900;")
+        lbl_item.setStyleSheet(f"font-family:{bold_font}; font-size:{f(14)}px; font-weight:900;")
 
         lbl_item.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         lbl_item.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
         lbl_qty = QLabel(str(self._row.get('qty', '')), self)
-        lbl_qty.setStyleSheet(f"font-family:{normal_font}; font-size:{f(9)}px;")
+        lbl_qty.setStyleSheet(f"font-family:{normal_font}; font-size:{f(14)}px;")
         lbl_qty.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         hl.addWidget(lbl_item)
