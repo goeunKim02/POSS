@@ -769,10 +769,66 @@ class ModifiedLeftSection(QWidget):
         self.item_selected.emit(selected_item, container)
 
     """
+    검색 항목을 재검색하되 기존 검색 결과와 선택 상태를 유지
+    """
+    def search_items_without_clear(self):
+        search_text = self.last_search_text
+        if not search_text:
+            return
+        
+        # 현재 선택된 아이템 저장
+        current_selected_item = self.current_selected_item
+        
+        self.search_active = True
+        self.clear_search_button.setEnabled(True)
+        
+        # 검색 결과 업데이트
+        self.search_results = []
+        invalid_items = []
+        
+        # 검색 조건에 맞는 아이템만 표시 및 결과에 추가
+        for item in self.all_items[:]:
+            try:
+                is_match = self.apply_search_to_item(item, search_text)
+                if is_match:
+                    self.search_results.append(item)
+            except RuntimeError:
+                invalid_items.append(item)
+            except Exception as e:
+                print(f"검색 중 오류 발생: {e}")
+        
+        # 잘못된 아이템 제거
+        for item in invalid_items:
+            if item in self.all_items:
+                self.all_items.remove(item)
+        
+        # 모든 필터 적용 (검색 결과 포함)
+        self.apply_all_filters()
+        
+        # 검색 결과 UI 업데이트
+        self.search_result_label.show()
+        self.prev_result_button.show()
+        self.next_result_button.show()
+        
+        # 검색 결과가 있으면 선택 및 네비게이션 업데이트
+        if self.search_results:
+            # 이전에 선택된 아이템이 검색 결과에 있으면 선택 유지
+            if current_selected_item in self.search_results:
+                self.current_result_index = self.search_results.index(current_selected_item)
+            else:
+                self.current_result_index = 0
+            
+            self.select_current_result()
+            self.update_result_navigation()
+        else:
+            self.search_result_label.setText('result: No matching items')
+            self.prev_result_button.setEnabled(False)
+            self.next_result_button.setEnabled(False)
+
+    """
     아이템 데이터가 변경되면 호출되는 함수
     """
     def on_item_data_changed(self, item, new_data, changed_fields=None):
-
         if not item or not new_data or not hasattr(item, 'item_data'):
             print("아이템 또는 데이터가 없음")
             return
@@ -785,13 +841,20 @@ class ModifiedLeftSection(QWidget):
             new_data['Line'] = original_data.get('Line', new_data.get('Line'))
             new_data['Time'] = original_data.get('Time', new_data.get('Time'))
         
-        # MVC 컨트롤러가 있으면 시그널 발생 (
+        # MVC 컨트롤러가 있으면 시그널 발생
         if hasattr(self, 'controller') and self.controller:
             print("MVC 컨트롤러로 처리 - 시그널 발생")
             self.itemModified.emit(item, new_data, changed_fields)
+            
+            # 필터 및 검색 상태 즉시 재적용
+            self.apply_all_filters()
+            
+            # 검색이 활성화된 경우 검색 UI 즉시 업데이트
+            if self.search_active and self.last_search_text:
+                self.search_items_without_clear()
+                
+            # 출하 분석도 즉시 업데이트
             self.trigger_shipment_analysis()
-            # 디버깅 추가: 변경 후 리셋 버튼 상태 확인
-            # print(f"[DEBUG] 데이터 변경 후 리셋 버튼 상태: {self.reset_button.isEnabled()}")
             return
     
     """데이터 변경 시 출하 분석을 트리거합니다"""
@@ -1006,7 +1069,7 @@ class ModifiedLeftSection(QWidget):
         self.preload_analyses()
 
         self.trigger_shipment_analysis()
-        
+
     """데이터 로드 후 사전 분석 실행"""
     def preload_analyses(self):
         # 데이터가 없으면 건너뜀
@@ -1532,6 +1595,12 @@ class ModifiedLeftSection(QWidget):
     """
     def update_from_model(self, model_df=None):
         print("ModifiedLeftSection: update_from_model 호출")
+
+        # 현재 검색 및 필터 상태 백업
+        current_search_active = self.search_active
+        current_search_text = self.last_search_text
+        current_filter_states = self.current_filter_states.copy()
+        current_excel_filter_states = self.current_excel_filter_states.copy()
         
         # 매개변수가 없을 때 컨트롤러에서 데이터 가져오기
         if model_df is None:
@@ -1640,10 +1709,25 @@ class ModifiedLeftSection(QWidget):
                     except ValueError as e:
                         print(f"인덱스 찾기 오류: {e}")
             
+            # 저장했던 필터 및 검색 상태 복원
+            self.search_active = current_search_active
+            self.last_search_text = current_search_text
+            self.current_filter_states = current_filter_states
+            self.current_excel_filter_states = current_excel_filter_states
+            
+            # 필터 상태 즉시 재적용
+            if self.search_active or any(v for k, v in self.current_filter_states.items()):
+                self.apply_all_filters()
+                
+            # 검색 결과가 있었던 경우 검색 UI 즉시 복원
+            if self.search_active and self.last_search_text:
+                self.search_items_without_clear()
+            
+            # 출하 분석도 즉시 업데이트
+            self.trigger_shipment_analysis()
+            
         except Exception as e:
             print(f"UI 업데이트 오류: {e}")
-
-        QTimer.singleShot(100, self.trigger_shipment_analysis)
 
 
     """
