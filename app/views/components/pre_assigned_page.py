@@ -2,7 +2,7 @@ import pandas as pd
 from PyQt5.QtGui import QFont, QCursor
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QSplitter,
-    QMessageBox, QScrollArea, QStackedWidget, QCheckBox, QFrame
+    QMessageBox, QScrollArea, QStackedWidget
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 
@@ -11,6 +11,7 @@ from .pre_assigned_components.summary import SummaryWidget
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
+from .result_components.filter_widget import FilterWidget
 from app.utils.fileHandler import create_from_master
 from app.utils.export_manager import ExportManager
 from app.models.common.screen_manager import *
@@ -176,10 +177,10 @@ class PlanningPage(QWidget):
         self._df = pd.DataFrame(columns=["Line", "Time", "Qty", "Item", "Project"])
 
         # LEFT 영역: 이전 체크박스 제거
-        if hasattr(self, 'building_filter_widget'):
-            self.leftContainer.layout().removeWidget(self.building_filter_widget)
-            self.building_filter_widget.deleteLater()
-            del self.building_filter_widget
+        if hasattr(self, 'filter_widget'):
+            self.leftContainer.layout().removeWidget(self.filter_widget)
+            self.filter_widget.deleteLater()
+            del self.filter_widget
 
         # LEFT 영역: 이전 header 제거
         if hasattr(self, 'header'):
@@ -288,7 +289,9 @@ class PlanningPage(QWidget):
         # 각 Line별 총 Qty 계산
         line_qty = df.groupby('Line')['Qty'].sum().to_dict()
         
-        # Building별로 묶기
+        # line, project, Building별로 묶기
+        lines = tmp['Line'].unique().tolist()
+        projects = tmp['Project'].unique().tolist()
         groups = {}
         for line, qty in line_qty.items():
             bld = line.split('_')[0]
@@ -296,8 +299,8 @@ class PlanningPage(QWidget):
 
         # Building별 총합 계산
         building_totals = {
-            bld: sum(q for _, q in lines)
-            for bld, lines in groups.items()
+            bld: sum(q for _, q in line)
+            for bld, line in groups.items()
         }
 
         # Building 총합 내림차순 정렬
@@ -310,26 +313,14 @@ class PlanningPage(QWidget):
         # 각 Building 안의 Line들도 Qty 내림차순 정렬
         self.line_order = []
         for bld, _ in sorted_buildings:
-            # lines: [(line, qty), ...]
             for line, _ in sorted(groups[bld], key=lambda x: x[1], reverse=True):
                 self.line_order.append(line)
 
-        # 체크박스 생성
-        prefixes = { line.split('_')[0] for line in self._df['Line'] }
-        buildings = sorted(prefixes)
-
-        self.building_filter_widget = QWidget(self.leftContainer)
-        df_layout = QHBoxLayout(self.building_filter_widget)
-        df_layout.setAlignment(Qt.AlignLeft)
-        df_layout.setContentsMargins(0,0,0,0)
-        for b in buildings:
-            cb = QCheckBox(b, self.building_filter_widget)
-            cb.setStyleSheet(
-                f"font-family:{normal_font}; font-size:{f(12)}px;"
-            )
-            cb.stateChanged.connect(self._on_filter_changed)
-            df_layout.addWidget(cb)
-        self.leftContainer.layout().addWidget(self.building_filter_widget, stretch=0)
+        # 필터 생성
+        self.filter_widget = FilterWidget(self.leftContainer)
+        self.filter_widget.set_filter_data(lines=lines, projects=projects)
+        self.filter_widget.filter_changed.connect(self._on_filter_changed)
+        self.leftContainer.layout().addWidget(self.filter_widget, 0, Qt.AlignRight)
 
         # 캘린더 헤더 생성
         self.header = CalendarHeader(set(df['Time']), parent=self)
@@ -338,6 +329,45 @@ class PlanningPage(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setAlignment(Qt.AlignTop)
+
+        self.scroll_area.setStyleSheet("""
+            QScrollBar:vertical {
+                border: none;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #CCCCCC;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                height: 10px;
+                margin: 0px;
+            }                  
+            QScrollBar::handle:horizontal {
+                background: #CCCCCC;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                border: none;
+                background: none;
+                width: 0px;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """)
 
         self.body_container = QWidget()
         self.body_layout = QVBoxLayout(self.body_container)
@@ -361,7 +391,7 @@ class PlanningPage(QWidget):
         left_l.addWidget(self.scroll_area, stretch=1)
 
         # 요약 테이블 생성, 버튼 연결
-        summary = SummaryWidget(df, parent=self)
+        summary = SummaryWidget(df, line_order=self.line_order, parent=self)
         self.stack.addWidget(summary)
 
         # try:
@@ -386,46 +416,51 @@ class PlanningPage(QWidget):
     """
     필터 기능
     """
-    def _on_filter_changed(self):
-        # 체크된 라인 목록
-        selected = [
-            cb.text() 
-            for cb in self.building_filter_widget.findChildren(QCheckBox) 
-            if cb.isChecked()
-        ]
-        
-        if selected:
-            df_filtered = self._df[
-                self._df['Line'].str.split('_').str[0].isin(selected)
-            ]
-        else:
-            # 아무것도 체크 안 하면 전체 데이터
-            df_filtered = self._df.copy()
-        
-        agg = df_filtered.groupby(['Line', 'Time', 'Project'], as_index=False)['Qty'].sum()
-        details = (
-            df_filtered.groupby(['Line', 'Time', 'Project'])
-                .apply(lambda g: g[[ 'Demand','Item','To_site','SOP','MFG','RMC','Due_LT','Qty']].to_dict('records'))
-                .to_frame('Details')
-                .reset_index()
-        )
-        df_agg = agg.merge(details, on=['Line', 'Time', 'Project'])
-        df_agg = df_agg.assign(Building = df_agg['Line'].str.split('_').str[0])
-        df_agg['BuildingTotal'] = df_agg.groupby('Building')['Qty'].transform('sum')
-        df_agg = df_agg.sort_values(
-            by=['BuildingTotal', 'Building', 'Time', 'Qty'],
-            ascending=[False, True, True, False]
-        ).reset_index(drop=True)
-        df_agg = df_agg.drop(columns=['Building', 'BuildingTotal'])
+    def _on_filter_changed(self, states: dict):
+        # 선택된 필터 리스트
+        sel_lines    = [l for l, ok in states['line'].items() if ok]
+        sel_projects = [p for p, ok in states['project'].items() if ok]
 
-        # 캘린더 위젯 교체
-        old_widget = self.body_layout.takeAt(0).widget()
-        if old_widget:
-            old_widget.deleteLater()
-        new_calendar = WeeklyCalendar(df_agg, line_order=self.line_order)
-        self.body_layout.addWidget(new_calendar, 0, Qt.AlignTop)
-        
-        # 스크롤바 여백 조정
+        df_filtered = self._df
+        if sel_lines:
+            df_filtered = df_filtered[df_filtered['Line'].isin(sel_lines)]
+        if sel_projects:
+            df_filtered = df_filtered[df_filtered['Project'].isin(sel_projects)]
+
+        # 빈 결과 
+        if df_filtered.empty:
+            df_agg = pd.DataFrame(columns=['Line','Time','Project','Qty','Details'])
+        else:
+            # Qty 집계
+            agg = df_filtered.groupby(
+                ['Line','Time','Project'], as_index=False
+            )['Qty'].sum()
+
+            # Details 생성
+            details_series = df_filtered.groupby(
+                ['Line','Time','Project']
+            ).apply(
+                lambda g: g[[
+                    'Demand','Item','To_site','SOP','MFG','RMC','Due_LT','Qty'
+                ]].to_dict('records')
+            )
+            details = details_series.to_frame('Details').reset_index()
+
+            df_agg = agg.merge(details, on=['Line','Time','Project'])
+
+        # 정렬·삭제
+        df_agg = df_agg.sort_values(
+            by=['Line','Time','Qty'], ascending=[True, True, False]
+        ).reset_index(drop=True)
+
+        old = self.body_layout.takeAt(0).widget()
+        if old:
+            old.deleteLater()
+
+        self.body_layout.addWidget(
+            WeeklyCalendar(df_agg, line_order=self.line_order),
+            0, Qt.AlignTop
+        )
         self._sync_header_margin()
 
     """

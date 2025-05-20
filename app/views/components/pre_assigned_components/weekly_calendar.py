@@ -91,7 +91,7 @@ class WeeklyCalendar(QWidget):
             line_label.setAlignment(Qt.AlignCenter)
             line_label.setStyleSheet(
                 LINE_LABEL_STYLE
-                + f" font-family:{bold_font}; font-size:{f(12)}px; font-weight:900;"
+                + f" font-family:{bold_font}; font-size:{f(14)}px; font-weight:900;"
             )
             line_label.setMaximumWidth(60)
             line_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
@@ -103,7 +103,7 @@ class WeeklyCalendar(QWidget):
                 day_label.setAlignment(Qt.AlignCenter)
                 day_label.setStyleSheet(
                     DAY_LABEL_STYLE
-                    + f" font-family:{normal_font}; font-size:{f(10)}px;"
+                    + f" font-family:{normal_font}; font-size:{f(14)}px;"
                 )
                 day_label.setMaximumWidth(80)
                 layout.addWidget(day_label, row_index, 1)
@@ -129,7 +129,7 @@ class WeeklyCalendar(QWidget):
                 night_label.setAlignment(Qt.AlignCenter)
                 night_label.setStyleSheet(
                     NIGHT_LABEL_STYLE
-                    + f" font-family:{normal_font}; font-size:{f(10)}px;"
+                    + f" font-family:{normal_font}; font-size:{f(14)}px;"
                 )
                 night_label.setMaximumWidth(80)
                 layout.addWidget(night_label, row_index, 1)

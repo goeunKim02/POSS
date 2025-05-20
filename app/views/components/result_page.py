@@ -779,7 +779,7 @@ class ResultPage(QWidget):
         
         # ─── MVC 구조 초기화 ───
         # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
-        validator = PlanAdjustmentValidator(assignment_result)
+        validator = PlanAdjustmentValidator(assignment_result,self)
         
         # 2) AssignmentModel 생성
         model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
@@ -1281,7 +1281,7 @@ class ResultPage(QWidget):
             print("[INFO] MVC 구조 초기화 시작")
             
             # 1. 검증기(Validator) 생성
-            validator = PlanAdjustmentValidator(result_data)
+            validator = PlanAdjustmentValidator(result_data,self)
             print("[INFO] 검증기 생성 완료")
             
             # 2. 사전할당 아이템 식별
@@ -1358,3 +1358,18 @@ class ResultPage(QWidget):
                 f"An error occurred while loading the file.\n{str(e)}"
             )
             return False
+        
+    """
+    현재 데이터로 분산 배치 분석 업데이트
+    """
+    def update_split_view_analysis(self, data):
+        # SplitView 탭 인스턴스 가져오기
+        split_tab = self.tab_manager.get_tab_instance('SplitView')
+        
+        if split_tab and hasattr(split_tab, 'get_widget'):
+            # SplitAllocationWidget 가져오기
+            split_widget = split_tab.get_widget()
+            
+            if split_widget and hasattr(split_widget, 'run_analysis'):
+                # 분석 실행
+                split_widget.run_analysis(data)

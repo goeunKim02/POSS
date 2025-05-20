@@ -93,13 +93,13 @@ class ItemGridWidget(QWidget):
         if column_headers:
             # 빈 헤더 셀 (첫 번째 행, 첫 번째 열 - 라인 헤더 위)
             empty_header1 = QLabel("")
-            empty_header1.setStyleSheet("background-color: transparent;")
+            empty_header1.setStyleSheet("background-color: transparent; ")
             empty_header1.setFixedWidth(w(60))
             self.grid_layout.addWidget(empty_header1, 0, 0)
 
             # 빈 헤더 셀 (첫 번째 행, 두 번째 열 - 교대 헤더 위)
             empty_header2 = QLabel("")
-            empty_header2.setStyleSheet("background-color: transparent;")
+            empty_header2.setStyleSheet(f"background-color: transparent;")
             empty_header2.setFixedWidth(w(60))
             self.grid_layout.addWidget(empty_header2, 0, 1)
 
@@ -107,7 +107,7 @@ class ItemGridWidget(QWidget):
             # 요일 넣는 곳
             for col, header in enumerate(column_headers):
                 label = QLabel(header)
-                label.setStyleSheet("font-weight: bold; padding: 5px; background-color: #F0F0F0; border: 1px solid #cccccc;")
+                label.setStyleSheet(f"font-weight: bold; padding: 5px; background-color: #F0F0F0; border: 1px solid #cccccc; margin-left: 2.5px")
                 label.setAlignment(Qt.AlignCenter)
                 # 데이터 열은 2부터 시작 (0: 라인 헤더, 1: 교대 헤더)
                 self.grid_layout.addWidget(label, 0, col + 2)
@@ -190,7 +190,7 @@ class ItemGridWidget(QWidget):
 
                     for col in range(columns):
                         container = ItemsContainer()
-                        container.setMinimumHeight(h(200))
+                        container.setMinimumHeight(h(60))
                         container.setMinimumWidth(w(214))  # 요일 너비
                         container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 
@@ -250,7 +250,7 @@ class ItemGridWidget(QWidget):
                 # 각 셀에 아이템 컨테이너 추가
                 for col in range(columns):
                     container = ItemsContainer()
-                    container.setMinimumHeight(h(200))
+                    container.setMinimumHeight(h(60))
                     container.setMinimumWidth(w(221))
                     container.setStyleSheet("border: 1px solid #D9D9D9; background-color: white;")
 

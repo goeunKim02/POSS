@@ -23,8 +23,6 @@ class AdjErrorManager():
 
         # 에러 저장소
         self.validation_errors = {}
-        self.error_items = set()
-
 
     """
     에러 관리
@@ -37,58 +35,37 @@ class AdjErrorManager():
             item_info.get('Item')
         )
 
-        # 에러 저장
-        self.validation_errors[error_key] = {
-            'item_info' : item_info,
-            'message' : error_message
-        }
+        # 기존 에러로그들을 유효한 에러로그들로만 필터링
+        updated_errors = {}
+        for key, value in self.validation_errors.items():
+            info = value['item_info']
+            line, time, item = info.get('Line'), info.get('Time'), info.get('Item')
 
-        # 에러가 있는 아이템 목록에 추가
-        item_key = item_info.get('Item')
-        if item_key:
-            self.error_items.add(item_key)
+            exists = any(
+                (self.left_section.data['Line'] == line) &
+                (self.left_section.data['Time'] == time) &
+                (self.left_section.data['Item'] == item)
+            )
+            if exists:
+                updated_errors[key] = value
+        self.validation_errors = updated_errors
+
+        # 새로운 에러 추가
+        if error_message:
+            self.validation_errors[error_key] = {
+                'item_info': item_info,
+                'message': error_message
+            }
 
         # left_section에 정보 전달
         if hasattr(self.left_section, 'set_current_validation_errors'):
             self.left_section.set_current_validation_errors(self.validation_errors)
 
-        # 에러표시 업데이트
+        # 에러 표시 업데이트
         self.update_error_display()
 
         # 해당 아이템 카드 강조
         self.highlight_error_item(item_info)
-
-        return self.validation_errors
-
-    
-    """
-    에러 제거
-    """
-    def remove_validation_error(self, item_info):
-        # 고유 키 생성
-        error_key = ItemKeyManager.get_item_key(
-            item_info.get('Line'),
-            item_info.get('Time'), 
-            item_info.get('Item')
-        )
-
-        if error_key in self.validation_errors:
-            del self.validation_errors[error_key]
-
-            # 해당 아이템에 더 이상 에러가 없다면 목록에서 제거
-            item_key = item_info.get('Item')
-            if item_key and not any(error['item_info'].get('Item') == item_key for error in self.validation_errors.values()):
-                self.error_items.discard(item_key)
-        
-        # 왼쪽 섹션에 업데이트된 검증 에러 정보 전달
-        if hasattr(self.left_section, 'set_current_validation_errors'):
-            self.left_section.set_current_validation_errors(self.validation_errors)
-
-        # 에러 표시 업데이트
-        self.update_error_display()
-        
-        # 아이템 카드 강조 해제
-        self.remove_item_highlight(item_info)
 
         return self.validation_errors
     
@@ -117,8 +94,22 @@ class AdjErrorManager():
             """)
             self.error_display_layout.addWidget(no_error_message)
             return
+        
+        # 기존 에러로그들을 유효한 에러로그들로만 필터링
+        updated_errors = {}
+        for key, value in self.validation_errors.items():
+            info = value['item_info']
+            line, time, item = info.get('Line'), info.get('Time'), info.get('Item')
+            exists = any(
+                (self.left_section.data['Line'] == line) &
+                (self.left_section.data['Time'] == time) &
+                (self.left_section.data['Item'] == item)
+            )
+            if exists:
+                updated_errors[key] = value
+        self.validation_errors = updated_errors
 
-        # 각 에러 표시
+        # 각 에러위젯 추가
         for error_key, error_info in self.validation_errors.items():
             error_widget = self.create_error_item_widget(error_info)
             self.error_display_layout.addWidget(error_widget)
@@ -195,12 +186,6 @@ class AdjErrorManager():
     def get_validation_errors(self):
         return self.validation_errors.copy()
 
-    """
-    에러가 있는 아이템 목록 반환
-    """
-    def get_error_items(self):
-        return self.error_items.copy()
-    
     """
     에러 여부 확인
     """
