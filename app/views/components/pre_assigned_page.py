@@ -25,7 +25,7 @@ normal_font = font_manager.get_just_font("SamsungOne-700").family()
 def create_button(text, style="primary", parent=None):
     btn = QPushButton(text, parent)
     btn.setCursor(QCursor(Qt.PointingHandCursor))
-    btn.setFixedSize(100, 40)
+    btn.setFixedSize(w(100), h(40))
     btn.setStyleSheet(
         (PRIMARY_BUTTON_STYLE if style == "primary" else SECONDARY_BUTTON_STYLE)
         + f" font-family:{normal_font}; font-size:{f(14)}px;"
