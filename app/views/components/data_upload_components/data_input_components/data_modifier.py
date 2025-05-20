@@ -181,6 +181,7 @@ class DataModifier:
                 # 사이드바에 수정 표시 갱신
                 self.update_modified_status_in_sidebar(file_path, sheet_name)
 
+                # 분석 실행
                 try:
                     self.parent.run_combined_analysis()
                 except Exception as e:
