@@ -64,6 +64,23 @@ class LegendWidget(QWidget):
                 border: none;
             }
         """)
+
+    """
+    필터 상태 직접 설정 (UI도 함께 업데이트)
+    """
+    def set_filter_states(self, filter_states):
+        if not filter_states:
+            return
+            
+        # 상태 업데이트
+        self.filter_states = filter_states.copy()
+        
+        # 체크박스 UI 업데이트
+        for status_type, checkbox in self.checkbox_map.items():
+            if status_type in filter_states:
+                is_checked = filter_states[status_type]
+                if checkbox.isChecked() != is_checked:
+                    checkbox.setChecked(is_checked)
         
     """개별 범례 항목 생성"""
     def create_legend_item(self, layout, label_text, color, status_type):
