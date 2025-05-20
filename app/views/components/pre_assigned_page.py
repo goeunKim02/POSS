@@ -16,6 +16,9 @@ from app.utils.export_manager import ExportManager
 from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
 
+bold_font = font_manager.get_just_font("SamsungSharSans-Bold").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
+
 """
 공통으로 사용하는 버튼 생성 함수
 """
@@ -24,7 +27,8 @@ def create_button(text, style="primary", parent=None):
     btn.setCursor(QCursor(Qt.PointingHandCursor))
     btn.setFixedSize(100, 40)
     btn.setStyleSheet(
-        PRIMARY_BUTTON_STYLE if style == "primary" else SECONDARY_BUTTON_STYLE
+        (PRIMARY_BUTTON_STYLE if style == "primary" else SECONDARY_BUTTON_STYLE)
+        + f" font-family:{normal_font}; font-size:{f(14)}px;"
     )
     return btn
 
@@ -44,9 +48,6 @@ class PlanningPage(QWidget):
         # 메인 레이아웃 (타이틀 + 버튼)
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setAlignment(Qt.AlignTop)
-
-        bold_font = font_manager.get_just_font("SamsungSharSans-Bold").family()
-        normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
         title_hbox = QHBoxLayout()
         title_hbox.setContentsMargins(0, 0, 0, 0)
@@ -90,6 +91,7 @@ class PlanningPage(QWidget):
         # placeholder: 데이터 없을 때 문구
         self.placeholder_label = QLabel("Please Load to Data", self.leftContainer)
         self.placeholder_label.setAlignment(Qt.AlignCenter)
+        self.placeholder_label.setStyleSheet(f"font-family:{normal_font}; font-size:{f(16)}px;")
         left_l.addWidget(self.placeholder_label, stretch=1)
 
         # RIGHT: 요약 테이블 영역
@@ -207,6 +209,9 @@ class PlanningPage(QWidget):
 
         self.placeholder_label = QLabel("Please Load to Data", self.leftContainer)
         self.placeholder_label.setAlignment(Qt.AlignCenter)
+        self.placeholder_label.setStyleSheet(
+            f"font-family:{normal_font}; font-size:{f(16)}px;"
+        )
         self.leftContainer.layout().addWidget(self.placeholder_label, stretch=1)
 
         self._range_connected = False
@@ -319,6 +324,9 @@ class PlanningPage(QWidget):
         df_layout.setContentsMargins(0,0,0,0)
         for b in buildings:
             cb = QCheckBox(b, self.building_filter_widget)
+            cb.setStyleSheet(
+                f"font-family:{normal_font}; font-size:{f(12)}px;"
+            )
             cb.stateChanged.connect(self._on_filter_changed)
             df_layout.addWidget(cb)
         self.leftContainer.layout().addWidget(self.building_filter_widget, stretch=0)

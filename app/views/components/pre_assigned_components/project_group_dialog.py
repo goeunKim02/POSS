@@ -7,8 +7,12 @@ from PyQt5.QtWidgets import (
     QLabel, QFrame, QScrollArea, QWidget, QPushButton, QProgressBar,
     QStackedLayout, QApplication
 )
-from ....resources.styles.pre_assigned_style import DETAIL_DIALOG_STYLE
 from .processThread import ProcessThread
+from app.models.common.screen_manager import *
+from app.resources.fonts.font_manager import font_manager
+
+bold_font   = font_manager.get_just_font("SamsungSharSans-Bold").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
 class ProjectGroupDialog(QDialog):
     # 최적화 완료 시 결과를 전달하기 위한 시그널
@@ -43,8 +47,9 @@ class ProjectGroupDialog(QDialog):
         title_layout.setContentsMargins(20, 0, 20, 0)
         title_layout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         title_label = QLabel("Select Project Groups")
-        title_label.setFont(QFont("Arial", 14, QFont.Bold))
-        title_label.setStyleSheet("color: white;")
+        title_label.setStyleSheet(
+            f"font-family:{bold_font}; font-size:{f(14)}px; font-weight:900; color:white;"
+        )
         title_layout.addWidget(title_label)
         main_layout.addWidget(title_frame)
 
@@ -69,8 +74,10 @@ class ProjectGroupDialog(QDialog):
         )
         self.desc_label.setFixedHeight(40)
         self.desc_label.setAlignment(Qt.AlignCenter)
-        self.desc_label.setFont(QFont("Arial", 12, QFont.Bold))
-        self.desc_label.setStyleSheet("color: #333333; padding: 10px;")
+        self.desc_label.setStyleSheet(
+            f"font-family:{bold_font}; font-size:{f(12)}px; font-weight:900; "
+            "color:#333333; padding:10px;"
+        )
         pd_layout.addWidget(self.desc_label)
         self.desc_stack.addWidget(page_desc)
 
@@ -82,22 +89,23 @@ class ProjectGroupDialog(QDialog):
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setStyleSheet("""
-           QProgressBar {
-               border: 2px solid #E0E0E0;
-               border-radius: 8px;
-               background-color: white;
-               text-align: center;
-               height: 40px;
-               font-size: 11px;
-               font-weight: bold;
-               color: #333333;
-           }
-           QProgressBar::chunk {
+        self.progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                font-family:{normal_font};
+                font-size:{f(11)}px;
+                font-weight:900;
+                border:2px solid #E0E0E0;
+                border-radius:8px;
+                background-color:white;
+                text-align:center;
+                height:40px;
+                color:#333333;
+            }}
+           QProgressBar::chunk {{
                background-color: #1428A0;
                border-radius: 6px;
                margin: 2px;
-           }
+           }}
         """)
         pp_layout.addWidget(self.progress_bar)
         pp_layout.setStretch(pp_layout.indexOf(self.progress_bar), 1)
@@ -109,8 +117,10 @@ class ProjectGroupDialog(QDialog):
         # 남은 시간
         self.time_label = QLabel("remaining time: 0:00")
         self.time_label.setAlignment(Qt.AlignCenter)
-        self.time_label.setFont(QFont("Arial", 10))
-        self.time_label.setStyleSheet("color: #666666; background-color: #F5F5F5;")
+        self.time_label.setStyleSheet(
+            f"font-family:{normal_font}; font-size:{f(10)}px; "
+            "color:#666666; background-color:#F5F5F5;"
+        )
         self.time_label.hide()
         main_layout.addWidget(self.time_label)
 
@@ -123,20 +133,21 @@ class ProjectGroupDialog(QDialog):
         self.checkboxes = {}
         for gid, projects in project_groups.items():
             cb = QCheckBox(", ".join(projects))
-            cb.setStyleSheet("""
-                QCheckBox {
-                    font-size: 11pt;
-                    color: #333333;
-                    padding: 8px;
-                }
-                QCheckBox::indicator {
+            cb.setStyleSheet(f"""
+                QCheckBox {{
+                    font-family:{normal_font};
+                    font-size:{f(11)}px;
+                    color:#333333;
+                    padding:8px;
+                }}
+                QCheckBox::indicator {{
                     width: 18px;
                     height: 18px;
-                }
-                QCheckBox:hover {
+                }}
+                QCheckBox:hover {{
                     background-color: #f0f0f0;
                     border-radius: 4px;
-                }
+                }}
             """)
             cb.stateChanged.connect(self._update_ok_button)
             checkbox_layout.addWidget(cb)
@@ -175,18 +186,21 @@ class ProjectGroupDialog(QDialog):
         self.ok_button.setFixedSize(100, 40)
         ok_font = QFont("Arial", 11); ok_font.setBold(True)
         self.ok_button.setFont(ok_font)
-        self.ok_button.setStyleSheet("""
-            QPushButton {
-                background-color: #1428A0;
-                color: white;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: #1e429f;
-            }
-            QPushButton:disabled {
-                background-color: #ACACAC;
-            }
+        self.ok_button.setStyleSheet(f"""
+            QPushButton {{
+                font-family:{bold_font};
+                font-size:{f(11)}px;
+                font-weight:900;
+                background-color:#1428A0;
+                color:white;
+                border-radius:8px;
+            }}
+            QPushButton:hover {{
+                background-color:#1e429f;
+            }}
+            QPushButton:disabled {{
+                background-color:#ACACAC;
+            }}
         """)
         self.ok_button.clicked.connect(self._on_ok_clicked)
         self.ok_button.setEnabled(False)
@@ -198,15 +212,18 @@ class ProjectGroupDialog(QDialog):
         self.cancel_button.setFixedSize(100, 40)
         can_font = QFont("Arial", 11); can_font.setBold(True)
         self.cancel_button.setFont(can_font)
-        self.cancel_button.setStyleSheet("""
-            QPushButton {
-                background-color: #6C757D;
-                color: white;
-                border-radius: 8px;
-            }
-            QPushButton:hover {
-                background-color: #545B62;
-            }
+        self.cancel_button.setStyleSheet(f"""
+            QPushButton {{
+                font-family:{bold_font};
+                font-size:{f(11)}px;
+                font-weight:900;
+                background-color:#6C757D;
+                color:white;
+                border-radius:8px;
+            }}
+            QPushButton:hover {{
+                background-color:#545B62;
+            }}
         """)
         self.cancel_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.cancel_button.clicked.connect(self.reject)

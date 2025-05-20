@@ -3,6 +3,7 @@ from app.models.common.screen_manager import *
 from app.resources.fonts.font_manager import font_manager
 
 button_font = font_manager.get_just_font("SamsungOne-700").family()
+normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
 PRIMARY_BUTTON_STYLE = f"""
 QPushButton {{
@@ -43,41 +44,49 @@ QPushButton:pressed {{
 }}
 """
 
-ACTIVE_BUTTON_STYLE = """
-    QPushButton {
+ACTIVE_BUTTON_STYLE = f"""
+    QPushButton {{
         background-color: #1428A0; 
         color: white; 
         font-weight: bold; 
         padding: 8px 8px; 
         border-radius: 4px;
-    }
-    QPushButton:disabled {
+        font-family: {normal_font};
+        font-size: {f(14)}px;
+    }}
+    QPushButton:disabled {{
         background-color: #1428A0; 
         color: white; 
         font-weight: bold; 
         padding: 8px 8px; 
         border-radius: 4px;
-    }
+        font-family: {normal_font};
+        font-size: {f(14)}px;
+    }}
 """
 
-INACTIVE_BUTTON_STYLE = """
-    QPushButton {
+INACTIVE_BUTTON_STYLE = f"""
+    QPushButton {{
         background-color: #8E9CC9; 
         color: white; 
         font-weight: bold; 
         padding: 8px 8px; 
         border-radius: 4px;
-    }
-    QPushButton:disabled {
+        font-family: {normal_font};
+        font-size: {f(14)}px;
+    }}
+    QPushButton:disabled {{
         background-color: #8E9CC9; 
         color: white; 
         font-weight: bold; 
         padding: 8px 8px; 
         border-radius: 4px;
-    }
-    QPushButton:hover {
+        font-family: {normal_font};
+        font-size: {f(14)}px;
+    }}
+    QPushButton:hover {{
         background-color: #1428A0;
-    }
+    }}
 """
 
 # 캘린더 헤더의 요일 레이블 스타일
