@@ -1,6 +1,6 @@
 import pandas as pd
 from app.utils.fileHandler import load_file
-from app.models.common.file_store import FilePaths
+from app.models.common.file_store import FilePaths, DataStore
 from app.utils.error_handler import (
     error_handler, safe_operation, DataError, FileError
 )
@@ -17,15 +17,19 @@ def process_data():
         etc_file_path = FilePaths.get("etc_excel_file")
     except Exception as e :
         raise FileError('Error getting file path', {'error' : str(e)})
+    
+    dfs = DataStore.get("dataframes", {})
 
     if demand_file_path:
         try :
-            df_demand = safe_operation(load_file, "Error loading demand file", demand_file_path)
-
-            if df_demand is None :
-                raise FileError('Unable to load demand file', {'file_path' : demand_file_path})
-
-            df_demand_demand = df_demand.get('demand', pd.DataFrame())  # demand 파일의 demand 시트
+            key_d = f"{demand_file_path}:demand"
+            if key_d in dfs:
+                df_demand_demand = dfs[key_d]
+            else:
+                df_demand = safe_operation(load_file, "Error loading demand file", demand_file_path)
+                if df_demand is None :
+                    raise FileError('Unable to load demand file', {'file_path' : demand_file_path})
+                df_demand_demand = df_demand.get('demand', pd.DataFrame())
 
             if df_demand_demand.empty :
                 raise DataError('The demand data sheet is empty or not found')
@@ -45,14 +49,28 @@ def process_data():
 
     if master_file_path:
         try :
-            df_master = safe_operation(load_file, 'Error loading master file', master_file_path)
+            key_la = f"{master_file_path}:line_available"
+            key_cp = f"{master_file_path}:capa_portion"
+            key_cq = f"{master_file_path}:capa_qty"
 
-            if df_master is None :
-                raise FileError('Unable to load master file', {'file_path' : master_file_path})
-            
-            df_master_line_available = df_master.get('line_available', pd.DataFrame()) # master 파일의 line_available 시트
-            df_master_capa_portion = df_master.get('capa_portion', pd.DataFrame()) # master 파일의 capa_portion 시트
-            df_master_capa_qty = df_master.get('capa_qty', pd.DataFrame()) # master 파일의 capa_qty 시트
+            raw_master = None
+            if not (key_la in dfs and key_cp in dfs and key_cq in dfs):
+                raw_master = safe_operation(load_file, 'Error loading master file', master_file_path)
+                if raw_master is None:
+                    raise FileError('Unable to load master file', {'file_path': master_file_path})
+
+            df_master_line_available = dfs.get(
+                key_la,
+                raw_master.get('line_available', pd.DataFrame()) if raw_master else pd.DataFrame()
+            )
+            df_master_capa_portion = dfs.get(
+                key_cp,
+                raw_master.get('capa_portion', pd.DataFrame()) if raw_master else pd.DataFrame()
+            )
+            df_master_capa_qty = dfs.get(
+                key_cq,
+                raw_master.get('capa_qty', pd.DataFrame()) if raw_master else pd.DataFrame()
+            )
 
             if demand_file_path:
                 time = {i for i in df_master_capa_qty.columns}
