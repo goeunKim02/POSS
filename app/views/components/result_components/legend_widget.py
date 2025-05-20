@@ -1,12 +1,17 @@
 from PyQt5.QtWidgets import (QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
                              QCheckBox, QFrame, QSizePolicy)
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont, QColor
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.screen_manager import *
 
 """범례 및 필터 위젯"""
 class LegendWidget(QWidget):
+
+    # 클래스 변수로 색상 미리 정의
+    COLOR_SHORTAGE = QColor("#ff6e63")  # 빨간색
+    COLOR_SHIPMENT = QColor("#fcc858")  # 주황색
+    COLOR_PRE_ASSIGNED = QColor("#a8bbf0")  # 파란색
 
     # 필터 변경 시그널
     filter_changed = pyqtSignal(dict)  # {status_type: is_checked}
@@ -14,12 +19,19 @@ class LegendWidget(QWidget):
     # 특정 필터 활성화 요청 시그널 추가
     filter_activation_requested = pyqtSignal(str)  # status_type
 
-    
+    """필터 변경 시 호출"""
     def on_filter_changed(self, status_type, is_checked):
+        # 이전 상태와 동일하면 불필요한 처리 방지
+        if self.filter_states.get(status_type) == is_checked:
+            return
+        
+        # 상태 업데이트
         self.filter_states[status_type] = is_checked
+        
+        # 필터 변경 신호 발생
         self.filter_changed.emit(self.filter_states.copy())
         
-        # 필터가 활성화되면 해당 상태 분석 요청 시그널 발생
+        # 필터가 활성화되면 해당 상태 분석 요청 
         if is_checked:
             self.filter_activation_requested.emit(status_type)
 
