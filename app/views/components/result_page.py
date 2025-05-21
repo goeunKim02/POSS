@@ -86,14 +86,6 @@ class ResultPage(QWidget):
         title_label.setStyleSheet(f"font-family: {bold_font}; font-size: {f(21)}px; font-weight: 900;")
         title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
 
-        # Import 버튼 (새로 추가)
-        import_btn = QPushButton()
-        import_btn.setText("Import")
-        import_btn.setFixedSize(w(100), h(40))
-        import_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        import_btn.clicked.connect(self.load_result_file)  # 위에서 작성한 메서드 연결
-        import_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
-
         # Export 버튼
         export_btn = QPushButton("Export")
         export_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -109,7 +101,6 @@ class ResultPage(QWidget):
 
         title_layout.addWidget(title_label)
         title_layout.addStretch(1)
-        title_layout.addWidget(import_btn)
         title_layout.addWidget(export_btn)
         title_layout.addWidget(report_btn)
 
@@ -156,13 +147,12 @@ class ResultPage(QWidget):
         kpi_frame.setStyleSheet("background-color: white; border:2px solid #cccccc;")
 
         kpi_layout = QGridLayout(kpi_frame)
-        kpi_layout.setContentsMargins(10, 10, 10, 10)
-        kpi_layout.setSpacing(10)
+        kpi_layout.setContentsMargins(0, 10, 0, 0)
+        kpi_layout.setSpacing(0)
 
         # KPI 제목
         kpi_title = QLabel("KPI Score")
-        kpi_title.setFont(QFont("Arial", 14, QFont.Bold))
-        kpi_title.setStyleSheet("color: #333; border: none;")
+        kpi_title.setStyleSheet(f"color: #333; border: none;font-family: {bold_font}; font-size: {f(14)}px;font-weight: bold; margin-left:{10}px;")
         kpi_layout.addWidget(kpi_title)
 
         # KPI 위젯 영역 (계산된 점수들이 들어갈 공간)
