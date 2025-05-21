@@ -402,7 +402,9 @@ class DataInputPage(QWidget) :
     def on_optimization_completed(self, result):
         """최적화 완료 처리"""
         if result:
-            # 결과를 전달하는 대신, run_button_clicked 시그널을 발생시킵니다
+            # 결과 데이터스토어에 저장
+            DataStore.set("optimization_result", result)
+            # 이미 구현된 방식 그대로 시그널 발생
             self.run_button_clicked.emit()
         else:
             QMessageBox.warning(

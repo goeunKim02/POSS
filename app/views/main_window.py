@@ -226,7 +226,25 @@ class MainWindow(QMainWindow):
         show_dialog=True,
         default_return=None
     )
+    @error_handler(
+        show_dialog=True,
+        default_return=None
+    )
     def on_run_button_clicked(self):
+        """Run 버튼이 클릭되면 DataStore에서 데이터프레임 가져와 사용"""
+        # 먼저 DataStore에서 이미 최적화된 결과가 있는지 확인
+        optimization_result = DataStore.get("optimization_result")
+
+        if optimization_result and 'result' in optimization_result:
+            # 이미 계산된 결과가 있으면 그것을 사용
+            df = optimization_result['result']
+            self.planning_page.display_preassign_result(df)
+            self.navigate_to_page(1)
+            # 사용 후 결과 삭제 (중복 처리 방지)
+            DataStore.set("optimization_result", None)
+            return
+
+        # 아래는 기존 코드: 저장된 최적화 결과가 없을 경우에만 실행
         demand_file = FilePaths.get("demand_excel_file")
         dynamic_file = FilePaths.get("dynamic_excel_file")
         master_file = FilePaths.get("master_excel_file")
@@ -240,10 +258,10 @@ class MainWindow(QMainWindow):
 
         all_dataframes = DataStore.get("organized_dataframes", {})
 
-        if not all_dataframes :
+        if not all_dataframes:
             raise DataError('No dataframes available for optimization')
 
-        try :
+        try:
             optimization = Optimization(all_dataframes)
 
             if hasattr(optimization, 'set_data') and callable(getattr(optimization, 'set_data')):
@@ -258,7 +276,7 @@ class MainWindow(QMainWindow):
             'Error during pre-assignment optimization'
         )
 
-        if not result_dict or 'result' not in result_dict :
+        if not result_dict or 'result' not in result_dict:
             raise CalculationError('Pre-assignment optimization failed or returned invalid results')
 
         df = result_dict['result']
