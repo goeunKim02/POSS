@@ -1798,11 +1798,6 @@ class ModifiedLeftSection(QWidget):
                 
                 # 검색 실행
                 self.search_items(current_search_text)
-            
-
-            # 검색 결과가 있었던 경우 검색 UI 즉시 복원
-            if self.search_active and self.last_search_text:
-                self.search_items_without_clear()
 
             # 출하 분석도 즉시 업데이트
             self.trigger_shipment_analysis()
