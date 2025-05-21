@@ -977,7 +977,7 @@ class ModifiedLeftSection(QWidget):
 
         # 모델 변경 시그널 연결
         if self.controller and hasattr(self.controller.model, 'modelDataChanged'):
-            self.controller.model.modelDataChanged.connect(self.update_from_model)
+            self.controller.model.modelDataChanged.connect(self.update_from_model, Qt.UniqueConnection)
             print("ModifiedLeftSection: 모델 변경 시그널 연결 완료")
 
     """

@@ -70,35 +70,9 @@ class AdjustmentController(QObject):
             print("Controller: 시그널이 이미 연결되어 있어 중복 연결을 방지합니다.")
             return False
         
-        # Model -> Error Manager
+        # Model 관련 시그널
         self.model.validationFailed.connect(self.error_manager.add_validation_error)
-        print("Controller: 에러 매니저 시그널 연결")
-        
-        # Model -> Controller (데이터 변경 시)
         self.model.modelDataChanged.connect(self._on_model_data_changed)
-        print("Controller: modelDataChanged 시그널 연결")
-        
-        # View -> Controller (아이템 데이터 변경)
-        if hasattr(self.view, 'itemModified'):
-            print("Controller: itemModified 시그널 연결")
-            self.view.itemModified.connect(self._on_item_data_changed)
-        
-        # View -> Controller (셀 이동)  
-        if hasattr(self.view, 'cellMoved'):
-            print("Controller: cellMoved 시그널 연결")
-            self.view.cellMoved.connect(self._on_cell_moved)
-
-        # View -> Controller (아이템 삭제) - 이 부분이 추가되어야 함
-        if hasattr(self.view, 'grid_widget') and hasattr(self.view.grid_widget, 'itemRemoved'):
-            print("Controller: itemRemoved 시그널 연결")
-            self.view.grid_widget.itemRemoved.connect(self.on_item_deleted)
-        
-        # View -> Controller (아이템 복사)
-        if hasattr(self.view, 'grid_widget') and hasattr(self.view.grid_widget, 'itemCopied'):
-            print("Controller: itemCopied 시그널 연결")
-            self.view.grid_widget.itemCopied.connect(self.on_item_copied)
-
-        # 모델의 데이터 변경 상태 시그널 연결
         if hasattr(self.model, 'dataModified'):
             self.model.dataModified.connect(self.on_data_modified)
 
@@ -165,6 +139,9 @@ class AdjustmentController(QObject):
             elif hasattr(self.result_page, 'on_data_changed'):
                 print("Controller: result_page.on_data_changed 호출")
                 self.result_page.on_data_changed(df)
+
+        self.result_page.planMaintenanceWidget.refresh(self.model.data)
+        self.result_page.kpiWidget.refresh(self.model.data)
         
         self.error_manager.update_error_display()
 
@@ -329,3 +306,48 @@ class AdjustmentController(QObject):
     def on_data_modified(self, has_changes: bool):
         if hasattr(self.view, 'reset_button'):
             self.view.reset_button.setEnabled(has_changes)
+
+    """
+    view에서 전달되는 change_type 에 따라
+    add/modify/remove/move/copy를 각각 처리
+    """
+    def handle_item_change(self, change_type: str, payload: dict):
+        if change_type == 'add':
+            self.model.add_new_item(
+                payload['Item'],
+                payload['Line'],
+                payload['Time'],
+                payload.get('Qty', 0),
+                payload
+            )
+        elif change_type == 'modify':
+            self.model.update_qty(
+                payload['Item'],
+                payload['Line'],
+                payload['Time'],
+                payload.get('Qty', None),
+                payload['itemId']
+            )
+        elif change_type == 'remove':
+            self.model.delete_item_by_id(payload['itemId'])
+        elif change_type == 'move':
+            self.model.move_item(
+                payload['Item'],
+                payload['fromLine'],
+                payload['fromTime'],
+                payload['toLine'],
+                payload['toTime'],
+                payload['itemId']
+            )
+        elif change_type == 'copy':
+            self.model.add_new_item(
+                payload['Item'],
+                payload['Line'],
+                payload['Time'],
+                payload.get('Qty', 0),
+                payload
+            )
+        df = self.model.get_dataframe()
+        self.view.update_from_model(df)
+        if self.result_page:
+            self.result_page.update_ui_from_model(df)

@@ -111,7 +111,6 @@ class MaterialWidget(QWidget):
         
         # 마우스 트래킹 및 이벤트 연결
         self.shortage_items_table.setMouseTracking(True)
-        self.shortage_items_table.cellEntered.connect(self.show_shortage_tooltip)
         
         # 초기 메시지 설정 (영어로 변경)
         self.set_initial_message("Loading material shortage data...")

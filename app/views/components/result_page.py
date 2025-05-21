@@ -60,9 +60,6 @@ class ResultPage(QWidget):
 
 
         self.init_ui()
-        print("\n==== ResultPage: connect_signals 호출 시작 ====")
-        self.connect_signals()
-        print("==== ResultPage: connect_signals 호출 완료 ====\n")
 
     def init_ui(self):
         bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
@@ -133,9 +130,6 @@ class ResultPage(QWidget):
         # 드래그 가능한 테이블 위젯 추가
         self.left_section = ModifiedLeftSection()
         self.left_section.parent_page = self  # 명시적 참조 설정
-
-        # 시그널 연결
-        self.left_section.viewDataChanged.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
 
         left_layout.addWidget(self.left_section)
         
@@ -294,12 +288,11 @@ class ResultPage(QWidget):
     def set_controller(self, controller, defer_signal=False):
         self.controller = controller
         print("ResultPage: 컨트롤러 설정됨")
-        print("ResultPage: 컨트롤러 설정됨")
 
         # defer_signal=True일 경우, 연결을 나중에 호출자가 수동으로 하도록 함
         if not defer_signal:
             if hasattr(controller.model, 'modelDataChanged'):
-                controller.model.modelDataChanged.connect(self.update_ui_from_model)
+                controller.model.modelDataChanged.connect(self.update_ui_from_model, Qt.UniqueConnection)
                 print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
 
     """
@@ -321,7 +314,6 @@ class ResultPage(QWidget):
         
         # 테이블 이벤트 연결
         self.shortage_items_table.setMouseTracking(True)
-        self.shortage_items_table.cellEntered.connect(self.show_shortage_tooltip)
         
         material_layout.addWidget(self.shortage_items_table)
         layout.addWidget(material_page)
@@ -350,7 +342,6 @@ class ResultPage(QWidget):
         shipment_tab = self.tab_manager.get_tab_instance('Shipment')
         if shipment_tab:
             self.shipment_widget = shipment_tab.shipment_widget
-            self.shipment_widget.shipment_status_updated.connect(self.on_shipment_status_updated)
 
         # SplitView 위젯 
         splitview_tab = self.tab_manager.get_tab_instance('SplitView')
@@ -367,10 +358,6 @@ class ResultPage(QWidget):
             self.material_widget = material_tab.get_widget() if hasattr(material_tab, 'get_widget') else None
             self.shortage_items_table = material_tab.get_table()
 
-            # 자재 부족 정보 업데이트 시그널 연결
-            if hasattr(self.material_widget, 'material_shortage_updated'):
-                self.material_widget.material_shortage_updated.connect(self.on_material_shortage_updated)
-
         # 캔버스 리스트 설정
         capa_tab = self.tab_manager.get_tab_instance('Capa')
         if capa_tab:
@@ -380,24 +367,14 @@ class ResultPage(QWidget):
     이벤트 시그널 연결
     """
     def connect_signals(self):
-        if hasattr(self, 'controller') and self.controller:
-            # MVC 컨트롤러가 있는 경우: 컨트롤러만 사용
-            print("MVC 모드: 컨트롤러를 통한 처리만 활성화")
-            
-            # 모델 변경 -> UI 업데이트 연결 설정 (필요한 기능)
-            if hasattr(self.controller.model, 'modelDataChanged'):
-                self.controller.model.modelDataChanged.connect(self.update_ui_from_model)
-                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
-        else:
-            # MVC 컨트롤러가 없는 경우: 레거시 직접 처리 방식 사용
-            print("레거시 모드: 직접 처리 방식 활성화")
-            if hasattr(self, 'left_section') and hasattr(self.left_section, 'viewDataChanged'):
-                self.left_section.viewDataChanged.connect(self.on_data_changed)
-            
-            # 컨트롤러가 없을 때만 레거시 이벤트 핸들러 연결
-            if hasattr(self, 'left_section') and hasattr(self.left_section, 'itemModified'):
-                self.left_section.itemModified.connect(self.on_item_data_changed_legacy)
-                        
+        # MVC 컨트롤러가 있는 경우: 컨트롤러만 사용
+        print("MVC 모드: 컨트롤러를 통한 처리만 활성화")
+        
+        # 모델 변경 -> UI 업데이트 연결 설정 (필요한 기능)
+        if hasattr(self.controller.model, 'modelDataChanged'):
+            self.controller.model.modelDataChanged.connect(self.update_ui_from_model, Qt.UniqueConnection)
+            print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
+
     """
     시각화 페이지 전환 및 버튼 스타일 업데이트
     """
@@ -547,6 +524,15 @@ class ResultPage(QWidget):
             self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
         if hasattr(self.left_section, 'shipment_failure_items') and self.left_section.shipment_failure_items:
             self.left_section.apply_shipment_failure_status()
+
+        if self.kpi_widget:
+            self.kpi_widget.refresh(data)
+
+        if self.plan_maintenance_widget:
+            self.plan_maintenance_widget.refresh(data)
+
+        if self.split_allocation_widget:
+            self.split_allocation_widget.refresh(data)
 
         try:
             if data is not None and not data.empty:
@@ -1145,36 +1131,6 @@ class ResultPage(QWidget):
         # 조정이 없으면 Adjust 점수 초기화
         if not has_user_adjustments:
             self.kpi_widget.update_scores(adjust_scores={})
-                
-    """
-    MVC 외의 아이템 변경 처리 (로깅, 통계 등)
-    """
-    def on_item_data_changed_legacy(self, item, new_data):
-        # 위치 변경에 의한 호출인지 확인
-        if hasattr(item, '_is_position_change'):
-            return
-        
-        # 수량 변경이 있는 경우 계획 유지율 위젯 업데이트
-        if 'Qty' in new_data and pd.notna(new_data['Qty']):
-            line = new_data.get('Line')
-            time = new_data.get('Time')
-            item_code = new_data.get('Item')
-            new_qty = new_data.get('Qty')
-
-            # 값 변환 및 검증
-            try:
-                time = int(time) if time is not None else None
-                new_qty = int(float(new_qty)) if new_qty is not None else None
-            except (ValueError, TypeError):
-                print(f"시간 또는 수량 변환 오류: time={time}, qty={new_qty}")
-                return
-
-            if all([line, time is not None, item_code, new_qty is not None]):
-                # 계획 유지율 위젯 업데이트
-                if hasattr(self, 'plan_maintenance_widget'):
-                    print(f"계획 유지율 위젯 수량 업데이트: {line}, {time}, {item_code}, {new_qty}")
-                    self.plan_maintenance_widget.update_quantity(line, time, item_code, new_qty)
-
 
     """
     MVC 모델로부터 UI 업데이트하는 메서드

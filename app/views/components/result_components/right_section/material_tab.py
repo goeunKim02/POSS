@@ -25,9 +25,6 @@ class MaterialTab(QWidget):
         # 부모의 material_analyzer 참조 설정 (호환성)
         if hasattr(self.parent_page, 'material_analyzer'):
             self.material_widget.set_material_analyzer(self.parent_page.material_analyzer)
-        
-        # 자재 부족 정보 업데이트 시그널 연결
-        self.material_widget.material_shortage_updated.connect(self.on_material_shortage_updated)
     
     """자재 부족 정보가 업데이트되었을 때 호출되는 핸들러"""
     def on_material_shortage_updated(self, shortage_results):

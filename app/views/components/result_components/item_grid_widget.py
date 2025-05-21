@@ -198,7 +198,7 @@ class ItemGridWidget(QWidget):
                         container.itemSelected.connect(self.on_item_selected)
 
                         # 아이템 데이터 변경 이벤트 연결
-                        container.itemDataChanged.connect(self.on_item_data_changed)
+                        container.itemsChanged.connect(self.on_item_data_changed)
 
                         # 아이템 복사 이벤트 연결
                         container.itemCopied.connect(self.on_item_copied)
@@ -258,7 +258,7 @@ class ItemGridWidget(QWidget):
                     container.itemSelected.connect(self.on_item_selected)
 
                     # 아이템 데이터 변경 이벤트 연결
-                    container.itemDataChanged.connect(self.on_item_data_changed)
+                    container.itemsChanged.connect(self.on_item_data_changed)
 
                     # 아이템 복사 이벤트 연결
                     container.itemCopied.connect(self.on_item_copied)
