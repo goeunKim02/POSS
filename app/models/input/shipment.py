@@ -1,5 +1,5 @@
 import pandas as pd
-from app.models.common.file_store import FilePaths
+from app.models.common.file_store import FilePaths, DataStore
 from app.utils.fileHandler import load_file
 from app.utils.error_handler import (
     error_handler, safe_operation,
@@ -29,29 +29,37 @@ def preprocess_data_for_fulfillment_rate() :
             raise FileError('Demand file path not found', {'file_type' : 'demand_excel_file'})
             
 
-        master_data = safe_operation(load_file, 'Error loading master file', master_file_path)
-        material_data = safe_operation(load_file, 'Error loading material file', material_file_path)
-        demand_data = safe_operation(load_file, 'Error loading demand file', demand_file_path)
+        dfs = DataStore.get("dataframes", {})
+        key_due = f"{master_file_path}:due_LT"
+        key_line = f"{master_file_path}:line_available"
+        key_cap = f"{master_file_path}:capa_qty"
+        key_matq = f"{material_file_path}:material_qty"
+        key_mati = f"{material_file_path}:material_item"
+        key_mate = f"{material_file_path}:material_equal"
+        key_dem = f"{demand_file_path}:demand"
 
-        if master_data is None :
-            raise FileError('Failed to load master file', {'file_path' : master_file_path})
-        
-        if material_data is None :
-            raise FileError('Failed to load material file', {'file_path' : material_file_path})
-        
-        if demand_data is None :
-            raise FileError('Failed to load demand file', {'file_path' : demand_file_path})
+        raw_master = None
+        if not (key_due in dfs and key_line in dfs and key_cap in dfs):
+            raw_master = safe_operation(load_file, 'Error loading master file', master_file_path)
 
-        df_demand = demand_data.get('demand', pd.DataFrame())
-        df_due_lt = master_data.get('due_LT', pd.DataFrame())
-        df_line_available = master_data.get('line_available', pd.DataFrame())
-        df_capa_qty = master_data.get('capa_qty', pd.DataFrame())
-        df_material_qty = material_data.get('material_qty', pd.DataFrame())
-        df_material_item = material_data.get('material_item', pd.DataFrame())
-        df_material_equal = material_data.get('material_equal', pd.DataFrame())
+        raw_mat = None
+        if not (key_matq in dfs and key_mati in dfs and key_mate in dfs):
+            raw_mat = safe_operation(load_file, 'Error loading material file', material_file_path)
+
+        raw_dem = None
+        if key_dem not in dfs:
+            raw_dem = safe_operation(load_file, 'Error loading demand file', demand_file_path)
+
+        df_demand = dfs.get(key_dem, (raw_dem or {}).get('demand', pd.DataFrame()))
+        df_due_lt = dfs.get(key_due, (raw_master or {}).get('due_LT', pd.DataFrame()))
+        df_line_available = dfs.get(key_line, (raw_master or {}).get('line_available', pd.DataFrame()))
+        df_capa_qty = dfs.get(key_cap, (raw_master or {}).get('capa_qty', pd.DataFrame()))
+        df_material_qty = dfs.get(key_matq, (raw_mat or {}).get('material_qty', pd.DataFrame()))
+        df_material_item = dfs.get(key_mati, (raw_mat or {}).get('material_item', pd.DataFrame()))
+        df_material_equal = dfs.get(key_mate, (raw_mat or {}).get('material_equal', pd.DataFrame()))
 
         if any(df.empty for df in [df_demand, df_due_lt, df_line_available, df_capa_qty,
-                                df_material_qty, df_material_item]) :
+                                   df_material_qty, df_material_item]) :
             return None
         
         try :

@@ -246,45 +246,6 @@ class DataTableComponent:
                         lambda item: DataTableComponent._on_item_changed(container, item, file_path, sheet_name)
                     )
         return container
-    
-    """
-    셀 더블 클릭 시 호출
-    """
-    @staticmethod
-    def _on_cell_changed(container, table, row, col, file_path, sheet_name):
-        if not hasattr(container, '_current_edit_info'):
-            return
-        
-        info = container._current_edit_info
-        
-        if 'row' not in info or 'col' not in info or 'old_value' not in info:
-            return
-        
-        if info['row'] != row or info['col'] != col:
-            return
-        
-        item = table.item(row, col)
-        
-        if not item:
-            return
-        
-        new_value = item.text()
-        old_value = info['old_value']
-        
-        if new_value != old_value:
-            command = DataCommand(
-                file_path=file_path,
-                sheet_name=sheet_name,
-                row=row,
-                col=col,
-                old_value=old_value,
-                new_value=new_value,
-                update_callback=lambda fp, sn, r, c, v: DataTableComponent._update_cell_value(table, r, c, v)
-            )
-            
-            undo_redo_manager.execute_command(command)
-        
-        container._current_edit_info = {}
 
     """
     셀 값이 변경 되었을 때 호출

@@ -109,13 +109,10 @@ class DataInputPage(QWidget) :
             }}
         """)
 
-        run_btn = QPushButton("Run")
-        run_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        run_btn.setFixedSize(w(100), h(40))  # 버튼 크기 고정
-        run_btn.setStyleSheet(f"""
+        self.run_btn_enabled_style = f"""
             QPushButton {{
-                background-color: #1428A0; 
-                color: white; 
+                background-color: #1428A0;
+                color: white;
                 border: none;
                 border-radius: 5px;
                 font-family: {button_font};
@@ -127,17 +124,32 @@ class DataInputPage(QWidget) :
             QPushButton:pressed {{
                 background-color: #0062cc;
             }}
-        """)
+        """
+        self.run_btn_disabled_style = f"""
+            QPushButton {{
+                background-color: #AAAAAA;
+                color: #666666;
+                border: none;
+                border-radius: 5px;
+                font-family: {button_font};
+                font-size: {f(16)}px;
+            }}
+        """
+
+        self.run_btn = QPushButton("Run")
+        self.run_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        self.run_btn.setFixedSize(w(100), h(40))  # 버튼 크기 고정
+        self.run_btn.setStyleSheet(self.run_btn_enabled_style)
 
         # 버튼 클릭 이벤트 연결
-        run_btn.clicked.connect(self.on_run_clicked)
+        self.run_btn.clicked.connect(self.on_run_clicked)
         save_btn.clicked.connect(self.on_save_clicked)
 
         # 레이아웃에 위젯 추가 (타이틀, 스트레치, 버튼들)
         title_row_layout.addWidget(title_label)
         title_row_layout.addStretch(1)  # 타이틀과 버튼 사이에 신축성 있는 공간 추가
         title_row_layout.addWidget(save_btn)
-        title_row_layout.addWidget(run_btn)
+        title_row_layout.addWidget(self.run_btn)
 
         # top_container_layout에 title_row 추가
         top_container_layout.addWidget(title_row)
@@ -283,6 +295,8 @@ class DataInputPage(QWidget) :
 
         self.file_explorer.file_or_sheet_selected.connect(
             self.sidebar_manager.on_file_or_sheet_selected)
+        
+        self.parameter_component.show_failures.connect(self.on_failures_updated)
 
     """
     날짜 범위가 변경되면 시그널 발생
@@ -486,7 +500,11 @@ class DataInputPage(QWidget) :
     파일 분석 실행
     """
     def run_combined_analysis(self) :
-        failures = run_allocation()
+        failures = {}  
+        pre_failures = run_allocation()
+        print(pre_failures)
+        if pre_failures:
+            failures.update(pre_failures)
 
         item_plan_retention, rmc_plan_retention,df_result = calc_plan_retention()
         if item_plan_retention is not None:
@@ -628,7 +646,7 @@ class DataInputPage(QWidget) :
                         except Exception as e :
                             continue
 
-                    failures['materials'] = material_failures
+                    # failures['materials'] = material_failures
 
                 if material_analyzer.material_df is not None and not material_analyzer.material_df.empty :
                     negative_stock_materials = {}
@@ -646,8 +664,8 @@ class DataInputPage(QWidget) :
                                 'stock': stock
                             })
                         negative_stock_materials['Current'] = current_materials
-                    if negative_stock_materials :
-                        failures['materials_negative_stock'] = negative_stock_materials
+                    # if negative_stock_materials :
+                    #     failures['materials_negative_stock'] = negative_stock_materials
             else :
                 print('failed material analysis')
         except Exception as e :
@@ -870,3 +888,16 @@ class DataInputPage(QWidget) :
         if vertical_splitter:
             vertical_splitter.setSizes([1,0])
         self.check_vertical_splitter()
+    
+    """failures에 데이터가 있으면 버튼 비활성화"""
+    def on_failures_updated(self, failures: dict):
+        print(failures)
+        has_any = any(
+            v not in (None, [], {}, '')
+            for v in failures.values()
+        )
+        self.run_btn.setEnabled(not has_any)
+        if has_any:
+            self.run_btn.setStyleSheet(self.run_btn_disabled_style)
+        else:
+            self.run_btn.setStyleSheet(self.run_btn_enabled_style)

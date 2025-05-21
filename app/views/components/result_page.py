@@ -89,7 +89,7 @@ class ResultPage(QWidget):
         # Import 버튼 (새로 추가)
         import_btn = QPushButton()
         import_btn.setText("Import")
-        import_btn.setFixedSize(130, 40)
+        import_btn.setFixedSize(w(100), h(40))
         import_btn.setCursor(QCursor(Qt.PointingHandCursor))
         import_btn.clicked.connect(self.load_result_file)  # 위에서 작성한 메서드 연결
         import_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
