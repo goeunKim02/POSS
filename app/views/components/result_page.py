@@ -89,7 +89,7 @@ class ResultPage(QWidget):
         # Import 버튼 (새로 추가)
         import_btn = QPushButton()
         import_btn.setText("Import")
-        import_btn.setFixedSize(130, 40)
+        import_btn.setFixedSize(w(100), h(40))
         import_btn.setCursor(QCursor(Qt.PointingHandCursor))
         import_btn.clicked.connect(self.load_result_file)  # 위에서 작성한 메서드 연결
         import_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
@@ -153,16 +153,15 @@ class ResultPage(QWidget):
         # =============== 1. KPI Score 섹션 ===============
         kpi_frame = QFrame()
         kpi_frame.setFrameShape(QFrame.StyledPanel)
-        kpi_frame.setStyleSheet("background-color: white; border:2px solid #cccccc;")
+        kpi_frame.setStyleSheet(f"background-color: white; border:2px solid #cccccc;")
 
         kpi_layout = QGridLayout(kpi_frame)
-        kpi_layout.setContentsMargins(10, 10, 10, 10)
-        kpi_layout.setSpacing(10)
+        kpi_layout.setContentsMargins(0, 10, 0, 0)
+        kpi_layout.setSpacing(0)
 
         # KPI 제목
         kpi_title = QLabel("KPI Score")
-        kpi_title.setFont(QFont("Arial", 14, QFont.Bold))
-        kpi_title.setStyleSheet("color: #333; border: none;")
+        kpi_title.setStyleSheet(f"color: #333; border: none; font-family: {bold_font}; font-size: {f(14)}px; font-weight: bold; margin-left: {w(10)}px")
         kpi_layout.addWidget(kpi_title)
 
         # KPI 위젯 영역 (계산된 점수들이 들어갈 공간)
@@ -220,13 +219,19 @@ class ResultPage(QWidget):
 
         error_layout.addWidget(self.error_scroll_area)
 
-        # 위쪽 수평 스플리터에 KPI와 Status 섹션 추가
+        # 스플리터에 위젯 추가
         right_top_horizontal_splitter.addWidget(kpi_frame)
         right_top_horizontal_splitter.addWidget(error_frame)
 
-        # KPI와 Status의 비율 설정 
-        right_top_horizontal_splitter.setStretchFactor(0, 2)
-        right_top_horizontal_splitter.setStretchFactor(1, 3)
+        # # 스트레치 팩터 설정
+        # right_top_horizontal_splitter.setStretchFactor(0, 1)
+        # right_top_horizontal_splitter.setStretchFactor(1, 1)
+        #
+        # # 지연 후 1:1 비율 강제 적용
+        # QTimer.singleShot(100, lambda: right_top_horizontal_splitter.setSizes([1, 1]))
+
+        # 직접 픽셀 크기 지정 (1:1 비율)
+        right_top_horizontal_splitter.setSizes([500, 500])  # 적절한 값으로 조정
    
         # =============== 3. 오른쪽 하단 섹션 : 지표 탭 ===============
         right_bottom_frame = QFrame()
@@ -1086,8 +1091,6 @@ class ResultPage(QWidget):
         base_scores = self.kpi_score.calculate_all_scores()
         print(f"base_scores : {base_scores}")
         
-        # 새로운 KpiScoreWidget에 Base 점수 설정
-        self.kpi_widget.update_scores(base_scores=base_scores)
 
         # 조정이 있다면 adjust 점수 표시
         has_user_adjustments = False
@@ -1131,6 +1134,8 @@ class ResultPage(QWidget):
                         
                         print(f"KPI 점수 업데이트 (조정 있음): Base={base_scores}, Adjust={adjust_scores}")
                     else:
+                        # 새로운 KpiScoreWidget에 Base 점수 설정
+                        self.kpi_widget.update_scores(base_scores=base_scores)
                         print("조정 없음: KPI Adjust 점수 표시하지 않음")
             except Exception as e:
                 print(f"조정 여부 확인 중 오류: {str(e)}")

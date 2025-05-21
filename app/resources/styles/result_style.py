@@ -12,6 +12,7 @@ class ResultStyles:
             background-color: white;
             border-radius: 0;
             margin-top: 0px;
+        }}
     """
 
     ACTIVE_BUTTON_STYLE = """

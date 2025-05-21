@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt
 from app.utils.item_key_manager import ItemKeyManager
+from app.resources.fonts.font_manager import font_manager
 
 """
 조정 시 에러 메세지 관리 클래스
@@ -124,7 +125,7 @@ class AdjErrorManager():
                 super().__init__()
                 self.error_info = error_info
                 self.navigate_callback = navigate_callback
-                
+
             def mousePressEvent(self, event):
                 if event.button() == Qt.LeftButton:
                     self.navigate_callback(self.error_info)
@@ -133,47 +134,43 @@ class AdjErrorManager():
         widget = ClickableErrorFrame(error_info, self.navigate_callback)
         widget.setStyleSheet("""
             QFrame {
-                background-color: #FFF5F5;
-                border: 3px solid #FEB2B2;
-                border-radius: 5px;
-                padding: 3px;
-                margin: 3px;
-                min-height: 10px;
+                background-color: white;
+                border: none;
+                border-bottom: 1px solid #F0F0F0;
             }
             QFrame:hover {
-                background-color: #FFE9E9;
-                border-color: #FF8888;
+                background-color: #F8F9FA;
             }
         """)
 
         layout = QVBoxLayout(widget)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.setSpacing(1)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(4)
 
         item_info = error_info['item_info']
         item_location_text = f"Item: {item_info.get('Item', 'N/A')} | Line: {item_info.get('Line', 'N/A')}, Time: {item_info.get('Time', 'N/A')}"
-
+        
         item_location_label = QLabel(item_location_text)
-        item_location_label.setStyleSheet("""
-            font-weight: bold; 
-            color: #333;
-            font-size: 12px;
-            border: none;
+        item_location_label.setStyleSheet(f"""
+            font-size: 11px;
+            color: #666666;
+            font-family: {font_manager.get_just_font("SamsungOne-700").family()};
             background: transparent;
-            margin: 0px;
-            padding: 0px;
+            border: none;
         """)
         item_location_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(item_location_label)
 
+        # 두 번째 줄: 에러 메시지
         message_label = QLabel(error_info['message'])
         message_label.setWordWrap(True)
-        message_label.setStyleSheet("""
-            color: #D53030; 
-            font-size: 11px;
+        message_label.setStyleSheet(f"""
+            font-size: 12px;
+            color: #E74C3C;
             font-weight: 500;
-            border: none;
+            font-family: {font_manager.get_just_font("SamsungOne-700").family()};
             background: transparent;
+            border: none;
         """)
         message_label.setAttribute(Qt.WA_TransparentForMouseEvents)
         layout.addWidget(message_label)

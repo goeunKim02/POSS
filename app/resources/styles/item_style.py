@@ -85,4 +85,64 @@ class ItemStyle:
     PRE_ASSIGNED_SHORTAGE_SHIPMENT_HOVER_STYLE = HOVER_STYLE
 
     # 검색 시 포커스 스타일
-    SEARCH_FOCUSED_STYLE = SELECTED_STYLE
+    SEARCH_FOCUSED_STYLE = f"""
+        QFrame {{
+            background-color: #E3F2FD;
+            border: 1px solid #DEE2E6;
+            border-radius: 0px;
+            padding: 5px 5px 5px 5px;
+            margin: 2px;
+        }}
+        QLabel {{
+            font-weight: normal;
+            font-family: {normal_font};
+            color: #3498DB;
+        }}
+    """
+
+    # 검색 결과 호버 스타일 - 테두리로 강조
+    SEARCH_FOCUSED_HOVER_STYLE = f"""
+        QFrame {{
+            background-color: #EBF5FB;
+            border: 1px solid #3498DB;
+            border-radius: 0px;
+            padding: 5px 5px 5px 5px;
+            margin: 2px;
+        }}
+        QLabel {{
+            font-weight: normal;
+            font-family: {normal_font};
+            color: #3498DB;
+        }}
+    """
+    # 현재 선택된 검색 결과 스타일
+    SEARCH_SELECTED_STYLE = f"""
+        QFrame {{
+            background-color: #D4E6F1;
+            border: 2px solid #3498DB;
+            border-radius: 0px;
+            padding: 5px 5px 5px 5px;
+            margin: 1px;
+        }}
+        QLabel {{
+            font-weight: bold;
+            font-family: {normal_font};
+            color: #2E86C1;
+        }}
+    """
+
+    # 현재 검색 결과를 위한 특별 강조 스타일
+    SEARCH_CURRENT_STYLE = f"""
+        QFrame {{
+            background-color: #AED6F1;
+            border: 2px solid #3498DB;
+            border-radius: 0px;
+            padding: 5px 5px 5px 5px;
+            margin: 1px;
+        }}
+        QLabel {{
+            font-weight: bold;
+            font-family: {normal_font};
+            color: #2874A6;
+        }}
+    """
