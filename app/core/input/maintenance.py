@@ -156,9 +156,10 @@ def calc_plan_retention():
     df_demand_item_mfg = df_demand.groupby('Item')['MFG'].sum()
     df_result['Next item MFG'] = 0
     for idx,row in df_result.iterrows():
-        max_mfg = min(row['Qty'],df_demand_item_mfg[row['Item']])
-        df_result.loc[idx,'Next item MFG'] = int(round(max_mfg))
-        df_demand_item_mfg[row['Item']] -= int(round(max_mfg))
+        if row['Item'] in df_demand_item_mfg.index:
+            max_mfg = min(row['Qty'],df_demand_item_mfg[row['Item']])
+            df_result.loc[idx,'Next item MFG'] = int(round(max_mfg))
+            df_demand_item_mfg[row['Item']] -= int(round(max_mfg))
 
     sum_item_qty = df_result['Next item MFG'].sum()
     item_plan_retention = sum_item_qty/sum_qty
@@ -168,9 +169,10 @@ def calc_plan_retention():
     df_result['Next RMC MFG'] = 0
     for idx,row in df_result.iterrows():
         rmc = row['Item'][3:11]
-        max_mfg = min(row['Qty'],df_demand_rmc_mfg[rmc])
-        df_result.loc[idx,'Next RMC MFG'] = int(round(max_mfg))
-        df_demand_rmc_mfg[rmc] -= int(round(max_mfg))
+        if rmc in df_demand_rmc_mfg.index:
+            max_mfg = min(row['Qty'],df_demand_rmc_mfg[rmc])
+            df_result.loc[idx,'Next RMC MFG'] = int(round(max_mfg))
+            df_demand_rmc_mfg[rmc] -= int(round(max_mfg))
 
     sum_rmc_qty = df_result['Next RMC MFG'].sum()
     rmc_plan_retention = sum_rmc_qty/sum_qty
