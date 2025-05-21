@@ -891,7 +891,6 @@ class DataInputPage(QWidget) :
     
     """failures에 데이터가 있으면 버튼 비활성화"""
     def on_failures_updated(self, failures: dict):
-        print(failures)
         has_any = any(
             v not in (None, [], {}, '')
             for v in failures.values()
