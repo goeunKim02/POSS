@@ -292,10 +292,10 @@ class ResultPage(QWidget):
         print("ResultPage: 컨트롤러 설정됨")
 
         # defer_signal=True일 경우, 연결을 나중에 호출자가 수동으로 하도록 함
-        if not defer_signal:
-            if hasattr(controller.model, 'modelDataChanged'):
-                controller.model.modelDataChanged.connect(self.update_ui_from_model)
-                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
+        # if not defer_signal:
+        #     if hasattr(controller.model, 'modelDataChanged'):
+        #         controller.model.modelDataChanged.connect(self.update_ui_from_model)
+        #         print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
 
     """
     Material 탭 콘텐츠 생성

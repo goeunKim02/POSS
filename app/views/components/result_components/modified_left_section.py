@@ -1807,7 +1807,4 @@ class ModifiedLeftSection(QWidget):
     def trigger_shipment_analysis(self):
         if hasattr(self, 'parent_page') and self.parent_page:
             if hasattr(self.parent_page, 'analyze_shipment_with_current_data'):
-                current_data = self.extract_dataframe()
-                if current_data is not None and not current_data.empty:
-                    print("왼쪽 테이블 변경 감지 - 출하 분석 실행")
-                    self.parent_page.analyze_shipment_with_current_data(current_data)
+                self.parent_page.analyze_shipment_with_current_data(self.data)

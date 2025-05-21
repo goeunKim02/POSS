@@ -25,10 +25,21 @@ class MaterialWidget(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+
+        self.no_data_message = QLabel("Please load the data")
+        self.no_data_message.setAlignment(Qt.AlignCenter)
+        self.no_data_message.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            background-color: transparent;
+            border: none;
+        """)
+        layout.addWidget(self.no_data_message)
         
         # 자재 부족 테이블 생성
         self.create_shortage_table()
         layout.addWidget(self.shortage_items_table)
+        self.shortage_items_table.hide()
     
     """자재 부족 테이블 생성"""
     def create_shortage_table(self):
@@ -132,7 +143,10 @@ class MaterialWidget(QWidget):
     def run_analysis(self, result_data=None):
         if result_data is None:
             return
-            
+        
+        self.no_data_message.hide()
+        self.shortage_items_table.show()
+        
         self.result_data = result_data
         
         # 분석기가 없는 경우 생성

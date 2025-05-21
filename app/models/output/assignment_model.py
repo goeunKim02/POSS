@@ -85,6 +85,7 @@ class AssignmentModel(QObject):
             mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
             # 기존 방식으로 찾기
+            print("[DEBUG] update qty -> create_mask_for item")
             mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
     
         if not mask.any():
@@ -110,6 +111,7 @@ class AssignmentModel(QObject):
         self.dataModified.emit(has_changes)
         
         # 4) 모든 처리 후 뷰에 데이터 변경 알림
+        print("update qty modelDataChanged emit")
         self.modelDataChanged.emit()
 
         return True
@@ -123,6 +125,8 @@ class AssignmentModel(QObject):
             mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
             # 기존 방식으로 찾기
+            print("[DEBUG] move item -> create_mask_for item")
+
             mask = ItemKeyManager.create_mask_for_item(self._df, old_line, old_time, item)
 
         if not mask.any():
@@ -138,6 +142,8 @@ class AssignmentModel(QObject):
         self._df.loc[mask, 'Time'] = int(new_time)
 
         # 뷰에 데이터 변경 알림
+        print("move item modelDataChanged emit")
+
         self.modelDataChanged.emit()
 
         # 이동 후 검증 실행
@@ -212,6 +218,8 @@ class AssignmentModel(QObject):
         if item_id:
             mask = ItemKeyManager.create_mask_by_id(self._df, item_id)
         else:
+            print("[DEBUG] get_itme_ qty -> create_mask_for item")
+
             mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
 
         if mask.any():
@@ -248,6 +256,8 @@ class AssignmentModel(QObject):
         
         # 복사 작업이 아닌 경우 기존 아이템 업데이트
         if not (full_data and full_data.get('_is_copy')):
+            print("[DEBUG] add new item -> create_mask_for item")
+
             mask = ItemKeyManager.create_mask_for_item(self._df, line, time, item)
             if mask.any():
                 self._df.loc[mask, 'Qty'] = qty
@@ -261,6 +271,8 @@ class AssignmentModel(QObject):
         self.dataModified.emit(has_changes)
         
         # 뷰에 데이터 변경 알림
+        print("add new item modelDataChanged emit")
+
         self.modelDataChanged.emit()
 
         return True

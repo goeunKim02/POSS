@@ -152,12 +152,7 @@ class AdjustmentController(QObject):
     def _on_model_data_changed(self):
         print("Controller: Model 변경 감지, View 업데이트")
         df = self.model.get_dataframe()
-        
-        # left_section(View) 업데이트
-        self.view.update_from_model(df)
-        print("Controller: view.update_from_model 업데이트")
-        
-
+    
         if self.result_page:
             if hasattr(self.result_page, 'update_ui_from_model'):
                 print("Controller: result_page.update_ui_from_model 호출")

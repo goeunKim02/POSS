@@ -24,9 +24,21 @@ class SummaryWidget(QWidget):
         main_layout.setContentsMargins(10, 10 ,10, 10)
         main_layout.setSpacing(10)
 
+        self.no_data_message = QLabel("Please load the data")
+        self.no_data_message.setAlignment(Qt.AlignCenter)
+        self.no_data_message.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            background-color: transparent;
+            border: none;
+        """)
+
         # 요약 테이블
         self.summary_table = CustomTable()
+        main_layout.addWidget(self.no_data_message)
         main_layout.addWidget(self.summary_table)
+        self.summary_table.hide()
+
 
 
     """
@@ -98,9 +110,11 @@ class SummaryWidget(QWidget):
     """
     def run_analysis(self, result_data):
         if result_data is None or result_data.empty:
-            self.clear_table()
+            self.no_data_message.show()
+            self.summary_table.hide()
             return
-        
+        self.no_data_message.hide()
+        self.summary_table.show()
         try:
             # 1. 라인별 생산능력 및 가동률 
             self.load_line_capacity_data()
