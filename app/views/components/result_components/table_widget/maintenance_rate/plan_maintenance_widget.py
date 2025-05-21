@@ -29,7 +29,7 @@ class PlanMaintenanceWidget(QWidget):
         self.main_layout.setSpacing(5)
         
         # 데이터 없음 메시지
-        self.no_data_message = QLabel("Please Load to Data")
+        self.no_data_message = QLabel("Please load the data")
         self.no_data_message.setAlignment(Qt.AlignCenter)
         self.no_data_message.setStyleSheet("""
             font-size: 28px;

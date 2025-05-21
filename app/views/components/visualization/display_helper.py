@@ -99,7 +99,7 @@ class DisplayHelper:
 
         else:
             # 데이터가 없으면 메세지 표시
-            canvas.axes.text(0.5, 0.5, "Please Load to Data", ha="center", va="center", fontsize=20)
+            canvas.axes.text(0.5, 0.5, "Please load the data", ha="center", va="center", fontsize=20)
             canvas.axes.set_frame_on(False)
             canvas.axes.get_xaxis().set_visible(False)
             canvas.axes.get_yaxis().set_visible(False)

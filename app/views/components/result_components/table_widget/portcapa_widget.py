@@ -1,6 +1,7 @@
 import pandas as pd
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTableWidget, QTableWidgetItem,QSizePolicy,QHeaderView)
 from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtCore import Qt
 from app.models.common.file_store import FilePaths, DataStore
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -15,6 +16,15 @@ class PortCapaWidget(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
         self.main_layout = QVBoxLayout(self)
 
+        self.no_data_message = QLabel("Please load the data")
+        self.no_data_message.setAlignment(Qt.AlignCenter)
+        self.no_data_message.setStyleSheet("""
+            font-size: 28px;
+            font-weight: bold;
+            background-color: transparent;
+            border: none;
+        """)
+
         headers = ['Tosite_port','SOP','Port_Capa','Rate(%)']
         self.table = CustomTable(headers=headers)
 
@@ -23,27 +33,28 @@ class PortCapaWidget(QWidget):
         self.chart_layout = QVBoxLayout(self.chart_container)
 
         # 레이아웃 추가
+        self.main_layout.addWidget(self.no_data_message)
         self.main_layout.addWidget(self.chart_container)
         self.main_layout.addWidget(self.table)
-
+        self.chart_container.hide()
+        self.table.hide()
 
     """port capa 테이블 그리는 함수"""
     def render_table(self):
-        self.organized_dataframes = DataStore.get("organized_dataframes",{})
-        if not self.organized_dataframes:
-            self.table.set_message("No data available")
+        self.dataframes = DataStore.get("dataframes",{})
+        if not self.dataframes:
             return 
-        
-        self.df_demand = self.organized_dataframes['demand'].get('demand',pd.DataFrame())
-        if self.df_demand.empty:
-            self.table.set_message("No demand data available")
+        self.df_demand = next((value for key, value in self.dataframes.items() if ':demand' in key), None)
+        if self.df_demand is None:
             return 
-        
-        self.df_capa_outgoing = self.organized_dataframes['master'].get('capa_outgoing',pd.DataFrame())
-        if self.df_capa_outgoing.empty:
-            self.table.set_message("No capacity data available")
+        self.df_capa_outgoing = next((value for key, value in self.dataframes.items() if ':capa_outgoing' in key), None)
+        if self.df_capa_outgoing is None:
             return
         
+        self.no_data_message.hide()
+        self.chart_container.show()
+        self.table.show()
+
         # 화면에 그릴 테이블의 데이터프레임 만들기 
         self.df_demand = self.df_demand.drop(columns='Item').groupby('To_Site').sum()
         df_portcapa = self.df_capa_outgoing.drop_duplicates(subset='Tosite_port').reset_index(drop=True)

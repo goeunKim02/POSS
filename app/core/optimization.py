@@ -228,6 +228,7 @@ class Optimization:
         print('총 수요량',df_demand_item['MFG'].sum())
         print(f"\n총 생산량: {sum(x[d, l, t].value() for d in demands for l in self.line for t in self.time)}개")
         print('목적함수 값',pulp.value(model.objective))
+        print("제약조건 개수:", len(model.constraints)) 
         total_production = pulp.value(pulp.lpSum([x[(d, l, t)] for (d, l, t) in x]))
         for (idx,row) in self.df_capa_portion.iterrows():
             line_production =pulp.value(pulp.lpSum([x[(d, l, t)] for (d, l, t) in x if l.startswith(row['name'])]))

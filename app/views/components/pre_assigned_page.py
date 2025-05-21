@@ -90,7 +90,7 @@ class PlanningPage(QWidget):
         left_l.setSpacing(6)
 
         # placeholder: 데이터 없을 때 문구
-        self.placeholder_label = QLabel("Please Load to Data", self.leftContainer)
+        self.placeholder_label = QLabel("Please load the data", self.leftContainer)
         self.placeholder_label.setAlignment(Qt.AlignCenter)
         self.placeholder_label.setStyleSheet(f"font-family:{normal_font}; font-size:{f(16)}px;")
         left_l.addWidget(self.placeholder_label, stretch=1)
@@ -208,7 +208,7 @@ class PlanningPage(QWidget):
             self.placeholder_label.deleteLater()
             del self.placeholder_label
 
-        self.placeholder_label = QLabel("Please Load to Data", self.leftContainer)
+        self.placeholder_label = QLabel("Please load the data", self.leftContainer)
         self.placeholder_label.setAlignment(Qt.AlignCenter)
         self.placeholder_label.setStyleSheet(
             f"font-family:{normal_font}; font-size:{f(16)}px;"
