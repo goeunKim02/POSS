@@ -1087,7 +1087,7 @@ class ResultPage(QWidget):
         print(f"base_scores : {base_scores}")
         
         # 새로운 KpiScoreWidget에 Base 점수 설정
-        self.kpi_widget.update_scores(base_scores=base_scores)
+
 
         # 조정이 있다면 adjust 점수 표시
         has_user_adjustments = False
@@ -1131,6 +1131,7 @@ class ResultPage(QWidget):
                         
                         print(f"KPI 점수 업데이트 (조정 있음): Base={base_scores}, Adjust={adjust_scores}")
                     else:
+                        self.kpi_widget.update_scores(base_scores=base_scores)
                         print("조정 없음: KPI Adjust 점수 표시하지 않음")
             except Exception as e:
                 print(f"조정 여부 확인 중 오류: {str(e)}")
