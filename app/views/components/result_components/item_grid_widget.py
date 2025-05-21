@@ -357,28 +357,42 @@ class ItemGridWidget(QWidget):
     """
     검색 후 선택된 항목이 보이도록 스크롤 이동
     """
+
     def ensure_item_visible(self, container, item):
+        """아이템이 보이도록 스크롤 위치 조정"""
         if not container or not item:
             return
 
-        try :
-            for row_idx, row_containers in enumerate(self.containers):
-                if container in row_containers:
-                    col_idx = row_containers.index(container)
+        try:
+            # 스크롤 영역 확인
+            if not hasattr(self, 'scroll_area'):
+                print("스크롤 영역이 없음")
+                return
 
-                    cell_widget = container
-                    container_pos = cell_widget.mapTo(self.scroll_content, QPoint(0, 0))
+            # 컨테이너 위치 계산
+            container_pos = container.mapTo(self.scroll_content, QPoint(0, 0))
 
-                    item_pos = item.pos()
-                    target_x = container_pos.x() + item_pos.x()
-                    target_y = container_pos.y() + item_pos.y()
+            # 아이템 위치 계산
+            item_pos = item.pos()
 
-                    self.scroll_area.horizontalScrollBar().setValue(target_x - 10)
-                    self.scroll_area.verticalScrollBar().setValue(target_y - 10)
+            # 최종 타겟 위치 계산
+            target_y = container_pos.y() + item_pos.y()
 
-                    break
+            # 스크롤바 이동
+            v_bar = self.scroll_area.verticalScrollBar()
+
+            # 아이템이 화면 중앙에 오도록 스크롤
+            viewport_height = self.scroll_area.viewport().height()
+            target_y = max(0, target_y - (viewport_height // 2) + (item.height() // 2))
+
+            # 스크롤 위치 설정
+            v_bar.setValue(target_y)
+            print(f"스크롤 완료 - 아이템 Y: {item_pos.y()}, 대상 Y: {target_y}")
+
         except Exception as e:
-            print(f"아이템 스크롤 오류: {str(e)}")
+            print(f"아이템 스크롤 중 오류: {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     """
     컨테이너 가시성 업데이트
