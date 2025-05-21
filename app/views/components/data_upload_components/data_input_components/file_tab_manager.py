@@ -72,9 +72,6 @@ class FileTabManager:
 
         self.stacked_widget.setContentsMargins(0, 0, 0, 0)
 
-    # 파일 탭 제목 설정 부분을 수정
-    # file_tab_manager.py 파일의 create_new_tab 메서드에서 수정할 부분
-
     def create_new_tab(self, file_path, sheet_name):
         """새 탭 생성"""
         try:
@@ -126,9 +123,9 @@ class FileTabManager:
             # 데이터 테이블 생성
             data_container = DataTableComponent.create_table_from_dataframe(
                 df,
-                file_path = file_path,
-                sheet_name = sheet_name,
-                filter_component = filter_component
+                file_path=file_path,
+                sheet_name=sheet_name,
+                filter_component=filter_component
             )
             data_container.setStyleSheet("border-radius: 10px; background-color: white; border:3px solid #cccccc;")
             tab_layout.addWidget(data_container)
@@ -151,7 +148,18 @@ class FileTabManager:
             original_df_dict = DataStore.get('original_dataframes', {})
 
             if key not in original_df_dict:
-                original_df_dict[key] = df.copy()
+                # 인덱스와 컬럼을 명시적으로 복사하여 저장
+                try:
+                    # 깊은 복사 수행
+                    original_df = pd.DataFrame(df.values.copy(),
+                                               index=df.index.copy(),
+                                               columns=df.columns.copy())
+                    original_df_dict[key] = original_df
+                except Exception as e:
+                    print(f"원본 데이터프레임 저장 중 오류: {e}")
+                    # 오류 발생 시 기본 복사 시도
+                    original_df_dict[key] = df.copy()
+
                 DataStore.set('original_dataframes', original_df_dict)
 
             return tab_index
@@ -370,7 +378,8 @@ class FileTabManager:
         empty_layout.setContentsMargins(0, 0, 0, 0)
         empty_msg = QLabel("Select a file or sheet from the sidebar to open a new tab")
         empty_msg.setAlignment(Qt.AlignCenter)
-        empty_msg.setStyleSheet(f"color: #888; font-size: {f(24)}px; font-family: {font_manager.get_just_font("SamsungSharpSans-Bold")}; font-weight: bold;")
+        empty_msg.setStyleSheet(
+            f"color: #888; font-size: {f(24)}px; font-family: {font_manager.get_just_font('SamsungSharpSans-Bold')}; font-weight: bold;")
         empty_layout.addWidget(empty_msg)
 
         # 위젯 추가
@@ -433,10 +442,11 @@ class FileTabManager:
                         self.parent.data_modifier.save_tab_data(current_tab_widget, file_path, sheet_name)
                         return True
         return False
-    
+
     """
     undo/redo 시 호출되는 메서드
     """
+
     def on_undo_redo_state_changed(self, can_undo, can_redo):
         if hasattr(self.parent, 'undo_btn') and hasattr(self.parent, 'redo_btn'):
             self.parent.undo_btn.setEnabled(can_undo)
@@ -445,7 +455,9 @@ class FileTabManager:
     """
     undo/redo 시 데이터 변경되었을 때 호출되는 메서드
     """
+
     def on_data_changed_by_undo_redo(self, file_path, sheet_name):
+        """undo/redo 시 데이터 변경되었을 때 호출되는 메서드"""
         all_dataframes = DataStore.get('dataframes', {})
         key = f'{file_path}:{sheet_name}' if sheet_name else file_path
 
@@ -457,11 +469,31 @@ class FileTabManager:
             if key in all_original_dataframes:
                 original_df = all_original_dataframes[key]
 
-                is_modified = not (
-                    (original_df.equals(df)) or
-                    ((pd.isna(original_df) == pd.isna(df)).all().all() and
-                     ((original_df == df) | (pd.isna(original_df) & pd.isna(df))).all().all())
-                )
+                # 데이터프레임 구조(인덱스와 컬럼) 비교
+                if not (original_df.index.equals(df.index) and original_df.columns.equals(df.columns)):
+                    print("데이터프레임 구조가 다름 (인덱스 또는 컬럼 불일치)")
+                    # 구조가 다른 경우 원본 데이터프레임 업데이트
+                    try:
+                        # 새로운 원본 데이터로 깊은 복사 수행
+                        all_original_dataframes[key] = pd.DataFrame(
+                            df.values.copy(),
+                            index=df.index.copy(),
+                            columns=df.columns.copy()
+                        )
+                        DataStore.set('original_dataframes', all_original_dataframes)
+                    except Exception as e:
+                        print(f"원본 데이터프레임 업데이트 중 오류: {e}")
+                        all_original_dataframes[key] = df.copy()
+                        DataStore.set('original_dataframes', all_original_dataframes)
+
+                    is_modified = True
+                else:
+                    try:
+                        # 구조가 같으면 값 비교
+                        is_modified = not original_df.equals(df)
+                    except Exception as e:
+                        print(f"데이터프레임 비교 중 오류 발생: {e}")
+                        is_modified = True
 
                 if is_modified:
                     if file_path not in self.parent.data_modifier.modified_data_dict:
@@ -479,7 +511,7 @@ class FileTabManager:
                             if not self.parent.data_modifier.modified_data_dict[file_path]:
                                 del self.parent.data_modifier.modified_data_dict[file_path]
 
-                    self.parent.data_modifier.update_modified_status_in_sidebar(file_path, sheet_name)
+                    self.parent.data_modifier.remove_modified_status_in_sidebar(file_path, sheet_name)
                     self.update_tab_title(file_path, sheet_name, False)
 
                 tab_key = (file_path, sheet_name)
