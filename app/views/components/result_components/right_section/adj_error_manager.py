@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QFrame
 from PyQt5.QtCore import Qt
 from app.utils.item_key_manager import ItemKeyManager
 from app.resources.fonts.font_manager import font_manager
+from app.models.common.screen_manager import *
 
 """
 조정 시 에러 메세지 관리 클래스
@@ -85,13 +86,13 @@ class AdjErrorManager():
         if not self.validation_errors:
             no_error_message = QLabel("No adjustment issues detected")
             no_error_message.setAlignment(Qt.AlignCenter)
-            no_error_message.setStyleSheet("""
-                QLabel {
+            no_error_message.setStyleSheet(f"""
+                QLabel {{
                     color: #666;
-                    font-size: 14px;
+                    font-size: {f(13)}px;
                     padding: 20px;
                     border: none;
-                }
+                }}
             """)
             self.error_display_layout.addWidget(no_error_message)
             return
@@ -152,7 +153,7 @@ class AdjErrorManager():
         
         item_location_label = QLabel(item_location_text)
         item_location_label.setStyleSheet(f"""
-            font-size: 11px;
+            font-size: {f(13)}px;
             color: #666666;
             font-family: {font_manager.get_just_font("SamsungOne-700").family()};
             background: transparent;
@@ -165,7 +166,7 @@ class AdjErrorManager():
         message_label = QLabel(error_info['message'])
         message_label.setWordWrap(True)
         message_label.setStyleSheet(f"""
-            font-size: 12px;
+            font-size: {f(13)}px;
             color: #E74C3C;
             font-weight: 500;
             font-family: {font_manager.get_just_font("SamsungOne-700").family()};
