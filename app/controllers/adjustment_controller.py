@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QObject
+from PyQt5.QtCore import QObject, QTimer
 from typing import Any, Dict
 import uuid
 import pandas as pd
@@ -207,6 +207,17 @@ class AdjustmentController(QObject):
                 self.view.parent().on_cell_moved_from_controller(item, old_data, new_data)
             
             print(f"Controller: 셀 이동 처리 완료")
+        QTimer.singleShot(200, lambda: self._ensure_item_visible(item_id))
+        print(f"셀 이동 후 스크롤 예약됨: ID={item_id}")
+
+    """아이템 ID를 기반으로 해당 아이템으로 스크롤"""
+    def _ensure_item_visible(self, item_id):
+        if not item_id or not hasattr(self.view, 'grid_widget'):
+            return
+
+        # 뷰의 _scroll_to_selected_item 메서드 호출
+        if hasattr(self.view, '_scroll_to_selected_item'):
+            self.view._scroll_to_selected_item(item_id)
         
     """
     재 모델 데이터 반환

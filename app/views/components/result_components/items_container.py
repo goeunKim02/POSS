@@ -217,9 +217,23 @@ class ItemsContainer(QWidget):
     def dragEnterEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
-            # 드래그 시작 시 인디케이터 표시
-            self.show_drop_indicator = True
-            self.drop_indicator_position = self.findDropIndex(event.pos())
+
+            # 드래그 소스 확인 - 같은 컨테이너인지 다른 컨테이너인지 판단
+            source = event.source()
+            source_container = None
+            if isinstance(source, DraggableItemLabel):
+                source_container = source.parent()
+
+            # 다른 컨테이너에서 드래그 중인 경우
+            if source_container and source_container != self:
+                # 전체 컨테이너를 인디케이터로 표시
+                self.show_drop_indicator = True
+                self.drop_indicator_position = -2  # 특수값: 전체 컨테이너 표시
+            else:
+                # 같은 컨테이너 내에서는 기존 로직 유지
+                self.show_drop_indicator = True
+                self.drop_indicator_position = self.findDropIndex(event.pos())
+
             self.update()
 
     """
@@ -232,16 +246,31 @@ class ItemsContainer(QWidget):
     """
     드래그 중 드롭 가능한 위치에 시각적 표시
     """
+
     def dragMoveEvent(self, event):
         if event.mimeData().hasText():
             event.acceptProposedAction()
-            # 드래그 중 인디케이터 위치 업데이트
-            self.drop_indicator_position = self.findDropIndex(event.pos())
+
+            # 드래그 소스 확인 - 같은 컨테이너인지 다른 컨테이너인지 판단
+            source = event.source()
+            source_container = None
+            if isinstance(source, DraggableItemLabel):
+                source_container = source.parent()
+
+            # 다른 컨테이너에서 드래그 중인 경우
+            if source_container and source_container != self:
+                # 전체 컨테이너를 인디케이터로 표시
+                self.drop_indicator_position = -2  # 특수값: 전체 컨테이너 표시
+            else:
+                # 같은 컨테이너 내에서는 기존 로직 유지
+                self.drop_indicator_position = self.findDropIndex(event.pos())
+
             self.update()
 
     """
     드롭된 위치에 해당하는 아이템 인덱스를 찾습니다.
     """
+
     def findDropIndex(self, pos):
         if not self.items:
             return 0  # 아이템이 없으면 첫 번째 위치에 삽입
@@ -332,7 +361,7 @@ class ItemsContainer(QWidget):
 
                 # 복사본 생성
                 # item_name = item_data['Item'] + "    0"
-                new_item = self.addItem(item_data['Item'], drop_index, item_data)
+                new_item = self.addItem(item_data['Item'], -1, item_data)  # 맨 뒤에 추가
 
                 # 복사본도 원본 상태 저장
                 if new_item and source_states:
@@ -348,15 +377,15 @@ class ItemsContainer(QWidget):
 
                 # 변경 이벤트 발생 (복사임을 명시)
                 copy_info = {'operation': 'copy', 'source_id': id(source)}
-                
-                # 새로운 복사 시그널 발생 
+
+                # 새로운 복사 시그널 발생
                 self.itemCopied.emit(new_item, item_data)
 
                 self.show_drop_indicator = False
                 self.update()
                 event.acceptProposedAction()
 
-                 # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
+                # 아이템 ID 추출 (new_item이 있는 경우 우선, 없으면 item_data에서)
                 item_id = None
                 if 'new_item' in locals() and new_item is not None:
                     item_id = ItemKeyManager.extract_item_id(new_item)
@@ -479,8 +508,8 @@ class ItemsContainer(QWidget):
                     # 선택 상태 확인
                     was_selected = getattr(source, 'is_selected', False)
 
-                    # 새 위치에 아이템 추가
-                    new_item = self.addItem(item_text, drop_index, item_data)
+                    # 새 위치에 아이템 추가 - 다른 컨테이너로 이동 시 맨 뒤에 추가
+                    new_item = self.addItem(item_text, -1, item_data)  # 맨 뒤에 추가(-1)
 
                     # 새 아이템에 기존 상태 설정
                     if new_item and source_states:
@@ -534,7 +563,7 @@ class ItemsContainer(QWidget):
                     source_container.remove_item(source)
             else:
                 # 새 아이템 생성 (원본이 없는 경우)
-                new_item = self.addItem(item_text, drop_index, item_data)
+                new_item = self.addItem(item_text, -1, item_data)  # 맨 뒤에 추가(-1)
                 # 새 아이템의 텍스트 업데이트
                 if new_item and hasattr(new_item, 'update_text_from_data'):
                     new_item.update_text_from_data()
@@ -553,7 +582,7 @@ class ItemsContainer(QWidget):
                 item_id = ItemKeyManager.extract_item_id(new_item)
             elif item_data is not None and '_id' in item_data:
                 item_id = item_data.get('_id')
-          
+
             self.itemsChanged.emit(item_id)
 
     """
@@ -592,11 +621,12 @@ class ItemsContainer(QWidget):
     """
     컨테이너 위젯 그리기 - 드롭 인디케이터 표시
     """
+
     def paintEvent(self, event):
         super().paintEvent(event)
 
         # 드롭 인디케이터 그리기
-        if self.show_drop_indicator and self.drop_indicator_position >= 0:
+        if self.show_drop_indicator:
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
 
@@ -605,45 +635,54 @@ class ItemsContainer(QWidget):
             pen.setWidth(2)
             painter.setPen(pen)
 
-            # 인디케이터 위치 계산
-            if self.drop_indicator_position == 0:
-                # 첫 번째 위치
-                y = 2
-            elif self.drop_indicator_position >= len(self.items):
-                # 마지막 위치
-                if len(self.items) > 0:
-                    last_item = self.items[-1]
-                    y = last_item.geometry().bottom() + 2
-                else:
-                    y = self.height() // 2
+            # 특수값(-2)인 경우: 전체 컨테이너 인디케이터
+            if self.drop_indicator_position == -2:
+                # 컨테이너 전체에 테두리 그리기
+                width = self.width() - 2
+                height = self.height() - 2
+                painter.drawRect(1, 1, width, height)
             else:
-                # 중간 위치
-                item = self.items[self.drop_indicator_position]
-                y = item.geometry().top() - 2
+                # 기존 인디케이터 로직 (아이템 사이의 선)
+                if self.drop_indicator_position >= 0:
+                    # 인디케이터 위치 계산
+                    if self.drop_indicator_position == 0:
+                        # 첫 번째 위치
+                        y = 2
+                    elif self.drop_indicator_position >= len(self.items):
+                        # 마지막 위치
+                        if len(self.items) > 0:
+                            last_item = self.items[-1]
+                            y = last_item.geometry().bottom() + 2
+                        else:
+                            y = self.height() // 2
+                    else:
+                        # 중간 위치
+                        item = self.items[self.drop_indicator_position]
+                        y = item.geometry().top() - 2
 
-            # 선 그리기
-            width = self.width() - 4  # 양쪽 여백 2픽셀씩
-            painter.drawLine(2, y, width, y)
+                    # 선 그리기
+                    width = self.width() - 4  # 양쪽 여백 2픽셀씩
+                    painter.drawLine(2, y, width, y)
 
-            # 화살표 그리기 (양쪽에 작은 삼각형)
-            arrow_size = 5
-            painter.setBrush(QColor(0, 120, 215))
+                    # 화살표 그리기 (양쪽에 작은 삼각형)
+                    arrow_size = 5
+                    painter.setBrush(QColor(0, 120, 215))
 
-            # 왼쪽 화살표
-            points_left = [
-                QPoint(2, y),
-                QPoint(2 + arrow_size, y - arrow_size),
-                QPoint(2 + arrow_size, y + arrow_size)
-            ]
-            painter.drawPolygon(points_left)
+                    # 왼쪽 화살표
+                    points_left = [
+                        QPoint(2, y),
+                        QPoint(2 + arrow_size, y - arrow_size),
+                        QPoint(2 + arrow_size, y + arrow_size)
+                    ]
+                    painter.drawPolygon(points_left)
 
-            # 오른쪽 화살표
-            points_right = [
-                QPoint(width, y),
-                QPoint(width - arrow_size, y - arrow_size),
-                QPoint(width - arrow_size, y + arrow_size)
-            ]
-            painter.drawPolygon(points_right)
+                    # 오른쪽 화살표
+                    points_right = [
+                        QPoint(width, y),
+                        QPoint(width - arrow_size, y - arrow_size),
+                        QPoint(width - arrow_size, y + arrow_size)
+                    ]
+                    painter.drawPolygon(points_right)
 
     def get_container_position(self, grid_widget):
         if not grid_widget or not hasattr(grid_widget, 'containers'):
