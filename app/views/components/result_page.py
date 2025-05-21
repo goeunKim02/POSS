@@ -225,8 +225,8 @@ class ResultPage(QWidget):
         right_top_horizontal_splitter.addWidget(error_frame)
 
         # KPI와 Status의 비율 설정 
-        right_top_horizontal_splitter.setStretchFactor(0, 2)
-        right_top_horizontal_splitter.setStretchFactor(1, 3)
+        right_top_horizontal_splitter.setStretchFactor(1, 1)
+        right_top_horizontal_splitter.setStretchFactor(1, 4)
    
         # =============== 3. 오른쪽 하단 섹션 : 지표 탭 ===============
         right_bottom_frame = QFrame()
