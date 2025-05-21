@@ -148,6 +148,73 @@ class PandasModel(QAbstractTableModel):
             # 데이터프레임 업데이트 - 명시적 형변환
             self._df.iloc[row, col] = converted_value
             self.dataChanged.emit(index, index)
+
+            # 엔터키 후 원본과 비교하여 상태 업데이트
+            from app.models.common.file_store import DataStore
+
+            # 모델이 속한 테이블 뷰 찾기
+            parent = self.parent()
+            while parent is not None:
+                if hasattr(parent, 'table_view') and hasattr(parent, 'edited_cells'):
+                    # EnhancedTableFilterComponent 인스턴스 찾음
+                    filter_component = parent
+
+                    # 원본 데이터와 비교
+                    if hasattr(filter_component, '_file_path') and hasattr(filter_component, '_sheet_name'):
+                        original_df_dict = DataStore.get('original_dataframes', {})
+                        key = f'{filter_component._file_path}:{filter_component._sheet_name}' if filter_component._sheet_name else filter_component._file_path
+                        original_df = original_df_dict.get(key)
+
+                        if original_df is not None:
+                            try:
+                                if 0 <= row < len(original_df) and 0 <= col < len(original_df.columns):
+                                    original_value = original_df.iloc[row, col]
+
+                                    # 원본 값과 현재 값 문자열 변환하여 비교
+                                    if pd.isna(original_value):
+                                        original_str = ""
+                                    else:
+                                        original_str = str(original_value)
+
+                                    current_str = str(converted_value)
+
+                                    # 원본과 동일하면 수정 목록에서 제거
+                                    if original_str == current_str:
+                                        if (row, col) in filter_component.edited_cells:
+                                            del filter_component.edited_cells[(row, col)]
+                                            print(f"셀 ({row}, {col})이 원본 값으로 되돌아감")
+
+                                            # 모든 수정 사항이 제거되었는지 확인
+                                            if not filter_component.edited_cells:
+                                                # 데이터 입력 페이지 찾기
+                                                data_input_page = None
+                                                p = filter_component.parent()
+                                                while p is not None:
+                                                    if hasattr(p,
+                                                               '__class__') and 'DataInputPage' in p.__class__.__name__:
+                                                        data_input_page = p
+                                                        break
+                                                    p = p.parent()
+
+                                                # 수정 표시 제거
+                                                if data_input_page:
+                                                    data_input_page.data_modifier.remove_modified_status_in_sidebar(
+                                                        filter_component._file_path, filter_component._sheet_name)
+                                                    data_input_page.tab_manager.update_tab_title(
+                                                        filter_component._file_path, filter_component._sheet_name,
+                                                        False)
+
+                                    # 데이터 변경 시그널 발생
+                                    filter_component.data_changed.emit()
+                            except Exception as e:
+                                print(f"원본 데이터 비교 오류: {e}")
+                    break
+
+                if hasattr(parent, 'parent'):
+                    parent = parent.parent()
+                else:
+                    parent = None
+
             return True
         except Exception as e:
             print("데이터 수정 오류:", e)
