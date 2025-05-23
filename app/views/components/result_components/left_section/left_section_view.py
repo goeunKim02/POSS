@@ -7,22 +7,18 @@ from .item_grid_widget import ItemGridWidget
 from .item_position_manager import ItemPositionManager
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 from app.models.common.file_store import FilePaths
-from .legend_widget import LegendWidget
-from .filter_widget import FilterWidget
-from .search_widget import SearchWidget
+from .controls.legend_widget import LegendWidget
+from .controls.filter_widget import FilterWidget
+from .controls.search_widget import SearchWidget
 from app.utils.fileHandler import load_file
 from app.utils.item_key_manager import ItemKeyManager
 from app.resources.fonts.font_manager import font_manager
 from app.models.common.screen_manager import *
+from app.views.components.result_components.base.base_section import BaseSection
 
-class ModifiedLeftSection(QWidget):
-    # 데이터 변경을 통합해서 한 번만 내보내는 시그널
-    viewDataChanged = pyqtSignal(pd.DataFrame)  # 수정 후 변경된 DataFrame을 전달
-    item_selected = pyqtSignal(object, object)
-    itemModified = pyqtSignal(object, dict, dict)
-    cellMoved = pyqtSignal(object, dict, dict)
-    validation_error_occured = pyqtSignal(dict, str)
-    validation_error_resolved = pyqtSignal(dict)
+class LeftSectionView(BaseSection):
+    itemEdited = pyqtSignal(dict)    # 아이템 수정  ex: {'type': 'qty', 'item': 'A', 'value': 30}
+    itemMoved = pyqtSignal(dict)     # 아이템 이동  ex: {'item': 'A', 'from': (L1, T1), 'to': (L2, T2)}
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,35 +32,35 @@ class ModifiedLeftSection(QWidget):
         self.shipment_failure_items = {}  # 출하 실패 아이템 저장
         self.init_ui()
 
-        # MVC 컴포넌트 초기화
-        self.controller = None
-        self.validator = None
+        # # MVC 컴포넌트 초기화
+        # self.controller = None
+        # self.validator = None
 
-        # 아이템 이동을 위한 정보 저장
-        self.row_headers = []
+        # # 아이템 이동을 위한 정보 저장
+        # self.row_headers = []
 
-        # 검색 관련 변수
-        self.all_items = []
-        self.search_results = []
-        self.current_result_index = -1
+        # # 검색 관련 변수
+        # self.all_items = []
+        # self.search_results = []
+        # self.current_result_index = -1
 
-        if not hasattr(self, 'current_selected_item'):
-            self.current_selected_item = None
-        if not hasattr(self, 'current_selected_container'):
-            self.current_selected_container = None
+        # if not hasattr(self, 'current_selected_item'):
+        #     self.current_selected_item = None
+        # if not hasattr(self, 'current_selected_container'):
+        #     self.current_selected_container = None
 
-        # 필터 상태 저장 
-        self.current_filter_states = {
-            'shortage': False,
-            'shipment': False,  
-            'pre_assigned': False
-        }
+        # # 필터 상태 저장 
+        # self.current_filter_states = {
+        #     'shortage': False,
+        #     'shipment': False,  
+        #     'pre_assigned': False
+        # }
 
-        # 엑셀 스타일 필터 상태 저장 (새로 추가된 부분)
-        self.current_excel_filter_states = {
-            'line': {},
-            'project': {}
-        }
+        # # 엑셀 스타일 필터 상태 저장 (새로 추가된 부분)
+        # self.current_excel_filter_states = {
+        #     'line': {},
+        #     'project': {}
+        # }
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -978,7 +974,7 @@ class ModifiedLeftSection(QWidget):
         # 모델 변경 시그널 연결
         if self.controller and hasattr(self.controller.model, 'modelDataChanged'):
             self.controller.model.modelDataChanged.connect(self.update_from_model)
-            print("ModifiedLeftSection: 모델 변경 시그널 연결 완료")
+            print("LeftSectionView: 모델 변경 시그널 연결 완료")
 
     """
     검증기 설정
@@ -1609,7 +1605,7 @@ class ModifiedLeftSection(QWidget):
     """
 
     def update_from_model(self, model_df=None):
-        print("ModifiedLeftSection: update_from_model 호출")
+        print("LeftSectionView: update_from_model 호출")
 
         current_selected_item_id = None
         if self.current_selected_item and hasattr(self.current_selected_item, 'item_data'):

@@ -180,7 +180,7 @@ class ItemEditDialog(QDialog):
     """
     def get_available_lines(self):
         try:
-            # 부모 위젯 계층을 탐색하여 ModifiedLeftSection 또는 row_headers를 가진 위젯 찾기
+            # 부모 위젯 계층을 탐색하여 LeftSectionView 또는 row_headers를 가진 위젯 찾기
             parent = self.parent()
             while parent:
                 if hasattr(parent, 'row_headers') and parent.row_headers:

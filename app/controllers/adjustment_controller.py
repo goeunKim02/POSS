@@ -17,7 +17,7 @@ class AdjustmentController(QObject):
     def __init__(self, model: Any, view: Any, error_manager):
         super().__init__()
         self.model = model
-        self.view = view  # ModifiedLeftSection
+        self.view = view  # LeftSectionView
         self.error_manager = error_manager
         self.result_page = None  # 명시적으로 초기화 (result_page는 외부에서 설정)
         

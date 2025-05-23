@@ -11,7 +11,7 @@ from .pre_assigned_components.summary import SummaryWidget
 from .pre_assigned_components.calendar_header import CalendarHeader
 from .pre_assigned_components.weekly_calendar import WeeklyCalendar
 from .pre_assigned_components.project_group_dialog import ProjectGroupDialog
-from .result_components.filter_widget import FilterWidget
+from .result_components.controls.filter_widget import FilterWidget
 from app.utils.fileHandler import create_from_master
 from app.utils.export_manager import ExportManager
 from app.models.common.screen_manager import *

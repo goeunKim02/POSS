@@ -171,7 +171,6 @@ class RightSectionManager(BaseSection):
     """
     def setup_widget_reference(self):
         if self.result_page:
-            # summary 위젯
             # Summary 위젯
             summary_tab = self.tab_manager.get_tab_instance('Summary')
             if summary_tab and hasattr(summary_tab, 'summary_widget'):

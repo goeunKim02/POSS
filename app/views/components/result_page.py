@@ -12,9 +12,9 @@ from app.analysis.output.daily_capa_utilization import CapaUtilization
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
 from app.resources.styles.result_style import ResultStyles 
-from app.views.components.result_components.modified_left_section import ModifiedLeftSection
+from app.views.components.result_components.left_section.left_section_view import LeftSectionView
 from app.views.components.result_components.right_section.table_widget.split_allocation_widget import SplitAllocationWidget
-from app.views.components.result_components.items_container import ItemsContainer
+from app.views.components.result_components.left_section.grid.items_container import ItemsContainer
 from app.views.components.result_components.right_section.table_widget.split_allocation_widget import SplitAllocationWidget
 from app.models.output.assignment_model import AssignmentModel
 from app.controllers.adjustment_controller import AdjustmentController
@@ -25,7 +25,6 @@ from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
 from .result_components.base.base_section import SignalManager
 from .result_components.right_section.right_section_manager import RightSectionManager
-from .result_components.modified_left_section import ModifiedLeftSection  # 추후 변경
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -54,17 +53,6 @@ class ResultPage(QWidget):
         self.shortage_items_table = None
         self.viz_canvases = []
 
-        # self.capa_ratio_data = None
-        # self.data_changed_count = 0
-        # self.utilization_data = None # 가동률 데이터 저장 변수
-        # self.material_analyzer = None  # 자재 부족량 분석기 추가
-        # self.pre_assigned_items = set()  # 사전할당된 아이템 저장
-
-        # # KPI Calculator 
-        # self.kpi_score = KpiScore(self.main_window)
-        # self.kpi_calculator = None
-        # self.demand_df = None  
-
         self.init_ui()
         print("\n==== ResultPage: connect_signals 호출 시작 ====")
         self.connect_signals()
@@ -90,7 +78,7 @@ class ResultPage(QWidget):
         self.main_splitter.setContentsMargins(10, 10, 10, 10)
 
         # 왼쪽 섹션
-        self.left_section = ModifiedLeftSection(self)
+        self.left_section = LeftSectionView(self)
         self.main_splitter.addWidget(self.left_section)
 
         # 오른쪽 섹션 
@@ -206,6 +194,9 @@ class ResultPage(QWidget):
         
         # 오른쪽 섹션 업데이트
         self.right_section.update_data(data)
+
+        # 왼쪽 섹션 업데이트
+        self.left_section.on_item_data_changed(data)
  
     
 
