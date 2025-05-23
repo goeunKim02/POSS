@@ -1,26 +1,21 @@
 from PyQt5.QtWidgets import (QMessageBox, QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
-                             QFrame, QSplitter, QStackedWidget, QTableWidget, QHeaderView,
-                            QScrollArea, QGridLayout, QFileDialog)
+                             QFrame, QSplitter, QTableWidget, QHeaderView,
+                            QScrollArea, QFileDialog)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
-from PyQt5.QtGui import QCursor, QFont
+from PyQt5.QtGui import QCursor
 import pandas as pd
 import os
 
-from app.models.common.file_store import DataStore, FilePaths
-from app.analysis.output.material_shortage_analysis import MaterialShortageAnalyzer
+from app.models.common.file_store import FilePaths
 from ..components.visualization.visualization_updater import VisualizationUpdater
 from app.analysis.output.daily_capa_utilization import CapaUtilization
-from app.analysis.output.capa_ratio import CapaRatioAnalyzer
 from app.utils.export_manager import ExportManager
 from app.core.output.adjustment_validator import PlanAdjustmentValidator
 from app.resources.styles.result_style import ResultStyles 
 from app.views.components.result_components.modified_left_section import ModifiedLeftSection
-from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
+from app.views.components.result_components.right_section.table_widget.split_allocation_widget import SplitAllocationWidget
 from app.views.components.result_components.items_container import ItemsContainer
-from app.views.components.result_components.right_section.adj_error_manager import AdjErrorManager
-from app.views.components.result_components.right_section.tab_manager import TabManager
-from app.views.components.result_components.table_widget.split_allocation_widget import SplitAllocationWidget
-from app.views.components.result_components.right_section.kpi_widget import KpiWidget
+from app.views.components.result_components.right_section.table_widget.split_allocation_widget import SplitAllocationWidget
 from app.models.output.assignment_model import AssignmentModel
 from app.controllers.adjustment_controller import AdjustmentController
 from app.models.common.screen_manager import *
@@ -28,6 +23,9 @@ from app.resources.fonts.font_manager import font_manager
 from app.analysis.output.kpi_score import KpiScore
 from app.views.components.common.enhanced_message_box import EnhancedMessageBox
 
+from .result_components.base.base_section import SignalManager
+from .result_components.right_section.right_section_manager import RightSectionManager
+from .result_components.modified_left_section import ModifiedLeftSection  # 추후 변경
 
 class ResultPage(QWidget):
     export_requested = pyqtSignal(str)
@@ -35,18 +33,16 @@ class ResultPage(QWidget):
     def __init__(self, main_window):
         super().__init__()
         self.main_window = main_window
+
         self.result_data = None # 결과 데이터 저장 변수
-        self.capa_ratio_data = None
-        self.data_changed_count = 0
-        self.utilization_data = None # 가동률 데이터 저장 변수
-        self.material_analyzer = None  # 자재 부족량 분석기 추가
-        self.pre_assigned_items = set()  # 사전할당된 아이템 저장
         self.controller = None 
 
-        # KPI Calculator 
-        self.kpi_score = KpiScore(self.main_window)
-        self.kpi_calculator = None
-        self.demand_df = None  
+        # 섹션 매니저
+        self.left_section = None
+        self.right_section = None
+
+        # 시그널 관리자 
+        self.signal_manager = SignalManager()
 
         # 위젯 참조 (호환성 유지)
         self.summary_widget = None
@@ -58,6 +54,16 @@ class ResultPage(QWidget):
         self.shortage_items_table = None
         self.viz_canvases = []
 
+        # self.capa_ratio_data = None
+        # self.data_changed_count = 0
+        # self.utilization_data = None # 가동률 데이터 저장 변수
+        # self.material_analyzer = None  # 자재 부족량 분석기 추가
+        # self.pre_assigned_items = set()  # 사전할당된 아이템 저장
+
+        # # KPI Calculator 
+        # self.kpi_score = KpiScore(self.main_window)
+        # self.kpi_calculator = None
+        # self.demand_df = None  
 
         self.init_ui()
         print("\n==== ResultPage: connect_signals 호출 시작 ====")
@@ -68,32 +74,49 @@ class ResultPage(QWidget):
         bold_font = font_manager.get_just_font("SamsungSharpSans-Bold").family()
         normal_font = font_manager.get_just_font("SamsungOne-700").family()
 
-        # 레이아웃 설정
-        result_layout = QVBoxLayout(self)
-        result_layout.setContentsMargins(0, 0, 0, 0)
-        result_layout.setSpacing(0)
+        # 메인 레이아웃
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
         # 타이틀 프레임
+        title_frame = self.create_title_frame(bold_font)
+        main_layout.addWidget(title_frame)
+
+        # 메인 스플리터 (왼쪽 | 오른쪽)
+        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.main_splitter.setHandleWidth(10)
+        self.main_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
+        self.main_splitter.setContentsMargins(10, 10, 10, 10)
+
+        # 왼쪽 섹션
+        self.left_section = ModifiedLeftSection(self)
+        self.main_splitter.addWidget(self.left_section)
+
+        # 오른쪽 섹션 
+        self.right_section = RightSectionManager(self)
+        self.main_splitter.addWidget(self.right_section)
+
+        # 비율 설정 (왼쪽 80%, 오른쪽 20%)
+        self.main_splitter.setStretchFactor(0, 8)
+        self.main_splitter.setStretchFactor(1, 2)
+
+        main_layout.addWidget(self.main_splitter, 1)
+
+    """
+    타이틀 프레임 생성
+    """
+    def create_title_frame(self, bold_font):
         title_frame = QFrame()
         title_frame.setStyleSheet("background-color: transparent;")
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(10, 10, 10, 0)
         title_layout.setSpacing(w(10))
-        title_layout.setAlignment(Qt.AlignVCenter)
 
-        # 타이틀 레이블
+        # 타이틀
         title_label = QLabel("Result")
         title_label.setStyleSheet(f"font-family: {bold_font}; font-size: {f(21)}px; font-weight: 900;")
-        title_label.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-
-        # Import 버튼 (새로 추가)
-        import_btn = QPushButton()
-        import_btn.setText("Import")
-        import_btn.setFixedSize(w(100), h(40))
-        import_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        import_btn.clicked.connect(self.load_result_file)  # 위에서 작성한 메서드 연결
-        import_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
-
+        
         # Export 버튼
         export_btn = QPushButton("Export")
         export_btn.setCursor(QCursor(Qt.PointingHandCursor))
@@ -101,192 +124,90 @@ class ResultPage(QWidget):
         export_btn.clicked.connect(self.export_results)
         export_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
 
-        # Report 버튼
-        report_btn = QPushButton("Report")
-        report_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        report_btn.setFixedSize(w(100), h(40))
-        report_btn.setStyleSheet(ResultStyles.EXPORT_BUTTON_STYLE)
-
         title_layout.addWidget(title_label)
         title_layout.addStretch(1)
-        title_layout.addWidget(import_btn)
         title_layout.addWidget(export_btn)
-        title_layout.addWidget(report_btn)
 
-        # 타이틀 프레임을 메인 레이아웃에 추가
-        result_layout.addWidget(title_frame)
+        return title_frame
 
-        # 수평 스플리터 생성 (왼쪽 | 오른쪽)
-        main_horizontal_splitter = QSplitter(Qt.Horizontal)
-        main_horizontal_splitter.setHandleWidth(10)
-        main_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
-        main_horizontal_splitter.setContentsMargins(10, 10, 10, 10)
+    """
+    시그널 연결 : 중앙집중식 관리
+    """
+    def connect_signals(self):
+        # 왼쪽 섹션 시그널 
+        if self.left_section:
+            self.signal_manager.connect(
+                self.left_section.viewDataChanged,
+                self.on_data_changed
+            )
 
-        # =============== 왼쪽 컨테이너 ===============
-        left_frame = QFrame()
-        left_frame.setFrameShape(QFrame.StyledPanel)
-        left_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+            # 오른쪽 섹션에 왼쪽 섹션 참조 전달
+            self.right_section.set_left_section(self.left_section)
 
-        left_layout = QVBoxLayout(left_frame)
-        left_layout.setContentsMargins(10, 10, 10, 10)
+        # 오른쪽 섹션 시그널
+        if self.right_section:
+            self.signal_manager.connect(
+                self.right_section.data_changed,
+                self.on_right_section_data_changed
+            )
 
-        # 드래그 가능한 테이블 위젯 추가
-        self.left_section = ModifiedLeftSection()
-        self.left_section.parent_page = self  # 명시적 참조 설정
+            self.signal_manager.connect(
+                self.right_section.kpi_updated,
+                self.on_kpi_updated
+            )
 
-        # 시그널 연결
-        self.left_section.viewDataChanged.connect(self.on_data_changed)  # 데이터 변경 시그널 연결
+    """
+    최적화 결과 설정
+    """
+    def set_optimization_result(self, results):
+        # 결과 데이터 추출
+        assignment_result = results.get('assignment_result')
+        pre_assigned_items = results.get('pre_assigned_items', [])
 
-        left_layout.addWidget(self.left_section)
+        if not assignment_result:
+            return False
         
-        # =============== 오른쪽 컨테이너 (3개 섹션 분할) ===============
-        # 1) 수직 스플리터로 위/아래 분할
-        right_vertical_splitter = QSplitter(Qt.Vertical)
-        right_vertical_splitter.setHandleWidth(10)
-        right_vertical_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
-
-        # 2) 위쪽 영역을 수평 스플리터로 좌/우 분할
-        right_top_horizontal_splitter = QSplitter(Qt.Horizontal)
-        right_top_horizontal_splitter.setHandleWidth(5)
-        right_top_horizontal_splitter.setStyleSheet("QSplitter::handle { background-color: #F5F5F5; }")
-
-        # =============== 1. KPI Score 섹션 ===============
-        kpi_frame = QFrame()
-        kpi_frame.setFrameShape(QFrame.StyledPanel)
-        kpi_frame.setStyleSheet(f"background-color: white; border:2px solid #cccccc;")
-
-        kpi_layout = QGridLayout(kpi_frame)
-        kpi_layout.setContentsMargins(0, 10, 0, 0)
-        kpi_layout.setSpacing(0)
-
-        # KPI 제목
-        kpi_title = QLabel("KPI Score")
-        kpi_title.setStyleSheet(f"color: #333; border: none; font-family: {bold_font}; font-size: {f(14)}px; font-weight: bold; margin-left: {w(10)}px")
-        kpi_layout.addWidget(kpi_title)
-
-        # KPI 위젯 영역 (계산된 점수들이 들어갈 공간)
-        self.kpi_widget = KpiWidget()
+        # ─── MVC 구조 초기화 ───
+        # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
+        validator = PlanAdjustmentValidator(assignment_result,self)
         
-        # KPI 라벨들을 생성하고 저장 (나중에 업데이트용)
-        self.kpi_labels = {}
-        kpi_layout.addWidget(self.kpi_widget)
-
-        # 1) demand_df 로드
-        self.demand_df = DataStore.get("organized_dataframes", {}).get("demand", pd.DataFrame())
-
-        # 2) KPI 위젯과 데이터 연결
-        self.kpi_score.set_kpi_widget(self.kpi_widget)
-        self.kpi_score.set_data(
-            result_data=self.result_data or pd.DataFrame(),
-            material_anaylsis=self.material_analyzer,
-            demand_df=self.demand_df
-        )
-
-        # 3) Base KPI 갱신
-        self._refresh_base_kpi()
-
-        # =============== 2. 조정 에러 메세지 섹션 ===============
-        error_frame = QFrame()
-        error_frame.setFrameShape(QFrame.StyledPanel)
-        error_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
+        # 2) AssignmentModel 생성
+        model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
         
-        error_layout = QVBoxLayout(error_frame)
-        error_layout.setContentsMargins(0, 0, 0, 0)
-        error_layout.setSpacing(10)
-
-        # 에러 위젯
-        self.error_display_widget = QWidget()
-        self.error_display_layout = QVBoxLayout(self.error_display_widget)
-        self.error_display_layout.setContentsMargins(5, 5, 5, 5)
-        self.error_display_layout.setSpacing(5)
-        self.error_display_layout.setAlignment(Qt.AlignTop)
-
-        # 스크롤 가능한 에러 영역
-        self.error_scroll_area = QScrollArea()
-        self.error_scroll_area.setWidgetResizable(True)
-        self.error_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.error_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.error_scroll_area.setWidget(self.error_display_widget)
-        self.error_scroll_area.setStyleSheet("border: none;")
-
-        # 에러 매니저 초기화
-        self.error_manager = AdjErrorManager(
-            parent_widget=self,
-            error_scroll_area=self.error_scroll_area,
-            navigate_callback=self.navigate_to_error_item,
-            left_section=self.left_section
-        )
-
-        error_layout.addWidget(self.error_scroll_area)
-
-        # 스플리터에 위젯 추가
-        right_top_horizontal_splitter.addWidget(kpi_frame)
-        right_top_horizontal_splitter.addWidget(error_frame)
-
-        # # 스트레치 팩터 설정
-        # right_top_horizontal_splitter.setStretchFactor(0, 1)
-        # right_top_horizontal_splitter.setStretchFactor(1, 1)
-        #
-        # # 지연 후 1:1 비율 강제 적용
-        # QTimer.singleShot(100, lambda: right_top_horizontal_splitter.setSizes([1, 1]))
-
-        # 직접 픽셀 크기 지정 (1:1 비율)
-        right_top_horizontal_splitter.setSizes([500, 500])  # 적절한 값으로 조정
-   
-        # =============== 3. 오른쪽 하단 섹션 : 지표 탭 ===============
-        right_bottom_frame = QFrame()
-        right_bottom_frame.setFrameShape(QFrame.StyledPanel)
-        right_bottom_frame.setStyleSheet("background-color: white; border: 2px solid #cccccc;")
-
-        right_bottom_layout = QVBoxLayout(right_bottom_frame)
-
-        # 1) TabManager 인스턴스화
-        self.tab_manager = TabManager(self)
-
-        # 2) 스택 위젯 생성
-        self.viz_stack = QStackedWidget()
-        self.viz_stack.setStyleSheet("border: none;")
-
-        # 3) stack_widget 연결 - *반드시* create_tab_buttons 전에
-        self.tab_manager.set_stack_widget(self.viz_stack)
-
-        # 4) 버튼 레이아웃 준비
-        button_group_layout = QHBoxLayout()
-        button_group_layout.setSpacing(5)
-        button_group_layout.setContentsMargins(10, 10, 10, 5)
-        button_group_layout.setAlignment(Qt.AlignCenter)  # 중앙 정렬
-
-        # 5) 탭 버튼/페이지 생성
-        self.tab_manager.create_tab_buttons(button_group_layout)
-        self.viz_buttons = self.tab_manager.buttons    # 호환성을 위해 기존 참조 유지
-
-        # 위젯 참조 설정 (호환성 유지)
-        self._setup_widget_references()
-
-        # 6) 레이아웃에 버튼과 스택 추가
-        right_bottom_layout.addLayout(button_group_layout)
-        right_bottom_layout.addWidget(self.viz_stack)
-
-        # 오른쪽 수직 스플리터에 상단과 하단 프레임 추가
-        right_vertical_splitter.addWidget(right_top_horizontal_splitter)
-        right_vertical_splitter.addWidget(right_bottom_frame)
+        # 3) AdjustmentController 생성 (error_manager 주입)
+        controller = AdjustmentController(model, self.left_section, self.error_manager)
         
-        # 상단과 하단의 비율 설정 
-        # right_vertical_splitter.setSizes([250, 750])
-        right_vertical_splitter.setStretchFactor(0, 3)  # 상단 
-        right_vertical_splitter.setStretchFactor(1, 7)  # 하단 
+        print("set_optimization_result: 컨트롤러 생성 완료")
+        
+        # 4) 컨트롤러 설정
+        controller.set_result_page(self)
+        
+        # 5) 컨트롤러를 클래스에 저장하고 ResultPage에 설정
+        self.controller = controller
+        self.left_section.set_controller(controller)
+        self.right_section.set_controller(controller)
+        
+        # 초기화
+        controller.initialize_views()
+        controller.connect_signals()
+        
+        print("MVC 초기화 완료")
+        return True
+    
+    """
+    데이터 변경 처리
+    """
+    def on_data_changed(self, data):
+        print("result_page: 데이터 변경 감지")
+        self.result_data = data
 
-        # 메인 수평 스플리터에 왼쪽과 오른쪽 프레임 추가
-        main_horizontal_splitter.addWidget(left_frame)
-        main_horizontal_splitter.addWidget(right_vertical_splitter)
-
-        # 왼쪽과 오른쪽의 비율 설정 
-        main_horizontal_splitter.setStretchFactor(0, 8)  # 왼쪽 80%
-        main_horizontal_splitter.setStretchFactor(1, 2)  # 오른쪽 20%
-
-        # 스플리터를 메인 레이아웃에 추가
-        result_layout.addWidget(main_horizontal_splitter, 1)  # stretch factor 1로 설정하여 남은 공간 모두 차지
-
+        if data is None or data.empyt:
+            return
+        
+        # 오른쪽 섹션 업데이트
+        self.right_section.update_data(data)
+ 
+    
 
     """
     컨트롤러 설정
@@ -376,27 +297,6 @@ class ResultPage(QWidget):
         if capa_tab:
             self.viz_canvases = capa_tab.get_canvases()
     
-    """
-    이벤트 시그널 연결
-    """
-    def connect_signals(self):
-        if hasattr(self, 'controller') and self.controller:
-            # MVC 컨트롤러가 있는 경우: 컨트롤러만 사용
-            print("MVC 모드: 컨트롤러를 통한 처리만 활성화")
-            
-            # 모델 변경 -> UI 업데이트 연결 설정 (필요한 기능)
-            if hasattr(self.controller.model, 'modelDataChanged'):
-                self.controller.model.modelDataChanged.connect(self.update_ui_from_model)
-                print("모델 modelDataChanged 시그널 -> UI 업데이트 연결")
-        else:
-            # MVC 컨트롤러가 없는 경우: 레거시 직접 처리 방식 사용
-            print("레거시 모드: 직접 처리 방식 활성화")
-            if hasattr(self, 'left_section') and hasattr(self.left_section, 'viewDataChanged'):
-                self.left_section.viewDataChanged.connect(self.on_data_changed)
-            
-            # 컨트롤러가 없을 때만 레거시 이벤트 핸들러 연결
-            if hasattr(self, 'left_section') and hasattr(self.left_section, 'itemModified'):
-                self.left_section.itemModified.connect(self.on_item_data_changed_legacy)
                         
     """
     시각화 페이지 전환 및 버튼 스타일 업데이트
@@ -513,107 +413,6 @@ class ResultPage(QWidget):
         # 왼쪽 섹션에 출하 실패 정보 전달
         if hasattr(self, 'left_section'):
             self.left_section.set_shipment_failure_items(failure_items)
-
-    """
-    데이터가 변경되었을 때 호출되는 메서드
-    데이터프레임을 분석하여 시각화 업데이트
-    """
-    def on_data_changed(self, data):
-        print("on_data_changed 호출됨 - 데이터 변경 감지")
-        self.result_data = data
-
-        # 위젯 참조가 없으면 다시 설정
-        if self.plan_maintenance_widget is None:
-            self._setup_widget_references()
-
-        # 자재 부족 분석
-        if data is not None and not data.empty:
-            print("데이터 로드 후 자재 부족 분석 시행")
-            if hasattr(self, 'material_widget') and self.material_widget:
-                self.material_widget.run_analysis(data)
-                self.material_analyzer = self.material_widget.get_material_analyzer()
-            else:
-                try:
-                    if not hasattr(self, 'material_analyzer') or self.material_analyzer is None:
-                        self.material_analyzer = MaterialShortageAnalyzer()
-                    self.material_analyzer.analyze_material_shortage(data)
-                except Exception as e:
-                    print(f"초기 자재 부족 분석 중 오류 :{e}")
-
-        # 상태 업데이트
-        if self.pre_assigned_items:
-            self.update_left_widget_pre_assigned_status(self.pre_assigned_items)
-        if self.material_analyzer and self.material_analyzer.shortage_results:
-            self.update_left_widget_shortage_status(self.material_analyzer.shortage_results)
-        if hasattr(self.left_section, 'shipment_failure_items') and self.left_section.shipment_failure_items:
-            self.left_section.apply_shipment_failure_status()
-
-        try:
-            if data is not None and not data.empty:
-                # kpi 업데이트
-                self.update_kpi_scores() 
-                self._refresh_base_kpi()  # 조정여부 확인
-
-                # 계획 유지율 업데이트
-                if self.plan_maintenance_widget:
-                    start_date, end_date = self.main_window.data_input_page.date_selector.get_date_range()
-                    self.plan_maintenance_widget.set_data(data, start_date, end_date)
-
-                # 할당 업데이트
-                if self.split_allocation_widget:
-                    self.split_allocation_widget.run_analysis(data)
-
-                # 요약 업데이트
-                if self.summary_widget:
-                    self.summary_widget.run_analysis(data)
-
-                # === 핵심: 비교차트 조건 분기 ===
-                has_user_adjustments = False
-                if self.controller and hasattr(self.controller, 'model'):
-                    original_df = self.controller.model._original_df  # 원본 데이터
-                    current_df = self.controller.model._df  # 현재(조정된) 데이터
-                    
-                    if original_df is not None and current_df is not None:
-                        # 주요 컬럼 비교로 조정 여부 확인
-                        key_columns = ['Line', 'Time', 'Item', 'Qty']
-                        for col in key_columns:
-                            if col in original_df.columns and col in current_df.columns:
-                                if not original_df[col].equals(current_df[col]):
-                                    has_user_adjustments = True
-                                    print(f"시각화 업데이트: 조정 감지 - '{col}' 컬럼 변경됨")
-                                    break
-                
-                # 조정 여부에 따라 시각화 데이터 설정
-                if has_user_adjustments:
-                    if self.controller and self.controller.model:
-                        comparison_df = self.controller.model.get_comparison_dataframe()
-                        
-                        if comparison_df and 'original' in comparison_df and 'adjusted' in comparison_df:
-                            self.capa_ratio_data = {
-                                'original': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['original']),
-                                'adjusted': CapaRatioAnalyzer.analyze_capa_ratio(comparison_df['adjusted'])
-                            }
-                            self.utilization_data = {
-                                'original': CapaUtilization.analyze_utilization(comparison_df['original']),
-                                'adjusted': CapaUtilization.analyze_utilization(comparison_df['adjusted'])
-                            }
-                else:
-                    self.capa_ratio_data = CapaRatioAnalyzer.analyze_capa_ratio(data_df=data, is_initial=True)
-                    self.utilization_data = CapaUtilization.analyze_utilization(data)
-
-                # 시각화 갱신
-                self.update_all_visualizations()
-
-            else:
-                print("빈 데이터프레임")
-                self.capa_ratio_data = {}
-                self.utilization_data = {}
-
-        except Exception as e:
-            print(f"데이터 분석 중 오류 발생: {e}")
-            import traceback
-            traceback.print_exc()
-    
 
     """
     모든 시각화 차트 업데이트
@@ -763,68 +562,6 @@ class ResultPage(QWidget):
                             item.set_shortage_status(False)
 
 
-    """
-    1. 최적화 결과를 사전할당 정보와 함께 설정
-    -> left_section으로 전달
-    """
-    def set_optimization_result(self, results):
-        # 변수 초기화 - 중복 호출 방지 위한 추적
-        self.data_changed_count = 0
-        print("1. data_changed_count 초기화 완료")
-        
-        # 결과 데이터 추출
-        assignment_result = results.get('assignment_result')
-        pre_assigned_items = results.get('pre_assigned_items', [])
-        optimization_metadata = results.get('optimization_metadata', {})
-        
-        # 사전할당 아이템 저장 
-        self.pre_assigned_items = set(pre_assigned_items)
-        
-        print("2. set_optimization_result : 컨트롤러 초기화 시작")
-        
-        # ─── MVC 구조 초기화 ───
-        # 1) 기존 PlanAdjustmentValidator를 재사용해 validator 생성
-        validator = PlanAdjustmentValidator(assignment_result,self)
-        
-        # 2) AssignmentModel 생성
-        model = AssignmentModel(pd.DataFrame(assignment_result), list(self.pre_assigned_items), validator)
-        
-        # 3) AdjustmentController 생성 (error_manager 주입)
-        controller = AdjustmentController(model, self.left_section, self.error_manager)
-        
-        print("3. 컨트롤러 생성 완료")
-        
-        # 4) ResultPage 참조 설정
-        controller.set_result_page(self)
-        print("4. 컨트롤러에 ResultPage 참조 전달")
-        
-        # 5) 컨트롤러를 클래스에 저장하고 ResultPage에 설정
-        self.controller = controller
-        self.set_controller(controller)
-        
-        # 6) Left Section에 validator와 controller 저장 (fallback용)
-        self.left_section.set_validator(validator)
-        self.left_section.set_controller(controller)
-        
-        print("5. 컨트롤러 세팅 완료")
-        
-        # 7) 초기 데이터 로드 (시그널 연결 전에)
-        controller.initialize_views()
-        print("6. 초기 데이터 설정 완료")
-        
-        # 8) 시그널 연결 (초기화 후 마지막에 수행)
-        print("7. 시그널 연결 시작")
-        controller.connect_signals()
-        print("8. 시그널 연결 완료")
-        
-        # 메타데이터 필요시 - 추후 삭제
-        self.optimization_metadata = optimization_metadata
-        
-        print(f"MVC 초기화 완료: Controller={controller}, Model={model}, Validator={validator}")
-        print(f"최적화 결과 설정 완료: {len(pre_assigned_items)}개 사전할당 아이템")
-        
-        return True
- 
     """
     왼쪽 위젯에 사전할당 상태 적용
     """
